@@ -1,0 +1,2 @@
+# no dependencies: the server is standard library only.
+# this file exists so Render detects a Python service.

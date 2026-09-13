@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: ns2-coop
+    runtime: python
+    plan: free
+    buildCommand: ""
+    startCommand: python server.py
+    healthCheckPath: /healthz

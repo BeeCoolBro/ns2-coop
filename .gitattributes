@@ -1,0 +1,5 @@
+# Render runs Linux; keep everything LF in the repo regardless of the checkout.
+* text=auto eol=lf
+*.html text eol=lf
+*.py   text eol=lf
+*.yaml text eol=lf
