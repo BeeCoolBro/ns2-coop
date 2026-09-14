@@ -449,6 +449,7 @@ button{font-family:var(--f2);color:inherit;background:none;border:none;cursor:po
       <button class="btn pri" id="btnCampaign" style="font-size:13px;padding:13px 30px">▶ CAMPAIGN</button>
       <button class="btn" id="btnArmoury2">🛠 ARMOURY</button>
       <button class="btn" id="btnCodex2">📖 CODEX</button>
+      <button class="btn" id="btnTransfer">⇄ TRANSFER SAVE</button>
       <button class="btn" id="btnCoop">👥 CO-OP</button>
       <button class="btn" id="btnWipe">RESET PROGRESS</button>
     </div>
@@ -573,6 +574,24 @@ button{font-family:var(--f2);color:inherit;background:none;border:none;cursor:po
 </div>
 
 <!-- ══════════ CODEX ══════════ -->
+<div class="ov" id="ovSave">
+  <div class="ovBox" style="max-width:560px">
+    <div class="ovT" style="font-size:clamp(20px,3.4vw,32px);color:var(--v)">TRANSFER SAVE</div>
+    <div class="ovS" id="saveHint">Copy this code and paste it into the game on another browser or machine.</div>
+    <textarea id="saveTA" spellcheck="false" readonly
+      style="width:100%;height:132px;margin-top:16px;padding:11px;border-radius:9px;resize:vertical;
+             border:1px solid var(--line);background:rgba(0,0,0,.45);color:var(--tx);
+             font-family:var(--f1);font-size:11px;letter-spacing:.04em;line-height:1.5;word-break:break-all"></textarea>
+    <div id="saveMsg" style="min-height:18px;margin-top:9px;font-size:12px;font-weight:600;color:var(--txm)"></div>
+    <div class="ovBtns">
+      <button class="btn pri" id="btnSaveCopy">📋 COPY</button>
+      <button class="btn" id="btnSavePasteMode">⇩ PASTE A CODE</button>
+      <button class="btn go" id="btnSaveApply" style="display:none">✓ LOAD THIS SAVE</button>
+      <button class="btn" id="btnSaveClose">CLOSE</button>
+    </div>
+  </div>
+</div>
+
 <div class="ov" id="ovCodex">
   <div class="ovBox" style="max-width:760px">
     <div class="ovT" style="font-size:clamp(22px,4vw,38px);color:var(--y)">CODEX</div>
@@ -727,20 +746,22 @@ scatter: {
 inferno: {
   name:'INFERNO', role:'Flamethrower', color:'#ff4d2d', cost:150, kind:'cone',
   draw:7,
-  dmg:1.75, cd:3, range:175, arc:.45, splash:0, shots:1, air:false, ground:true, burn:9,
+  dmg:1, cd:3, range:175, arc:.45, splash:0, shots:1, air:false, ground:true, burn:9,
+  // note: cd is decorative here -- tickCone runs every frame, so this tower
+  // applies `dmg` 60 times a second. Read its damage with that in mind.
   desc:'Continuous flame cone. Sets ground targets alight.',
   paths:[
     {name:'NAPALM', color:'#ffd633', ups:[
-      {n:'Thickened Fuel', c:160, d:'+90% burn damage, burns last longer.',f:t=>{t.burn*=1.9;t.burnT=1.6}},
-      {n:'Napalm Pools',   c:330, d:'Leaves burning ground behind.',       f:t=>{t.pools=1;t.dmg*=1.2}},
-      {n:'Firestorm',      c:760, d:'+45% range, much wider cone.',        f:t=>{t.range*=1.45;t.arc*=1.5;t.dmg*=1.35}},
-      {n:'HELLFIRE',       c:2300,d:'Huge lingering infernos, +150% dmg.', f:t=>{t.dmg*=2.5;t.burn*=2.4;t.pools=2}},
+      {n:'Thickened Fuel', c:160, d:'+60% burn damage, burns last longer.',f:t=>{t.burn*=1.6;t.burnT=1.4}},
+      {n:'Napalm Pools',   c:330, d:'Leaves burning ground behind.',       f:t=>{t.pools=1;t.dmg*=1.1}},
+      {n:'Firestorm',      c:760, d:'+30% range, wider cone.',             f:t=>{t.range*=1.3;t.arc*=1.3;t.dmg*=1.18}},
+      {n:'HELLFIRE',       c:2300,d:'Huge lingering infernos, +70% dmg.',  f:t=>{t.dmg*=1.7;t.burn*=1.8;t.pools=2}},
     ]},
     {name:'PLASMA', color:'#22e6ff', ups:[
-      {n:'Pressurised',    c:180, d:'+55% damage.',                        f:t=>t.dmg*=1.55},
-      {n:'Plasma Jet',     c:360, d:'Damage completely ignores armour.',   f:t=>{t.pierceArmor=1;t.dmg*=1.3}},
-      {n:'Superheat',      c:820, d:'Targets take +35% damage from all sources.',f:t=>{t.corrode=.25;t.amp=.35}},
-      {n:'SOLAR LANCE',    c:2500,d:'+200% damage. Now scorches AIR units.',f:t=>{t.dmg*=3;t.air=true;t.range*=1.2}},
+      {n:'Pressurised',    c:180, d:'+32% damage.',                        f:t=>t.dmg*=1.32},
+      {n:'Plasma Jet',     c:360, d:'Damage completely ignores armour.',   f:t=>{t.pierceArmor=1;t.dmg*=1.15}},
+      {n:'Superheat',      c:820, d:'Targets take +20% damage from all sources.',f:t=>{t.corrode=.18;t.amp=.2}},
+      {n:'SOLAR LANCE',    c:2500,d:'+90% damage. Now scorches AIR units.', f:t=>{t.dmg*=1.9;t.air=true;t.range*=1.15}},
     ]},
   ]},
 
@@ -1032,15 +1053,15 @@ const ENEMIES = {
   hauler:  {name:'HAULER',     hp:900,  spd:1,   r:24, bounty:44, leak:4, armor:.35, color:'#ffd633', shape:'hauler', carries:'swarm', desc:'Bursts into a swarm when destroyed. Do not pop it at the core.'},
   jugg:    {name:'JUGGERNAUT', hp:3200, spd:.62,  r:32, bounty:120,leak:9, armor:.5,  color:'#ff6a3d', shape:'jugg',   elite:1, desc:'Mini-boss. Enormous armoured hull.'},
   overseer:{name:'OVERSEER',   hp:11000,spd:.58, r:42, bounty:420,leak:20,armor:.35, color:'#b46bff', shape:'boss1',  boss:1, summons:'drone', desc:'BOSS — deploys drones as it advances.'},
-  leviathan:{name:'LEVIATHAN', hp:20000,spd:.52, r:46, bounty:640,leak:25,armor:.4,  color:'#3dd6ff', shape:'boss2',  boss:1, air:1, desc:'AIR BOSS — armoured flying fortress.'},
+  leviathan:{name:'LEVIATHAN', hp:20000,spd:.52, r:46, bounty:640,leak:25,armor:.4,  color:'#3dd6ff', shape:'boss2',  boss:1, air:1, summons:'skimmer', desc:'AIR BOSS — armoured flying fortress that keeps launching interceptors.'},
   architect:{name:'ARCHITECT', hp:52000,spd:.42,  r:54, bounty:1500,leak:99,armor:.45,color:'#ff2d9b', shape:'boss3',  boss:1, summons:'wraith', phases:1, forks:1, desc:'FINAL BOSS — every phase sheds a SHARD down each lane, and it rebuilds itself while they live.'},
   colossus:{name:'COLOSSUS',   hp:26000,spd:.46, r:50, bounty:900, leak:30,armor:.52, color:'#ffb03d', shape:'boss4',  boss:1, summons:'brute', ccImmuneAlways:1, desc:'BOSS — immune to all control. Bring raw damage.'},
   // ── sector bosses. One per sector from 5 on, each built around the shape of
   // its own map rather than around a bigger number.
   shard:   {name:'SHARD',      hp:2600, spd:.82, r:24, bounty:90, leak:8, armor:.34, color:'#ff7bd2', shape:'split', desc:'Architect fragment. While one lives the Architect rebuilds itself.'},
-  nemesis: {name:'NEMESIS',    hp:15000,spd:.55, r:44, bounty:700,leak:22,armor:.3,  color:'#d8ff6b', shape:'bossA',  boss:1, adapts:1, desc:'BOSS — hardens against whichever damage school hurts it most. One school will not kill it.'},
-  gemini:  {name:'GEMINI',     hp:19000,spd:.6,  r:44, bounty:760,leak:24,armor:.34, color:'#ff5ce0', shape:'bossB',  boss:1, twins:1, desc:'BOSS — tears itself in half twice. The halves take separate lanes, and each split runs faster than the last.'},
-  tyrant:  {name:'TYRANT',     hp:24000,spd:.5,  r:48, bounty:880,leak:28,armor:.42, color:'#ff6a3d', shape:'bossC',  boss:1, suppress:1, ccImmuneAlways:1, desc:'BOSS — suppression pulses knock every tower around it offline for three seconds.'},
+  nemesis: {name:'NEMESIS',    hp:15000,spd:.55, r:44, bounty:700,leak:22,armor:.3,  color:'#d8ff6b', shape:'bossA',  boss:1, adapts:1, summons:'wraith', desc:'BOSS — hardens against whichever damage school hurts it most. One school will not kill it.'},
+  gemini:  {name:'GEMINI',     hp:19000,spd:.6,  r:44, bounty:760,leak:24,armor:.34, color:'#ff5ce0', shape:'bossB',  boss:1, twins:1, summons:'runner', desc:'BOSS — tears itself in half twice. The halves take separate lanes, and each split runs faster than the last.'},
+  tyrant:  {name:'TYRANT',     hp:24000,spd:.5,  r:48, bounty:880,leak:28,armor:.42, color:'#ff6a3d', shape:'bossC',  boss:1, suppress:1, summons:'bulwark', ccImmuneAlways:1, desc:'BOSS — suppression pulses knock every tower around it offline for three seconds.'},
 };
 
 // elite affixes rolled on later waves
@@ -1158,14 +1179,23 @@ const cv = document.getElementById('gc');
 let ctx = cv.getContext('2d', {alpha:false});
 const bcv = document.createElement('canvas');
 const bctx = bcv.getContext('2d');
-const BQ = 0.34;                       // bloom buffer resolution factor
+// second small buffer: the blur is done here at bloom-buffer size and upscaled,
+// instead of being applied while drawing to the full-resolution canvas
+const b2cv = document.createElement('canvas');
+const b2ctx = b2cv.getContext('2d');
+const BQ = 0.25;                       // bloom buffer resolution factor
 let dpr = 1, vscale = 1, vox = 0, voy = 0;
 let viewL = 0, viewT = 0, viewR = W, viewB = H;
 let BLOOM = true, hasFilter = true;
 try { ctx.filter = 'blur(2px)'; hasFilter = ctx.filter !== 'none'; ctx.filter = 'none'; } catch (e) { hasFilter = false; }
 
 const cam = {sx:0, sy:0, shake:0, rot:0, flash:0, flashC:'#fff', chroma:0};
-function shake(amt, ch) { cam.shake = Math.min(46, cam.shake + amt); if (ch) cam.chroma = Math.min(1, cam.chroma + ch); }
+// Every shake in the game is scaled here rather than at its call site, so a
+// boss death still hits harder than a stray explosion -- the whole effect just
+// sits lower. SHAKE_CAP stops a pile-up of simultaneous hits from stacking into
+// something unreadable.
+const SHAKE = .42, SHAKE_CAP = 18;
+function shake(amt, ch) { cam.shake = Math.min(SHAKE_CAP, cam.shake + amt * SHAKE); if (ch) cam.chroma = Math.min(1, cam.chroma + ch); }
 function flash(c, a) { cam.flash = Math.max(cam.flash, a); cam.flashC = c; }
 
 // Rendering at full device resolution is what actually costs: a 1920x1080
@@ -1190,6 +1220,7 @@ function resize() {
   viewR = W + vox / vscale; viewB = H + voy / vscale;
   bcv.width = Math.max(2, Math.round(cv.width * BQ));
   bcv.height = Math.max(2, Math.round(cv.height * BQ));
+  b2cv.width = bcv.width; b2cv.height = bcv.height;
 }
 addEventListener('resize', resize);
 
@@ -1215,11 +1246,35 @@ function doBloom() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalCompositeOperation = 'lighter';
   if (hasFilter) {
-    ctx.filter = `blur(${(3.2 * dpr).toFixed(1)}px)`;
-    ctx.globalAlpha = .95; ctx.drawImage(bcv, 0, 0, cv.width, cv.height);
-    ctx.filter = `blur(${(11 * dpr).toFixed(1)}px)`;
-    ctx.globalAlpha = .8; ctx.drawImage(bcv, 0, 0, cv.width, cv.height);
-    ctx.filter = 'none';
+    // Two things were expensive here, and neither was obvious from a profiler:
+    //
+    //  1. ctx.filter during a draw to the main canvas runs the kernel at
+    //     DESTINATION size, so an 11px blur was convolved over every pixel of
+    //     the full canvas, twice a frame. Blurring the 0.25-scale buffer
+    //     instead is ~16x fewer pixels, with the radii scaled by BQ so the
+    //     glow still lands the same size on screen.
+    //  2. Each upscale was a full-canvas additive blend. The tight and wide
+    //     halos are now composited together while still small, so only ONE
+    //     full-resolution blend happens per frame instead of two.
+    //
+    // Measured against the original on a fixed wave-34 frame: mean absolute
+    // difference of 1.8/255 per channel, so the glow is unchanged to the eye.
+    const g2 = b2ctx, gw2 = b2cv.width, gh2 = b2cv.height;
+    g2.setTransform(1, 0, 0, 1, 0, 0);
+    g2.globalCompositeOperation = 'source-over';
+    g2.clearRect(0, 0, gw2, gh2);
+    g2.filter = `blur(${Math.max(.5, 3.2 * dpr * BQ).toFixed(2)}px)`;
+    g2.drawImage(bcv, 0, 0);
+    // the wide halo is the tight one blurred again -- successive blurs compose,
+    // so there is no need to re-run a large kernel over the source
+    g2.filter = `blur(${Math.max(.5, 10.5 * dpr * BQ).toFixed(2)}px)`;
+    g2.globalCompositeOperation = 'lighter';
+    g2.globalAlpha = .84;
+    g2.drawImage(b2cv, 0, 0);
+    g2.filter = 'none';
+    g2.globalAlpha = 1;
+    g2.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = .9; ctx.drawImage(b2cv, 0, 0, cv.width, cv.height);
   } else {
     ctx.globalAlpha = .8; ctx.drawImage(bcv, 0, 0, cv.width, cv.height);
     ctx.globalAlpha = .5;
@@ -1507,7 +1562,7 @@ function spawnEnemy(type, hs, laneIdx, affix) {
     corrode:0, corrodeV:0, amp:0, ampV:0, empRevealed:0,
     venom:0, venomN:0, venomSrc:null, tar:0, tarF:0, tarPull:0, mark:0, markSlow:0,
     shield:0, maxShield:0, hitFlash:0, wob:rnd(TAU), phase:0, dead:false,
-    blinkCd:d.blink ? 180 + rint(140) : 0, healCd:0, wardCd:0, sumCd:240, ccImmune:0,
+    blinkCd:d.blink ? 180 + rint(140) : 0, healCd:0, wardCd:0, sumCd:120, ccImmune:0,
     sprintT:rint(90), sporeCd:40, jamCd:0, drainCd:120, haste:0, hasteF:0,
     front:d.front || 0, ccProof:!!d.ccImmuneAlways,
     healedCd:0, wardedCd:0,
@@ -1988,7 +2043,7 @@ function tick() {
   }
 
   if (G.comboT > 0) { G.comboT--; if (G.comboT === 0) { G.comboKills = 0; G.combo = 1; } }
-  if (cam.shake > 0) cam.shake *= .86;
+  if (cam.shake > 0) cam.shake *= .8;
   if (cam.flash > 0) cam.flash *= .9;
   if (cam.chroma > 0) cam.chroma *= .9;
   cam.sx = cam.shake > .3 ? rnd(cam.shake, -cam.shake) : 0;
@@ -2118,10 +2173,16 @@ function tick() {
     }
     if (e.def.summons && G.enemies.length < 320) {
       if (--e.sumCd <= 0) {
-        e.sumCd = e.def.phases ? 150 : 210;
-        for (let k = 0; k < (e.def.phases ? 4 : 3); k++) {
+        // Bosses used to trickle three adds every three and a half seconds,
+        // which the board cleared without noticing. They now arrive in waves
+        // big enough to force you to deal with them. The field cap above is
+        // what actually limits this, so the lane stays saturated instead of
+        // the boss quietly out-summoning the frame rate.
+        e.sumCd = e.def.phases ? 60 : 85;
+        const n = (e.def.phases ? 8 : 6) + Math.min(5, (G.wave / 10) | 0);
+        for (let k = 0; k < n; k++) {
           const c = spawnEnemy(e.def.summons, hpScale(G.wave) * .5, 0, null);
-          c.route = e.route; c.d = Math.max(0, e.d - 30 - k * 20);
+          c.route = e.route; c.d = Math.max(0, e.d - 24 - k * 13);
           const p = routeAt(c.route, c.d, c); c.x = c.px = p.x; c.y = c.py = p.y;
         }
         ring(e.x, e.y, 10, 130, e.color, 26);
@@ -2430,6 +2491,12 @@ function tick() {
   }
 }
 
+// A flame cone that pays full damage to everything it touches is not a tower,
+// it is an area-denial ultimate: one INFERNO covering a fold melted the entire
+// pack at once. The jet now covers CONE_FULL targets properly and thins out
+// beyond that, down to a floor, so it stays strong on a few and stops being the
+// answer to every crowd in the game.
+const CONE_FULL = 4, CONE_FLOOR = .34;
 function tickCone(t) {
   const tg = getTarget(t);
   if (!tg) { t.firing = 0; return; }
@@ -2438,20 +2505,29 @@ function tickCone(t) {
   t.firing = 1; t.flash = 3;
   const R = eRange(t);
   nearby(t.x, t.y, R, _q2);
+  _cone.length = 0;
   for (const e of _q2) {
     if (!canHit(t, e)) continue;
     const a = Math.atan2(e.y - t.y, e.x - t.x);
     let da = Math.abs(((a - t.ang + Math.PI) % TAU + TAU) % TAU - Math.PI);
     if (da > t.arc) continue;
-    damage(e, eDmg(t) * (e.air ? t.airMul : t.groundMul), {src:t, pierceArmor:t.pierceArmor, shatter:t.shatter});
+    _cone.push(e);
+  }
+  const spread = _cone.length > CONE_FULL
+    ? Math.max(CONE_FLOOR, CONE_FULL / _cone.length) : 1;
+  const dm = eDmg(t) * spread;
+  for (const e of _cone) {
+    // burn is a status and is left at full strength -- only the jet itself thins
+    damage(e, dm * (e.air ? t.airMul : t.groundMul), {src:t, pierceArmor:t.pierceArmor, shatter:t.shatter});
     statusHit(e, t);
   }
   if (t.pools && G.time % 26 === 0) {
     const d = R * .72;
-    G.pools.push({x:t.x + Math.cos(t.ang) * d, y:t.y + Math.sin(t.ang) * d, r:44 + t.pools * 22, life:240, dps:eDmg(t) * 9 * t.pools, src:t});
+    G.pools.push({x:t.x + Math.cos(t.ang) * d, y:t.y + Math.sin(t.ang) * d, r:44 + t.pools * 22, life:240, dps:eDmg(t) * 5 * t.pools, src:t});
   }
   if (G.time % 6 === 0) sfxT('inferno');
 }
+const _cone = [];
 function tickBeam(t) {
   const R = eRange(t);
   nearby(t.x, t.y, R, _q2);
@@ -5074,6 +5150,63 @@ function loadMeta() {
   return m;
 }
 function saveMeta() { try { HOST.set('ns2_meta', JSON.stringify(META)); } catch (e) {} }
+
+// ── save transfer ─────────────────────────────────────────────────
+// A save lives in this browser's localStorage and nowhere else, so a new
+// machine, a different browser or a cleared cache all start from zero. These
+// two turn the whole save into one string and back.
+const SAVE_TAG = 'NS2';
+// A short checksum so a truncated or mangled paste is refused outright rather
+// than half-loading and leaving someone with a corrupted armoury.
+function saveSum(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+  }
+  return h.toString(36);
+}
+function exportSave() {
+  const payload = JSON.stringify({v:1, meta:META, prog:prog});
+  // btoa only takes latin-1, so widen through URI escaping first
+  const b64 = btoa(unescape(encodeURIComponent(payload)));
+  return SAVE_TAG + '-' + saveSum(b64) + '-' + b64;
+}
+// Returns an error string, or null on success. Everything that comes back out
+// is re-validated: loadMeta() already filters towers, abilities and slots down
+// to what actually exists, so a hand-edited code cannot inject anything -- the
+// worst it can do is give you a save the game then sanitises.
+function importSave(code) {
+  const raw = String(code || '').replace(/\s+/g, '');
+  if (!raw) return 'Nothing pasted.';
+  const parts = raw.split('-');
+  if (parts.length !== 3 || parts[0].toUpperCase() !== SAVE_TAG) return 'That is not a NEON SIEGE save code.';
+  const b64 = parts[2];
+  if (saveSum(b64) !== parts[1]) return 'That code is damaged or incomplete \u2014 copy the whole thing.';
+  let obj;
+  try { obj = JSON.parse(decodeURIComponent(escape(atob(b64)))); } catch (e) { return 'That code could not be read.'; }
+  if (!obj || typeof obj !== 'object' || obj.v !== 1) return 'That code is from a different version.';
+  // progress: keep only well-formed per-sector records
+  const p = {};
+  const src = obj.prog && typeof obj.prog === 'object' ? obj.prog : {};
+  for (const k of Object.keys(src)) {
+    const i = k | 0, r = src[k];
+    if (i < 0 || i >= MAPS.length || !r || typeof r !== 'object') continue;
+    p[i] = {won: !!r.won, stars: clamp(r.stars | 0, 0, 3),
+            score: Math.max(0, r.score | 0), wave: Math.max(0, r.wave | 0)};
+  }
+  try {
+    HOST.set('ns2_prog', JSON.stringify(p));
+    HOST.set('ns2_meta', JSON.stringify(obj.meta && typeof obj.meta === 'object' ? obj.meta : {}));
+  } catch (e) { return 'This browser refused to store the save.'; }
+  prog = loadProgress();
+  META = loadMeta();          // re-sanitises everything that came out of the code
+  saveMeta();
+  pickedMap = 0;
+  buildAbilityDock(); updateFluxLabels(); updateLoadoutPeek();
+  try { buildMapGrid(); } catch (e) {}
+  return null;
+}
 function owns(k) { return META.owned.includes(k); }
 function equipped(k) { return META.loadout.includes(k); }
 function ownsA(k) { return META.ownedAbil.includes(k); }
@@ -5590,6 +5723,62 @@ $('btnQuit').onclick = () => quitToMenu();
 $('btnRetry').onclick = () => startGame(G.map, G.diff);
 $('btnMenu').onclick = () => quitToMenu();
 $('btnNextMap').onclick = () => { pickedMap = Math.min(MAPS.length - 1, G.map + 1); startGame(pickedMap, G.diff, false); };
+// ── save transfer UI ──
+let savePasting = false;
+function openTransfer() {
+  savePasting = false;
+  const ta = $('saveTA');
+  ta.readOnly = true;
+  ta.value = exportSave();
+  $('saveHint').textContent = 'Copy this code and paste it into the game on another browser or machine.';
+  $('saveMsg').textContent = '';
+  $('saveMsg').style.color = 'var(--txm)';
+  $('btnSaveCopy').style.display = '';
+  $('btnSavePasteMode').style.display = '';
+  $('btnSaveApply').style.display = 'none';
+  $('ovSave').classList.add('on');
+  ta.focus(); ta.select();
+}
+$('btnTransfer').onclick = () => { sfx('click'); openTransfer(); };
+$('btnSaveClose').onclick = () => { sfx('click'); $('ovSave').classList.remove('on'); };
+$('btnSaveCopy').onclick = () => {
+  const ta = $('saveTA');
+  ta.focus(); ta.select();
+  let ok = false;
+  // clipboard API needs a secure context, which file:// is not -- fall back
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  if (!ok && navigator.clipboard) { navigator.clipboard.writeText(ta.value).catch(() => {}); ok = true; }
+  $('saveMsg').style.color = ok ? 'var(--g)' : 'var(--y)';
+  $('saveMsg').textContent = ok ? 'Copied. Paste it into the other browser.'
+                                : 'Could not copy automatically \u2014 select the code and copy it by hand.';
+  sfx(ok ? 'upgrade' : 'deny');
+};
+$('btnSavePasteMode').onclick = () => {
+  savePasting = true;
+  const ta = $('saveTA');
+  ta.readOnly = false; ta.value = '';
+  $('saveHint').textContent = 'Paste a save code here. This replaces everything on this browser.';
+  $('saveMsg').textContent = ''; $('saveMsg').style.color = 'var(--txm)';
+  $('btnSaveCopy').style.display = 'none';
+  $('btnSavePasteMode').style.display = 'none';
+  $('btnSaveApply').style.display = '';
+  ta.focus();
+  sfx('click');
+};
+$('btnSaveApply').onclick = () => {
+  if (!confirm('Replace this browser\'s progress, flux and unlocks with the pasted save?')) return;
+  const err = importSave($('saveTA').value);
+  if (err) {
+    $('saveMsg').style.color = 'var(--m)';
+    $('saveMsg').textContent = err;
+    sfx('deny');
+    return;
+  }
+  $('ovSave').classList.remove('on');
+  toast('⇄', 'SAVE LOADED', 'Progress, flux and unlocks transferred.', '#b46bff');
+  sfx('upgrade');
+};
+
 $('btnWipe').onclick = () => {
   if (!confirm('Erase all campaign progress, flux and unlocked towers?')) return;
   try { HOST.del('ns2_prog'); HOST.del('ns2_meta'); } catch (e) {}

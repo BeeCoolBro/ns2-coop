@@ -88,6 +88,24 @@ renders in **13.7 ms with more enemies on screen**. Under sustained load the
 game thins particles first, then bloom, and only touches resolution last —
 the order that measurement justified.
 
+A later pass found the real heavyweight: **bloom**. Two traps on the way there.
+A per-phase profiler blamed `doBloom` for 59% of the frame, but canvas 2D
+commands are queued rather than executed where you call them, and `doBloom`
+reads back from the main canvas — so it was absorbing the cost of everything
+drawn before it. Then the A/B numbers started contradicting each other, because
+three other tabs still had the game open and were competing for the GPU.
+
+With those cleared, the actual problem: `ctx.filter = blur(11px)` applied while
+drawing to the main canvas runs the kernel at **destination** resolution, so an
+11px blur was convolved over all 1.44MP twice a frame; and the tight and wide
+halos were each a separate full-canvas additive blend. The blur now runs on a
+quarter-scale buffer with radii scaled to match, and the two halos are composited
+while still small so only one full-resolution blend happens per frame.
+
+**Bloom cost: 69.6 ms → 19.5 ms, down 72%** (9 interleaved reps, non-overlapping
+ranges). Visually checked rather than assumed — against the original on an
+identical frozen frame, mean absolute difference **1.8/255** per channel.
+
 ## Sector bosses
 
 Sectors 5-8 each close on a boss built around the shape of that map, not around
@@ -152,6 +170,61 @@ Two dials, both near the top of the script:
 They multiply: upgrades cost half as much again while streak income roughly
 halves, so effective upgrade throughput lands near a third of what it was.
 Change either line if that reads too harsh.
+
+## Moving a save between machines
+
+A save is two localStorage keys, so it never leaves the browser that made it --
+a new machine, a different browser, or a cleared cache all start from zero.
+**TRANSFER SAVE** on the main menu packs the whole thing (progress, stars, best
+scores, endless bests, flux, owned towers, loadout order, abilities) into one
+~640-character code to copy, and the same panel takes a pasted code back.
+
+The code is `NS2-<checksum>-<base64>`. The checksum is there because a
+half-copied code is the obvious failure mode: without it a truncated paste
+decodes into a partial save and quietly wrecks an armoury. Empty, non-save,
+truncated and single-character-corrupted pastes are each refused by name and
+leave the existing save untouched.
+
+A code that passes the checksum still cannot inject anything -- the import runs
+back through `loadMeta()`, which filters towers and abilities down to ones that
+exist and clamps the rest. Fed `flux:-999`, a fake tower, a fake ability and an
+out-of-range sector with `stars:9`, it returns 0 flux, real towers only, starter
+abilities and `stars:2`.
+
+`navigator.clipboard` needs a secure context, which `file://` is not, so COPY
+tries `execCommand` first and says so plainly if neither route works.
+
+## Balance
+
+INFERNO was the strongest tower in the game for a reason invisible in its stat
+block: cone towers never reach the cooldown path, so its `cd:3` does nothing and
+it applied damage **every frame -- 60x a second -- to every enemy in the arc**.
+Fully upgraded down PLASMA that was ~635 armour-ignoring dps to each of them at
+once. Base damage is down, the upgrade multipliers are trimmed, and the jet now
+covers four targets at full strength and thins beyond that to a 34% floor.
+Measured damage per second from one maxed tower:
+
+| targets in the cone | before | after |
+|---|---|---|
+| 1 | 859 | 234 |
+| 6 | 3,376 | 921 |
+| 16 | 8,454 | 1,136 |
+
+Bosses summon far harder: every 85 ticks instead of 210 (60 for the ARCHITECT),
+6-8 adds per burst plus one more per 10 waves, arriving tighter together. The
+four bosses that had no escort at all now have one -- LEVIATHAN launches
+skimmers, NEMESIS wraiths, GEMINI runners, TYRANT bulwarks. The existing
+320-enemy field cap is what keeps this from outrunning the frame rate.
+
+GEMINI's halves also step up a speed stage on each split: 0.60, 0.87, 1.23.
+
+## Screen shake
+
+Scaled at one point rather than at each call site, so a boss death still lands
+harder than a stray explosion -- the whole effect sits lower. Replaying the 648
+real shake requests from 90s of wave 30 through both settings: peak 18.1px ->
+6.5px, average offset 2.16px -> 0.59px, and the screen is now still 60% of the
+time instead of 50%. `SHAKE` and `SHAKE_CAP` are one line if you want more.
 
 ## Files
 
