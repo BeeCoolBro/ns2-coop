@@ -469,21 +469,14 @@ button{font-family:var(--f2);color:inherit;background:none;border:none;cursor:po
     <div class="ovT" style="font-size:clamp(20px,3.4vw,32px);color:var(--c)">CO-OP</div>
     <div class="ovS">Two commanders, one grid. Shared credits, shared cores.</div>
 
-    <div class="sect">ROOM CODE  <span style="color:var(--g)">✅ EASIEST</span></div>
-    <div style="font-size:12px;color:var(--txd);line-height:1.8;margin-bottom:10px">
-      One of you presses HOST and reads out four letters; the other types them in.
-      Works from anywhere once the server is deployed.
+    <div class="sect">PLAY WITH SOMEONE  <span style="color:var(--g)">✅ EASIEST</span></div>
+    <div style="font-size:12px;color:var(--txd);line-height:1.8;margin-bottom:12px">
+      Press PLAY and you go into the queue. The moment anyone else presses it,
+      you are paired and dropped into the same match together.
     </div>
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
-      <input id="coopRoomCode" class="coopIn" placeholder="ROOM CODE" maxlength="4"
-             style="width:150px;text-transform:uppercase;letter-spacing:.3em;text-align:center">
-      <button class="btn pri" id="btnCoopHostS">HOST</button>
-      <button class="btn" id="btnCoopJoinS">JOIN</button>
-    </div>
-    <div id="coopRoomWrap" style="display:none;margin-bottom:12px">
-      <div style="font-size:11px;letter-spacing:.16em;color:var(--txd)">YOUR ROOM CODE — READ THIS OUT</div>
-      <div id="coopRoom" style="font-family:var(--f1);font-size:44px;font-weight:900;
-           letter-spacing:.26em;color:var(--g);text-shadow:0 0 22px rgba(92,255,157,.45)"></div>
+    <div class="ovBtns" style="margin-bottom:10px">
+      <button class="btn pri" id="btnCoopFind" style="font-size:13px;padding:13px 34px">👥 PLAY</button>
+      <button class="btn" id="btnCoopStop">STOP LOOKING</button>
     </div>
     <details style="margin-bottom:6px">
       <summary style="font-size:11px;color:var(--txd);cursor:pointer;letter-spacing:.1em">server address</summary>
@@ -1273,10 +1266,21 @@ const cam = {sx:0, sy:0, shake:0, rot:0, flash:0, flashC:'#fff', chroma:0};
 function shake(amt, ch) { cam.shake = Math.min(46, cam.shake + amt); if (ch) cam.chroma = Math.min(1, cam.chroma + ch); }
 function flash(c, a) { cam.flash = Math.max(cam.flash, a); cam.flashC = c; }
 
+// Rendering at full device resolution is what actually costs: a 1920x1080
+// window at devicePixelRatio 2 is an 8.3 megapixel canvas, and the frame time
+// roughly doubles against the same window at dpr 1 (measured: 4.8ms -> 9.7ms
+// with 118 enemies on screen). Cap the backing store by PIXEL COUNT instead of
+// by dpr, so one number holds on every screen size, and let adaptQuality trim
+// it further on a slow machine. The canvas is CSS-sized, so the browser simply
+// scales whatever we hand it.
+const MAXPX = 2600000;                  // ~1970x1320, past which nothing looks better
+let RSCALE = 1;                         // adaptive multiplier, lowered under load
 function resize() {
   const st = document.getElementById('stage');
   const cw = st.clientWidth || 1280, chh = st.clientHeight || 720;
-  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const want = Math.min(window.devicePixelRatio || 1, 2);
+  const fit = Math.sqrt(MAXPX / Math.max(1, cw * chh));
+  dpr = Math.max(.55, Math.min(want, fit) * RSCALE);
   cv.width = Math.round(cw * dpr); cv.height = Math.round(chh * dpr);
   vscale = Math.min(cw / W, chh / H);
   vox = (cw - W * vscale) / 2; voy = (chh - H * vscale) / 2;
@@ -2676,7 +2680,10 @@ function drawWellsMines() {
 // ═══════════════════════════════════════════════════════════
 //  FX HELPERS
 // ═══════════════════════════════════════════════════════════
+let PARTMAX = 900;
 function burst(x, y, c, n, sp) {
+  if (G.parts.length > PARTMAX) return;
+  n = G.parts.length > PARTMAX * .7 ? Math.ceil(n * .5) : n;
   sp = sp || 4;
   for (let i = 0; i < n; i++) {
     const a = rnd(TAU), s = rnd(sp, sp * .2);
@@ -2699,11 +2706,30 @@ const bgL = document.createElement('canvas'); bgL.width = W; bgL.height = H;
 const bg = bgL.getContext('2d');
 let stars = [];
 
+const _hexC = new Map(), _rgbaC = new Map();
 function hexToRgb(h) {
+  let v = _hexC.get(h);
+  if (v) return v;
   const n = parseInt(h.slice(1), 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  v = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  _hexC.set(h, v);
+  return v;
 }
-function rgba(h, a) { const c = hexToRgb(h); return `rgba(${c[0]},${c[1]},${c[2]},${a})`; }
+// Alpha is usually driven by a sine, so it never repeats exactly and an
+// unquantised cache would grow without bound. 1/128 steps are indistinguishable
+// on screen and make the cache hit almost every time.
+function rgba(h, a) {
+  const q = a <= 0 ? 0 : a >= 1 ? 128 : (a * 128) | 0;
+  const k = h + q;
+  let s = _rgbaC.get(k);
+  if (s === undefined) {
+    const c = hexToRgb(h);
+    s = 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (q / 128) + ')';
+    if (_rgbaC.size > 6000) _rgbaC.clear();
+    _rgbaC.set(k, s);
+  }
+  return s;
+}
 
 function buildBG() {
   const th = MAPS[G.map].theme, A = th.a;
@@ -4241,7 +4267,7 @@ function drawFloats() {
 // ═══════════════════════════════════════════════════════════
 //  MASTER RENDER
 // ═══════════════════════════════════════════════════════════
-let acc = 0, last = 0, fpsAcc = 0, fpsN = 0, fps = 60, lowFrames = 0;
+let acc = 0, last = 0, fpsAcc = 0, fpsN = 0, fps = 60, lowFrames = 0, hiFrames = 0;
 function render(alpha) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = '#04060d';
@@ -4258,10 +4284,13 @@ function render(alpha) {
   drawFX();
   drawParts();
 
-  // ground units first, then air (so air reads as above)
+  // ground units first, then air (so air reads as above). Anything outside the
+  // view is skipped -- units spawn well off-map and walk in.
+  const vl = viewL - 70, vr = viewR + 70, vt = viewT - 70, vb = viewB + 70;
+  const onView = o => o.x > vl && o.x < vr && o.y > vt && o.y < vb;
   for (const t of G.towers) drawTower(t, false);
-  for (const e of G.enemies) if (!e.air) drawEnemy(e, alpha);
-  for (const e of G.enemies) if (e.air) drawEnemy(e, alpha);
+  for (const e of G.enemies) if (!e.air && onView(e)) drawEnemy(e, alpha);
+  for (const e of G.enemies) if (e.air && onView(e)) drawEnemy(e, alpha);
   drawProjs(alpha);
   drawDrones();
   drawPeer();
@@ -4330,8 +4359,24 @@ function loop(now) {
 function adaptQuality() {
   // a backgrounded tab throttles rAF to a crawl — that is not a slow GPU
   if (document.hidden || G.mode !== 'play' || G.paused) { lowFrames = 0; return; }
-  if (fps < 34) { lowFrames++; if (lowFrames > 3 && BLOOM) { BLOOM = false; toast('⚙️', 'PERFORMANCE', 'Bloom disabled to keep the frame rate up.', '#ffd633'); } }
-  else if (fps > 52) lowFrames = 0;
+  // Resolution first: it is the only lever that scales the whole frame at once.
+  // Bloom only goes as a last resort, because losing it changes how the game looks.
+  if (fps < 48) {
+    lowFrames++; hiFrames = 0;
+    // Measured: frame time is flat from 1 to 12.6 megapixels on this scene, so
+    // the frame is draw-call bound, not fill bound. Thin the entity work first
+    // and only touch resolution as a last resort, where it costs clarity.
+    if (lowFrames > 1 && PARTMAX > 260) PARTMAX = Math.max(260, PARTMAX - 220);
+    else if (lowFrames > 2 && BLOOM) { BLOOM = false; toast('⚙️', 'PERFORMANCE', 'Bloom disabled to keep the frame rate up.', '#ffd633'); }
+    else if (lowFrames > 4 && RSCALE > .62) { RSCALE = Math.max(.62, RSCALE - .16); resize(); }
+  } else if (fps > 57) {
+    lowFrames = 0;
+    if (++hiFrames > 8) {
+      if (RSCALE < 1) { RSCALE = Math.min(1, RSCALE + .12); resize(); }
+      else if (PARTMAX < 900) PARTMAX = Math.min(900, PARTMAX + 160);
+      hiFrames = 0;
+    }
+  } else { lowFrames = 0; hiFrames = 0; }
 }
 let raf = 0;
 
@@ -4656,6 +4701,13 @@ function fireAbility(i, x, y) {
 const $ = id => document.getElementById(id);
 let lastCash = -1, lastCores = -1;
 
+// Each of these writes is a style recalc even when the value is identical, and
+// syncHUD runs every frame. Caching the last value written turns most frames
+// into no DOM work at all.
+const _hudV = {};
+function hudTxt(id, v) { if (_hudV[id] !== v) { _hudV[id] = v; $(id).textContent = v; } }
+function hudW(id, v) { const k = id + '|w'; if (_hudV[k] !== v) { _hudV[k] = v; $(id).style.width = v; } }
+function hudBg(id, v) { const k = id + '|b'; if (_hudV[k] !== v) { _hudV[k] = v; $(id).style.background = v; } }
 function syncHUD() {
   if ($('sCash').textContent !== String(G.cash)) {
     $('sCash').textContent = fmt(G.cash);
@@ -4663,16 +4715,16 @@ function syncHUD() {
     lastCash = G.cash;
   }
   const cf = clamp(G.cores / Math.max(1, G.maxCores), 0, 1);
-  $('sCore').textContent = Math.max(0, G.cores);
-  $('sCoreBar').style.width = (cf * 100) + '%';
-  $('sCoreBar').style.background = cf > .5 ? 'var(--m)' : cf > .25 ? 'var(--y)' : '#ff3d3d';
+  hudTxt('sCore', String(Math.max(0, G.cores)));
+  hudW('sCoreBar', (cf * 100) + '%');
+  hudBg('sCoreBar', cf > .5 ? 'var(--m)' : cf > .25 ? 'var(--y)' : '#ff3d3d');
   if (G.cores !== lastCores) { pulse('sCore'); lastCores = G.cores; }
-  $('sWave').textContent = G.endless ? G.wave + '/∞' : G.wave + '/' + MAPS[G.map].waves;
-  $('sScore').textContent = fmt(G.score);
+  hudTxt('sWave', G.endless ? G.wave + '/∞' : G.wave + '/' + MAPS[G.map].waves);
+  hudTxt('sScore', fmt(G.score));
   const pu = powerUsed(), pm = powerMax();
-  $('sGrid').textContent = pu + '/' + pm;
-  $('sGridBar').style.width = clamp(pu / pm * 100, 0, 100) + '%';
-  $('sGridBar').style.background = pu / pm > .92 ? 'var(--m)' : pu / pm > .75 ? 'var(--y)' : 'var(--v)';
+  hudTxt('sGrid', pu + '/' + pm);
+  hudW('sGridBar', clamp(pu / pm * 100, 0, 100) + '%');
+  hudBg('sGridBar', pu / pm > .92 ? 'var(--m)' : pu / pm > .75 ? 'var(--y)' : 'var(--v)');
   const cb = $('combo');
   if (G.combo > 1) { cb.style.display = 'flex'; $('sCombo').textContent = '×' + G.combo.toFixed(2).replace(/\.?0+$/, ''); $('sComboBar').style.width = (G.comboT / 160 * 100) + '%'; }
   else cb.style.display = 'none';
@@ -5896,19 +5948,18 @@ function lsLink(role) {
 }
 function localLink(role) { return CAN_BC ? bcLink(role) : lsLink(role); }
 
-// Room-code transport, talking to the co-op server. The server is a dumb pipe:
-// it pairs two sockets by code and forwards bytes, so the host stays the only
-// authority exactly as it is on a direct link. No STUN, no NAT traversal and
-// no codes to paste -- which is the whole point of hosting one.
+// Matchmaking transport. Press PLAY, wait, get paired with whoever presses it
+// next. The server decides who hosts (whoever waited longer), so the role is
+// assigned on pairing rather than chosen up front.
 function serverURL() {
   if (location.protocol.startsWith('http')) {
     return (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
   }
   return 'ws://localhost:8765/ws';           // opened from disk: assume a local server
 }
-function wsLink(role, code, url) {
+function mmLink(url) {
   const addr = url || serverURL();
-  const L = {onmsg: null, onopen: null, ws: null, tries: 0, dead: false,
+  const L = {onmsg: null, ws: null, tries: 0, dead: false,
     send(o) {
       if (L.ws && L.ws.readyState === 1) { try { L.ws.send(JSON.stringify({t: 'msg', m: o})); } catch (e) {} }
     },
@@ -5917,36 +5968,35 @@ function wsLink(role, code, url) {
   function open() {
     const ws = new WebSocket(addr);
     L.ws = ws;
-    ws.onopen = () => {
-      L.tries = 0;
-      netStatus(role === 'host' ? 'asking for a room…' : 'joining ' + code + '…');
-      // a reconnecting host reclaims its old code so the guest's code stays valid
-      ws.send(JSON.stringify(role === 'host' ? {t: 'host', code: NET.room || ''}
-                                             : {t: 'join', code: code || NET.room}));
-    };
+    ws.onopen = () => { L.tries = 0; netStatus('looking for a partner…'); ws.send(JSON.stringify({t: 'find'})); };
     ws.onmessage = ev => {
       let d;
       try { d = JSON.parse(ev.data); } catch (e) { return; }
-      if (d.t === 'hosted') { NET.room = d.code; showRoom(d.code); return; }
+      if (d.t === 'waiting') { netStatus('waiting for someone else to press PLAY…'); return; }
+      if (d.t === 'idle') { netStatus(''); return; }
       if (d.t === 'paired') {
+        NET.mode = d.role === 'host' ? 'host' : 'client';
         NET.partner = true;
-        if (d.code) { NET.room = d.code; showRoom(d.code); }
-        netStatus('linked');
-        if (L.onopen) L.onopen();
+        if (NET.mode === 'host') { wireHost(); if (G.mode === 'play') sendStart(); }
+        else wireClient();
+        netStatus(NET.mode === 'host' ? 'partner found — you are hosting'
+                                      : 'partner found — they are hosting');
         return;
       }
-      if (d.t === 'gone') { NET.partner = false; netStatus('your partner disconnected'); return; }
-      if (d.t === 'error') { netStatus(d.msg || 'the server refused that'); L.dead = true; return; }
+      if (d.t === 'gone') { NET.partner = false; netStatus('your partner left'); return; }
       if (d.t === 'msg' && L.onmsg) L.onmsg(d.m);
     };
     ws.onerror = () => {};
-    // Render replaces instances on deploy and free services sleep, so a dropped
-    // socket is expected rather than fatal: back off and pick the room up again.
+    // While still searching a dropped socket is worth retrying. Once a match is
+    // running the host owns the simulation, so a drop ends it rather than
+    // silently pairing someone with a stranger mid-wave.
     ws.onclose = () => {
+      const wasPlaying = NET.partner;
       NET.partner = false;
-      if (L.dead || NET.mode === 'off') { netStatus('disconnected'); return; }
+      if (L.dead) { netStatus(''); return; }
+      if (wasPlaying) { netStatus('connection lost — press PLAY to find someone new'); NET.mode = 'off'; return; }
       L.tries++;
-      if (L.tries > 6) { netStatus('lost the server — press HOST or JOIN to retry'); return; }
+      if (L.tries > 6) { netStatus('cannot reach the server — press PLAY to retry'); NET.mode = 'off'; return; }
       netStatus('reconnecting… (' + L.tries + ')');
       setTimeout(open, Math.min(8000, 700 * L.tries));
     };
@@ -5954,25 +6004,12 @@ function wsLink(role, code, url) {
   open();
   return L;
 }
-function showRoom(code) {
-  const el = $('coopRoom');
-  if (el) { el.textContent = code; $('coopRoomWrap').style.display = 'block'; }
-}
-function coopHostServer() {
-  NET.mode = 'host'; NET.kind = 'server'; NET.room = '';
-  NET.link = wsLink('host', '', ($('coopServer').value || '').trim() || undefined);
-  wireHost();
+function coopFind() {
+  if (NET.link) { try { NET.link.close(); } catch (e) {} }
+  NET.mode = 'searching'; NET.kind = 'server'; NET.partner = false;
+  NET.link = mmLink(($('coopServer').value || '').trim() || undefined);
   netStatus('connecting…');
 }
-function coopJoinServer() {
-  const code = ($('coopRoomCode').value || '').trim().toUpperCase();
-  if (!code) { netStatus('type the room code your partner read out'); return; }
-  NET.mode = 'client'; NET.kind = 'server'; NET.room = code;
-  NET.link = wsLink('guest', code, ($('coopServer').value || '').trim() || undefined);
-  wireClient();
-  netStatus('connecting…');
-}
-
 
 // WebRTC with hand-carried signalling: no server to run, two codes to paste.
 function rtcLink(initiator) {
@@ -6075,7 +6112,7 @@ async function coopJoinOnline() {
 
 function coopLeave() {
   if (NET.link) NET.link.close();
-  NET.mode = 'off'; NET.link = null; NET.partner = false; NET.peer = null; NET.room = '';
+  NET.mode = 'off'; NET.link = null; NET.partner = false; NET.peer = null;
   NET.intents.length = 0; NET.fxq.length = 0;
   netStatus('');
 }
@@ -6397,8 +6434,11 @@ $('btnCoopBack').onclick = () => { closeAll(); $('ovTitle').classList.add('on');
 $('btnCoopLeave').onclick = () => { coopLeave(); netStatus('disconnected'); };
 $('btnCoopHostL').onclick = () => { coopHostLocal(); netStatus('waiting'); };
 $('btnCoopJoinL').onclick = () => { coopJoinLocal(); };
-$('btnCoopHostS').onclick = () => coopHostServer();
-$('btnCoopJoinS').onclick = () => coopJoinServer();
+$('btnCoopFind').onclick = () => coopFind();
+$('btnCoopStop').onclick = () => {
+  if (NET.link && NET.mode === 'searching') { try { NET.link.ws.send(JSON.stringify({t:'cancel'})); } catch (e) {} }
+  coopLeave();
+};
 $('btnCoopHostO').onclick = () => coopHostOnline();
 $('btnCoopJoinO').onclick = () => {
   const w = $('coopJoinWrap');

@@ -1,23 +1,24 @@
 #!/usr/bin/env python3
-"""NEON SIEGE 2 co-op server — pairs two players by room code.
+"""NEON SIEGE 2 co-op server — matchmaking.
 
-Locally:      python server.py
-On Render:    start command `python server.py`, which reads $PORT.
+    python server.py          (Render: start command `python server.py`, reads $PORT)
 
-The server is a dumb pipe. It never parses a game message, never simulates
-anything, and keeps no state beyond "these two sockets are paired" — the host
-stays authoritative exactly as it is on a direct peer-to-peer link.
+Press PLAY in the game and you are put in a queue; the moment someone else
+presses it you are paired and dropped into the same match. No codes.
+
+The server is a dumb pipe. It never parses a game message and holds no state
+beyond "these two sockets are paired", so the host remains the sole authority
+exactly as it is over a direct peer-to-peer link.
 
 Standard library only, so there is nothing to install and nothing to break on
-deploy. The WebSocket layer is a small RFC 6455 implementation; pulling in a
-framework for ~120 lines of framing would be the project's only dependency.
+deploy. The WebSocket layer is a small RFC 6455 implementation; a framework
+for ~120 lines of framing would be this project's only dependency.
 """
 import argparse
 import base64
 import hashlib
 import json
 import os
-import random
 import socket
 import struct
 import sys
@@ -29,32 +30,13 @@ GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
 HERE = os.path.dirname(os.path.abspath(__file__))
 GAME = 'neon-siege-2-coop.html'
 
-ROOMS = {}
-ROOMS_LOCK = threading.Lock()
-CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'   # no O/0, no I/1
-ROOM_TTL = 15 * 60          # an abandoned room is forgotten after this
+QUEUE = []                      # peers waiting for a partner, longest wait first
+LOCK = threading.Lock()
+STATS = {'paired': 0, 'live': 0}
 
 
 def log(*a):
     print(*a, flush=True)
-
-
-def new_code():
-    while True:
-        c = ''.join(random.choice(CODE_ALPHABET) for _ in range(4))
-        if c not in ROOMS:
-            return c
-
-
-class Room(object):
-    def __init__(self, code, host):
-        self.code = code
-        self.host = host
-        self.guest = None
-        self.touched = time.time()
-
-    def partner_of(self, peer):
-        return self.guest if peer is self.host else self.host
 
 
 class Peer(object):
@@ -64,9 +46,10 @@ class Peer(object):
     def __init__(self, handler):
         self.h = handler
         self.lock = threading.Lock()
-        self.room = None
+        self.partner = None
         self.role = None
         self.alive = True
+        self.since = time.time()
 
     def send(self, obj):
         data = json.dumps(obj, separators=(',', ':')).encode('utf-8')
@@ -106,8 +89,8 @@ def read_exact(rfile, n):
 
 
 def ws_read(rfile):
-    """Returns (opcode, payload) or None at EOF. Reassembles continuation
-    frames: a 9KB snapshot can arrive split."""
+    """(opcode, payload) or None at EOF. Reassembles continuation frames:
+    a 9KB snapshot can arrive split."""
     data = b''
     first_op = None
     while True:
@@ -145,6 +128,39 @@ def ws_read(rfile):
             return (first_op if first_op is not None else opcode), data
 
 
+# ── matchmaking ───────────────────────────────────────────────────
+def pair(host, guest):
+    """Caller holds LOCK. The one who waited longer hosts: they already have
+    the tab open and warm, so the match starts sooner."""
+    host.partner, guest.partner = guest, host
+    host.role, guest.role = 'host', 'guest'
+    STATS['paired'] += 1
+
+
+def dequeue(peer):
+    """Caller holds LOCK."""
+    try:
+        QUEUE.remove(peer)
+    except ValueError:
+        pass
+
+
+def find_match(peer):
+    with LOCK:
+        # drop anyone who left while queued
+        while QUEUE and not QUEUE[0].alive:
+            QUEUE.pop(0)
+        if peer.partner is not None:
+            return None, 0
+        dequeue(peer)
+        if QUEUE:
+            other = QUEUE.pop(0)
+            pair(other, peer)
+            return other, 0
+        QUEUE.append(peer)
+        return None, len(QUEUE)
+
+
 # ── handler ───────────────────────────────────────────────────────
 class Handler(SimpleHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
@@ -161,10 +177,12 @@ class Handler(SimpleHTTPRequestHandler):
         route = self.path.split('?')[0]
         if route == '/ws':
             return self.websocket()
-        if route == '/healthz':
-            body = b'ok'
+        if route in ('/healthz', '/stats'):
+            with LOCK:
+                body = json.dumps({'ok': True, 'waiting': len(QUEUE),
+                                   'live': STATS['live'], 'paired': STATS['paired']}).encode()
             self.send_response(200)
-            self.send_header('Content-Type', 'text/plain')
+            self.send_header('Content-Type', 'application/json')
             self.send_header('Content-Length', str(len(body)))
             self.end_headers()
             self.wfile.write(body)
@@ -185,6 +203,8 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.flush()
 
         peer = Peer(self)
+        with LOCK:
+            STATS['live'] += 1
         try:
             self.pump(peer)
         except Exception:
@@ -200,7 +220,7 @@ class Handler(SimpleHTTPRequestHandler):
             opcode, payload = frame
             if opcode == 0x8:
                 return
-            if opcode == 0x9:                       # ping -> pong
+            if opcode == 0x9:
                 with peer.lock:
                     self.wfile.write(ws_frame(payload, 0xA))
                     self.wfile.flush()
@@ -216,93 +236,40 @@ class Handler(SimpleHTTPRequestHandler):
     def route(self, peer, msg):
         t = msg.get('t')
 
-        if t == 'host':
-            want = str(msg.get('code', '') or '').strip().upper()
-            with ROOMS_LOCK:
-                sweep()
-                room = ROOMS.get(want) if want else None
-                # A host that dropped (deploy, sleeping instance, flaky wifi) can
-                # reclaim its own code, so the code the guest was given still works.
-                if room is not None and (room.host is None or not room.host.alive):
-                    room.host = peer
-                    room.touched = time.time()
-                    code = want
-                    reclaimed = True
-                else:
-                    code = new_code()
-                    ROOMS[code] = Room(code, peer)
-                    reclaimed = False
-                other = ROOMS[code].guest
-            peer.room, peer.role = code, 'host'
-            peer.send({'t': 'hosted', 'code': code})
-            log('[room %s] host %s' % (code, 'reclaimed' if reclaimed else 'connected'))
-            if other is not None and other.alive:
-                peer.send({'t': 'paired', 'role': 'host', 'code': code})
-                other.send({'t': 'paired', 'role': 'guest', 'code': code})
+        if t == 'find':
+            other, ahead = find_match(peer)
+            if other is not None:
+                other.send({'t': 'paired', 'role': 'host'})
+                peer.send({'t': 'paired', 'role': 'guest'})
+                log('paired (%d total, %d still waiting)' % (STATS['paired'], len(QUEUE)))
+            else:
+                peer.send({'t': 'waiting', 'n': ahead})
             return
 
-        if t == 'join':
-            code = str(msg.get('code', '') or '').strip().upper()
-            with ROOMS_LOCK:
-                sweep()
-                room = ROOMS.get(code)
-                if room is None:
-                    peer.send({'t': 'error', 'msg': 'no room called ' + (code or '?')})
-                    return
-                if room.guest is not None and room.guest.alive and room.guest is not peer:
-                    peer.send({'t': 'error', 'msg': 'room ' + code + ' is full'})
-                    return
-                room.guest = peer
-                room.touched = time.time()
-                host = room.host
-            peer.room, peer.role = code, 'guest'
-            peer.send({'t': 'paired', 'role': 'guest', 'code': code})
-            if host is not None and host.alive:
-                host.send({'t': 'paired', 'role': 'host', 'code': code})
-            log('[room %s] guest joined' % code)
+        if t == 'cancel':
+            with LOCK:
+                dequeue(peer)
+            peer.send({'t': 'idle'})
             return
 
         if t == 'msg':
-            room = ROOMS.get(peer.room) if peer.room else None
-            if not room:
-                return
-            room.touched = time.time()
-            other = room.partner_of(peer)
+            other = peer.partner
             if other is not None and other.alive:
                 other.send({'t': 'msg', 'm': msg.get('m')})
+            return
 
     def drop(self, peer):
         peer.alive = False
-        code = peer.room
-        if not code:
-            return
-        with ROOMS_LOCK:
-            room = ROOMS.get(code)
-            if not room:
-                return
-            other = room.partner_of(peer)
-            if peer is room.host:
-                # keep the room briefly so a reconnecting host keeps its code
-                room.host = None
-                room.touched = time.time()
-                log('[room %s] host dropped (code held %ds)' % (code, ROOM_TTL))
-            elif peer is room.guest:
-                room.guest = None
-                room.touched = time.time()
-                log('[room %s] guest left' % code)
+        with LOCK:
+            STATS['live'] -= 1
+            dequeue(peer)
+            other = peer.partner
+            peer.partner = None
+            if other is not None:
+                other.partner = None
         if other is not None and other.alive:
             other.send({'t': 'gone'})
-
-
-def sweep():
-    """Forget rooms nobody came back to. Caller holds ROOMS_LOCK."""
-    now = time.time()
-    for code in [c for c, r in ROOMS.items()
-                 if (r.host is None or not r.host.alive)
-                 and (r.guest is None or not r.guest.alive)
-                 and now - r.touched > ROOM_TTL]:
-        ROOMS.pop(code, None)
-        log('[room %s] expired' % code)
+            log('a match ended (partner left)')
 
 
 def lan_ip():
@@ -317,7 +284,7 @@ def lan_ip():
 
 
 def main():
-    ap = argparse.ArgumentParser(description='NEON SIEGE 2 co-op server')
+    ap = argparse.ArgumentParser(description='NEON SIEGE 2 co-op matchmaking server')
     ap.add_argument('--port', type=int, default=int(os.environ.get('PORT', 8765)))
     ap.add_argument('--host', default='0.0.0.0')
     args = ap.parse_args()
@@ -329,10 +296,8 @@ def main():
 
     srv = ThreadingHTTPServer((args.host, args.port), Handler)
     srv.daemon_threads = True
-    log('NEON SIEGE 2 co-op server on :%d' % args.port)
-    if os.environ.get('RENDER'):
-        log('  running on Render')
-    else:
+    log('NEON SIEGE 2 matchmaking on :%d' % args.port)
+    if not os.environ.get('RENDER'):
         log('  you:        http://localhost:%d' % args.port)
         log('  same wifi:  http://%s:%d' % (lan_ip(), args.port))
     try:
