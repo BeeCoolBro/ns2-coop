@@ -995,6 +995,27 @@ seismic: {
     ]},
   ]},
 
+convoy: {
+  name:'CONVOY', role:'Deployment', color:'#ffb03d', cost:235, kind:'convoy',
+  draw:9,
+  dmg:0, cd:0, range:210, shots:0, air:false, ground:true,
+  rigEvery:390, rigHp:900, rigRam:380, rigSpd:1.45, rigMax:2,
+  desc:'Rolls armoured rigs the wrong way up the lane. They ram what they meet \u2014 armour means nothing to a collision \u2014 and slow down where the fighting is. Useless against air.',
+  paths:[
+    {name:'COLUMN', color:'#ff8a3d', ups:[
+      {n:'Reinforced Plate',c:240, d:'+85% hull on every rig.',            f:t=>t.rigHp*=1.85},
+      {n:'Rolling Start',  c:520, d:'Rigs roll out 30% sooner, one more on the road.',f:t=>{t.rigEvery*=.7;t.rigMax+=1}},
+      {n:'Ram Prow',       c:1250,d:'+120% ramming damage.',               f:t=>t.rigRam*=2.2},
+      {n:'ARMOURED COLUMN',c:3200,d:'Four rigs at once, +150% hull, +80% ram.',f:t=>{t.rigMax=4;t.rigHp*=2.5;t.rigRam*=1.8}},
+    ]},
+    {name:'FIRE SUPPORT', color:'#ffd633', ups:[
+      {n:'Mounted Gunner', c:260, d:'Rigs carry a gun. Ground only, and armour still counts.',f:t=>{t.rigGun=26;t.rigGunRange=210}},
+      {n:'Optics',         c:560, d:'+70% gun damage, and the gunner sees cloaks.',f:t=>{t.rigGun*=1.7;t.detect=true;t.rigDetect=1}},
+      {n:'Cannon',         c:1350,d:'A turret cannon whose blast ignores armour.',f:t=>{t.rigCannon=150;t.rigSplash=95}},
+      {n:'AIRSTRIKE',      c:3400,d:'Calls a six-bomb cluster onto the lane every 12s.',f:t=>{t.strikeEvery=720;t.strikeDmg=260;t.strikeR=120;t.strikeT=720;t.rigCannon*=1.4}},
+    ]},
+  ]},
+
 hive: {
   name:'HIVE', role:'Interceptor', color:'#5cffd0', cost:240, kind:'hive',
   draw:9,
@@ -1338,7 +1359,7 @@ function doBloom() {
 const G = {
   mode:'title', map:0, diff:1,
   cash:0, cores:0, maxCores:0, wave:0, score:0, kills:0, leaked:0, spent:0,
-  towers:[], enemies:[], projs:[], parts:[], fx:[], floats:[], pools:[], arcs:[], drones:[],
+  towers:[], enemies:[], projs:[], parts:[], fx:[], floats:[], pools:[], arcs:[], drones:[], rigs:[],
   groups:[], waveActive:false, waveDone:true, prepT:0,
   combo:1, comboT:0, comboKills:0,
   speed:1, paused:false, auto:false, time:0,
@@ -1785,6 +1806,10 @@ function makeTower(x, y, type) {
     spool:d.spool || 0, spoolMax:d.spoolMax || 1, spoolHold:0, spin2:0,
     venom:d.venom || 0, venomMax:d.venomMax || 0, contagion:0,
     orbs:d.orbs || 0, orbR:d.orbR || 0, orbSpd:d.orbSpd || 0, orbA:0, orbHit:[],
+    rigEvery:d.rigEvery || 0, rigHp:d.rigHp || 0, rigRam:d.rigRam || 0,
+    rigSpd:d.rigSpd || 1.4, rigMax:d.rigMax || 0, rigLive:0, rigT:0,
+    rigGun:0, rigGunRange:0, rigDetect:0, rigCannon:0, rigSplash:0,
+    strikeEvery:0, strikeDmg:0, strikeR:0, strikeT:0,
     tarR:d.tarR || 0, tarLife:d.tarLife || 0, tarSlow:d.tarSlow || 0, tarPull:0,
     doubleTap:0, drones:d.drones || 0, droneSpd:d.droneSpd || 0, live:0,
     mark:d.mark || 0, markCorrode:d.markCorrode || 0, markSlow:0,
@@ -2037,6 +2062,133 @@ function trapSpot(t) {
     }
   }
   return best;
+}
+// The tower is a depot: it holds nothing and shoots nothing, it just keeps the
+// road stocked. Rigs enter at the core end of a lane and drive against traffic.
+function tickConvoy(t) {
+  t.spin += .01;
+  if (t.strikeEvery && --t.strikeT <= 0) { t.strikeT = t.strikeEvery; callStrike(t); }
+  if (t.rigLive >= t.rigMax) return;
+  if (--t.rigT > 0) return;
+  t.rigT = Math.round(eCdConvoy(t));
+  const route = G.lanes[rint(G.lanes.length)];
+  if (!route) return;
+  const hp = t.rigHp * (1 + t.buff.dmg * .5);
+  const r = {src:t, route, d:route.len - 10, x:0, y:0, ang:0,
+             hp, maxHp:hp, gunCd:0, canCd:0, flash:0, wob:rnd(TAU)};
+  const p = routeAt(route, r.d, r);
+  r.x = p.x; r.y = p.y;
+  G.rigs.push(r);
+  t.rigLive++;
+  t.flash = 8;
+  ring(t.x, t.y, 8, 60, t.color, 16);
+  sfx('place');
+}
+// a support buff speeds the depot up the same way it speeds a gun up
+function eCdConvoy(t) { return t.rigEvery / (1 + t.buff.rate + (G.overclock > 0 ? 1.4 : 0)); }
+
+// Six bombs scattered along the lane ahead of the core, like the original's
+// airstrike. It ignores armour, and unlike the rigs it reaches air.
+function callStrike(t) {
+  const route = G.lanes[rint(G.lanes.length)];
+  if (!route) return;
+  const at = route.len * rnd(.75, .25);
+  for (let i = 0; i < 6; i++) {
+    const p = routeAt(route, clamp(at + rnd(220, -220), 6, route.len - 6), {});
+    const x = p.x + rnd(60, -60), y = p.y + rnd(60, -60);
+    G.fx.push({k:'ring', x, y, r:4, R:t.strikeR, life:16, max:16, c:'#ffd633', w:2});
+    nearby(x, y, t.strikeR, _q2);
+    for (const e of _q2) {
+      if (e.dead) continue;
+      const f = 1 - clamp(dist(e, {x, y}) / t.strikeR, 0, 1) * .55;
+      damage(e, t.strikeDmg * f, {src:t, pierceArmor:1});
+    }
+    burst(x, y, '#ffd633', 12, 5);
+  }
+  shake(5, .08);
+  sfx('boom');
+}
+
+// ── rigs on the road ──────────────────────────────────────────────
+function tickRigs() {
+  for (let i = G.rigs.length - 1; i >= 0; i--) {
+    const r = G.rigs[i];
+    const t = r.src;
+    if (r.hp <= 0 || !t || G.towers.indexOf(t) < 0) {      // wrecked, or its depot was sold
+      if (t) t.rigLive--;
+      burst(r.x, r.y, '#ff8a3d', 22, 6);
+      ring(r.x, r.y, 5, 70, '#ff8a3d', 20);
+      if (r.hp <= 0) sfx('boom');
+      G.rigs.splice(i, 1);
+      continue;
+    }
+    if (r.flash > 0) r.flash--;
+    // Anything within reach slows the column: a rig that finds a fight stays in
+    // it rather than driving past, which is the whole point of the unit.
+    nearby(r.x, r.y, Math.max(64, t.rigGunRange || 0), _q2);
+    let near = 0, ram = null;
+    for (const e of _q2) {
+      if (e.dead || e.air) continue;                        // rigs cannot touch air
+      if (e.cloak && !e.revealed && !t.rigDetect) continue;
+      near++;
+      if (dist2(r.x, r.y, e.x, e.y) < (e.r + 20) * (e.r + 20) && !ram) ram = e;
+    }
+    const sp = t.rigSpd * (near ? .4 : 1);
+    r.d -= sp;
+    if (r.d <= 6) {                                         // reached the far end, job over
+      t.rigLive--;
+      burst(r.x, r.y, '#ffb03d', 10, 3);
+      G.rigs.splice(i, 1);
+      continue;
+    }
+    const p = routeAt(r.route, r.d, r);
+    r.ang = Math.atan2(p.y - r.y, p.x - r.x) || r.ang;
+    r.x = p.x; r.y = p.y;
+    r.wob += .2;
+
+    // ramming: full damage through armour, and the rig takes the impact back
+    if (ram) {
+      damage(ram, t.rigRam / 60 * (1 + t.buff.dmg), {src:t, pierceArmor:1});
+      r.hp -= Math.max(2, ram.maxHp * .004);
+      r.flash = 3;
+      if (Math.random() < .3) spark(r.x, r.y, '#ffd633');
+    }
+    // mounted gun: single target, armour still applies, never hits air
+    if (t.rigGun && --r.gunCd <= 0) {
+      let best = null, bd = 1e9;
+      for (const e of _q2) {
+        if (e.dead || e.air) continue;
+        if (e.cloak && !e.revealed && !t.rigDetect) continue;
+        const dd = dist2(r.x, r.y, e.x, e.y);
+        if (dd < bd) { bd = dd; best = e; }
+      }
+      if (best) {
+        r.gunCd = 14;
+        damage(best, t.rigGun * (1 + t.buff.dmg), {src:t});
+        G.fx.push({k:'beam', x:r.x, y:r.y, x2:best.x, y2:best.y, life:4, max:4, c:'#ffd633', w:1.4});
+      }
+    }
+    // cannon: splash, and the blast ignores armour like the original's
+    if (t.rigCannon && --r.canCd <= 0) {
+      let best = null, bd = 1e9;
+      for (const e of _q2) {
+        if (e.dead || e.air) continue;
+        const dd = dist2(r.x, r.y, e.x, e.y);
+        if (dd < bd) { bd = dd; best = e; }
+      }
+      if (best) {
+        r.canCd = 96;
+        nearby(best.x, best.y, t.rigSplash, _q3);
+        for (const e of _q3) {
+          if (e.dead || e.air) continue;
+          const f = 1 - clamp(dist(e, {x:best.x, y:best.y}) / t.rigSplash, 0, 1) * .5;
+          damage(e, t.rigCannon * f * (1 + t.buff.dmg), {src:t, pierceArmor:1});
+        }
+        ring(best.x, best.y, 5, t.rigSplash, '#ff8a3d', 16);
+        burst(best.x, best.y, '#ffb03d', 10, 4);
+      }
+    }
+  }
 }
 function tickOrbit(t) {
   t.orbA += t.orbSpd * (1 + t.buff.rate) * (G.overclock > 0 ? 2.4 : 1);
@@ -2413,6 +2565,7 @@ function tick() {
     if (t.kind === 'cone') { tickCone(t); continue; }
     if (t.kind === 'beam') { tickBeam(t); continue; }
     if (t.kind === 'orbit') { tickOrbit(t); continue; }
+    if (t.kind === 'convoy') { tickConvoy(t); continue; }
     if (t.kind === 'pulse' && t.aura) { tickAura(t); }
     t.cool--;
     if (t.cool <= 0) {
@@ -2424,6 +2577,8 @@ function tick() {
       if (tg) t.tAng = Math.atan2(tg.y - t.y, tg.x - t.x);
     }
   }
+
+  tickRigs();
 
   // ── projectiles ──
   for (let i = G.projs.length - 1; i >= 0; i--) {
@@ -2765,6 +2920,44 @@ function tickMines() {
     nearby(m.x, m.y, R, _q2);
     for (const e of _q2) damage(e, dmg, {pierceArmor:.5});
     shake(9, .2); sfx('mineBoom');
+  }
+}
+function drawRigs() {
+  for (const r of G.rigs) {
+    const c = r.src && r.src.color ? r.src.color : '#ffb03d';
+    ctx.save(); ctx.translate(r.x, r.y); ctx.rotate(r.ang);
+    ctx.fillStyle = 'rgba(0,0,0,.4)';
+    ctx.beginPath(); ctx.ellipse(0, 4, 19, 12, 0, 0, TAU); ctx.fill();
+    // hull
+    ctx.fillStyle = r.flash > 0 ? '#fff' : '#241503';
+    ctx.strokeStyle = c; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.roundRect(-17, -11, 34, 22, 4); ctx.fill(); ctx.stroke();
+    // tracks
+    ctx.fillStyle = 'rgba(10,8,4,.95)';
+    for (const sd of [-1, 1]) ctx.fillRect(-17, sd * 11 - 4, 34, 8);
+    ctx.strokeStyle = rgba(c, .5); ctx.lineWidth = 1;
+    for (let i = -2; i <= 2; i++) {
+      const o = ((r.wob * 6 + i * 7) % 34) - 17;
+      ctx.beginPath(); ctx.moveTo(o, -15); ctx.lineTo(o, -7); ctx.moveTo(o, 7); ctx.lineTo(o, 15); ctx.stroke();
+    }
+    // turret, pointing the way it drives
+    const t = r.src;
+    if (t && (t.rigGun || t.rigCannon)) {
+      ctx.fillStyle = '#2e1c05'; ctx.strokeStyle = c; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(0, 0, 8, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = c; ctx.lineWidth = t.rigCannon ? 3.4 : 2;
+      ctx.beginPath(); ctx.moveTo(4, 0); ctx.lineTo(t.rigCannon ? 26 : 20, 0); ctx.stroke();
+    }
+    glowDot(-13, 0, 3, '#ffd633', .7);
+    ctx.restore();
+    // hull bar
+    const f = clamp(r.hp / Math.max(1, r.maxHp), 0, 1);
+    if (f < .999) {
+      ctx.fillStyle = 'rgba(0,0,0,.6)';
+      ctx.fillRect(r.x - 19, r.y - 24, 38, 4);
+      ctx.fillStyle = f > .5 ? '#5cff9d' : f > .22 ? '#ffd633' : '#ff2d9b';
+      ctx.fillRect(r.x - 18, r.y - 23, 36 * f, 2);
+    }
   }
 }
 function drawDrones() {
@@ -4525,6 +4718,7 @@ function render(alpha) {
   for (const e of G.enemies) if (e.air && onView(e)) drawEnemy(e, alpha);
   drawProjs(alpha);
   drawDrones();
+  drawRigs();
   drawPeer();
   drawAimOverlay();
   drawFloats();
@@ -4640,6 +4834,7 @@ function startGame(mapIdx, diffIdx, endless) {
   G.cores = G.maxCores = Math.round(m.cores * d.cores);
   G.wave = 0; G.score = 0; G.kills = 0; G.leaked = 0; G.spent = 0;
   G.towers = []; G.enemies = []; G.projs = []; G.parts = []; G.fx = []; G.floats = []; G.pools = []; G.drones = [];
+  G.rigs = [];
   G.groups = []; G.waveActive = false; G.prepT = 0;
   G.combo = 1; G.comboT = 0; G.comboKills = 0;
   G.speed = 1; G.paused = false; G.time = 0;
@@ -4800,6 +4995,8 @@ function sellTower(t) {
   const v = Math.floor(t.spent * .7);
   G.cash += v;
   G.towers.splice(G.towers.indexOf(t), 1);
+  if (t.kind === 'convoy') for (let i = G.rigs.length - 1; i >= 0; i--)
+    if (G.rigs[i].src === t) { burst(G.rigs[i].x, G.rigs[i].y, t.color, 14, 5); G.rigs.splice(i, 1); }
   burst(t.x, t.y, t.color, 20, 5);
   float(t.x, t.y, '+' + v, '#ffd633', 16);
   if (G.selTower === t) { G.selTower = null; closeInspector(); }
@@ -5215,7 +5412,7 @@ const ASTARTERS = ['strike', 'freeze', 'over', 'repair'];
 const TOWER_PRICE = {
   pulse:0, scatter:0, cryo:0,
   inferno:450, mire:700, tesla:900, halo:1150, mortar:1400,
-  tempest:1700, hive:2000, rail:2350, venom:2700, prism:3100, seismic:3500, nexus:4000,
+  tempest:1700, hive:2000, rail:2350, convoy:2550, venom:2800, prism:3150, seismic:3550, nexus:4000,
 };
 // Every time sectors are inserted in the middle, every index above them moves,
 // and progress is keyed by index -- so a save made before the insert would mark
@@ -6504,6 +6701,12 @@ function snapshot() {
   const Dr = [];
   for (const d of G.drones) Dr.push(Math.round(d.x), Math.round(d.y),
                                     Math.round(d.ang * 100), TIDX[d.src.type] | 0);
+  // rigs: the guest draws them, so it needs the hull bar and whether the
+  // turret is fitted -- both come from the depot, sent as a tower index
+  const Rg = [];
+  for (const r of G.rigs) Rg.push(Math.round(r.x), Math.round(r.y), Math.round(r.ang * 100),
+    Math.round(clamp(r.hp / Math.max(1, r.maxHp), 0, 1) * 255),
+    (r.src && r.src.rigCannon ? 2 : 0) | (r.src && r.src.rigGun ? 1 : 0));
   const X = [];
   for (const f of G.fx)
     X.push([f.k, Math.round(f.x), Math.round(f.y), Math.round(f.x2 || 0), Math.round(f.y2 || 0),
@@ -6515,7 +6718,7 @@ function snapshot() {
         G.kills, G.leaked, Math.round(G.combo * 100), G.finale ? 1 : 0, G.stasis, G.overclock,
         G.aegis, Math.round(G.prepT), G.mode === 'play' ? 1 : 0, G.paused ? 1 : 0],
     a: G.abilCd.slice(),
-    T, E, P, L, W: Wl, N: Mn, D: Dr, X,
+    T, E, P, L, W: Wl, N: Mn, D: Dr, G: Rg, X,
     f: NET.fxq.splice(0, NET.fxq.length),
     c: G.hover ? [Math.round(G.hover.x), Math.round(G.hover.y)] : null,
   };
@@ -6640,6 +6843,15 @@ function applySnap(s) {
     const src = TOWERS[TKEYS[s.D[i + 3]]];
     G.drones.push({x: s.D[i], y: s.D[i + 1], ang: s.D[i + 2] / 100,
                    src: {color: src ? src.color : '#fff'}});
+  }
+  G.rigs.length = 0;
+  const RG = s.G || [];
+  for (let i = 0; i < RG.length; i += 5) {
+    const fl = RG[i + 4] | 0;
+    G.rigs.push({x: RG[i], y: RG[i + 1], ang: RG[i + 2] / 100,
+                 hp: RG[i + 3], maxHp: 255, flash: 0, wob: (RG[i] + RG[i + 1]) * .01,
+                 src: {color: TOWERS.convoy ? TOWERS.convoy.color : '#ffb03d',
+                       rigGun: fl & 1, rigCannon: fl & 2}});
   }
   G.fx = [];
   for (const f of s.X)

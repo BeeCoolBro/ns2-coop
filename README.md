@@ -430,6 +430,30 @@ without handing the stun back.
 | OVERLOAD, 1 target | 596 | 763 |
 | OVERLOAD, 8 packed | 1,555 | 2,467 |
 
+## CONVOY
+
+A sixteenth tower, taken from Tower Defense Simulator's Military Base -- the
+shape of it, not its numbers. The tower shoots nothing. It is a depot that rolls
+armoured rigs the wrong way up the lane; they ram what they meet, slow to 40%
+wherever there is something to fight, and die when the hull is gone. Reaching
+the far end simply ends the rig, with no reward.
+
+What was worth keeping from the original, and is verified:
+
+- **Ramming ignores armour.** 570 damage against an unarmoured brute and 570
+  against one with 82% armour.
+- **Rigs cannot touch air at all.** An immortal gunship parked on a maxed rig
+  for eight seconds took exactly 0. That is the tower's real weakness.
+- Mounted guns *do* respect armour and cannot hit air; the cannon's blast
+  ignores armour. The AIRSTRIKE is the only part that reaches flyers.
+- Selling the depot destroys its rigs.
+
+COLUMN maxes at 4 rigs, 4,163 hull, 1,505 ram. FIRE SUPPORT maxes at a 44 gun,
+a 210 splash cannon and a six-bomb airstrike every 12s.
+
+Rigs are in the snapshot (position, facing, hull ratio, whether a turret is
+fitted), so a co-op guest sees them rather than an empty road.
+
 ## Files
 
 | | |
