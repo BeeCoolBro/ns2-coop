@@ -440,8 +440,20 @@ the far end simply ends the rig, with no reward.
 
 What was worth keeping from the original, and is verified:
 
-- **Ramming ignores armour.** 570 damage against an unarmoured brute and 570
-  against one with 82% armour.
+- **Ramming is a hull trade**, resolved the instant they touch, so nothing walks
+  through a living rig. The smaller of the two pools is spent: a rig that meets
+  something bigger dies and takes its own hull out of the enemy on the way; one
+  that meets something smaller kills it outright and pays that much hull. A
+  900-hull rig leaves a 5,000 HP enemy on exactly 4,100 and dies; against a 300
+  HP enemy it kills and keeps 600; against four drones in a row it killed all
+  four and none got past.
+- **Armour does not soften the trade.** That same 5,000 HP enemy with 82% armour
+  also drops to exactly 4,100.
+- The ram upgrades are a multiplier on what a hull is worth on impact, not a
+  separate damage number -- under a trade model a flat "+120% ram damage" would
+  have done nothing. Ram Prow takes the same rig's hit from 900 to 1,980 of
+  enemy health; ARMOURED COLUMN stacks to 3.96x, so a maxed 4,163-hull rig hits
+  for roughly 16,500.
 - **Rigs cannot touch air at all.** An immortal gunship parked on a maxed rig
   for eight seconds took exactly 0. That is the tower's real weakness.
 - Mounted guns *do* respect armour and cannot hit air; the cannon's blast

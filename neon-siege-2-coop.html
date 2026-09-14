@@ -999,14 +999,14 @@ convoy: {
   name:'CONVOY', role:'Deployment', color:'#ffb03d', cost:235, kind:'convoy',
   draw:9,
   dmg:0, cd:0, range:210, shots:0, air:false, ground:true,
-  rigEvery:390, rigHp:900, rigRam:380, rigSpd:1.45, rigMax:2,
-  desc:'Rolls armoured rigs the wrong way up the lane. They ram what they meet \u2014 armour means nothing to a collision \u2014 and slow down where the fighting is. Useless against air.',
+  rigEvery:390, rigHp:900, rigRamMul:1, rigSpd:1.45, rigMax:2,
+  desc:'Rolls armoured rigs the wrong way up the lane. A collision trades hull for hull and ignores armour, so nothing walks through a living rig - but anything bigger than the rig survives it. Useless against air.',
   paths:[
     {name:'COLUMN', color:'#ff8a3d', ups:[
       {n:'Reinforced Plate',c:240, d:'+85% hull on every rig.',            f:t=>t.rigHp*=1.85},
       {n:'Rolling Start',  c:520, d:'Rigs roll out 30% sooner, one more on the road.',f:t=>{t.rigEvery*=.7;t.rigMax+=1}},
-      {n:'Ram Prow',       c:1250,d:'+120% ramming damage.',               f:t=>t.rigRam*=2.2},
-      {n:'ARMOURED COLUMN',c:3200,d:'Four rigs at once, +150% hull, +80% ram.',f:t=>{t.rigMax=4;t.rigHp*=2.5;t.rigRam*=1.8}},
+      {n:'Ram Prow',       c:1250,d:'A rig hull counts for 2.2x on impact.', f:t=>t.rigRamMul*=2.2},
+      {n:'ARMOURED COLUMN',c:3200,d:'Four rigs at once, +150% hull, +80% impact.',f:t=>{t.rigMax=4;t.rigHp*=2.5;t.rigRamMul*=1.8}},
     ]},
     {name:'FIRE SUPPORT', color:'#ffd633', ups:[
       {n:'Mounted Gunner', c:260, d:'Rigs carry a gun. Ground only, and armour still counts.',f:t=>{t.rigGun=26;t.rigGunRange=210}},
@@ -1806,7 +1806,7 @@ function makeTower(x, y, type) {
     spool:d.spool || 0, spoolMax:d.spoolMax || 1, spoolHold:0, spin2:0,
     venom:d.venom || 0, venomMax:d.venomMax || 0, contagion:0,
     orbs:d.orbs || 0, orbR:d.orbR || 0, orbSpd:d.orbSpd || 0, orbA:0, orbHit:[],
-    rigEvery:d.rigEvery || 0, rigHp:d.rigHp || 0, rigRam:d.rigRam || 0,
+    rigEvery:d.rigEvery || 0, rigHp:d.rigHp || 0, rigRamMul:d.rigRamMul || 1,
     rigSpd:d.rigSpd || 1.4, rigMax:d.rigMax || 0, rigLive:0, rigT:0,
     rigGun:0, rigGunRange:0, rigDetect:0, rigCannon:0, rigSplash:0,
     strikeEvery:0, strikeDmg:0, strikeR:0, strikeT:0,
@@ -2146,12 +2146,27 @@ function tickRigs() {
     r.x = p.x; r.y = p.y;
     r.wob += .2;
 
-    // ramming: full damage through armour, and the rig takes the impact back
+    // Ramming is a hull trade, resolved the instant they touch, so nothing
+    // walks through a living rig. The smaller of the two pools is what gets
+    // spent: a rig that meets something bigger than itself is destroyed and
+    // takes its own hull out of the enemy on the way, and a rig that meets
+    // something smaller kills it outright and pays that much hull for it.
+    // The ram multiplier scales what a hull is worth on impact without
+    // changing the shape of the trade.
     if (ram) {
-      damage(ram, t.rigRam / 60 * (1 + t.buff.dmg), {src:t, pierceArmor:1});
-      r.hp -= Math.max(2, ram.maxHp * .004);
-      r.flash = 3;
-      if (Math.random() < .3) spark(r.x, r.y, '#ffd633');
+      const mul = Math.max(.01, t.rigRamMul * (1 + t.buff.dmg));
+      for (const e of _q2) {
+        if (r.hp <= 0) break;
+        if (e.dead || e.air) continue;
+        if (e.cloak && !e.revealed && !t.rigDetect) continue;
+        if (dist2(r.x, r.y, e.x, e.y) >= (e.r + 20) * (e.r + 20)) continue;
+        const spent = Math.min(e.hp, r.hp * mul);
+        damage(e, spent, {src:t, pierceArmor:1});
+        r.hp -= spent / mul;
+        r.flash = 5;
+        burst(r.x, r.y, '#ffd633', 8, 5);
+      }
+      if (r.hp > 0) ring(r.x, r.y, 4, 30, '#ffd633', 10);
     }
     // mounted gun: single target, armour still applies, never hits air
     if (t.rigGun && --r.gunCd <= 0) {
