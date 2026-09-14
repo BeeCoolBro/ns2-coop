@@ -687,7 +687,8 @@ pulse: {
   name:'PULSE', role:'Assault', color:'#22e6ff', cost:90, kind:'bullet',
   draw:5,
   dmg:22, cd:32, range:205, ps:15, splash:0, pierce:0, shots:1, air:true, ground:true,
-  desc:'Reliable energy repeater. Hits ground and air.',
+  spool:.015, spoolMax:1.7,
+  desc:'Energy repeater that winds up: the longer it holds a target, the faster it fires. Hits ground and air.',
   paths:[
     {name:'OVERCHARGE', color:'#ff6a3d', ups:[
       {n:'Focused Coil',   c:110, d:'+55% damage.',                      f:t=>t.dmg*=1.55},
@@ -870,6 +871,7 @@ nexus: {
   name:'NEXUS', role:'Support', color:'#5cff9d', cost:250, kind:'support',
   draw:9,
   dmg:0, cd:0, range:250, buffDmg:.10, buffRate:.08, buffRange:0, income:0, shots:0, air:false, ground:false,
+  mark:.14,
   detect:true,
   desc:'Broadcasts combat uplinks. Boosts every tower in range.',
   paths:[
@@ -889,44 +891,7 @@ nexus: {
 
 // ══════════════════ SECOND GENERATION ══════════════════
 
-vulcan: {
-  name:'VULCAN', role:'Suppressor', color:'#ffd633', cost:165, kind:'bullet',
-  draw:7,
-  dmg:9, cd:9, range:190, ps:24, shots:1, air:true, ground:true,
-  spool:.016, spoolMax:1.4,
-  desc:'Spins up the longer it holds fire. Shreds swarms, useless against armour.',
-  paths:[
-    {name:'SPIN-UP', color:'#ff6a3d', ups:[
-      {n:'Twin Feed',      c:150, d:'Spools twice as fast.',              f:t=>t.spool*=2},
-      {n:'Runaway Barrel', c:330, d:'Spool cap 1.4× → 2.6× fire rate.',   f:t=>t.spoolMax=2.6},
-      {n:'No Cool-Down',   c:780, d:'Holds its spin between targets.',    f:t=>{t.spoolHold=1;t.dmg*=1.25}},
-      {n:'BUZZSAW',        c:2200,d:'Spool cap 4×, +60% damage.',         f:t=>{t.spoolMax=4;t.dmg*=1.6}},
-    ]},
-    {name:'SHRED', color:'#d8ff6b', ups:[
-      {n:'Tungsten Core',  c:170, d:'+45% damage.',                       f:t=>t.dmg*=1.45},
-      {n:'Armour Shred',   c:400, d:'Hits corrode 35% of armour.',        f:t=>{t.corrode=.35;t.dmg*=1.2}},
-      {n:'Flechettes',     c:900, d:'Shots pierce 2 enemies, +30% dmg.',  f:t=>{t.pierce+=2;t.dmg*=1.3}},
-      {n:'DISINTEGRATE',   c:2500,d:'Corrodes 70%, pierces 4, +90% dmg.', f:t=>{t.corrode=.7;t.pierce+=2;t.dmg*=1.9}},
-    ]},
-  ]},
 
-breacher: {
-  name:'BREACHER', role:'Anti-Armour', color:'#ffb03d', cost:260, kind:'rail',
-  draw:10,
-  dmg:430, cd:200, range:305, ps:70, shots:1, pierce:0, pierceArmor:1, ground:true, air:false,
-  desc:'Short-barrelled siege gun. Ignores armour outright — the answer to Brutes and Juggernauts.',
-  paths:[
-    {name:'SIEGE', color:'#ff4d2d', ups:[
-      {n:'Heavier Slug',   c:280, d:'+50% damage.',                       f:t=>t.dmg*=1.5},
-      {n:'Shaped Charge',  c:600, d:'Impacts splash for 90.',             f:t=>{t.splash=90;t.dmg*=1.2}},
-      {n:'Demolition',     c:1400,d:'+80% damage, bigger splash.',        f:t=>{t.dmg*=1.8;t.splash=140}},
-      {n:'SIEGEBREAKER',   c:3600,d:'+160% damage. Shatters frozen units for 4×.',f:t=>{t.dmg*=2.6;t.shatter=4;t.splash=170}},
-    ]},
-    {name:'BATTERY', color:'#ffd633', ups:[
-      {n:'Auto-Loader',    c:300, d:'+40% fire rate.',                    f:t=>t.cd*=.71},
-      {n:'Flak Conversion',c:660, d:'Can engage air targets too.',        f:t=>{t.air=true;t.range*=1.15}},
-    ]},
-  ]},
 
 venom: {
   name:'VENOM', role:'Toxin', color:'#7dff4d', cost:205, kind:'pulse',
@@ -1019,61 +984,8 @@ hive: {
     ]},
   ]},
 
-oracle: {
-  name:'ORACLE', role:'Analyst', color:'#e0e6ff', cost:220, kind:'support',
-  draw:7,
-  dmg:0, cd:0, range:270, shots:0, air:false, ground:false, detect:true,
-  mark:.25, markCorrode:.2,
-  desc:'Paints every hostile in range. Marked units take more damage from everything and cannot stay hidden.',
-  paths:[
-    {name:'TARGETING', color:'#ff2d9b', ups:[
-      {n:'Deep Scan',      c:230, d:'Marked units take +40% damage.',     f:t=>t.mark=.4},
-      {n:'Weak Point',     c:490, d:'+55% damage taken, 40% armour off.', f:t=>{t.mark=.55;t.markCorrode=.4}},
-      {n:'Total Analysis', c:1150,d:'+75% damage taken, 60% armour off, +25% range.',f:t=>{t.mark=.75;t.markCorrode=.6;t.range*=1.25}},
-      {n:'OMNISCIENCE',    c:3200,d:'+120% damage taken, armour ignored, sector-wide.',f:t=>{t.mark=1.2;t.markCorrode=.9;t.range*=1.9}},
-    ]},
-    {name:'DISRUPTION', color:'#7fd4ff', ups:[
-      {n:'Jamming Field',  c:240, d:'Marked units are slowed 30%.',       f:t=>{t.markSlow=.3}},
-      {n:'System Lock',    c:530, d:'Slow 50% and shields cannot regrow.',f:t=>{t.markSlow=.5;t.emp=1}},
-    ]},
-  ]},
 
-bastion: {
-  name:'BASTION', role:'Bulwark', color:'#ff4d2d', cost:235, kind:'shot',
-  draw:8,
-  dmg:220, cd:46, range:155, ps:17, pellets:5, spread:.9, knock:30, air:true, ground:true,
-  desc:'A wall of lead at point-blank range. Put it on the chokepoint, never at the back.',
-  paths:[
-    {name:'BARRAGE', color:'#ffb03d', ups:[
-      {n:'More Barrels',   c:240, d:'8 pellets, +25% blast damage.',      f:t=>{t.pellets=8;t.dmg*=1.25}},
-      {n:'Dragonsbreath',  c:520, d:'Pellets ignite. +30% damage.',       f:t=>{t.burn=26;t.dmg*=1.3}},
-      {n:'Point Defence',  c:1200,d:'12 pellets, +40% rate, +30% damage.',f:t=>{t.pellets=12;t.cd*=.71;t.dmg*=1.3}},
-      {n:'LAST STAND',     c:3100,d:'16 pellets, +75% damage, huge knockback.',f:t=>{t.pellets=16;t.dmg*=1.75;t.knock=90}},
-    ]},
-    {name:'CHOKE', color:'#d8ff6b', ups:[
-      {n:'Choke Bore',     c:250, d:'Tighter cone: +50% damage, +25% range.',f:t=>{t.dmg*=1.5;t.spread*=.45;t.range*=1.25;t.ps*=1.3}},
-      {n:'Breaching Shot', c:560, d:'Pellets ignore armour, +35% damage.', f:t=>{t.pierceArmor=1;t.dmg*=1.35}},
-    ]},
-  ]},
 
-voidcannon: {
-  name:'VOIDCANNON', role:'Siege', color:'#b46bff', cost:345, kind:'lob',
-  draw:12,
-  dmg:340, cd:230, range:460, ps:9, splash:145, arc:1, shots:1, air:false, ground:true,
-  voidPull:1,
-  desc:'Lobs a collapsing singularity. Everything inside is dragged to the centre and crushed.',
-  paths:[
-    {name:'COLLAPSE', color:'#ff2d9b', ups:[
-      {n:'Denser Core',    c:360, d:'+55% damage and blast radius.',      f:t=>{t.dmg*=1.55;t.splash*=1.25}},
-      {n:'Longer Collapse',c:760, d:'Singularity holds twice as long.',   f:t=>{t.voidPull=2.2;t.dmg*=1.2}},
-      {n:'Tidal Force',    c:1700,d:'+70% damage. Crush also stuns.',     f:t=>{t.dmg*=1.7;t.shock=70}},
-      {n:'EVENT COLLAPSE', c:4200,d:'+160% damage, enormous radius, ignores armour.',f:t=>{t.dmg*=2.6;t.splash*=1.5;t.pierceArmor=1;t.voidPull=3}},
-    ]},
-    {name:'BOMBARD', color:'#ffd633', ups:[
-      {n:'Rapid Cycle',    c:380, d:'+40% fire rate, +25% range.',        f:t=>{t.cd*=.71;t.range*=1.25}},
-      {n:'Cluster Void',   c:820, d:'Splits into 3 smaller singularities.',f:t=>{t.cluster=3;t.dmg*=.85}},
-    ]},
-  ]},
 };
 const TKEYS = Object.keys(TOWERS);
 
@@ -1537,7 +1449,7 @@ function buildAirRoutes() {
 function spawnEnemy(type, hs, laneIdx, affix) {
   const d = ENEMIES[type];
   const dif = DIFFS[G.diff];
-  const bossMul = d.boss ? .3 : d.elite ? .5 : 1;
+  const bossMul = d.boss ? .5 : d.elite ? .58 : 1;
   const air = !!d.air;
   const route = air ? pick(G.airRoutes) : G.lanes[laneIdx % G.lanes.length];
   const hp = Math.round(d.hp * hs * bossMul);
@@ -4940,9 +4852,8 @@ const STARTERS = ['pulse', 'scatter', 'cryo'];
 const ASTARTERS = ['strike', 'freeze', 'over', 'repair'];
 const TOWER_PRICE = {
   pulse:0, scatter:0, cryo:0,
-  inferno:450, vulcan:600, mire:750, tesla:900, halo:1050, mortar:1200,
-  bastion:1400, tempest:1500, breacher:1750, hive:2000, rail:2200,
-  oracle:2500, venom:2800, prism:3000, seismic:3300, nexus:3800, voidcannon:4500,
+  inferno:450, mire:700, tesla:900, halo:1150, mortar:1400,
+  tempest:1700, hive:2000, rail:2350, venom:2700, prism:3100, seismic:3500, nexus:4000,
 };
 let META = loadMeta();
 function loadMeta() {
