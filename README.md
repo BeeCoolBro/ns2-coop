@@ -137,6 +137,22 @@ minute**. Tower damage was left alone, so the upgrades are still worth buying.
 
 GEMINI's halves also step up a speed stage on each split — 0.60, 0.87, 1.23.
 
+## Economy
+
+Two dials, both near the top of the script:
+
+- `UPGRADE_PRICE` (1.5) multiplies every upgrade. One multiplier rather than a
+  hundred edited prices, so the ladder keeps its shape -- a full path on a rail
+  runs 7095 instead of 4730. It stacks with the final-wave surcharge.
+- `COMBO_MAX` (2) caps the kill-streak bounty multiplier. It used to reach 4x
+  off eighteen kills, which on a late wave is most of one spawn group, so it was
+  effectively permanent. Over a 200-kill streak the payout falls from 13,720 to
+  7,720.
+
+They multiply: upgrades cost half as much again while streak income roughly
+halves, so effective upgrade throughput lands near a third of what it was.
+Change either line if that reads too harsh.
+
 ## Files
 
 | | |

@@ -1620,7 +1620,7 @@ function killEnemy(e, src) {
   }
   G.kills++;
   G.comboKills++; G.comboT = 160;
-  G.combo = clamp(1 + Math.floor(G.comboKills / 6) * .25, 1, 4);
+  G.combo = clamp(1 + Math.floor(G.comboKills / 6) * .25, 1, COMBO_MAX);
   let bounty = e.bounty * G.combo;
   if (src && src.bounty) bounty *= 1 + src.bounty;
   bounty = Math.round(bounty);
@@ -1695,7 +1695,12 @@ function powerUsed() { let p = 0; for (const t of G.towers) p += t.def.draw || 5
 function powerMax() { return MAPS[G.map].grid || 300; }
 // Everything costs double once the last wave is on the board.
 const FINALE_PRICE = 2;
+const COMBO_MAX = 2;              // kill-streak bounty multiplier ceiling
+// Every upgrade price runs through here. Listed prices in the tower data are
+// the old ones; this is the dial that moves them all at once.
+const UPGRADE_PRICE = 1.5;
 function finaleMul() { return G.finale ? FINALE_PRICE : 1; }
+function upCost(up) { return Math.round(up.c * UPGRADE_PRICE * finaleMul()); }
 function placeBlock(type) {
   if (countOf(type) >= TYPE_CAP) return 'cap';
   if (powerUsed() + (TOWERS[type].draw || 5) > powerMax()) return 'grid';
@@ -4641,7 +4646,7 @@ function buyUpgrade(t, pi, ti) {
   if (isClient()) { NET.link.send({k:'upg', id:t.id, pi, ti}); return; }
   const path = t.def.paths[pi], up = path.ups[ti];
   if (!up || t.tiers[pi] !== ti) return;
-  const cost = Math.round(up.c * finaleMul());
+  const cost = upCost(up);
   const other = t.tiers[1 - pi];
   if (ti >= 2 && other >= 3) { toast('✕', 'PATH LOCKED', 'Only one path can pass tier 2.', '#ff2d9b'); sfx('deny'); return; }
   if (ti >= 3 && other >= 3) { sfx('deny'); return; }
@@ -4967,11 +4972,11 @@ function refreshInspector() {
       const own = ti < lvl;
       const next = ti === lvl;
       const locked = upgradeLocked(t, pi, ti);
-      const poor = next && G.cash < u.c;
+      const poor = next && G.cash < upCost(u);
       const el = document.createElement('div');
       el.className = 'upg' + (own ? ' own' : '') + (!own && !next ? ' dis' : '') + (locked ? ' dis' : '') + (poor ? ' poor' : '');
       el.innerHTML = `<div class="un"><span style="color:${own ? '#5cff9d' : next && !locked ? p.color : 'var(--txm)'}">${own ? '✓ ' : ''}${u.n}</span>
-        <span class="uc">${own ? 'OWNED' : locked ? 'LOCKED' : u.c}</span></div><div class="ud">${u.d}</div>`;
+        <span class="uc">${own ? 'OWNED' : locked ? 'LOCKED' : upCost(u)}</span></div><div class="ud">${u.d}</div>`;
       if (next && !locked) el.onclick = () => buyUpgrade(t, pi, ti);
       wrap.appendChild(el);
     });
@@ -5423,7 +5428,7 @@ function buildCodex() {
       ['❄', 'CONTROL IMMUNITY', 'GLACIERS and the COLOSSUS cannot be frozen, chilled, stunned or held by a stasis field. There is no trick for them: bring damage.', '#b4f0ff'],
       ['⛓', 'CONTROL HAS LIMITS', 'Nothing can be held forever. A freeze or stun leaves a unit immune for far longer than it lasted, every knockback shoves less than the one before it, and no stack of slows drops anything below a third of its speed. Control buys you time; it does not win the wave.', '#7fd4ff'],
       ['📡', 'JAMMING & DRAIN', 'A SIREN cuts the range of every tower near it while it passes. A LEECH quietly takes credits out of your account each second it stays alive. Both are priority targets.', '#ff5ce0'],
-      ['⚠', 'THE FINAL STAND', `On a sector's last wave the score turns and the requisition office doubles every price — towers and upgrades both. Build what you need BEFORE the last wave starts; anything you buy once it has begun costs ${FINALE_PRICE}x. Endless runs have no last wave, so they never trigger it.`, '#ff2d9b'],
+      ['⚠', 'THE FINAL STAND', `On a sector's last wave the score turns and the requisition office doubles every price — towers and upgrades both, on top of the standing upgrade surcharge. Build what you need BEFORE the last wave starts; anything you buy once it has begun costs ${FINALE_PRICE}x. Endless runs have no last wave, so they never trigger it.`, '#ff2d9b'],
       ['∞', 'ENDLESS', 'Clear a sector on any threat level and its ENDLESS run unlocks. Waves never stop, hulls keep thickening, and extra bosses stack in every fifth wave past the campaign length. Flux paid grows with the square of your depth, so a deep run is worth far more than several shallow ones.', '#b46bff'],
     ];
     sys.forEach(([i, n, d, c]) => body.insertAdjacentHTML('beforeend', `<div class="cxRow">
@@ -5651,7 +5656,7 @@ const SFXT = {
   pulse:  () => throttled('a', 60)  && tone({f:640, f2:300, type:'square', dur:.08, v:.08}),
   scatter:() => throttled('b', 90)  && noise({f:1800, q:.8, dur:.11, v:.12}),
   inferno:() => throttled('c', 110) && noise({f:520, q:.6, dur:.16, v:.05, type:'lowpass'}),
-  cryo:   () => throttled('d', 120) && (tone({f:1500, f2:520, dur:.16, v:.07}), noise({f:6000, q:6, dur:.1, v:.04, type:'highpass'})),
+  cryo:   () => throttled('d', 210) && (tone({f:1050, f2:470, dur:.13, v:.028}), noise({f:5200, q:6, dur:.06, v:.008, type:'highpass'})),
   tesla:  () => throttled('e', 110) && (noise({f:1700, q:.5, dur:.13, v:.1}), tone({f:180, f2:50, type:'square', dur:.1, v:.07})),
   rail:   () => throttled('f', 130) && (tone({f:1400, f2:180, type:'sawtooth', dur:.22, v:.13}), noise({f:3200, q:1.4, dur:.16, v:.07})),
   mortar: () => throttled('g', 150) && (tone({f:150, f2:52, type:'sawtooth', dur:.2, v:.13}), noise({f:400, q:.5, dur:.16, v:.08, type:'lowpass'})),
