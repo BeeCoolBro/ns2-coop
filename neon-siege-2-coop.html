@@ -266,9 +266,6 @@ button{font-family:var(--f2);color:inherit;background:none;border:none;cursor:po
 /* co-op */
 .coopIn{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.16);border-radius:8px;
   color:var(--txm);font-family:var(--f1);font-size:14px;font-weight:800;padding:10px 12px}
-.coopTA{width:100%;height:70px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.14);
-  border-radius:8px;color:var(--txm);font-family:var(--f2);font-size:10.5px;padding:9px;resize:vertical;
-  letter-spacing:.02em;line-height:1.5}
 #coopTag{display:none;position:absolute;top:62px;left:50%;transform:translateX(-50%);z-index:40;
   gap:8px;align-items:center;padding:5px 14px;border-radius:20px;font-family:var(--f1);font-size:10.5px;
   font-weight:900;letter-spacing:.18em;color:#ffd633;background:rgba(255,214,51,.10);
@@ -469,14 +466,17 @@ button{font-family:var(--f2);color:inherit;background:none;border:none;cursor:po
     <div class="ovT" style="font-size:clamp(20px,3.4vw,32px);color:var(--c)">CO-OP</div>
     <div class="ovS">Two commanders, one grid. Shared credits, shared cores.</div>
 
-    <div class="sect">PLAY WITH SOMEONE  <span style="color:var(--g)">✅ EASIEST</span></div>
-    <div style="font-size:12px;color:var(--txd);line-height:1.8;margin-bottom:12px">
+    <div style="font-size:12.5px;color:var(--txd);line-height:1.9;margin-bottom:16px">
       Press PLAY and you go into the queue. The moment anyone else presses it,
       you are paired and dropped into the same match together.
     </div>
-    <div class="ovBtns" style="margin-bottom:10px">
-      <button class="btn pri" id="btnCoopFind" style="font-size:13px;padding:13px 34px">👥 PLAY</button>
-      <button class="btn" id="btnCoopStop">STOP LOOKING</button>
+    <div class="ovBtns" style="margin-bottom:12px">
+      <button class="btn pri" id="btnCoopFind" style="font-size:14px;padding:14px 40px">👥 PLAY</button>
+      <button class="btn" id="btnCoopStop" style="display:none">CANCEL</button>
+      <button class="btn pri" id="coopGo" style="display:none;font-size:14px;padding:14px 40px">▶ CHOOSE SECTOR</button>
+    </div>
+    <div id="coopWait" style="display:none;font-size:12.5px;color:var(--txd);line-height:1.8;margin-bottom:10px">
+      Your partner is picking the sector … you will drop in automatically.
     </div>
     <details style="margin-bottom:6px">
       <summary style="font-size:11px;color:var(--txd);cursor:pointer;letter-spacing:.1em">server address</summary>
@@ -486,39 +486,6 @@ button{font-family:var(--f2);color:inherit;background:none;border:none;cursor:po
         Leave blank when you opened this page from the server itself.
       </div>
     </details>
-
-    <div class="sect" style="margin-top:22px">SAME COMPUTER</div>
-    <div style="font-size:12px;color:var(--txd);line-height:1.8;margin-bottom:10px">
-      Open this file in a second tab, press HOST here and JOIN there.
-      Works whether you double-click the file or serve it.
-    </div>
-    <div class="ovBtns">
-      <button class="btn pri" id="btnCoopHostL">HOST</button>
-      <button class="btn" id="btnCoopJoinL">JOIN</button>
-    </div>
-
-    <div class="sect" style="margin-top:22px">OVER THE INTERNET</div>
-    <div style="font-size:12px;color:var(--txd);line-height:1.8;margin-bottom:10px">
-      No server needed: the host sends a code, the guest sends one back.
-    </div>
-    <div class="ovBtns">
-      <button class="btn pri" id="btnCoopHostO">HOST</button>
-      <button class="btn" id="btnCoopJoinO">JOIN</button>
-    </div>
-
-    <div id="coopJoinWrap" style="display:none;margin-top:16px;text-align:left">
-      <div style="font-size:11px;letter-spacing:.16em;color:var(--txd);margin-bottom:6px">PASTE THE HOST'S CODE</div>
-      <textarea id="coopJoinCode" class="coopTA" placeholder="paste here, then press JOIN again"></textarea>
-    </div>
-    <div id="coopCodeWrap" style="display:none;margin-top:16px;text-align:left">
-      <div style="font-size:11px;letter-spacing:.16em;color:var(--txd);margin-bottom:6px">YOUR CODE — SEND THIS TO YOUR PARTNER</div>
-      <textarea id="coopCode" class="coopTA" readonly onclick="this.select()"></textarea>
-    </div>
-    <div id="coopAnswerWrap" style="display:none;margin-top:12px;text-align:left">
-      <div style="font-size:11px;letter-spacing:.16em;color:var(--txd);margin-bottom:6px">PASTE THEIR REPLY</div>
-      <textarea id="coopAnswer" class="coopTA" placeholder="their reply code"></textarea>
-      <button class="btn" id="btnCoopAccept" style="margin-top:8px">CONNECT</button>
-    </div>
 
     <div id="coopState" style="margin-top:18px;font-size:12.5px;letter-spacing:.1em;color:var(--c);font-weight:700"></div>
     <div class="ovBtns" style="margin-top:20px">
@@ -5483,7 +5450,12 @@ $('btnArmoury3').onclick = () => openArmoury();
 $('btnArmoury4').onclick = () => openArmoury();
 $('btnCloseArm').onclick = () => closeArmoury();
 document.querySelectorAll('.armTab').forEach(b => b.onclick = () => { armTab(b.dataset.pane); sfx('click'); });
-$('btnCampaign').onclick = () => { initAudio(); G.mode = 'menu'; closeAll(); buildMapGrid(); buildDiffRow(); updateFluxLabels(); updateLoadoutPeek(); updateLoadoutPeek(); $('ovMaps').classList.add('on'); sfx('click'); };
+function openSectors() {
+  initAudio(); G.mode = 'menu'; closeAll();
+  buildMapGrid(); buildDiffRow(); updateFluxLabels(); updateLoadoutPeek();
+  $('ovMaps').classList.add('on'); sfx('click');
+}
+$('btnCampaign').onclick = openSectors;
 $('btnBackTitle').onclick = () => { closeAll(); updateFluxLabels(); $('ovTitle').classList.add('on'); };
 $('btnDeploy').onclick = () => startGame(pickedMap, G.diff, false);
 $('btnEndless').onclick = () => {
@@ -5883,9 +5855,8 @@ function musicCue(kind) {
 //  desync — Math.sin and friends are not bit-identical across engines and
 //  a shared-seed model would drift apart within a wave.
 //
-//  Two transports, same interface:
-//    local   BroadcastChannel, for two tabs on one machine
-//    online  WebRTC data channel, signalled by pasting two codes
+//  One transport: a websocket to the matchmaking server, which pairs you with
+//  whoever presses PLAY next and then just forwards bytes between you.
 // ═══════════════════════════════════════════════════════════
 const EKEYS = Object.keys(ENEMIES);          // TKEYS already exists up in the codex code
 const TIDX = {}; TKEYS.forEach((k, i) => TIDX[k] = i);
@@ -5910,44 +5881,7 @@ function coop() { return NET.mode !== 'off'; }
 function isClient() { return NET.mode === 'client'; }
 function isHost() { return NET.mode === 'host'; }
 
-// ── transports ───────────────────────────────────────────────────
-// BroadcastChannel is the good path, but Chrome partitions file:// documents:
-// two tabs opened by double-clicking the file share an origin of "file://" and
-// still cannot hear each other on a channel. Measured, not assumed. localStorage
-// storage events DO cross those documents, so that is the fallback and the
-// two-tab mode works whether the file is double-clicked or served.
-const CAN_BC = location.protocol !== 'file:';
-
-function bcLink(role) {
-  const ch = new BroadcastChannel('ns2-coop');
-  const L = {
-    send(o) { try { ch.postMessage({role, m: o}); } catch (e) {} },
-    close() { try { ch.close(); } catch (e) {} },
-    onmsg: null,
-  };
-  ch.onmessage = ev => { if (ev.data && ev.data.role !== role && L.onmsg) L.onmsg(ev.data.m); };
-  return L;
-}
-// Each side writes only its own key, so the two never clobber each other, and a
-// sequence number guarantees the value changes (an identical write fires nothing).
-function lsLink(role) {
-  const KEY = 'ns2coop_' + (role === 'host' ? 'h' : 'g');
-  const OTHER = 'ns2coop_' + (role === 'host' ? 'g' : 'h');
-  let seq = 0;
-  const L = {
-    send(o) { try { localStorage.setItem(KEY, JSON.stringify({n: ++seq, m: o})); } catch (e) {} },
-    close() { try { localStorage.removeItem(KEY); } catch (e) {} },
-    onmsg: null,
-  };
-  L._h = ev => {
-    if (ev.key !== OTHER || !ev.newValue || !L.onmsg) return;
-    try { L.onmsg(JSON.parse(ev.newValue).m); } catch (e) {}
-  };
-  addEventListener('storage', L._h);
-  return L;
-}
-function localLink(role) { return CAN_BC ? bcLink(role) : lsLink(role); }
-
+// ── transport ────────────────────────────────────────────────────
 // Matchmaking transport. Press PLAY, wait, get paired with whoever presses it
 // next. The server decides who hosts (whoever waited longer), so the role is
 // assigned on pairing rather than chosen up front.
@@ -6004,41 +5938,24 @@ function mmLink(url) {
   open();
   return L;
 }
+// Once paired, the host needs an obvious way into a match. Without this the
+// lobby is a dead end: the only route in was BACK -> CAMPAIGN, which nobody
+// would guess, so it looked like the game had no launch button at all.
+function coopUI() {
+  const go = $('coopGo');
+  if (!go) return;
+  const paired = NET.partner;
+  go.style.display = (paired && isHost()) ? 'inline-flex' : 'none';
+  const find = $('btnCoopFind'), stop = $('btnCoopStop'), wait = $('coopWait');
+  if (find) find.style.display = paired ? 'none' : 'inline-flex';
+  if (stop) stop.style.display = (!paired && NET.mode === 'searching') ? 'inline-flex' : 'none';
+  if (wait) wait.style.display = (paired && isClient()) ? 'block' : 'none';
+}
 function coopFind() {
   if (NET.link) { try { NET.link.close(); } catch (e) {} }
   NET.mode = 'searching'; NET.kind = 'server'; NET.partner = false;
   NET.link = mmLink(($('coopServer').value || '').trim() || undefined);
   netStatus('connecting…');
-}
-
-// WebRTC with hand-carried signalling: no server to run, two codes to paste.
-function rtcLink(initiator) {
-  const pc = new RTCPeerConnection({iceServers: [{urls: 'stun:stun.l.google.com:19302'}]});
-  const L = {onmsg: null, pc, dc: null, send(o) {
-    if (L.dc && L.dc.readyState === 'open') { try { L.dc.send(JSON.stringify(o)); } catch (e) {} }
-  }, close() { try { pc.close(); } catch (e) {} }};
-  function bind(dc) {
-    L.dc = dc;
-    dc.onopen = () => { NET.partner = true; netStatus('linked'); if (L.onopen) L.onopen(); };
-    dc.onclose = () => { NET.partner = false; netStatus('lost'); };
-    dc.onmessage = ev => { if (L.onmsg) { try { L.onmsg(JSON.parse(ev.data)); } catch (e) {} } };
-  }
-  if (initiator) bind(pc.createDataChannel('ns2', {ordered: false, maxRetransmits: 0}));
-  else pc.ondatachannel = ev => bind(ev.channel);
-  // wait for ICE to finish so the blob the player copies is self-contained
-  L.localDesc = () => new Promise(res => {
-    let done = false;
-    const finish = () => { if (!done) { done = true; res(pc.localDescription); } };
-    if (pc.iceGatheringState === 'complete') return finish();
-    pc.onicegatheringstatechange = () => { if (pc.iceGatheringState === 'complete') finish(); };
-    setTimeout(finish, 3500);        // never leave the code box empty
-  });
-  return L;
-}
-const packSD = sd => btoa(JSON.stringify({t: sd.type, s: sd.sdp})).replace(/=+$/, '');
-function unpackSD(code) {
-  const j = JSON.parse(atob(code.trim().replace(/\s+/g, '')));
-  return {type: j.t, sdp: j.s};
 }
 
 // ── lobby ────────────────────────────────────────────────────────
@@ -6048,6 +5965,7 @@ function netStatus(s) {
   const txt = {waiting: 'waiting for your partner…', linked: 'LINKED', lost: 'partner disconnected',
                offer: 'send your partner the code above', answer: 'paste their reply below'};
   el.textContent = txt[s] || s;
+  coopUI();
   const tag = $('coopTag');
   if (tag) {
     tag.style.display = NET.partner ? 'flex' : 'none';
@@ -6055,57 +5973,6 @@ function netStatus(s) {
   }
 }
 
-function coopHostLocal() {
-  NET.mode = 'host'; NET.kind = 'local';
-  NET.link = localLink('host');
-  wireHost();
-  NET.partner = false;
-  netStatus('waiting');
-  NET.link.send({k: 'hello'});
-}
-function coopJoinLocal() {
-  NET.mode = 'client'; NET.kind = 'local';
-  NET.link = localLink('guest');
-  wireClient();
-  NET.link.send({k: 'join'});
-  netStatus('waiting');
-}
-async function coopHostOnline() {
-  NET.mode = 'host'; NET.kind = 'online';
-  const L = rtcLink(true);
-  NET.link = L;
-  wireHost();
-  const offer = await L.pc.createOffer();
-  await L.pc.setLocalDescription(offer);
-  const sd = await L.localDesc();
-  $('coopCode').value = packSD(sd);
-  $('coopCodeWrap').style.display = 'block';
-  $('coopAnswerWrap').style.display = 'block';
-  netStatus('offer');
-}
-async function coopAcceptAnswer() {
-  try {
-    await NET.link.pc.setRemoteDescription(unpackSD($('coopAnswer').value));
-    netStatus('waiting');
-  } catch (e) { netStatus('that reply code did not parse'); }
-}
-async function coopJoinOnline() {
-  const code = $('coopJoinCode').value;
-  if (!code.trim()) { netStatus('paste the host code first'); return; }
-  NET.mode = 'client'; NET.kind = 'online';
-  const L = rtcLink(false);
-  NET.link = L;
-  wireClient();
-  try {
-    await L.pc.setRemoteDescription(unpackSD(code));
-    const ans = await L.pc.createAnswer();
-    await L.pc.setLocalDescription(ans);
-    const sd = await L.localDesc();
-    $('coopCode').value = packSD(sd);
-    $('coopCodeWrap').style.display = 'block';
-    netStatus('answer');
-  } catch (e) { netStatus('that host code did not parse'); NET.mode = 'off'; }
-}
 
 
 
@@ -6429,23 +6296,15 @@ buildMapGrid(); buildDiffRow();
 render(0);
 raf = requestAnimationFrame(loop);
 netCapture();
-$('btnCoop').onclick = () => { closeAll(); $('ovCoop').classList.add('on'); netStatus(''); };
+$('btnCoop').onclick = () => { closeAll(); $('ovCoop').classList.add('on'); netStatus(''); coopUI(); };
 $('btnCoopBack').onclick = () => { closeAll(); $('ovTitle').classList.add('on'); };
 $('btnCoopLeave').onclick = () => { coopLeave(); netStatus('disconnected'); };
-$('btnCoopHostL').onclick = () => { coopHostLocal(); netStatus('waiting'); };
-$('btnCoopJoinL').onclick = () => { coopJoinLocal(); };
 $('btnCoopFind').onclick = () => coopFind();
 $('btnCoopStop').onclick = () => {
   if (NET.link && NET.mode === 'searching') { try { NET.link.ws.send(JSON.stringify({t:'cancel'})); } catch (e) {} }
   coopLeave();
 };
-$('btnCoopHostO').onclick = () => coopHostOnline();
-$('btnCoopJoinO').onclick = () => {
-  const w = $('coopJoinWrap');
-  if (w.style.display === 'none') { w.style.display = 'block'; netStatus('paste the host code, then press JOIN'); }
-  else coopJoinOnline();
-};
-$('btnCoopAccept').onclick = () => coopAcceptAnswer();
+$('coopGo').onclick = openSectors;
 
 document.addEventListener('pointerdown', () => initAudio(), {once:true});
 addEventListener('blur', () => { if (G.mode === 'play' && !G.paused) togglePause(); });

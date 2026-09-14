@@ -13,7 +13,8 @@ paired automatically and land in the same match. No codes, no port forwarding.
    `python server.py`, Plan **Free**.)
 3. Open the URL it gives you, e.g. `https://ns2-coop.onrender.com`.
 4. Both players open it → **👥 CO-OP** → **PLAY**. First one waits, second one
-   pairs instantly.
+   pairs instantly. Whoever is made host then presses **CHOOSE SECTOR** and
+   deploys; the other drops in automatically.
 
 No dependencies. `requirements.txt` is empty on purpose; it only tells Render
 this is a Python service.
@@ -95,5 +96,5 @@ the order that measurement justified.
 | `neon-siege-2-coop.html` | the game |
 | `render.yaml` | Render blueprint |
 
-The lobby also keeps **SAME COMPUTER** (two tabs, no server) and a **DIRECT**
-peer-to-peer option that needs no server at all.
+Matchmaking is the only mode: press PLAY, get paired, and the host picks the
+sector with **CHOOSE SECTOR** right there in the lobby.
