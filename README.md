@@ -280,10 +280,24 @@ Pick something other than the passphrase below, which is published in the page.
 
 Typing `BEESCANFLY` anywhere opens the panel **on that machine only** -- it
 proves nothing to the server, which checks `DEV_KEY` and nothing else. Enter the
-key, and you get a list of live matches: watch one to see exactly what its
-players see, then pick an enemy type and a count and drop them into the lane.
-Injected units go through the ordinary spawner, so they take damage, pay bounty
-and die like anything else in the wave.
+key, and you get a list of live games: watch one to see exactly what its player
+sees, then pick an enemy type and a count and drop them into the lane. Injected
+units go through the ordinary spawner, so they take damage, pay bounty and die
+like anything else in the wave.
+
+**Every game is listed, campaign included.** The first cut only ever saw paired
+co-op matches, because a match is what pairing creates -- so a solo campaign
+run, which is how the game is mostly played, was invisible and the panel sat
+permanently empty. Each game now announces itself on its own socket.
+
+A broadcasting game stays silent until somebody actually watches it. The server
+reports the spectator count and nothing is streamed while that is zero;
+otherwise every campaign player would upload roughly 70 KB/s into the void and
+the free tier's bandwidth would be gone for nothing. Pressing WATCH tells the
+game to start, and leaving tells it to stop.
+
+Note the reach of this: it means any campaign game on the deployment can be
+watched by whoever holds `DEV_KEY`, not just co-op matches.
 
 Spectating reuses the guest path wholesale: a guest already renders a match from
 the host's snapshots without simulating anything, which is what a spectator is.
@@ -300,6 +314,25 @@ refused and can neither list nor inject; with `DEV_KEY` unset even the correct
 key is refused; a spectator joining mid-match gets the cached start and then
 live frames while the guest keeps receiving its own; an injection reaches only
 the host; and a player leaving closes the match and releases its spectators.
+
+## THE ABYSS, wave 30
+
+The TYRANT silenced **every tower on the board at once** there. Its pulse has a
+300px radius and THE ABYSS is one long diagonal, so all sixteen towers sat
+inside it -- an auto-played run went from 70 cores to 0 on that single wave. The
+mechanic was meant to punish stringing a defence along one line, and it punished
+it absolutely.
+
+Only the nearest `SUPPRESS_MAX` (35%) of your towers now overload, so at least
+two thirds of the line keeps firing however tightly it is packed:
+
+| | cores after wave 30 | silenced |
+|---|---|---|
+| before | 0 | 16/16 |
+| after | 60 | 6/16 |
+
+Still open: CROSSFIRE dies at wave 20 to the LEVIATHAN, an air boss that ignores
+the lane entirely. Different cause, not chased yet.
 
 ## Upgrade paths
 

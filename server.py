@@ -167,6 +167,19 @@ def close_match(mid):
     return set(m['spec'])
 
 
+def watcher_count(mid):
+    """Tell a game how many people are watching it. It streams only while that
+    is above zero -- otherwise every solo campaign run in the world would be
+    uploading a snapshot 15 times a second for nobody."""
+    with LOCK:
+        m = MATCHES.get(mid)
+        if not m:
+            return
+        owner, n = m['host'], len(m['spec'])
+    if owner is not None and owner.alive:
+        owner.send({'t': 'watchers', 'n': n})
+
+
 def dequeue(peer):
     """Caller holds LOCK."""
     try:
@@ -277,6 +290,20 @@ class Handler(SimpleHTTPRequestHandler):
                 peer.send({'t': 'waiting', 'n': ahead})
             return
 
+        if t == 'session':
+            # any game at all, campaign included -- one player, no partner
+            with LOCK:
+                if peer.match is None:
+                    mid = NEXT_ID[0]
+                    NEXT_ID[0] += 1
+                    peer.match = mid
+                    peer.role = 'host'
+                    MATCHES[mid] = {'host': peer, 'guest': None, 'spec': set(),
+                                    'start': None, 'since': time.time(), 'solo': True}
+                mid = peer.match
+            peer.send({'t': 'session', 'id': mid, 'n': 0})
+            return
+
         if t == 'cancel':
             with LOCK:
                 dequeue(peer)
@@ -321,13 +348,15 @@ class Handler(SimpleHTTPRequestHandler):
             with LOCK:
                 rows = [{'id': mid, 'spectators': len(m['spec']),
                          'mins': round((time.time() - m['since']) / 60, 1),
-                         'ready': m['start'] is not None}
+                         'ready': m['start'] is not None,
+                         'solo': bool(m.get('solo'))}
                         for mid, m in sorted(MATCHES.items())]
             peer.send({'t': 'matches', 'rows': rows})
             return
 
         if t == 'watch':
             mid = msg.get('id')
+            old_id = peer.watching
             with LOCK:
                 old = MATCHES.get(peer.watching)
                 if old is not None:
@@ -343,15 +372,21 @@ class Handler(SimpleHTTPRequestHandler):
             peer.send({'t': 'watch', 'ok': True, 'id': mid})
             if start is not None:
                 peer.send({'t': 'msg', 'm': start})
+            watcher_count(mid)
+            if old is not None and old is not m:
+                watcher_count(old_id)
             return
 
         if t == 'unwatch':
+            left = peer.watching
             with LOCK:
                 m = MATCHES.get(peer.watching)
                 if m is not None:
                     m['spec'].discard(peer)
                 peer.watching = None
             peer.send({'t': 'watch', 'ok': False})
+            if left is not None:
+                watcher_count(left)
             return
 
         if t == 'inject':
@@ -366,6 +401,7 @@ class Handler(SimpleHTTPRequestHandler):
     def drop(self, peer):
         peer.alive = False
         watchers = set()
+        left = peer.watching
         with LOCK:
             STATS['live'] -= 1
             dequeue(peer)
@@ -380,6 +416,8 @@ class Handler(SimpleHTTPRequestHandler):
             if other is not None:
                 other.partner = None
                 other.match = None
+        if left is not None:
+            watcher_count(left)
         for w in watchers:
             if w.alive:
                 w.watching = None

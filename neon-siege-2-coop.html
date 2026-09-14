@@ -1034,6 +1034,8 @@ const SCHOOL_C = {KINETIC:'#ffd633', ARC:'#22e6ff', CHEM:'#7dff4d'};
 const ADAPT_RES = .5;        // how much the attuned school is cut by
 const ADAPT_WINDOW = 300;    // 5s between re-reads
 const SUPPRESS_CD = 380, SUPPRESS_R = 300, SUPPRESS_T = 140;
+const SUPPRESS_MAX = .35;    // at most this share of your board at once
+const _sup = [];
 // GEMINI's speed by split stage: whole, half, quarter.
 const TWIN_SPD = [1, 1.45, 2.05];
 
@@ -1071,7 +1073,7 @@ const ENEMIES = {
   shard:   {name:'SHARD',      hp:2600, spd:.82, r:24, bounty:90, leak:8, armor:.34, color:'#ff7bd2', shape:'split', desc:'Architect fragment. While one lives the Architect rebuilds itself.'},
   nemesis: {name:'NEMESIS',    hp:15000,spd:.55, r:44, bounty:700,leak:22,armor:.3,  color:'#d8ff6b', shape:'bossA',  boss:1, adapts:1, summons:'wraith', desc:'BOSS — hardens against whichever damage school hurts it most. One school will not kill it.'},
   gemini:  {name:'GEMINI',     hp:19000,spd:.6,  r:44, bounty:760,leak:24,armor:.34, color:'#ff5ce0', shape:'bossB',  boss:1, twins:1, summons:'runner', ccRes:.5, desc:'BOSS — shrugs off half of any slow or drag. Tears itself in half twice; the halves take separate lanes, and each split runs faster than the last.'},
-  tyrant:  {name:'TYRANT',     hp:24000,spd:.5,  r:48, bounty:880,leak:28,armor:.42, color:'#ff6a3d', shape:'bossC',  boss:1, suppress:1, summons:'bulwark', ccImmuneAlways:1, desc:'BOSS — suppression pulses knock every tower around it offline for three seconds.'},
+  tyrant:  {name:'TYRANT',     hp:24000,spd:.5,  r:48, bounty:880,leak:28,armor:.42, color:'#ff6a3d', shape:'bossC',  boss:1, suppress:1, summons:'bulwark', ccImmuneAlways:1, desc:'BOSS — suppression pulses knock the nearest emplacements offline. Spread your line and it can only ever silence part of it.'},
 };
 
 // elite affixes rolled on later waves
@@ -2259,9 +2261,22 @@ function tick() {
     if (e.def.suppress) {                    // TYRANT — knocks towers offline
       if (--e.supCd <= 0) {
         e.supCd = SUPPRESS_CD;
-        let off = 0;
+        // Only the nearest few emplacements overload. The radius alone was a
+        // blackout on the map this boss was built for: THE ABYSS is one long
+        // diagonal, so every tower on the board sat inside 300px and a single
+        // pulse took all sixteen offline at once -- an auto-played run lost all
+        // 70 cores on that wave. Capping the count keeps it a hole punched in
+        // your line rather than the line switching off.
+        _sup.length = 0;
         for (const t of G.towers)
-          if (dist2(t.x, t.y, e.x, e.y) < SUPPRESS_R * SUPPRESS_R) { t.silence = SUPPRESS_T; off++; }
+          if (dist2(t.x, t.y, e.x, e.y) < SUPPRESS_R * SUPPRESS_R) _sup.push(t);
+        _sup.sort((a, b) => dist2(a.x, a.y, e.x, e.y) - dist2(b.x, b.y, e.x, e.y));
+        const cap = Math.max(2, Math.ceil(G.towers.length * SUPPRESS_MAX));
+        let off = 0;
+        for (const t of _sup) {
+          if (off >= cap) break;
+          t.silence = SUPPRESS_T; off++;
+        }
         ring(e.x, e.y, 16, SUPPRESS_R, '#ff6a3d', 40);
         flash('#ff6a3d', .16); shake(10, .2);
         if (off) float(e.x, e.y - e.r - 30, off + ' OFFLINE', '#ff6a3d', 16);
@@ -4530,7 +4545,8 @@ function loop(now) {
     }
     syncHUD();
   }
-  if (isHost() && NET.partner && G.time - NET.lastSnap >= NET.snapEvery) {
+  const _wantSnap = (isHost() && NET.partner) || (CAST.watchers > 0 && !NET.spectate);
+  if (_wantSnap && G.time - NET.lastSnap >= NET.snapEvery) {
     NET.lastSnap = G.time; snapshot();
   }
   render(clamp(acc / STEP, 0, 1));
@@ -4605,6 +4621,7 @@ function startGame(mapIdx, diffIdx, endless) {
   banner(m.name, m.desc, m.theme.a);
   initAudio(); startMusic();
   if (isHost()) sendStart();
+  CAST.dead = false; castStart();
   if (!raf) raf = requestAnimationFrame(loop);
 }
 function startWave() {
@@ -6409,7 +6426,10 @@ function snapshot() {
     f: NET.fxq.splice(0, NET.fxq.length),
     c: G.hover ? [Math.round(G.hover.x), Math.round(G.hover.y)] : null,
   };
-  NET.link.send(s);
+  if (NET.link && isHost() && NET.partner) NET.link.send(s);
+  if (CAST.ws && CAST.ws.readyState === 1 && CAST.watchers > 0) {
+    try { CAST.ws.send(JSON.stringify({t: 'msg', m: s})); } catch (e) {}
+  }
 }
 
 // ── client side ──────────────────────────────────────────────────
@@ -6634,6 +6654,60 @@ function drawPeer() {
 //  a spectator is. The only difference is a dead transport, so the intents the
 //  guest UI tries to send go nowhere.
 // ═══════════════════════════════════════════════════════════
+// ── broadcasting ─────────────────────────────────────────────────
+// Dev mode could only ever see a paired co-op match, because a match is what
+// pairing creates -- so a campaign run, which is how the game is mostly played,
+// was invisible. Every game now announces itself on its own socket. It stays
+// silent until somebody actually watches: the server reports the spectator
+// count and nothing is streamed while that is zero, so a solo player is not
+// uploading 15 snapshots a second into the void.
+const CAST = {ws: null, id: 0, watchers: 0, tries: 0, dead: false};
+
+function castStart() {
+  if (isClient()) return;                 // a guest has nothing of its own to show
+  castOpen();
+  castAnnounce();
+}
+function castOpen() {
+  if (CAST.ws && (CAST.ws.readyState === 0 || CAST.ws.readyState === 1)) return;
+  let ws;
+  try { ws = new WebSocket(serverURL()); } catch (e) { return; }
+  CAST.ws = ws;
+  ws.onopen = () => { CAST.tries = 0; ws.send(JSON.stringify({t: 'session'})); castAnnounce(); };
+  ws.onclose = () => {
+    CAST.watchers = 0;
+    // a broadcast is a nicety, so retry quietly a few times and then give up
+    if (!CAST.dead && CAST.tries++ < 4 && G.mode === 'play') setTimeout(castOpen, 2000 * CAST.tries);
+  };
+  ws.onerror = () => {};
+  ws.onmessage = ev => {
+    let d; try { d = JSON.parse(ev.data); } catch (e) { return; }
+    if (d.t === 'session') { CAST.id = d.id; CAST.watchers = d.n | 0; castAnnounce(); return; }
+    if (d.t === 'watchers') {
+      const was = CAST.watchers;
+      CAST.watchers = d.n | 0;
+      if (!was && CAST.watchers) castAnnounce();   // resend the map to a new arrival
+      return;
+    }
+    if (d.t === 'msg' && d.m && d.m.k === 'dev') devApply(d.m);
+  };
+}
+// The map, so a spectator arriving mid-run draws the right sector. The server
+// keeps the last one and replays it to anyone who starts watching.
+function castAnnounce() {
+  if (!CAST.ws || CAST.ws.readyState !== 1 || G.mode !== 'play') return;
+  try {
+    CAST.ws.send(JSON.stringify({t: 'msg', m: {k: 'start', map: G.map, diff: G.diff,
+      endless: !!G.endless, load: META.loadout.slice(), abils: META.abils.slice()}}));
+  } catch (e) {}
+}
+function castStop() {
+  CAST.dead = true;
+  CAST.watchers = 0;
+  try { if (CAST.ws) CAST.ws.close(); } catch (e) {}
+  CAST.ws = null;
+}
+
 const DEV_WORD = 'BEESCANFLY';
 const DEV = {open: false, ws: null, auth: false, watching: null, rows: [], el: null};
 
@@ -6746,7 +6820,8 @@ function devDraw() {
       (r.id === DEV.watching ? 'rgba(180,107,255,.6)' : 'rgba(255,255,255,.07)');
     row.innerHTML = '<span style="font-family:var(--f1);font-size:11px;color:#b46bff">#' + r.id + '</span>' +
       '<span style="flex:1;font-size:11.5px;color:var(--txm);font-weight:600">' +
-        r.mins + ' min · ' + r.spectators + ' watching' + (r.ready ? '' : ' · not started') + '</span>';
+        (r.solo ? 'solo' : 'co-op') + ' · ' + r.mins + ' min · ' +
+        r.spectators + ' watching' + (r.ready ? '' : ' · no map yet') + '</span>';
     const b = document.createElement('button');
     b.className = 'btn';
     b.style.cssText = 'padding:5px 11px;font-size:9.5px';
@@ -6759,6 +6834,7 @@ function devDraw() {
 
 // Become a guest with a dead transport: renders the match, sends nothing.
 function devBeginSpectate() {
+  castStop();
   NET.spectate = true;
   NET.mode = 'client';
   NET.partner = true;
