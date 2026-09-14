@@ -789,7 +789,7 @@ cryo: {
 tesla: {
   name:'TESLA', role:'Chain', color:'#b46bff', cost:190, kind:'chain',
   draw:8,
-  dmg:34, cd:58, range:215, chains:3, chainFall:.72, shots:1, air:true, ground:true,
+  dmg:41, cd:52, range:230, chains:4, chainFall:.78, shots:1, air:true, ground:true,
   desc:'Arc lightning that leaps between nearby targets.',
   paths:[
     {name:'ARC STORM', color:'#22e6ff', ups:[
@@ -802,7 +802,7 @@ tesla: {
       {n:'Capacitor Bank', c:210, d:'+70% damage.',                       f:t=>t.dmg*=1.7},
       {n:'Stun Coil',      c:430, d:'Hits briefly stun their target.',    f:t=>{t.shock=20;t.dmg*=1.15}},
       {n:'EMP Discharge',  c:980, d:'Strips enemy shields, longer stun.', f:t=>{t.shock=34;t.emp=1;t.dmg*=1.4}},
-      {n:'SINGULARITY ARC',c:2900,d:'Colossal damage, a short stun, ignores armour.',f:t=>{t.dmg*=3.2;t.shock=55;t.pierceArmor=1}},
+      {n:'SINGULARITY ARC',c:2900,d:'Colossal damage, a short stun, ignores armour.',f:t=>{t.dmg*=3.4;t.shock=55;t.pierceArmor=1}},
     ]},
   ]},
 
@@ -1093,53 +1093,87 @@ const MAPS = [
 // seconds-of-fire an enemy takes on the WEAKEST lane falls monotonically,
 // measured against a 16-tower defence placed to cover every lane.
 //   GRID ZERO 292s → HIGHWAY 256 → SPLIT 236 → FOUNDRY 205
-//   → VORTEX 174 → CROSSFIRE 168 → ABYSS 149 → SINGULARITY 127
-{ id:0, name:'GRID ZERO', diffTag:'TRAINING', waves:20, cash:620, cores:100, pathW:56, grid:300,
+//   → VORTEX 174 → COOLANT RUN → THE LATTICE → CROSSFIRE 168
+//   → ABYSS 149 → VOLTAIC SPINE → THE MAW → SINGULARITY 127
+// `mul` is the per-sector hull multiplier. It used to be derived from the index
+// (1 + id * .035), which meant inserting a sector in the middle silently made
+// every sector above it harder -- ABYSS and SINGULARITY would have gained ~6%
+// for no reason. It is written down per sector now so the order can change
+// without moving the tuning.
+{ id:0, name:'GRID ZERO', diffTag:'TRAINING', waves:20, cash:620, cores:100, pathW:56, grid:300, mul:1,
   desc:'A folded training grid. Six passes packed tight — one good tower covers three of them.',
   theme:{a:'#22e6ff', b:'#0a2a3d', style:'grid', fog:'#041018'},
   lanes:[[[-.04,.5],[.1,.28],[.1,.72],[.248,.72],[.248,.28],[.396,.28],[.396,.72],[.544,.72],[.544,.28],[.692,.28],[.692,.72],[.84,.72],[.84,.28],[.94,.42],[1.04,.42]]],
   blocks:[] },
 
-{ id:1, name:'NEON HIGHWAY', diffTag:'EASY', waves:24, cash:600, cores:100, pathW:52, grid:300,
+{ id:1, name:'NEON HIGHWAY', diffTag:'EASY', waves:24, cash:600, cores:100, pathW:52, grid:300, mul:1.035,
   desc:'A sweeping freeway. Long sightlines down the straights, tight apexes at every bend.',
   theme:{a:'#ff2d9b', b:'#3d0a2a', style:'city', fog:'#100418'},
   lanes:[[[-.04,.5],[.08,.22],[.21,.78],[.34,.22],[.47,.78],[.6,.22],[.73,.78],[.86,.22],[.94,.5],[1.04,.5]]],
   blocks:[{x:.47,y:.5,r:.045},{x:.2,y:.06,r:.05},{x:.74,y:.94,r:.05}] },
 
-{ id:2, name:'SPLIT CIRCUIT', diffTag:'EASY', waves:27, cash:600, cores:95, pathW:46, grid:320,
+{ id:2, name:'SPLIT CIRCUIT', diffTag:'EASY', waves:27, cash:600, cores:95, pathW:46, grid:320, mul:1.07,
   desc:'Two feeds merge into a folded trunk. Guard the junction and you cover both streams at once.',
   theme:{a:'#5cff9d', b:'#0a3d22', style:'circuit', fog:'#04140c'},
   lanes:[[[-.04,.1],[.18,.1],[.26,.34],[.4,.5],[.6,.28],[.6,.72],[.8,.72],[.8,.28],[.9,.5],[1.04,.5]],
          [[-.04,.9],[.18,.9],[.26,.66],[.4,.5],[.6,.28],[.6,.72],[.8,.72],[.8,.28],[.9,.5],[1.04,.5]]],
   blocks:[{x:.2,y:.5,r:.07},{x:.06,y:.5,r:.045}] },
 
-{ id:3, name:'THE FOUNDRY', diffTag:'NORMAL', waves:30, cash:575, cores:90, pathW:44, grid:305,
+{ id:3, name:'THE FOUNDRY', diffTag:'NORMAL', waves:30, cash:575, cores:90, pathW:44, grid:305, mul:1.105,
   desc:'Reactor cores split the floor into aisles. The folds are too far apart to double up on.',
   theme:{a:'#ff8a3d', b:'#3d1e0a', style:'foundry', fog:'#180c04'},
   lanes:[[[-.04,.5],[.14,.3],[.14,.7],[.393,.7],[.393,.3],[.647,.3],[.647,.7],[.9,.7],[.9,.3],[.94,.44],[1.04,.44]]],
   blocks:[{x:.06,y:.5,r:.06},{x:.31,y:.5,r:.075},{x:.56,y:.5,r:.075},{x:.81,y:.5,r:.06},{x:.44,y:.07,r:.055},{x:.69,y:.93,r:.055},{x:.19,y:.93,r:.05}] },
 
-{ id:4, name:'DATA VORTEX', diffTag:'NORMAL', waves:34, cash:560, cores:85, pathW:42, grid:330,
+{ id:4, name:'DATA VORTEX', diffTag:'NORMAL', waves:34, cash:560, cores:85, pathW:42, grid:330, mul:1.14,
   desc:'Twin counter-rotating spirals. They never share a metre of track until the final approach.',
   theme:{a:'#b46bff', b:'#2a0a3d', style:'vortex', fog:'#0c0418'},
   lanes:[[[-.04,.34],[.1,.34],[.1,.08],[.62,.08],[.62,.42],[.32,.42],[.32,.25],[.5,.25],[.74,.42],[.92,.5],[1.04,.5]],
          [[-.04,.66],[.1,.66],[.1,.92],[.62,.92],[.62,.58],[.32,.58],[.32,.75],[.5,.75],[.74,.58],[.92,.5],[1.04,.5]]],
   blocks:[{x:.84,y:.14,r:.075},{x:.84,y:.86,r:.075},{x:.2,y:.5,r:.05}] },
 
-{ id:5, name:'CROSSFIRE', diffTag:'HARD', waves:38, cash:545, cores:75, pathW:40, grid:340,
+{ id:5, name:'COOLANT RUN', diffTag:'NORMAL', waves:32, cash:560, cores:82, pathW:46, grid:315, mul:1.15,
+  desc:'A cooling channel folded back on itself four times. Long straights, and every fold is within reach of the last.',
+  theme:{a:'#3dd6ff', b:'#0a2a3d', style:'foundry', fog:'#04141c'},
+  lanes:[[[-.04,.5],[.14,.26],[.32,.26],[.32,.74],[.54,.74],[.54,.26],[.76,.26],[.76,.62],[.92,.56],[1.04,.5]]],
+  blocks:[{x:.43,y:.5,r:.07},{x:.65,y:.5,r:.055},{x:.14,y:.78,r:.06},{x:.9,y:.22,r:.055}] },
+
+{ id:6, name:'THE LATTICE', diffTag:'NORMAL', waves:35, cash:555, cores:78, pathW:44, grid:325, mul:1.16,
+  desc:'Two feeds that keep meeting on the centre line. Hold the middle and you are hitting both at once; miss it and you are fighting two battles.',
+  theme:{a:'#d8ff6b', b:'#283d0a', style:'circuit', fog:'#0c1404'},
+  lanes:[[[-.04,.18],[.16,.18],[.16,.5],[.4,.5],[.4,.18],[.64,.18],[.64,.5],[.88,.5],[.88,.3],[.96,.44],[1.04,.44]],
+         [[-.04,.82],[.16,.82],[.16,.5],[.4,.5],[.4,.82],[.64,.82],[.64,.5],[.88,.5],[.88,.7],[.96,.56],[1.04,.56]]],
+  blocks:[{x:.28,y:.5,r:.05},{x:.52,y:.5,r:.05},{x:.76,y:.5,r:.05},{x:.06,y:.5,r:.045}] },
+
+{ id:7, name:'CROSSFIRE', diffTag:'HARD', waves:38, cash:545, cores:75, pathW:40, grid:340, mul:1.175,
   desc:'Two lanes braided through each other. The crossings are the only place one tower does double duty.',
   theme:{a:'#ffd633', b:'#3d3308', style:'grid', fog:'#141004'},
   lanes:[[[-.04,.24],[.12,.24],[.36,.76],[.6,.24],[.84,.76],[.95,.47],[1.04,.47]],
          [[-.04,.76],[.12,.76],[.36,.24],[.6,.76],[.84,.24],[.95,.53],[1.04,.53]]],
   blocks:[{x:.08,y:.5,r:.055},{x:.3,y:.06,r:.055},{x:.3,y:.94,r:.055},{x:.66,y:.06,r:.055},{x:.66,y:.94,r:.055}] },
 
-{ id:6, name:'THE ABYSS', diffTag:'HARD', waves:37, cash:560, cores:70, pathW:34, grid:310,
+{ id:8, name:'THE ABYSS', diffTag:'HARD', waves:37, cash:560, cores:70, pathW:34, grid:310, mul:1.21,
   desc:'One unbroken diagonal to the core. Thirty-six seconds of track and nothing doubles back.',
   theme:{a:'#ff3d3d', b:'#3d0a0a', style:'abyss', fog:'#180404'},
   lanes:[[[-.04,.3],[.26,.16],[.56,.5],[.76,.84],[1.04,.7]]],
   blocks:[{x:.14,y:.62,r:.1},{x:.4,y:.12,r:.095},{x:.66,y:.2,r:.085},{x:.36,y:.84,r:.085},{x:.9,y:.24,r:.08},{x:.08,y:.88,r:.07},{x:.62,y:.92,r:.06}] },
 
-{ id:7, name:'SINGULARITY', diffTag:'EXTREME', waves:48, cash:560, cores:70, pathW:36, grid:365,
+{ id:9, name:'VOLTAIC SPINE', diffTag:'HARD', waves:40, cash:555, cores:82, pathW:40, grid:330, mul:1.22,
+  desc:'Two near-parallel runs that barely bend. Almost nothing doubles back, so every gun you own has one pass to make it count.',
+  theme:{a:'#ffd633', b:'#3d2f08', style:'circuit', fog:'#141004'},
+  lanes:[[[-.04,.3],[.34,.36],[.68,.44],[1.04,.48]],
+         [[-.04,.7],[.34,.64],[.68,.56],[1.04,.52]]],
+  blocks:[{x:.34,y:.5,r:.05},{x:.66,y:.5,r:.045},{x:.06,y:.5,r:.04}] },
+
+{ id:10, name:'THE MAW', diffTag:'EXTREME', waves:44, cash:550, cores:92, pathW:38, grid:345, mul:1.232,
+  desc:'Three mouths and one throat. They barely turn on the way in, and two of them drop from off the board entirely.',
+  theme:{a:'#ff3d3d', b:'#3d0a14', style:'abyss', fog:'#18040a'},
+  lanes:[[[-.04,.5],[.34,.46],[.7,.48],[1.04,.5]],
+         [[.18,-.06],[.32,.28],[.62,.44],[1.04,.5]],
+         [[.18,1.06],[.32,.72],[.62,.56],[1.04,.5]]],
+  blocks:[{x:.5,y:.5,r:.05},{x:.86,y:.2,r:.045},{x:.86,y:.8,r:.045}] },
+
+{ id:11, name:'SINGULARITY', diffTag:'EXTREME', waves:48, cash:560, cores:95, pathW:36, grid:365, mul:1.245,
   desc:'Three fronts — and one of them drops in from above. Your guns have to be in three places at once.',
   theme:{a:'#ffffff', b:'#2a2a3d', style:'void', fog:'#08080f'},
   lanes:[[[-.04,.26],[.3,.26],[.3,.42],[.6,.42],[.6,.26],[.82,.31],[.9,.5],[1.04,.5]],
@@ -1446,13 +1480,13 @@ function lateScale(n) {
 }
 function hpScale(n) {
   const d = DIFFS[G.diff], m = MAPS[G.map];
-  const mapMul = 1 + m.id * .035;
+  const mapMul = m.mul !== undefined ? m.mul : 1 + m.id * .035;
   const base = (1 + (n - 1) * .21 + Math.pow(n / 11, 2.18)) * d.hp * mapMul * THREAT * lateScale(n);
   if (!G.endless) return base;
   const over = Math.max(0, n - m.waves);
   return base * (1 + over * .06);          // endless overtime, on top of the normal curve
 }
-const SECTOR_BOSS = {4:'nemesis', 5:'gemini', 6:'tyrant'};
+const SECTOR_BOSS = {4:'nemesis', 7:'gemini', 8:'tyrant'};
 function buildWave(n) {
   const gs = [], total = G.endless ? Infinity : MAPS[G.map].waves, nl = G.lanes.length;
   const avail = UNLOCK.filter(u => u[0] <= n).map(u => u[1]);
@@ -1474,9 +1508,13 @@ function buildWave(n) {
     // CROSSFIRE's two braids, TYRANT silences the towers strung along THE
     // ABYSS's single diagonal, and the ARCHITECT sheds fragments down all three
     // of SINGULARITY's fronts.
-    if (mi >= 7) add('architect', 1, 0, 0);
-    else if (mi >= 6) { add('tyrant', 1, 0, 0); delay += 70; add('leviathan', 1, 0, 0); }
-    else if (mi >= 5) { add('gemini', 1, 0, 0); delay += 60; add('overseer', 1, 0, 0); }
+    if (mi >= 11) add('architect', 1, 0, 0);
+    else if (mi >= 10) { add('nemesis', 1, 0, 0); delay += 70; add('tyrant', 1, 0, 0); }
+    else if (mi >= 9) { add('colossus', 1, 0, 0); delay += 70; add('gemini', 1, 0, 0); }
+    else if (mi >= 8) { add('tyrant', 1, 0, 0); delay += 70; add('leviathan', 1, 0, 0); }
+    else if (mi >= 7) { add('gemini', 1, 0, 0); delay += 60; add('overseer', 1, 0, 0); }
+    else if (mi >= 6) add('colossus', 1, 0, 0);
+    else if (mi >= 5) { add('leviathan', 1, 0, 0); delay += 60; add('overseer', 1, 0, 0); }
     else if (mi >= 4) add('nemesis', 1, 0, 0);
     else if (mi >= 3) add('leviathan', 1, 0, 0);
     else add('overseer', 1 + (mi >= 2 ? 1 : 0), 120, 0);
@@ -5179,6 +5217,49 @@ const TOWER_PRICE = {
   inferno:450, mire:700, tesla:900, halo:1150, mortar:1400,
   tempest:1700, hive:2000, rail:2350, venom:2700, prism:3100, seismic:3500, nexus:4000,
 };
+// Every time sectors are inserted in the middle, every index above them moves,
+// and progress is keyed by index -- so a save made before the insert would mark
+// the new sectors as already cleared and lose the ones above. Each insert is
+// recorded here as a step, and a save walks whichever steps it has not seen.
+const SECTOR_MOVES = [
+  {v:2, at:5, by:2},        // COOLANT RUN + THE LATTICE
+  {v:3, at:9, by:2},        // VOLTAIC SPINE + THE MAW
+];
+const SAVE_V = SECTOR_MOVES[SECTOR_MOVES.length - 1].v;
+function shiftSectorKeys(o, at, by) {
+  if (!o || typeof o !== 'object') return o;
+  const out = {};
+  for (const k of Object.keys(o)) {
+    const i = k | 0;
+    out[i >= at ? i + by : i] = o[k];
+  }
+  return out;
+}
+// Applies every move newer than `from`, in order, to a {prog, meta} pair.
+function migrateSectors(prog, meta, from) {
+  for (const mv of SECTOR_MOVES) {
+    if (mv.v <= from) continue;
+    prog = shiftSectorKeys(prog, mv.at, mv.by);
+    if (meta) {
+      if (meta.cleared) meta.cleared = shiftSectorKeys(meta.cleared, mv.at, mv.by);
+      if (meta.endless) meta.endless = shiftSectorKeys(meta.endless, mv.at, mv.by);
+    }
+  }
+  return prog;
+}
+function migrateSave() {
+  let v = 0;
+  try { v = (HOST.get('ns2_sv') | 0); } catch (e) { v = 0; }
+  if (v >= SAVE_V) return;
+  try {
+    const p = JSON.parse(HOST.get('ns2_prog') || '{}') || {};
+    const m = JSON.parse(HOST.get('ns2_meta') || '{}') || {};
+    HOST.set('ns2_prog', JSON.stringify(migrateSectors(p, m, v)));
+    HOST.set('ns2_meta', JSON.stringify(m));
+  } catch (e) {}
+  try { HOST.set('ns2_sv', String(SAVE_V)); } catch (e) {}
+}
+migrateSave();
 let META = loadMeta();
 function loadMeta() {
   let m = {};
@@ -5216,7 +5297,7 @@ function saveSum(str) {
   return h.toString(36);
 }
 function exportSave() {
-  const payload = JSON.stringify({v:1, meta:META, prog:prog});
+  const payload = JSON.stringify({v:SAVE_V, meta:META, prog:prog});
   // btoa only takes latin-1, so widen through URI escaping first
   const b64 = btoa(unescape(encodeURIComponent(payload)));
   return SAVE_TAG + '-' + saveSum(b64) + '-' + b64;
@@ -5234,7 +5315,10 @@ function importSave(code) {
   if (saveSum(b64) !== parts[1]) return 'That code is damaged or incomplete \u2014 copy the whole thing.';
   let obj;
   try { obj = JSON.parse(decodeURIComponent(escape(atob(b64)))); } catch (e) { return 'That code could not be read.'; }
-  if (!obj || typeof obj !== 'object' || obj.v !== 1) return 'That code is from a different version.';
+  if (!obj || typeof obj !== 'object' || !(obj.v >= 1 && obj.v <= SAVE_V))
+    return 'That code is from a different version.';
+  // a code written before a sector insert carries the old indices with it
+  obj.prog = migrateSectors(obj.prog, obj.meta, obj.v);
   // progress: keep only well-formed per-sector records
   const p = {};
   const src = obj.prog && typeof obj.prog === 'object' ? obj.prog : {};
@@ -5247,6 +5331,7 @@ function importSave(code) {
   try {
     HOST.set('ns2_prog', JSON.stringify(p));
     HOST.set('ns2_meta', JSON.stringify(obj.meta && typeof obj.meta === 'object' ? obj.meta : {}));
+    HOST.set('ns2_sv', String(SAVE_V));    // an imported save is already current
   } catch (e) { return 'This browser refused to store the save.'; }
   prog = loadProgress();
   META = loadMeta();          // re-sanitises everything that came out of the code
@@ -5838,7 +5923,7 @@ $('btnSaveApply').onclick = () => {
 
 $('btnWipe').onclick = () => {
   if (!confirm('Erase all campaign progress, flux and unlocked towers?')) return;
-  try { HOST.del('ns2_prog'); HOST.del('ns2_meta'); } catch (e) {}
+  try { HOST.del('ns2_prog'); HOST.del('ns2_meta'); HOST.set('ns2_sv', String(SAVE_V)); } catch (e) {}
   prog = {}; pickedMap = 0; META = loadMeta();
   buildAbilityDock();
   updateFluxLabels(); updateLoadoutPeek();

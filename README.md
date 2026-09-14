@@ -370,6 +370,66 @@ Worth knowing when testing a deploy: a cached page will happily pretend a fix
 did not land. The first verification run here was against a stale build and
 looked like a failure.
 
+## Sectors
+
+Twelve now. Four were added this round, two NORMAL between DATA VORTEX and
+CROSSFIRE, two HARD/EXTREME between THE ABYSS and SINGULARITY:
+
+| | sector | lanes | shortest track |
+|---|---|---|---|
+| 5 | COOLANT RUN | 1 | 3535 |
+| 6 | THE LATTICE | 2 | 3322 |
+| 9 | VOLTAIC SPINE | 2 | 1873 |
+| 10 | THE MAW | 3 | 1673 |
+
+Geometry is the difficulty lever: a lane that wanders spends longer inside tower
+range, so the run to the core shortens as sectors get harder. THE MAW first came
+out at 1673 only after a correction -- its drop-in lanes measured 1466, shorter
+than SINGULARITY's 1508, which would have made it harder than the final sector.
+
+`mul` is now written per sector rather than derived from the index. It used to
+be `1 + id * .035`, which meant inserting a sector in the middle silently made
+every sector above it harder -- CROSSFIRE, THE ABYSS and SINGULARITY would each
+have gained about 6% for no reason.
+
+### Save migration
+
+Progress, cleared flags and endless bests are keyed by sector index, so every
+insert moves them. `SECTOR_MOVES` records each insert and a save walks whichever
+steps it has not seen: a pre-everything save takes both shifts, a save from
+between them takes only the second. Save-transfer codes carry their own version
+and are migrated on import. Without this a save would show the new sectors as
+already cleared and lose the ones above them.
+
+### SINGULARITY, wave 12
+
+Reported as far too hard, and I could not verify a fix. Two candidates were
+ruled out by measurement: the per-lane cash bonus (0.22 / 0.4 / 0.6 made no
+consistent difference) and the hull multiplier (1.245 down to 0.78 moved it from
+wave 11 to 16 and did nothing for THE MAW). The auto-player is not trustworthy
+on these maps -- the three lanes converge near the core and a person stacks that
+junction, while the harness spreads towers evenly down each lane.
+
+What was clearly stale: core pools were written when sectors had one or two
+lanes. SINGULARITY asked you to hold three fronts out of the same 70 cores as
+single-lane THE ABYSS. Three-front sectors now start with more (SINGULARITY 95,
+THE MAW 92, VOLTAIC SPINE 82), which buys time to build rather than changing
+what you fight. Treat this as unverified.
+
+## TESLA
+
+Buffed at the base so both paths benefit: `dmg 34->41`, `cd 58->52`,
+`chains 3->4`, `chainFall .72->.78`, `range 215->230`. Its OVERLOAD path was
+built around stun and lost the most in the control pass, and this puts that back
+without handing the stun back.
+
+| maxed, damage/sec | before | after |
+|---|---|---|
+| ARC STORM, 1 target | 233 | 281 |
+| ARC STORM, 8 packed | 1,867 | 2,251 |
+| OVERLOAD, 1 target | 596 | 763 |
+| OVERLOAD, 8 packed | 1,555 | 2,467 |
+
 ## Files
 
 | | |
