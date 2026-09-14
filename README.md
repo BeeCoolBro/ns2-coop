@@ -454,6 +454,22 @@ a 210 splash cannon and a six-bomb airstrike every 12s.
 Rigs are in the snapshot (position, facing, hull ratio, whether a turret is
 fitted), so a co-op guest sees them rather than an empty road.
 
+## Typed codes
+
+| code | effect |
+|---|---|
+| `BEEZAP247?!` | 50,000 flux, saved immediately. Stacks. |
+| `BEESCANFLY` | opens the dev panel (co-op build only) |
+
+Both run through one shared code table, deliberately. They have "BEE" in common,
+and each has to swallow its keystrokes -- the game binds bare letters and digits,
+so an unswallowed code also fires the codex, fast-forward and tower select as it
+is typed. With two separate listeners whichever ran first would eat the shared
+prefix and starve the other, silently breaking one of the codes.
+
+A key is only swallowed while it is still building a code, so ordinary shortcuts
+are untouched, and nothing fires while a text field has focus.
+
 ## Files
 
 | | |
