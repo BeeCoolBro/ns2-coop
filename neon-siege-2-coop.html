@@ -989,6 +989,21 @@ hive: {
 };
 const TKEYS = Object.keys(TOWERS);
 
+// Damage schools. Only the NEMESIS reads these: it hardens against whichever
+// school is hurting it most, so a board built entirely out of one of them
+// grinds to a halt against it. Abilities belong to no school and always land
+// in full -- they are the guaranteed answer when everything you own is resisted.
+const SCHOOL = {
+  pulse:'KINETIC', scatter:'KINETIC', rail:'KINETIC', mortar:'KINETIC',
+  tempest:'KINETIC', hive:'KINETIC', halo:'KINETIC', seismic:'KINETIC',
+  tesla:'ARC', prism:'ARC',
+  inferno:'CHEM', venom:'CHEM', cryo:'CHEM', mire:'CHEM',
+};
+const SCHOOL_C = {KINETIC:'#ffd633', ARC:'#22e6ff', CHEM:'#7dff4d'};
+const ADAPT_RES = .6;        // how much the attuned school is cut by
+const ADAPT_WINDOW = 300;    // 5s between re-reads
+const SUPPRESS_CD = 380, SUPPRESS_R = 300, SUPPRESS_T = 180;
+
 // ═══════════════════════════════════════════════════════════
 //  ENEMY DEFINITIONS
 // ═══════════════════════════════════════════════════════════
@@ -1016,8 +1031,14 @@ const ENEMIES = {
   jugg:    {name:'JUGGERNAUT', hp:3200, spd:.62,  r:32, bounty:120,leak:9, armor:.5,  color:'#ff6a3d', shape:'jugg',   elite:1, desc:'Mini-boss. Enormous armoured hull.'},
   overseer:{name:'OVERSEER',   hp:11000,spd:.58, r:42, bounty:420,leak:20,armor:.35, color:'#b46bff', shape:'boss1',  boss:1, summons:'drone', desc:'BOSS — deploys drones as it advances.'},
   leviathan:{name:'LEVIATHAN', hp:20000,spd:.52, r:46, bounty:640,leak:25,armor:.4,  color:'#3dd6ff', shape:'boss2',  boss:1, air:1, desc:'AIR BOSS — armoured flying fortress.'},
-  architect:{name:'ARCHITECT', hp:52000,spd:.42,  r:54, bounty:1500,leak:99,armor:.45,color:'#ff2d9b', shape:'boss3',  boss:1, summons:'wraith', phases:1, desc:'FINAL BOSS — shields, summons, phase shifts.'},
+  architect:{name:'ARCHITECT', hp:52000,spd:.42,  r:54, bounty:1500,leak:99,armor:.45,color:'#ff2d9b', shape:'boss3',  boss:1, summons:'wraith', phases:1, forks:1, desc:'FINAL BOSS — every phase sheds a SHARD down each lane, and it rebuilds itself while they live.'},
   colossus:{name:'COLOSSUS',   hp:26000,spd:.46, r:50, bounty:900, leak:30,armor:.52, color:'#ffb03d', shape:'boss4',  boss:1, summons:'brute', ccImmuneAlways:1, desc:'BOSS — immune to all control. Bring raw damage.'},
+  // ── sector bosses. One per sector from 5 on, each built around the shape of
+  // its own map rather than around a bigger number.
+  shard:   {name:'SHARD',      hp:2600, spd:.82, r:24, bounty:90, leak:8, armor:.34, color:'#ff7bd2', shape:'split', desc:'Architect fragment. While one lives the Architect rebuilds itself.'},
+  nemesis: {name:'NEMESIS',    hp:15000,spd:.55, r:44, bounty:700,leak:22,armor:.3,  color:'#d8ff6b', shape:'bossA',  boss:1, adapts:1, desc:'BOSS — hardens against whichever damage school hurts it most. One school will not kill it.'},
+  gemini:  {name:'GEMINI',     hp:19000,spd:.6,  r:44, bounty:760,leak:24,armor:.34, color:'#ff5ce0', shape:'bossB',  boss:1, twins:1, desc:'BOSS — tears itself in half twice. The halves take separate lanes.'},
+  tyrant:  {name:'TYRANT',     hp:24000,spd:.5,  r:48, bounty:880,leak:28,armor:.42, color:'#ff6a3d', shape:'bossC',  boss:1, suppress:1, ccImmuneAlways:1, desc:'BOSS — suppression pulses knock every tower around it offline for three seconds.'},
 };
 
 // elite affixes rolled on later waves
@@ -1345,14 +1366,24 @@ const UNLOCK = [
 // to clear and income rate falls ~16%, but total income only ~6% (the per-wave
 // clear bonus and interest do not depend on kill speed).
 const THREAT = 1.2;
+// Later waves ramp on top of THREAT, reaching 1.5x by wave 35. It starts at 15
+// rather than at 1 because the opening economy has no slack to absorb it -- the
+// first dozen waves are still paying for your starting board, and a fatter hull
+// there just stalls the build instead of testing it. Sectors that end early
+// barely feel this; the long ones take the whole increase.
+const LATE_START = 15, LATE_FULL = 35, LATE_MUL = 1.5;
+function lateScale(n) {
+  return 1 + clamp((n - LATE_START) / (LATE_FULL - LATE_START), 0, 1) * (LATE_MUL - 1);
+}
 function hpScale(n) {
   const d = DIFFS[G.diff], m = MAPS[G.map];
   const mapMul = 1 + m.id * .035;
-  const base = (1 + (n - 1) * .21 + Math.pow(n / 11, 2.18)) * d.hp * mapMul * THREAT;
+  const base = (1 + (n - 1) * .21 + Math.pow(n / 11, 2.18)) * d.hp * mapMul * THREAT * lateScale(n);
   if (!G.endless) return base;
   const over = Math.max(0, n - m.waves);
   return base * (1 + over * .06);          // endless overtime, on top of the normal curve
 }
+const SECTOR_BOSS = {4:'nemesis', 5:'gemini', 6:'tyrant'};
 function buildWave(n) {
   const gs = [], total = G.endless ? Infinity : MAPS[G.map].waves, nl = G.lanes.length;
   const avail = UNLOCK.filter(u => u[0] <= n).map(u => u[1]);
@@ -1369,10 +1400,15 @@ function buildWave(n) {
   if (n === total) {   // campaign finale only; endless has no last wave
     // the Architect is the campaign's final boss — earlier sectors get their own tier
     const mi = MAPS[G.map].id;
+    // Sectors 5-8 each close on a boss of their own, built around the shape of
+    // that map: NEMESIS punishes a one-note board, GEMINI splits across
+    // CROSSFIRE's two braids, TYRANT silences the towers strung along THE
+    // ABYSS's single diagonal, and the ARCHITECT sheds fragments down all three
+    // of SINGULARITY's fronts.
     if (mi >= 7) add('architect', 1, 0, 0);
-    else if (mi >= 6) { add('colossus', 1, 0, 0); delay += 70; add('leviathan', 1, 0, 0); }
-    else if (mi >= 5) { add('leviathan', 1, 0, 0); delay += 60; add('overseer', 1, 0, 0); }
-    else if (mi >= 4) add('colossus', 1, 0, 0);
+    else if (mi >= 6) { add('tyrant', 1, 0, 0); delay += 70; add('leviathan', 1, 0, 0); }
+    else if (mi >= 5) { add('gemini', 1, 0, 0); delay += 60; add('overseer', 1, 0, 0); }
+    else if (mi >= 4) add('nemesis', 1, 0, 0);
     else if (mi >= 3) add('leviathan', 1, 0, 0);
     else add('overseer', 1 + (mi >= 2 ? 1 : 0), 120, 0);
     delay += 90; add('jugg', 1 + ((n / 14) | 0), 90);
@@ -1387,8 +1423,13 @@ function buildWave(n) {
   }
   if (n % 10 === 0) {
     const cyc = (n / 10) % 3;
-    const boss = MAPS[G.map].id >= 4 && cyc === 0 ? 'colossus' : cyc === 1 ? 'overseer' : 'leviathan';
-    add(boss, 1 + (n >= 30 ? 1 : 0), 130, 0);
+    // Sectors 5-7 meet their own boss mid-run, so its trick is not sprung for
+    // the first time on the wave that decides the sector. The ARCHITECT is not
+    // in this rotation -- it stays the thing you only ever see at the end.
+    const mi2 = MAPS[G.map].id, own = SECTOR_BOSS[mi2];
+    const boss = mi2 >= 4 && cyc === 0 ? (own || 'colossus') : cyc === 1 ? 'overseer' : 'leviathan';
+    // GEMINI is never doubled: two of them is four bodies on two lanes.
+    add(boss, boss === 'gemini' ? 1 : 1 + (n >= 30 ? 1 : 0), 130, 0);
     delay += 110;
     add('brute', 3 + ((n / 8) | 0), 55);
     delay += 70;
@@ -1468,7 +1509,9 @@ function spawnEnemy(type, hs, laneIdx, affix) {
     sprintT:rint(90), sporeCd:40, jamCd:0, drainCd:120, haste:0, hasteF:0,
     front:d.front || 0, ccProof:!!d.ccImmuneAlways,
     healedCd:0, wardedCd:0,
-    affix:null, bossPhase:0, eid:++enemyId,
+    affix:null, bossPhase:0,
+    adapt:d.adapts ? {KINETIC:0, ARC:0, CHEM:0} : null, attune:null, adaptCd:ADAPT_WINDOW,
+    splitN:0, supCd:260, forkAt:0, eid:++enemyId,
   };
   e.px = e.x; e.py = e.y;
   if (affix) { e.affix = affix; affix.f(e); }
@@ -1496,6 +1539,16 @@ function damage(e, amt, o) {
     }
     if (e.corrode > 0) ar *= 1 - e.corrodeV;
     dm *= 1 - clamp(ar, 0, .9);
+  }
+  // NEMESIS: tally what each school is actually landing, and cut whichever one
+  // it is currently attuned to. The tally is taken after armour so it measures
+  // damage delivered, not damage attempted.
+  if (e.adapt && o.src && o.src.type) {
+    const sc = SCHOOL[o.src.type];
+    if (sc) {
+      e.adapt[sc] += dm;
+      if (sc === e.attune) dm *= 1 - ADAPT_RES;
+    }
   }
   if (e.shield > 0) {
     const ab = Math.min(e.shield, dm);
@@ -1620,7 +1673,7 @@ function makeTower(x, y, type) {
     income:d.income || 0, bounty:0,
     cool:0, ang:-Math.PI / 2, tAng:-Math.PI / 2, flash:0, recoil:0, heat:0, spin:0, spun:0,
     tiers:[0, 0], spent:towerCost(type), kills:0, dmgDone:0, targetMode:0,
-    buff:{dmg:0, rate:0, range:0}, beamT:[], rampV:[], pulseT:0, id:++towerId,
+    buff:{dmg:0, rate:0, range:0}, beamT:[], rampV:[], pulseT:0, silence:0, id:++towerId,
   };
   return t;
 }
@@ -1957,7 +2010,7 @@ function tick() {
   // ── support buffs ──
   for (const t of G.towers) { t.buff.dmg = 0; t.buff.rate = 0; t.buff.range = 0; t.bounty = 0; }
   for (const s of G.towers) {
-    if (s.kind !== 'support') continue;
+    if (s.kind !== 'support' || s.silence > 0) continue;
     for (const t of G.towers) {
       if (t === s || dist2(s.x, s.y, t.x, t.y) > s.range * s.range) continue;
       t.buff.dmg = Math.max(t.buff.dmg, s.buffDmg);
@@ -1975,7 +2028,7 @@ function tick() {
   // ── oracle marks ──
   for (const e of G.enemies) { e.mark = 0; e.markSlow = 0; }
   for (const o of G.towers) {
-    if (!o.mark) continue;
+    if (!o.mark || o.silence > 0) continue;
     nearby(o.x, o.y, eRange(o), _q2);
     for (const e of _q2) {
       if (e.dead) continue;
@@ -2060,6 +2113,74 @@ function tick() {
         ring(e.x, e.y, 10, 130, e.color, 26);
       }
     }
+    if (e.def.adapts) {                     // NEMESIS — learns what is killing it
+      if (--e.adaptCd <= 0) {
+        e.adaptCd = ADAPT_WINDOW;
+        let best = null, bv = 0;
+        for (const k in e.adapt) {
+          if (e.adapt[k] > bv) { bv = e.adapt[k]; best = k; }
+          e.adapt[k] = 0;
+        }
+        if (best && best !== e.attune) {
+          e.attune = best;
+          e.color = SCHOOL_C[best];
+          ring(e.x, e.y, 14, 260, e.color, 34);
+          flash(e.color, .18);
+          banner('ADAPTING', 'NEMESIS RESISTS ' + best, e.color);
+          sfx('phase');
+        }
+      }
+    }
+    if (e.def.twins && e.splitN < 2) {       // GEMINI — halves itself onto two lanes
+      const f2 = e.hp / e.maxHp;
+      if (f2 < (e.splitN === 0 ? .62 : .34)) {
+        e.splitN++;
+        // hull and bounty are both split, so the pool is conserved: the threat
+        // is that it is now in two places and your guns are only in one.
+        const half = Math.max(1, Math.round(e.hp / 2));
+        e.hp = half; e.maxHp = Math.max(1, Math.round(e.maxHp / 2));
+        e.bounty = Math.max(1, Math.round(e.bounty / 2));
+        const tw = spawnEnemy(e.type, 1, 0, null);
+        tw.hp = half; tw.maxHp = e.maxHp; tw.bounty = e.bounty; tw.splitN = e.splitN;
+        tw.shield = 0; tw.maxShield = 0;
+        const L = G.lanes, li = L.indexOf(e.route);
+        tw.route = L[(Math.max(0, li) + 1) % L.length];
+        tw.d = e.d; tw.seg = 0;
+        const p2 = routeAt(tw.route, tw.d, tw); tw.x = tw.px = p2.x; tw.y = tw.py = p2.y;
+        ring(e.x, e.y, 10, 240, e.color, 30); burst(e.x, e.y, e.color, 30, 6);
+        banner('SPLIT', 'GEMINI TAKES BOTH LANES', e.color);
+        sfx('phase');
+      }
+    }
+    if (e.def.suppress) {                    // TYRANT — knocks towers offline
+      if (--e.supCd <= 0) {
+        e.supCd = SUPPRESS_CD;
+        let off = 0;
+        for (const t of G.towers)
+          if (dist2(t.x, t.y, e.x, e.y) < SUPPRESS_R * SUPPRESS_R) { t.silence = SUPPRESS_T; off++; }
+        ring(e.x, e.y, 16, SUPPRESS_R, '#ff6a3d', 40);
+        flash('#ff6a3d', .16); shake(10, .2);
+        if (off) float(e.x, e.y - e.r - 30, off + ' OFFLINE', '#ff6a3d', 16);
+        sfx('abilemp');
+      }
+    }
+    if (e.def.forks) {                       // ARCHITECT — sheds SHARDs, rebuilds while they live
+      if (e.bossPhase > e.forkAt) {
+        e.forkAt = e.bossPhase;
+        for (let l = 0; l < G.lanes.length; l++) {
+          const c = spawnEnemy('shard', hpScale(G.wave) * .45, l, null);
+          c.d = Math.max(0, e.d - 40); c.seg = 0;
+          const p3 = routeAt(c.route, c.d, c); c.x = c.px = p3.x; c.y = c.py = p3.y;
+        }
+        banner('FRAGMENTING', 'KILL THE SHARDS OR IT REBUILDS', e.color);
+      }
+      let sh = 0;
+      for (const o of G.enemies) if (!o.dead && o.type === 'shard') sh++;
+      if (sh > 0 && e.hp < e.maxHp) {
+        e.hp = Math.min(e.maxHp, e.hp + e.maxHp * .005 * sh / 60);
+        if (G.time % 24 === 0) float(e.x, e.y - e.r - 42, 'REBUILDING', '#5cff9d', 12);
+      }
+    }
     if (e.def.phases) {
       const f = e.hp / e.maxHp;
       const want = f < .3 ? 2 : f < .65 ? 1 : 0;
@@ -2130,6 +2251,7 @@ function tick() {
     }
     t.spin += .03;
     t.ang = angLerp(t.ang, t.tAng, .3);
+    if (t.silence > 0) { t.silence--; continue; }   // TYRANT suppression
     if (t.kind === 'support') continue;
     if (t.kind === 'cone') { tickCone(t); continue; }
     if (t.kind === 'beam') { tickBeam(t); continue; }
@@ -3025,6 +3147,13 @@ function drawTower(t, ghost) {
       ctx.beginPath(); ctx.arc(Math.cos(a) * 27, Math.sin(a) * 27, 2.6, 0, TAU); ctx.fill();
     }
   }
+  // ── knocked offline by a TYRANT pulse ──
+  if (t.silence > 0) {
+    const sa = .45 + Math.sin(T * .3) * .25;
+    ctx.strokeStyle = rgba('#ff6a3d', sa); ctx.lineWidth = 2.2;
+    ctx.beginPath(); ctx.arc(0, 0, 26, 0, TAU); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-9, -9); ctx.lineTo(9, 9); ctx.moveTo(9, -9); ctx.lineTo(-9, 9); ctx.stroke();
+  }
   // buff indicator
   if (t.buff.dmg > 0 && !ghost) {
     ctx.strokeStyle = rgba('#5cff9d', .35 + Math.sin(T * .09) * .2); ctx.lineWidth = 1.6;
@@ -3836,6 +3965,54 @@ function drawEnemy(e, alpha) {
       glowDot(0, 0, r * .3, hit ? '#fff' : '#ffd633', .6 + Math.sin(T * .1) * .3);
       break;
     }
+    case 'bossA': {                          // NEMESIS — a prism that re-cuts itself
+      ctx.save(); ctx.rotate(-e.ang);
+      ctx.fillStyle = 'rgba(8,16,6,.95)'; ctx.strokeStyle = bodyC; ctx.lineWidth = 3.2;
+      poly(6, r, T * .008); ctx.fill(); ctx.stroke();
+      for (let i = 0; i < 3; i++) {
+        ctx.save(); ctx.rotate(T * .02 * (i % 2 ? -1 : 1) + i * TAU / 3);
+        ctx.strokeStyle = rgba(bodyC, .5 - i * .1); ctx.lineWidth = 2.4;
+        poly(3, r * (1.32 - i * .18), 0); ctx.stroke();
+        ctx.restore();
+      }
+      ctx.strokeStyle = rgba('#ffffff', .3); ctx.lineWidth = 1.6;
+      poly(6, r * .55, -T * .03); ctx.stroke();
+      glowDot(0, 0, r * .32, hit ? '#fff' : bodyC, .7 + Math.sin(T * .11) * .25);
+      ctx.restore();
+      break;
+    }
+    case 'bossB': {                          // GEMINI — two hulls sharing one shell
+      ctx.save(); ctx.rotate(-e.ang);
+      ctx.strokeStyle = rgba(bodyC, .45); ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.arc(0, 0, r * 1.16, 0, TAU); ctx.stroke();
+      for (const sg of [-1, 1]) {
+        ctx.fillStyle = 'rgba(22,4,18,.95)'; ctx.strokeStyle = bodyC; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(0, sg * r * .44, r * .66, 0, TAU); ctx.fill(); ctx.stroke();
+        glowDot(0, sg * r * .44, r * .2, hit ? '#fff' : bodyC, .7);
+      }
+      ctx.save(); ctx.rotate(T * .025);
+      ctx.strokeStyle = rgba('#ffffff', .28); ctx.lineWidth = 1.6;
+      poly(4, r * 1.34, 0); ctx.stroke();
+      ctx.restore();
+      ctx.restore();
+      break;
+    }
+    case 'bossC': {                          // TYRANT — the dish winds up between pulses
+      ctx.save(); ctx.rotate(-e.ang);
+      const ch = clamp(1 - (e.supCd || 0) / SUPPRESS_CD, 0, 1);
+      ctx.fillStyle = 'rgba(24,6,2,.95)'; ctx.strokeStyle = bodyC; ctx.lineWidth = 3.4;
+      poly(5, r, T * .006); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = rgba('#ffffff', .16 + ch * .5); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0, 0, r * (.58 + ch * .9), 0, TAU); ctx.stroke();
+      for (let i = 0; i < 5; i++) {
+        const a2 = i * TAU / 5 + T * .012;
+        ctx.fillStyle = rgba(bodyC, .5 + ch * .4);
+        ctx.beginPath(); ctx.arc(Math.cos(a2) * r * 1.18, Math.sin(a2) * r * 1.18, r * .15, 0, TAU); ctx.fill();
+      }
+      glowDot(0, 0, r * .36, hit ? '#fff' : bodyC, .6 + ch * .4);
+      ctx.restore();
+      break;
+    }
     case 'boss1': {
       ctx.save(); ctx.rotate(-e.ang);
       ctx.fillStyle = 'rgba(10,4,20,.95)'; ctx.strokeStyle = bodyC; ctx.lineWidth = 3.4;
@@ -3951,6 +4128,10 @@ function drawEnemy(e, alpha) {
       ctx.fillStyle = '#ffffff'; ctx.font = '700 11px Orbitron, monospace';
       ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
       ctx.fillText(e.name, x, by - (e.shield > 0 ? 8 : 3));
+      if (e.attune) {                        // NEMESIS — what it is currently ignoring
+        ctx.fillStyle = SCHOOL_C[e.attune]; ctx.font = '700 8px Orbitron, monospace';
+        ctx.fillText('RESISTS ' + e.attune, x, by - (e.shield > 0 ? 8 : 3) - 12);
+      }
     }
   }
   if (e.affix && !e.boss) {

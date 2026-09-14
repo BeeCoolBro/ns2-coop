@@ -88,6 +88,25 @@ renders in **13.7 ms with more enemies on screen**. Under sustained load the
 game thins particles first, then bloom, and only touches resolution last —
 the order that measurement justified.
 
+## Sector bosses
+
+Sectors 5-8 each close on a boss built around the shape of that map, not around
+a bigger number:
+
+| sector | boss | what it does |
+|---|---|---|
+| 5 · DATA VORTEX | **NEMESIS** | tallies damage by school (kinetic / arc / chem) and every 5s attunes to whichever is hurting it most, taking 60% less from it. Abilities belong to no school and always land in full. |
+| 6 · CROSSFIRE | **GEMINI** | halves itself at 62% and 34% and sends the twin down the other braid. Hull and bounty are both split, so the pool is conserved — the problem is that it is in two places. |
+| 7 · THE ABYSS | **TYRANT** | suppression pulse every ~6s knocks every tower within 300px fully offline for 3s. Aimed at the single diagonal, where the whole board is strung along one line. |
+| 8 · SINGULARITY | **ARCHITECT** | each phase sheds a SHARD down every lane and it rebuilds 0.5%/s per living shard. |
+
+Sectors 5-7 also meet their own boss at the wave-10 marks, so the trick is not
+sprung for the first time on the wave that decides the sector.
+
+Hulls from wave 15 ramp to **1.5x** by wave 35, on top of the existing curve.
+It starts at 15 rather than 1 because the opening waves are still paying for
+your first board.
+
 ## Files
 
 | | |
