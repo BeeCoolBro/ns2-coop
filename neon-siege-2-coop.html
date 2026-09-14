@@ -746,7 +746,7 @@ scatter: {
 inferno: {
   name:'INFERNO', role:'Flamethrower', color:'#ff4d2d', cost:150, kind:'cone',
   draw:7,
-  dmg:1, cd:3, range:175, arc:.45, splash:0, shots:1, air:false, ground:true, burn:9,
+  dmg:1.15, cd:3, range:175, arc:.45, splash:0, shots:1, air:false, ground:true, burn:9,
   // note: cd is decorative here -- tickCone runs every frame, so this tower
   // applies `dmg` 60 times a second. Read its damage with that in mind.
   desc:'Continuous flame cone. Sets ground targets alight.',
@@ -1021,9 +1021,9 @@ const SCHOOL = {
   inferno:'CHEM', venom:'CHEM', cryo:'CHEM', mire:'CHEM',
 };
 const SCHOOL_C = {KINETIC:'#ffd633', ARC:'#22e6ff', CHEM:'#7dff4d'};
-const ADAPT_RES = .6;        // how much the attuned school is cut by
+const ADAPT_RES = .5;        // how much the attuned school is cut by
 const ADAPT_WINDOW = 300;    // 5s between re-reads
-const SUPPRESS_CD = 380, SUPPRESS_R = 300, SUPPRESS_T = 180;
+const SUPPRESS_CD = 380, SUPPRESS_R = 300, SUPPRESS_T = 140;
 // GEMINI's speed by split stage: whole, half, quarter.
 const TWIN_SPD = [1, 1.45, 2.05];
 
@@ -1054,7 +1054,7 @@ const ENEMIES = {
   jugg:    {name:'JUGGERNAUT', hp:3200, spd:.62,  r:32, bounty:120,leak:9, armor:.5,  color:'#ff6a3d', shape:'jugg',   elite:1, desc:'Mini-boss. Enormous armoured hull.'},
   overseer:{name:'OVERSEER',   hp:11000,spd:.58, r:42, bounty:420,leak:20,armor:.35, color:'#b46bff', shape:'boss1',  boss:1, summons:'drone', desc:'BOSS — deploys drones as it advances.'},
   leviathan:{name:'LEVIATHAN', hp:20000,spd:.52, r:46, bounty:640,leak:25,armor:.4,  color:'#3dd6ff', shape:'boss2',  boss:1, air:1, summons:'skimmer', desc:'AIR BOSS — armoured flying fortress that keeps launching interceptors.'},
-  architect:{name:'ARCHITECT', hp:52000,spd:.42,  r:54, bounty:1500,leak:99,armor:.45,color:'#ff2d9b', shape:'boss3',  boss:1, summons:'wraith', phases:1, forks:1, desc:'FINAL BOSS — every phase sheds a SHARD down each lane, and it rebuilds itself while they live.'},
+  architect:{name:'ARCHITECT', hp:40000,spd:.36,  r:54, bounty:1500,leak:99,armor:.45,color:'#ff2d9b', shape:'boss3',  boss:1, summons:'wraith', phases:1, forks:1, desc:'FINAL BOSS — every phase sheds a SHARD down each lane, and it rebuilds itself while they live.'},
   colossus:{name:'COLOSSUS',   hp:26000,spd:.46, r:50, bounty:900, leak:30,armor:.52, color:'#ffb03d', shape:'boss4',  boss:1, summons:'brute', ccImmuneAlways:1, desc:'BOSS — immune to all control. Bring raw damage.'},
   // ── sector bosses. One per sector from 5 on, each built around the shape of
   // its own map rather than around a bigger number.
@@ -1547,7 +1547,15 @@ function buildAirRoutes() {
 function spawnEnemy(type, hs, laneIdx, affix) {
   const d = ENEMIES[type];
   const dif = DIFFS[G.diff];
-  const bossMul = d.boss ? .5 : d.elite ? .58 : 1;
+  // Bosses keep a bigger share of their hull than they used to, but a flat
+  // increase is the wrong shape: it reads as pressure at wave 30 and is a wall
+  // at wave 10, when the board is three starter towers and the escort piles up
+  // behind a boss you cannot kill. An auto-played sector 4 lost 70 of its 90
+  // cores on that one wave, and putting ONLY this back to its old value was the
+  // one change that fixed it. So it ramps -- early bosses near the old share,
+  // later ones the full increase.
+  const bt = clamp((G.wave - 10) / 20, 0, 1);
+  const bossMul = d.boss ? .3 + .12 * bt : d.elite ? .5 + .04 * bt : 1;
   const air = !!d.air;
   const route = air ? pick(G.airRoutes) : G.lanes[laneIdx % G.lanes.length];
   const hp = Math.round(d.hp * hs * bossMul);
@@ -1562,7 +1570,7 @@ function spawnEnemy(type, hs, laneIdx, affix) {
     corrode:0, corrodeV:0, amp:0, ampV:0, empRevealed:0,
     venom:0, venomN:0, venomSrc:null, tar:0, tarF:0, tarPull:0, mark:0, markSlow:0,
     shield:0, maxShield:0, hitFlash:0, wob:rnd(TAU), phase:0, dead:false,
-    blinkCd:d.blink ? 180 + rint(140) : 0, healCd:0, wardCd:0, sumCd:120, ccImmune:0,
+    blinkCd:d.blink ? 180 + rint(140) : 0, healCd:0, wardCd:0, sumCd:170, ccImmune:0,
     sprintT:rint(90), sporeCd:40, jamCd:0, drainCd:120, haste:0, hasteF:0,
     front:d.front || 0, ccProof:!!d.ccImmuneAlways,
     healedCd:0, wardedCd:0,
@@ -2173,16 +2181,19 @@ function tick() {
     }
     if (e.def.summons && G.enemies.length < 320) {
       if (--e.sumCd <= 0) {
-        // Bosses used to trickle three adds every three and a half seconds,
-        // which the board cleared without noticing. They now arrive in waves
-        // big enough to force you to deal with them. The field cap above is
-        // what actually limits this, so the lane stays saturated instead of
-        // the boss quietly out-summoning the frame rate.
-        e.sumCd = e.def.phases ? 60 : 85;
-        const n = (e.def.phases ? 8 : 6) + Math.min(5, (G.wave / 10) | 0);
+        // Three adds every three and a half seconds was a trickle the board
+        // cleared without noticing; the first pass at fixing that overshot into
+        // a flood that just sat on the field cap. This sits between the two --
+        // an escort you have to answer, not a second wave.
+        e.sumCd = e.def.phases ? 105 : 140;
+        // Burst size has to grow with the wave, not sit flat. A fixed escort
+        // that reads as pressure at wave 40 is a wall at wave 10, when the board
+        // is three starter towers -- an auto-played sector 4 lost 85 of its 90
+        // cores on the first boss wave alone.
+        const n = (e.def.phases ? 3 : 2) + Math.min(4, (G.wave / 9) | 0);
         for (let k = 0; k < n; k++) {
           const c = spawnEnemy(e.def.summons, hpScale(G.wave) * .5, 0, null);
-          c.route = e.route; c.d = Math.max(0, e.d - 24 - k * 13);
+          c.route = e.route; c.d = Math.max(0, e.d - 28 - k * 17);
           const p = routeAt(c.route, c.d, c); c.x = c.px = p.x; c.y = c.py = p.y;
         }
         ring(e.x, e.y, 10, 130, e.color, 26);
@@ -2247,7 +2258,7 @@ function tick() {
       if (e.bossPhase > e.forkAt) {
         e.forkAt = e.bossPhase;
         for (let l = 0; l < G.lanes.length; l++) {
-          const c = spawnEnemy('shard', hpScale(G.wave) * .45, l, null);
+          const c = spawnEnemy('shard', hpScale(G.wave) * .3, l, null);
           c.d = Math.max(0, e.d - 40); c.seg = 0;
           const p3 = routeAt(c.route, c.d, c); c.x = c.px = p3.x; c.y = c.py = p3.y;
         }
@@ -2256,7 +2267,7 @@ function tick() {
       let sh = 0;
       for (const o of G.enemies) if (!o.dead && o.type === 'shard') sh++;
       if (sh > 0 && e.hp < e.maxHp) {
-        e.hp = Math.min(e.maxHp, e.hp + e.maxHp * .005 * sh / 60);
+        e.hp = Math.min(e.maxHp, e.hp + e.maxHp * .0007 * sh / 60);
         if (G.time % 24 === 0) float(e.x, e.y - e.r - 42, 'REBUILDING', '#5cff9d', 12);
       }
     }
@@ -2266,7 +2277,7 @@ function tick() {
       if (want > e.bossPhase) {
         e.bossPhase = want;
         e.shield = e.maxShield = Math.round(e.maxHp * .18);
-        e.spd = e.baseSpd * (1 + want * .35);
+        e.spd = e.baseSpd * (1 + want * .12);
         ring(e.x, e.y, 20, 500, e.color, 54);
         flash(e.color, .3); shake(18, .4);
         banner('PHASE ' + (want + 1), 'THE ARCHITECT ADAPTS', e.color);
@@ -2496,7 +2507,7 @@ function tick() {
 // pack at once. The jet now covers CONE_FULL targets properly and thins out
 // beyond that, down to a floor, so it stays strong on a few and stops being the
 // answer to every crowd in the game.
-const CONE_FULL = 4, CONE_FLOOR = .34;
+const CONE_FULL = 4, CONE_FLOOR = .38;
 function tickCone(t) {
   const tg = getTarget(t);
   if (!tg) { t.firing = 0; return; }
@@ -4550,7 +4561,14 @@ function startGame(mapIdx, diffIdx, endless) {
   buildAirRoutes();
   buildBG();
   // more entrances means the same budget must cover more ground — pay for it
-  G.cash = Math.round(m.cash * d.cash * (1 + (G.lanes.length - 1) * .22));
+  // The opening grant was set when upgrades cost what they say on the tin. At
+  // UPGRADE_PRICE 1.5 the same money buys a third less board, and that lands
+  // hardest on single-lane sectors, which get no lane bonus -- THE FOUNDRY opens
+  // on the least cash in the game and was losing its whole core on the first
+  // boss wave. This tops up the START only; income rate is untouched, so the
+  // squeeze everywhere else stays exactly where it was.
+  const OPENING_GRANT = 1.3;
+  G.cash = Math.round(m.cash * d.cash * OPENING_GRANT * (1 + (G.lanes.length - 1) * .22));
   G.cores = G.maxCores = Math.round(m.cores * d.cores);
   G.wave = 0; G.score = 0; G.kills = 0; G.leaked = 0; G.spent = 0;
   G.towers = []; G.enemies = []; G.projs = []; G.parts = []; G.fx = []; G.floats = []; G.pools = []; G.drones = [];

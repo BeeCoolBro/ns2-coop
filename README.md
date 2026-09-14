@@ -226,6 +226,36 @@ real shake requests from 90s of wave 30 through both settings: peak 18.1px ->
 6.5px, average offset 2.16px -> 0.59px, and the screen is now still 60% of the
 time instead of 50%. `SHAKE` and `SHAKE_CAP` are one line if you want more.
 
+## Difficulty corrections
+
+Three things compounded into walls and were pulled back:
+
+**Boss hulls now ramp** — 0.30 of listed HP at wave 10 rising to 0.42 by wave
+30, instead of a flat 0.42. A flat increase is the wrong shape: it reads as
+pressure at wave 30 and is a wall at wave 10, when the board is three starter
+towers and the escort piles up behind a boss you cannot kill. Summon bursts
+scale the same way (2-3 early, 6-7 late). NEMESIS resists 50% rather than 60%,
+and a TYRANT pulse holds towers for 2.3s rather than 3s.
+
+**The ARCHITECT could not be killed at any HP.** A sweep from 0.50 down to 0.30
+leaked every time at a flat ~140s, and cutting its hull made the fight *harder* —
+it gained +35% speed per phase, so less HP meant it phased sooner and reached
+the core faster than the hull saved. The fight length was set by its speed, not
+its health. Phase speed is now +12%, base speed is lower, and the shard regen —
+which scaled with max HP and so was eating roughly 44% of a full board's output
+on a 1.7M hull — is down sevenfold. It now dies at 18 and 14 towers and survives
+at ~4% on a thin 11-tower board.
+
+**THE FOUNDRY's opening.** Starting cash scales with lane count, and it is the
+only single-lane sector in its range, so it opens on 575 where its two-lane
+neighbours get 683-732 — the tightest opening in the game, right as
+`UPGRADE_PRICE` made the same money buy a third less board. It was losing ~70 of
+its 90 cores on the first boss wave. `OPENING_GRANT` (1.3) tops up the START
+only; income rate is untouched, so the squeeze everywhere else is unchanged.
+
+Measured with an auto-player using starter towers and power-ups. It has real
+run-to-run variance, so these are "no longer a wall" rather than finely tuned.
+
 ## Files
 
 | | |
