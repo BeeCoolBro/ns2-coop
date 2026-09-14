@@ -216,7 +216,18 @@ four bosses that had no escort at all now have one -- LEVIATHAN launches
 skimmers, NEMESIS wraiths, GEMINI runners, TYRANT bulwarks. The existing
 320-enemy field cap is what keeps this from outrunning the frame rate.
 
-GEMINI's halves also step up a speed stage on each split: 0.60, 0.87, 1.23.
+GEMINI's halves also step up a speed stage on each split: 0.60, 0.87, 1.23,
+and it carries `ccRes: .5` -- it shrugs off half of any slow or drag. That is
+applied per source before they are summed, so stacking three slows on it is
+resisted three times rather than once at the end. Under a lone 30% chill it
+keeps 85% of its speed instead of 70%; under a heavy chill + tar + mark stack it
+holds 49% where anything else is pinned at the 34% floor; and a second in a
+gravity well drags it 31px rather than 59px. Its twins share the definition, so
+all four bodies resist.
+
+Note that tower knockback was already at 100% resistance for every boss --
+`statusHit` checks `!e.boss`, so seismic and scatter have never shoved one. The
+only thing still pushing a boss backwards is the GRAVITY WELL ability.
 
 ## Screen shake
 

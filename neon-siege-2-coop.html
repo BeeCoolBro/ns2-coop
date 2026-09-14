@@ -1070,7 +1070,7 @@ const ENEMIES = {
   // its own map rather than around a bigger number.
   shard:   {name:'SHARD',      hp:2600, spd:.82, r:24, bounty:90, leak:8, armor:.34, color:'#ff7bd2', shape:'split', desc:'Architect fragment. While one lives the Architect rebuilds itself.'},
   nemesis: {name:'NEMESIS',    hp:15000,spd:.55, r:44, bounty:700,leak:22,armor:.3,  color:'#d8ff6b', shape:'bossA',  boss:1, adapts:1, summons:'wraith', desc:'BOSS — hardens against whichever damage school hurts it most. One school will not kill it.'},
-  gemini:  {name:'GEMINI',     hp:19000,spd:.6,  r:44, bounty:760,leak:24,armor:.34, color:'#ff5ce0', shape:'bossB',  boss:1, twins:1, summons:'runner', desc:'BOSS — tears itself in half twice. The halves take separate lanes, and each split runs faster than the last.'},
+  gemini:  {name:'GEMINI',     hp:19000,spd:.6,  r:44, bounty:760,leak:24,armor:.34, color:'#ff5ce0', shape:'bossB',  boss:1, twins:1, summons:'runner', ccRes:.5, desc:'BOSS — shrugs off half of any slow or drag. Tears itself in half twice; the halves take separate lanes, and each split runs faster than the last.'},
   tyrant:  {name:'TYRANT',     hp:24000,spd:.5,  r:48, bounty:880,leak:28,armor:.42, color:'#ff6a3d', shape:'bossC',  boss:1, suppress:1, summons:'bulwark', ccImmuneAlways:1, desc:'BOSS — suppression pulses knock every tower around it offline for three seconds.'},
 };
 
@@ -1666,7 +1666,7 @@ function statusHit(e, t) {
   if (t.emp && e.shield > 0) { e.shield = 0; burst(e.x, e.y, '#ffd633', 14, 3); }
   if (t.freezeCh && !e.boss && Math.random() < t.freezeCh) applyCC(e, 'freeze', 90);
   if (t.knock && !e.boss) {
-    const eff = t.knock * Math.max(0, 1 - (e.knockRes || 0));
+    const eff = t.knock * Math.max(0, 1 - (e.knockRes || 0)) * (1 - (e.def.ccRes || 0));
     if (eff >= 1) {
       e.d = Math.max(4, e.d - eff);
       e.knockRes = Math.min(1, (e.knockRes || 0) + .34);
@@ -1821,10 +1821,14 @@ function leadPoint(t, e, speed) {
 function curSpeed(e) {
   if (e.freeze > 0 || e.shock > 0 || (G.stasis > 0 && !e.ccProof)) return 0;
   let f = 1;
-  if (e.chill > 0 && !e.ccProof) f -= e.chillF;
+  // ccRes shrugs off a share of everything that slows or shoves. It is applied
+  // to each source before they are summed, so stacking three slows on a
+  // resistant unit is resisted three times rather than once at the end.
+  const r = 1 - (e.def.ccRes || 0);
+  if (e.chill > 0 && !e.ccProof) f -= e.chillF * r;
   if (e.haste > 0) f += e.hasteF;
-  if (e.tar > 0) f -= e.tarF;              // wading through a mire pool
-  if (e.markSlow > 0) f -= e.markSlow;     // jammed by an oracle
+  if (e.tar > 0) f -= e.tarF * r;          // wading through a mire pool
+  if (e.markSlow > 0) f -= e.markSlow * r; // jammed by an oracle
   // Hard floor: however much is stacked on it, a unit always creeps forward.
   // Without this, a slow field outside tower reach stalls a wave forever.
   return e.spd * clamp(f, .34, 1);
@@ -2677,7 +2681,7 @@ function tickWells() {
     for (const e of _q2) {
       if (e.dead) continue;
       const d = Math.hypot(e.x - w.x, e.y - w.y);
-      const pull = (1 - d / w.r) * (e.boss ? 1.1 : 3.4);
+      const pull = (1 - d / w.r) * (e.boss ? 1.1 : 3.4) * (1 - (e.def.ccRes || 0));
       e.d = Math.max(4, e.d - pull);                 // dragged backwards along the route (ability is time-limited)
       e.chill = Math.max(e.chill, 14);
       e.chillF = Math.max(e.chillF, e.boss ? .25 : .55);
