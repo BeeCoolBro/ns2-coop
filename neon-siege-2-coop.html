@@ -5659,6 +5659,14 @@ function cancelAction() {
 }
 
 addEventListener('keydown', ev => {
+  // A focused text field owns the keyboard. Without this the game's
+  // single-letter shortcuts fire underneath whatever you are typing -- pasting
+  // a save code into the transfer box was silently opening the codex, toggling
+  // fast-forward and swapping your selected tower as it went in.
+  const el = document.activeElement;
+  if (el && ev.key !== 'Escape' &&
+      (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' ||
+       el.tagName === 'SELECT' || el.isContentEditable)) return;
   const k = ev.key.toLowerCase();
   const ov = document.querySelector('.ov.on');
   if (k === 'escape') {
@@ -6712,11 +6720,26 @@ const DEV_WORD = 'BEESCANFLY';
 const DEV = {open: false, ws: null, auth: false, watching: null, rows: [], el: null};
 
 let _devBuf = '';
+// Capture phase, and each key of the passphrase is swallowed as it is typed.
+// Otherwise the passphrase is also a run of the game's own shortcuts: the C in
+// BEESCANFLY opens the codex straight over the board, which looks exactly like
+// the game has broken. A key that is not continuing the word is passed through
+// untouched, so ordinary shortcuts still work.
 addEventListener('keydown', e => {
   if (!e.key || e.key.length !== 1) return;
-  _devBuf = (_devBuf + e.key).toUpperCase().slice(-DEV_WORD.length);
-  if (_devBuf === DEV_WORD) { _devBuf = ''; devOpen(); }
-});
+  const el = document.activeElement;
+  if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+  const eat = () => { e.preventDefault(); e.stopImmediatePropagation(); };
+  const next = (_devBuf + e.key).toUpperCase();
+  if (DEV_WORD.startsWith(next)) {
+    eat();
+    _devBuf = next;
+    if (_devBuf === DEV_WORD) { _devBuf = ''; devOpen(); }
+    return;
+  }
+  _devBuf = DEV_WORD.startsWith(e.key.toUpperCase()) ? e.key.toUpperCase() : '';
+  if (_devBuf) eat();
+}, true);
 
 function devEl() {
   if (DEV.el) return DEV.el;

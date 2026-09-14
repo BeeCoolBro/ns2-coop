@@ -349,6 +349,27 @@ actually reads -- orbit blades ignore `crit`, tar pools ignore `burn`, and HALO
 already flies, so three obvious-looking upgrades would have done nothing and are
 not in there.
 
+## Keyboard
+
+The game binds bare letters -- C codex, F fast-forward, 1-6 tower select, SPACE
+wave -- and its handler had no guard for a focused text field. Two things fell
+out of that:
+
+- Typing `BEESCANFLY` was also typing those shortcuts. The C in it opened the
+  codex straight over the board and paused the game, which reads exactly like
+  the game breaking. Each key of the passphrase is now swallowed by a
+  capture-phase listener while it is still a valid prefix of the word; a key
+  that is not continuing the word passes through untouched, so ordinary
+  shortcuts are unaffected.
+- Pasting or typing a save code into the transfer box was firing the same
+  shortcuts underneath it. A focused input, textarea, select or contenteditable
+  now owns the keyboard (Escape excepted), which fixes that independently of
+  dev mode -- it is in the single-player file too.
+
+Worth knowing when testing a deploy: a cached page will happily pretend a fix
+did not land. The first verification run here was against a stale build and
+looked like a failure.
+
 ## Files
 
 | | |
