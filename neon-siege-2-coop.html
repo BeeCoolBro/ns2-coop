@@ -430,6 +430,14 @@ button{font-family:var(--f2);color:inherit;background:none;border:none;cursor:po
 
   <div id="abilDock" class="panel"></div>
   <div id="buildDock" class="panel"></div>
+<div id="sandDock" class="panel hide" style="position:absolute;bottom:86px;right:12px;
+     display:flex;gap:6px;align-items:center;padding:7px 9px">
+  <span style="font-family:var(--f1);font-size:9px;letter-spacing:.16em;color:var(--y)">SANDBOX</span>
+  <button class="btn" id="sbWaveDn" style="padding:5px 9px;font-size:10px">WAVE \u2212</button>
+  <span id="sbWave" class="mono" style="font-size:12px;min-width:28px;text-align:center">1</span>
+  <button class="btn" id="sbWaveUp" style="padding:5px 9px;font-size:10px">WAVE +</button>
+  <button class="btn" id="sbClear" style="padding:5px 9px;font-size:10px">CLEAR</button>
+</div>
   <div id="waveDock">
     <div id="wavePrev" class="panel"></div>
     <button id="nextBtn"><div class="fill" id="nextFill"></div><span>SEND WAVE 1</span></button>
@@ -509,6 +517,7 @@ button{font-family:var(--f2);color:inherit;background:none;border:none;cursor:po
     <div class="ovBtns">
       <button class="btn go" id="btnDeploy" style="font-size:13px;padding:13px 34px">⚡ DEPLOY</button>
       <button class="btn" id="btnEndless" title="Survive as long as you can. Unlocked by clearing the sector.">∞ ENDLESS</button>
+      <button class="btn" id="btnSandbox" title="Every tower, endless credits, an unbreakable core. Earns nothing.">🧪 SANDBOX</button>
       <button class="btn" id="btnArmoury3">🛠 ARMOURY</button>
       <button class="btn" id="btnBackTitle">◀ BACK</button>
     </div>
@@ -1362,7 +1371,7 @@ const G = {
   towers:[], enemies:[], projs:[], parts:[], fx:[], floats:[], pools:[], arcs:[], drones:[], rigs:[],
   groups:[], waveActive:false, waveDone:true, prepT:0,
   combo:1, comboT:0, comboKills:0,
-  speed:1, paused:false, auto:false, time:0,
+  speed:1, paused:false, auto:false, time:0, sandbox:false,
   selType:null, selTower:null, hover:null, aiming:-1,
   abilCd:[0,0,0,0], stasis:0, overclock:0, endless:false,
   finale:false,
@@ -2591,6 +2600,13 @@ function tick() {
       const tg = getTarget(t);
       if (tg) t.tAng = Math.atan2(tg.y - t.y, tg.x - t.x);
     }
+  }
+
+  if (G.sandbox) {
+    // money and core are simply not resources here
+    if (G.cash < 4e6) G.cash = 9e6;
+    G.cores = G.maxCores;
+    for (let i = 0; i < G.abilCd.length; i++) if (G.abilCd[i] > 0) G.abilCd[i] = 0;
   }
 
   tickRigs();
@@ -4825,6 +4841,9 @@ let raf = 0;
 // ═══════════════════════════════════════════════════════════
 //  GAME FLOW
 // ═══════════════════════════════════════════════════════════
+let sandboxNext = false;
+// co-op is never a sandbox: the host would be handing the guest a free run
+function coopActive() { try { return typeof coop === 'function' && coop(); } catch (e) { return false; } }
 function startGame(mapIdx, diffIdx, endless) {
   if (isClient() && !NET._starting) {
     toast('👥', 'YOUR PARTNER IS HOSTING',
@@ -4833,6 +4852,8 @@ function startGame(mapIdx, diffIdx, endless) {
   }
   G.map = mapIdx; G.diff = diffIdx;
   G.endless = !!endless;
+  G.sandbox = !!sandboxNext && !coopActive();
+  sandboxNext = false;
   const m = MAPS[mapIdx], d = DIFFS[diffIdx];
   loadMap(mapIdx);
   buildAirRoutes();
@@ -4862,6 +4883,9 @@ function startGame(mapIdx, diffIdx, endless) {
   cam.shake = 0; cam.flash = 0;
   closeAll();
   document.getElementById('hud').classList.remove('hide');
+  // the sandbox controls only exist while the mode does
+  const sd = document.getElementById('sandDock');
+  if (sd) { sd.classList.toggle('hide', !G.sandbox); if (G.sandbox) sandboxSetWave(G.wave); }
   buildDock(); buildAbilityDock(); buildTModes();
   closeInspector();
   syncHUD(); updateWavePreview();
@@ -4916,20 +4940,29 @@ function endGame(won) {
   const m = MAPS[G.map];
   let stars = 0;
   if (won) { stars = 1; if (G.cores >= G.maxCores * .5) stars = 2; if (G.leaked === 0) stars = 3; }
-  if (!G.endless) saveProgress(G.map, won, stars, G.score, G.wave);
-  const fr = fluxReward(won, G.wave, G.map, G.diff);
+  // A sandbox earns nothing and records nothing. Infinite money that also paid
+  // flux and stars would leave the campaign with no reason to exist.
+  if (!G.endless && !G.sandbox) saveProgress(G.map, won, stars, G.score, G.wave);
+  const fr = G.sandbox ? {total:0, base:0, win:0, first:0, firstLabel:'', key:''}
+                       : fluxReward(won, G.wave, G.map, G.diff);
   const hr = honeyReward(won, G.wave, G.map, G.diff);
-  if (HOST.on) {
+  if (HOST.on && !G.sandbox) {
     if (hr.total > 0) { HOST.pay(Object.assign({map:G.map, diff:G.diff, won:!!won, wave:G.wave}, hr)); HOST.bal += hr.total; }
     if (won && !G.endless) HOST.paid[hr.key] = true;   // keep the panel honest on an immediate retry
   }
-  META.flux += fr.total;
-  if (!G.endless && won) META.cleared[fr.key] = true;
-  if (G.endless && G.wave > endlessBest(G.map)) META.endless[G.map] = G.wave;
-  saveMeta();
+  if (!G.sandbox) {
+    META.flux += fr.total;
+    if (!G.endless && won) META.cleared[fr.key] = true;
+    if (G.endless && G.wave > endlessBest(G.map)) META.endless[G.map] = G.wave;
+    saveMeta();
+  }
   sfx(won ? 'victory' : 'defeat');
   const eT = document.getElementById('endT'), eS = document.getElementById('endS');
-  if (G.endless) {
+  if (G.sandbox) {
+    eT.textContent = 'SANDBOX ENDED';
+    eT.style.color = 'var(--y)';
+    eS.textContent = `${m.name} \u00b7 reached wave ${G.wave} \u00b7 nothing earned or recorded`;
+  } else if (G.endless) {
     eT.textContent = 'ENDLESS OVER';
     eT.style.color = 'var(--v)';
     eS.textContent = `${m.name} · ${DIFFS[G.diff].name} · reached wave ${G.wave}` +
@@ -5218,7 +5251,9 @@ function towerIcon(type, size) {
 }
 function buildDock() {
   const d = $('buildDock'); d.innerHTML = '';
-  META.loadout.forEach((k, i) => {
+  // a sandbox shows the whole roster, not the six you happen to have equipped
+  const kit = G.sandbox ? TKEYS.slice() : META.loadout;
+  kit.forEach((k, i) => {
     const def = TOWERS[k];
     const el = document.createElement('div');
     el.className = 'tcard'; el.style.setProperty('--ac', def.color);
@@ -6027,7 +6062,11 @@ addEventListener('keydown', ev => {
   }
   if (G.mode !== 'play' || ov) return;   // an open overlay owns the keyboard
   if (ev.repeat) return;
-  if (k >= '1' && k <= '9') { const i = +k - 1; if (META.loadout[i]) selectType(META.loadout[i]); ev.preventDefault(); return; }
+  if (k >= '1' && k <= '9') {
+    const i = +k - 1, kit = G.sandbox ? TKEYS : META.loadout;
+    if (kit[i]) selectType(kit[i]);
+    ev.preventDefault(); return;
+  }
   if (k === 'q' || k === 'w' || k === 'e' || k === 'r') useAbility('qwer'.indexOf(k));
   else if (k === ' ') { ev.preventDefault(); startWave(); }
   else if (k === 'f') cycleSpeed();
@@ -6098,6 +6137,15 @@ function openSectors() {
 $('btnCampaign').onclick = openSectors;
 $('btnBackTitle').onclick = () => { closeAll(); updateFluxLabels(); $('ovTitle').classList.add('on'); };
 $('btnDeploy').onclick = () => startGame(pickedMap, G.diff, false);
+$('btnSandbox').onclick = () => {
+  if (coopActive()) {
+    toast('\U0001f9ea', 'NOT IN CO-OP', 'Sandbox is a solo mode.', '#ff2d9b');
+    sfx('deny'); return;
+  }
+  sandboxNext = true;
+  startGame(pickedMap, G.diff, true);      // endless, so it never ends on its own
+  toast('\U0001f9ea', 'SANDBOX', 'Every tower, endless credits, unbreakable core. Nothing is earned.', '#ffd633');
+};
 $('btnEndless').onclick = () => {
   if (!sectorCleared(pickedMap)) {
     toast('∞', 'ENDLESS LOCKED', `Clear ${MAPS[pickedMap].name} on any threat level first.`, '#ff2d9b');
@@ -6113,6 +6161,21 @@ function refreshEndlessBtn() {
   b.style.opacity = ok ? '1' : '.45';
   b.textContent = !ok ? '∞ ENDLESS — LOCKED' : best ? `∞ ENDLESS · BEST ${best}` : '∞ ENDLESS';
 }
+// Jumping the wave counter is the whole reason to open a sandbox: it is how you
+// look at wave 40 without playing thirty-nine of them first.
+function sandboxSetWave(n) {
+  G.wave = clamp(n, 0, 200);
+  const el = document.getElementById('sbWave');
+  if (el) el.textContent = G.wave;
+  syncHUD(); updateWavePreview();
+}
+$('sbWaveDn').onclick = () => { sandboxSetWave(G.wave - 1); sfx('click'); };
+$('sbWaveUp').onclick = () => { sandboxSetWave(G.wave + 1); sfx('click'); };
+$('sbClear').onclick = () => {
+  for (const e of G.enemies) e.dead = true;
+  G.enemies.length = 0; G.groups.length = 0; G.waveActive = false;
+  sfx('click');
+};
 $('btnResume').onclick = () => togglePause();
 $('btnRestart').onclick = () => { $('ovPause').classList.remove('on'); startGame(G.map, G.diff); };
 $('btnQuit').onclick = () => quitToMenu();

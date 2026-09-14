@@ -482,6 +482,27 @@ prefix and starve the other, silently breaking one of the codes.
 A key is only swallowed while it is still building a code, so ordinary shortcuts
 are untouched, and nothing fires while a text field has focus.
 
+## Sandbox
+
+A button next to ENDLESS on the sector screen. Every tower in the roster is
+offered regardless of what the armoury has unlocked, credits refill, the core
+cannot break, and ability cooldowns are cleared every tick. A small dock gives
+WAVE -/+ and CLEAR, which is the actual point of the mode: looking at wave 40
+without playing thirty-nine of them first.
+
+**It pays nothing and records nothing** -- no flux, no stars, no progress, no
+vault payout, and no endless best. Infinite money that also paid out would leave
+the campaign with no reason to exist, so a sandbox run is sealed off from all of
+it. The end screen says SANDBOX ENDED rather than claiming a result.
+
+Sandbox is solo only. In co-op the host would be handing the guest a free run,
+so the flag is cleared whenever a partner is connected.
+
+Verified: all 16 towers offered against a 3-tower loadout, cash and cores refill
+from zero, abilities reset, wave jumps land, CLEAR empties the field, flux is
+unchanged across a sandbox ending while a normal run still pays, and a normal
+run afterwards shows only the equipped 3 with the dock hidden.
+
 ## Files
 
 | | |
