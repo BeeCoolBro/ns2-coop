@@ -930,6 +930,8 @@ venom: {
     {name:'DISPERSAL', color:'#3dd6ff', ups:[
       {n:'Wide Nozzle',    c:210, d:'+35% cloud radius.',                 f:t=>{t.splash*=1.35;t.range*=1.35}},
       {n:'Aerosol',        c:520, d:'Clouds reach air units, +25% radius.',f:t=>{t.air=true;t.splash*=1.25;t.range*=1.25}},
+      {n:'Saturation',     c:1150,d:'+50% radius and a heavier dose per hit.',f:t=>{t.splash*=1.5;t.venom*=1.3}},
+      {n:'STRATOSPHERE',   c:2900,d:'+60% radius and range. The cloud eats armour.',f:t=>{t.splash*=1.6;t.range*=1.3;t.corrode=.5}},
     ]},
   ]},
 
@@ -948,6 +950,8 @@ halo: {
     {name:'EDGE', color:'#ff2d9b', ups:[
       {n:'Monofilament',   c:200, d:'+70% damage.',                       f:t=>t.dmg*=1.7},
       {n:'Rending Blades', c:480, d:'Cuts through armour and slows.',     f:t=>{t.pierceArmor=1;t.chill=.26;t.chillT=60}},
+      {n:'Serrated Edge',  c:1050,d:'+90% damage, and cuts leave a target open.',f:t=>{t.dmg*=1.9;t.amp=.25}},
+      {n:'GUILLOTINE',     c:2800,d:'+150% damage on a wider ring. Chilled targets shatter.',f:t=>{t.dmg*=2.5;t.shatter=2.2;t.orbR*=1.12}},
     ]},
   ]},
 
@@ -966,6 +970,8 @@ mire: {
     {name:'CAUSTIC', color:'#7dff4d', ups:[
       {n:'Acid Mix',       c:200, d:'Pools corrode 45% of armour.',       f:t=>{t.corrode=.45;t.dmg*=1.5}},
       {n:'Dissolution',    c:520, d:'Triple pool damage, corrodes 65%.',  f:t=>{t.dmg*=3;t.corrode=.65}},
+      {n:'Reagent Bath',   c:1200,d:'+120% pool damage in wider pools.',   f:t=>{t.dmg*=2.2;t.tarR*=1.3}},
+      {n:'PRIMORDIAL SOUP',c:3000,d:'Strips 85% of armour, and the pools linger.',f:t=>{t.corrode=.85;t.tarLife*=1.7;t.dmg*=1.8}},
     ]},
   ]},
 
@@ -984,6 +990,8 @@ seismic: {
     {name:'RESONANCE', color:'#b46bff', ups:[
       {n:'Tremor Coils',   c:290, d:'+45% fire rate.',                    f:t=>t.cd*=.69},
       {n:'Liquefaction',   c:640, d:'Slams also slow 35% and corrode 40%.',f:t=>{t.chill=.35;t.chillT=140;t.corrode=.4}},
+      {n:'Harmonic Cascade',c:1300,d:'+65% blast radius, and slams shear deeper.',f:t=>{t.splash*=1.65;t.corrode=.6}},
+      {n:'EPICENTRE',      c:3200,d:'+120% damage and half again the fire rate.',f:t=>{t.dmg*=2.2;t.cd*=.66}},
     ]},
   ]},
 
@@ -1002,6 +1010,8 @@ hive: {
     {name:'PAYLOAD', color:'#ff2d9b', ups:[
       {n:'Shaped Warhead', c:260, d:'+65% damage, bigger blast.',         f:t=>{t.dmg*=1.65;t.splash=95}},
       {n:'Thermobaric',    c:580, d:'Blasts ignite and pierce armour.',   f:t=>{t.burn=30;t.pierceArmor=1;t.splash=130}},
+      {n:'Cluster Munitions',c:1300,d:'+70% blast radius, +45% damage.',   f:t=>{t.splash*=1.7;t.dmg*=1.45}},
+      {n:'DOOMSDAY PAYLOAD',c:3100,d:'+140% damage, and every blast strips armour.',f:t=>{t.dmg*=2.4;t.corrode=.55;t.splash*=1.25}},
     ]},
   ]},
 
@@ -5061,7 +5071,7 @@ function refreshInspector() {
     wrap.style.borderColor = rgba(p.color, .3);
     const lvl = t.tiers[pi];
     wrap.innerHTML = `<div class="pthH" style="color:${p.color};background:${rgba(p.color, .1)}">
-      <span>${p.name}</span><span class="pips">${[0, 1, 2, 3].map(i => `<span class="pip${i < lvl ? ' on' : ''}"></span>`).join('')}</span></div>`;
+      <span>${p.name}</span><span class="pips">${p.ups.map((_, i) => `<span class="pip${i < lvl ? ' on' : ''}"></span>`).join('')}</span></div>`;
     p.ups.forEach((u, ti) => {
       const own = ti < lvl;
       const next = ti === lvl;
@@ -6196,6 +6206,7 @@ const NET = {
   name: '',
 };
 function coop() { return NET.mode !== 'off'; }
+function spectating() { return !!NET.spectate; }
 function isClient() { return NET.mode === 'client'; }
 function isHost() { return NET.mode === 'host'; }
 
@@ -6312,6 +6323,7 @@ function wireHost() {
       return;
     }
     if (m.k === 'cursor') { NET.peer = {x: m.x, y: m.y}; return; }
+    if (m.k === 'dev') { devApply(m); return; }
     NET.intents.push(m);
   };
   if (NET.link.onopen !== undefined) NET.link.onopen = () => { if (G.mode === 'play') sendStart(); };
@@ -6602,6 +6614,187 @@ function drawPeer() {
   ctx.moveTo(p.x, p.y + 7); ctx.lineTo(p.x, p.y + 20);
   ctx.stroke();
   ctx.restore();
+}
+
+
+// ═══════════════════════════════════════════════════════════
+//  DEV MODE
+//
+//  Type the passphrase anywhere to open the panel. That only unlocks the UI on
+//  this machine -- it proves nothing. The server checks its own DEV_KEY, which
+//  lives in the environment and has no default, so if you have not set one on
+//  the deployment then nothing below can do anything at all.
+//
+//  Spectating reuses the guest path wholesale: a guest already renders a match
+//  from the host's snapshots without simulating anything, which is exactly what
+//  a spectator is. The only difference is a dead transport, so the intents the
+//  guest UI tries to send go nowhere.
+// ═══════════════════════════════════════════════════════════
+const DEV_WORD = 'BEESCANFLY';
+const DEV = {open: false, ws: null, auth: false, watching: null, rows: [], el: null};
+
+let _devBuf = '';
+addEventListener('keydown', e => {
+  if (!e.key || e.key.length !== 1) return;
+  _devBuf = (_devBuf + e.key).toUpperCase().slice(-DEV_WORD.length);
+  if (_devBuf === DEV_WORD) { _devBuf = ''; devOpen(); }
+});
+
+function devEl() {
+  if (DEV.el) return DEV.el;
+  const d = document.createElement('div');
+  d.id = 'devPanel';
+  d.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:60;' +
+    'width:min(94vw,560px);padding:13px 15px;border-radius:11px;display:none;' +
+    'background:rgba(8,12,24,.95);border:1px solid rgba(180,107,255,.5);' +
+    'box-shadow:0 18px 50px rgba(0,0,0,.7);backdrop-filter:blur(12px);font-family:var(--f2)';
+  d.innerHTML =
+    '<div style="display:flex;align-items:center;gap:9px;margin-bottom:9px">' +
+      '<span style="font-family:var(--f1);font-weight:900;font-size:12px;letter-spacing:.18em;color:#b46bff">DEV MODE</span>' +
+      '<span id="devState" style="font-size:11.5px;color:var(--txm);font-weight:600;flex:1"></span>' +
+      '<button class="btn" id="devClose" style="padding:5px 11px;font-size:9.5px">CLOSE</button>' +
+    '</div>' +
+    '<div id="devAuth" style="display:flex;gap:7px;align-items:center">' +
+      '<input id="devKey" type="password" placeholder="server DEV_KEY" autocomplete="off" ' +
+        'style="flex:1;padding:8px 10px;border-radius:7px;border:1px solid var(--line);' +
+        'background:rgba(0,0,0,.45);color:var(--tx);font-family:var(--f1);font-size:11px">' +
+      '<button class="btn pri" id="devGo" style="padding:8px 14px;font-size:10px">UNLOCK</button>' +
+    '</div>' +
+    '<div id="devBody" style="display:none">' +
+      '<div id="devList" style="display:flex;flex-direction:column;gap:5px;max-height:190px;overflow-y:auto"></div>' +
+      '<div id="devTools" style="display:none;gap:7px;align-items:center;margin-top:10px;' +
+           'padding-top:10px;border-top:1px solid var(--line)">' +
+        '<select id="devType" style="flex:1;padding:7px;border-radius:7px;border:1px solid var(--line);' +
+           'background:rgba(0,0,0,.45);color:var(--tx);font-family:var(--f1);font-size:10.5px"></select>' +
+        '<input id="devN" type="number" min="1" max="40" value="6" ' +
+           'style="width:64px;padding:7px;border-radius:7px;border:1px solid var(--line);' +
+           'background:rgba(0,0,0,.45);color:var(--tx);font-family:var(--f1);font-size:10.5px">' +
+        '<button class="btn" id="devSpawn" style="padding:8px 14px;font-size:10px;' +
+           'border-color:#ff2d9b;color:#ff2d9b">SUMMON</button>' +
+        '<button class="btn" id="devStop" style="padding:8px 12px;font-size:10px">STOP WATCHING</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(d);
+  DEV.el = d;
+
+  const sel = d.querySelector('#devType');
+  for (const k of EKEYS) {
+    const o = document.createElement('option');
+    o.value = k; o.textContent = ENEMIES[k].name;
+    sel.appendChild(o);
+  }
+  d.querySelector('#devClose').onclick = () => devClose();
+  d.querySelector('#devGo').onclick = () => devAuth();
+  d.querySelector('#devKey').onkeydown = ev => { if (ev.key === 'Enter') devAuth(); };
+  d.querySelector('#devSpawn').onclick = () => devSpawn();
+  d.querySelector('#devStop').onclick = () => devStopWatch();
+  return d;
+}
+function devSay(t) { const e = document.getElementById('devState'); if (e) e.textContent = t; }
+function devOpen() { DEV.open = true; devEl().style.display = 'block'; document.getElementById('devKey').focus(); }
+function devClose() { DEV.open = false; if (DEV.el) DEV.el.style.display = 'none'; }
+
+function devAuth() {
+  const key = (document.getElementById('devKey').value || '').trim();
+  if (!key) { devSay('enter the key set on the server'); return; }
+  try { if (DEV.ws) DEV.ws.close(); } catch (e) {}
+  devSay('connecting…');
+  const ws = new WebSocket(serverURL());
+  DEV.ws = ws;
+  ws.onopen = () => ws.send(JSON.stringify({t: 'admin', key}));
+  ws.onclose = () => { DEV.auth = false; devSay('disconnected'); };
+  ws.onerror = () => devSay('cannot reach the server');
+  ws.onmessage = ev => {
+    let d; try { d = JSON.parse(ev.data); } catch (e) { return; }
+    if (d.t === 'admin') {
+      DEV.auth = !!d.ok;
+      devSay(d.ok ? 'unlocked' : 'refused — wrong key, or DEV_KEY is not set on the server');
+      document.getElementById('devAuth').style.display = d.ok ? 'none' : 'flex';
+      document.getElementById('devBody').style.display = d.ok ? 'block' : 'none';
+      if (d.ok) devRefresh();
+      return;
+    }
+    if (d.t === 'matches') { DEV.rows = d.rows || []; devDraw(); return; }
+    if (d.t === 'watch') {
+      if (d.ok) { devSay('watching match ' + d.id); DEV.watching = d.id; devBeginSpectate(); }
+      else { devSay('that match has ended'); devStopWatch(true); }
+      document.getElementById('devTools').style.display = d.ok ? 'flex' : 'none';
+      return;
+    }
+    // a game frame from the match being watched -- hand it to the guest path
+    if (d.t === 'msg' && NET.link && NET.link.onmsg) NET.link.onmsg(d.m);
+  };
+}
+function devRefresh() {
+  if (DEV.ws && DEV.ws.readyState === 1 && DEV.auth) DEV.ws.send(JSON.stringify({t: 'list'}));
+}
+setInterval(() => { if (DEV.open && DEV.auth) devRefresh(); }, 3000);
+
+function devDraw() {
+  const list = document.getElementById('devList');
+  if (!list) return;
+  if (!DEV.rows.length) { list.innerHTML = '<div style="font-size:12px;color:var(--txm);font-weight:600">no matches running</div>'; return; }
+  list.innerHTML = '';
+  for (const r of DEV.rows) {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:9px;align-items:center;padding:7px 9px;border-radius:7px;' +
+      'background:rgba(255,255,255,.04);border:1px solid ' +
+      (r.id === DEV.watching ? 'rgba(180,107,255,.6)' : 'rgba(255,255,255,.07)');
+    row.innerHTML = '<span style="font-family:var(--f1);font-size:11px;color:#b46bff">#' + r.id + '</span>' +
+      '<span style="flex:1;font-size:11.5px;color:var(--txm);font-weight:600">' +
+        r.mins + ' min · ' + r.spectators + ' watching' + (r.ready ? '' : ' · not started') + '</span>';
+    const b = document.createElement('button');
+    b.className = 'btn';
+    b.style.cssText = 'padding:5px 11px;font-size:9.5px';
+    b.textContent = r.id === DEV.watching ? 'WATCHING' : 'WATCH';
+    b.onclick = () => DEV.ws.send(JSON.stringify({t: 'watch', id: r.id}));
+    row.appendChild(b);
+    list.appendChild(row);
+  }
+}
+
+// Become a guest with a dead transport: renders the match, sends nothing.
+function devBeginSpectate() {
+  NET.spectate = true;
+  NET.mode = 'client';
+  NET.partner = true;
+  NET.link = {send() {}, close() {}, onmsg: null, onopen: undefined};
+  wireClient();
+  netStatus('spectating');
+}
+function devStopWatch(quiet) {
+  if (DEV.ws && DEV.ws.readyState === 1 && !quiet) DEV.ws.send(JSON.stringify({t: 'unwatch'}));
+  DEV.watching = null;
+  NET.spectate = false;
+  const tools = document.getElementById('devTools');
+  if (tools) tools.style.display = 'none';
+  coopLeave();
+  quitToMenu();
+  devDraw();
+}
+function devSpawn() {
+  if (!DEV.auth || !DEV.watching) return;
+  const type = document.getElementById('devType').value;
+  const n = clamp(parseInt(document.getElementById('devN').value, 10) || 1, 1, 40);
+  DEV.ws.send(JSON.stringify({t: 'inject', id: DEV.watching, op: 'spawn', type, n}));
+  devSay('sent ' + n + ' \u00d7 ' + (ENEMIES[type] ? ENEMIES[type].name : type));
+}
+
+// ── the host end: obey, but only within the rules of the sim ──
+// Injected units are ordinary enemies built by the ordinary spawner, so they
+// take damage, pay bounty and die exactly like anything else in the wave.
+function devApply(m) {
+  if (!m || m.op !== 'spawn') return;
+  const type = ENEMIES[m.type] ? m.type : 'drone';
+  const n = clamp(m.n | 0, 1, 40);
+  const hs = hpScale(Math.max(1, G.wave));
+  for (let i = 0; i < n; i++) {
+    const e = spawnEnemy(type, hs, i % Math.max(1, G.lanes.length), null);
+    if (!e) continue;
+    e.d = Math.max(0, 6 + i * 9);
+    const p = routeAt(e.route, e.d, e);
+    e.x = e.px = p.x; e.y = e.py = p.y;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════

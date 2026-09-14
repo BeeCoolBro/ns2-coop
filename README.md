@@ -256,6 +256,55 @@ only; income rate is untouched, so the squeeze everywhere else is unchanged.
 Measured with an auto-player using starter towers and power-ups. It has real
 run-to-run variance, so these are "no longer a wall" rather than finely tuned.
 
+## Dev mode
+
+Off unless you set `DEV_KEY` in the server environment. **There is deliberately
+no default.** This repo is public and the client is served to everyone, so a
+credential written into the code would be a working backdoor into your own
+deployment for anyone who reads the source or opens devtools. Unset means every
+admin request is refused outright.
+
+Render -> your service -> Environment -> Add Environment Variable -> `DEV_KEY`.
+Pick something other than the passphrase below, which is published in the page.
+
+Typing `BEESCANFLY` anywhere opens the panel **on that machine only** -- it
+proves nothing to the server, which checks `DEV_KEY` and nothing else. Enter the
+key, and you get a list of live matches: watch one to see exactly what its
+players see, then pick an enemy type and a count and drop them into the lane.
+Injected units go through the ordinary spawner, so they take damage, pay bounty
+and die like anything else in the wave.
+
+Spectating reuses the guest path wholesale: a guest already renders a match from
+the host's snapshots without simulating anything, which is what a spectator is.
+The only difference is a dead transport, so the intents the guest UI tries to
+send go nowhere.
+
+One caveat to the "the server never parses a game message" property above: it
+now looks at exactly one field, `m.k`, on host frames. A spectator joining
+mid-match missed the `start` that set the map up, so that one frame is
+remembered per match and replayed on watch.
+
+Verified against a live server with three real websocket clients: a wrong key is
+refused and can neither list nor inject; with `DEV_KEY` unset even the correct
+key is refused; a spectator joining mid-match gets the cached start and then
+live frames while the guest keeps receiving its own; an injection reaches only
+the host; and a player leaving closes the match and releases its spectators.
+
+## Upgrade paths
+
+Five towers shipped with a half-length second path -- HIVE/PAYLOAD,
+VENOM/DISPERSAL, HALO/EDGE, MIRE/CAUSTIC and SEISMIC/RESONANCE each had two
+upgrades where every other path has four. Those towers could not be taken past
+tier 2 down their second path, and the tier bar, hardcoded to four pips,
+reported "2 of 4" with nothing left to buy. Checked against the pre-roster-trim
+commit: they were always short.
+
+The missing tier 3 and 4 are written, and the tier bar now counts the path
+rather than assuming four. Each effect uses a field the relevant tower kind
+actually reads -- orbit blades ignore `crit`, tar pools ignore `burn`, and HALO
+already flies, so three obvious-looking upgrades would have done nothing and are
+not in there.
+
 ## Files
 
 | | |

@@ -17,6 +17,7 @@ for ~120 lines of framing would be this project's only dependency.
 import argparse
 import base64
 import hashlib
+import hmac
 import json
 import os
 import socket
@@ -34,6 +35,19 @@ QUEUE = []                      # peers waiting for a partner, longest wait firs
 LOCK = threading.Lock()
 STATS = {'paired': 0, 'live': 0}
 
+# ── dev mode ──────────────────────────────────────────────────────
+# OFF unless you set DEV_KEY in the environment. There is deliberately no
+# default: this repo is public and the client is served to everyone, so a
+# credential written here would be a working backdoor into your own deployment
+# for anyone who reads the source. Unset means every admin request is refused
+# outright, so a fresh deploy has no dev mode at all.
+# Render: Environment -> Add Environment Variable -> DEV_KEY.
+# The passphrase typed into the page only opens the panel on that machine; it
+# proves nothing to the server, which checks this value and nothing else.
+DEV_KEY = os.environ.get('DEV_KEY', '')
+MATCHES = {}                    # id -> {'host', 'guest', 'spec': set, 'start': frame}
+NEXT_ID = [1]
+
 
 def log(*a):
     print(*a, flush=True)
@@ -50,6 +64,9 @@ class Peer(object):
         self.role = None
         self.alive = True
         self.since = time.time()
+        self.admin = False
+        self.match = None       # id of the match this peer plays in
+        self.watching = None    # id of the match this peer spectates
 
     def send(self, obj):
         data = json.dumps(obj, separators=(',', ':')).encode('utf-8')
@@ -134,7 +151,20 @@ def pair(host, guest):
     the tab open and warm, so the match starts sooner."""
     host.partner, guest.partner = guest, host
     host.role, guest.role = 'host', 'guest'
+    mid = NEXT_ID[0]
+    NEXT_ID[0] += 1
+    host.match = guest.match = mid
+    MATCHES[mid] = {'host': host, 'guest': guest, 'spec': set(), 'start': None,
+                    'since': time.time()}
     STATS['paired'] += 1
+
+
+def close_match(mid):
+    """Caller holds LOCK."""
+    m = MATCHES.pop(mid, None)
+    if not m:
+        return set()
+    return set(m['spec'])
 
 
 def dequeue(peer):
@@ -180,7 +210,8 @@ class Handler(SimpleHTTPRequestHandler):
         if route in ('/healthz', '/stats'):
             with LOCK:
                 body = json.dumps({'ok': True, 'waiting': len(QUEUE),
-                                   'live': STATS['live'], 'paired': STATS['paired']}).encode()
+                                   'live': STATS['live'], 'paired': STATS['paired'],
+                                   'matches': len(MATCHES)}).encode()
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Content-Length', str(len(body)))
@@ -256,17 +287,103 @@ class Handler(SimpleHTTPRequestHandler):
             other = peer.partner
             if other is not None and other.alive:
                 other.send({'t': 'msg', 'm': msg.get('m')})
+            # Spectators see whatever the host is telling its guest. This is the
+            # one place the server looks inside a game frame, and only at 'k':
+            # a spectator who joins mid-match needs the 'start' that set the map
+            # up, which it missed, so that one frame is remembered and replayed.
+            if peer.role == 'host' and peer.match:
+                body = msg.get('m')
+                with LOCK:
+                    m = MATCHES.get(peer.match)
+                    if m is not None:
+                        if isinstance(body, dict) and body.get('k') == 'start':
+                            m['start'] = body
+                        watchers = [w for w in m['spec'] if w.alive]
+                    else:
+                        watchers = []
+                for w in watchers:
+                    w.send({'t': 'msg', 'm': body})
+            return
+
+        # ── dev mode ──────────────────────────────────────────────
+        if t == 'admin':
+            # constant-time, and an unset DEV_KEY can never match
+            ok = bool(DEV_KEY) and hmac.compare_digest(str(msg.get('key') or ''), DEV_KEY)
+            peer.admin = ok
+            peer.send({'t': 'admin', 'ok': ok})
+            log('dev mode %s' % ('unlocked' if ok else 'REFUSED'))
+            return
+
+        if not peer.admin:
+            return              # everything below is admin-only
+
+        if t == 'list':
+            with LOCK:
+                rows = [{'id': mid, 'spectators': len(m['spec']),
+                         'mins': round((time.time() - m['since']) / 60, 1),
+                         'ready': m['start'] is not None}
+                        for mid, m in sorted(MATCHES.items())]
+            peer.send({'t': 'matches', 'rows': rows})
+            return
+
+        if t == 'watch':
+            mid = msg.get('id')
+            with LOCK:
+                old = MATCHES.get(peer.watching)
+                if old is not None:
+                    old['spec'].discard(peer)
+                m = MATCHES.get(mid)
+                if m is None:
+                    peer.watching = None
+                    peer.send({'t': 'watch', 'ok': False})
+                    return
+                m['spec'].add(peer)
+                peer.watching = mid
+                start = m['start']
+            peer.send({'t': 'watch', 'ok': True, 'id': mid})
+            if start is not None:
+                peer.send({'t': 'msg', 'm': start})
+            return
+
+        if t == 'unwatch':
+            with LOCK:
+                m = MATCHES.get(peer.watching)
+                if m is not None:
+                    m['spec'].discard(peer)
+                peer.watching = None
+            peer.send({'t': 'watch', 'ok': False})
+            return
+
+        if t == 'inject':
+            with LOCK:
+                m = MATCHES.get(msg.get('id') or peer.watching)
+                host = m['host'] if m else None
+            if host is not None and host.alive:
+                host.send({'t': 'msg', 'm': {'k': 'dev', 'op': msg.get('op'),
+                                             'type': msg.get('type'), 'n': msg.get('n')}})
             return
 
     def drop(self, peer):
         peer.alive = False
+        watchers = set()
         with LOCK:
             STATS['live'] -= 1
             dequeue(peer)
+            m = MATCHES.get(peer.watching)
+            if m is not None:
+                m['spec'].discard(peer)
+            if peer.match:
+                watchers = close_match(peer.match)
+                peer.match = None
             other = peer.partner
             peer.partner = None
             if other is not None:
                 other.partner = None
+                other.match = None
+        for w in watchers:
+            if w.alive:
+                w.watching = None
+                w.send({'t': 'watch', 'ok': False})
         if other is not None and other.alive:
             other.send({'t': 'gone'})
             log('a match ended (partner left)')
