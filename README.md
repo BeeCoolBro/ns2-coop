@@ -107,6 +107,36 @@ Hulls from wave 15 ramp to **1.5x** by wave 35, on top of the existing curve.
 It starts at 15 rather than 1 because the opening waves are still paying for
 your first board.
 
+## Control has limits
+
+Freeze, stun, knockback and slow used to stack with nothing pushing back, so a
+control board stopped a wave outright rather than slowing it. Three caps now
+apply, and the per-tower numbers were cut to match:
+
+- **Hard CC** holds for up to 60 ticks and leaves the unit immune for 220 —
+  about 21% uptime, down from 50%.
+- **Knockback** loses 34% of its push each time it lands on the same unit, and
+  the resistance bleeds off over roughly six seconds.
+- **Slows** cannot take anything below a third of its speed, however many are
+  stacked on it.
+
+Measured with one immortal dummy walking a lane past eight fully-upgraded
+towers of a single type for 60 seconds — share of that minute spent unable to
+move, and how much of the lane it covered:
+
+| board | held still | lane covered |
+|---|---|---|
+| cryo | 40% → 18.3% | 14.1% → 29.0% |
+| seismic | 33.8% → 15.6% | 0.1% → 10.4% |
+| tesla | 20% → 5.6% | 48.9% → 57.5% |
+| mire | min speed 8% → 34% | 7.2% → 22.3% |
+| scatter | — | 4.2% → 59.1% |
+
+Seismic was the worst of them: the dummy covered **0.1% of the lane in a full
+minute**. Tower damage was left alone, so the upgrades are still worth buying.
+
+GEMINI's halves also step up a speed stage on each split — 0.60, 0.87, 1.23.
+
 ## Files
 
 | | |

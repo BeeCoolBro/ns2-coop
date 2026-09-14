@@ -718,7 +718,7 @@ scatter: {
     ]},
     {name:'SLUG', color:'#ff2d9b', ups:[
       {n:'Choke Barrel',   c:140, d:'Tighter cone, +35% damage.',         f:t=>{t.spread*=.6;t.dmg*=1.35}},
-      {n:'Solid Slug',     c:310, d:'All of it in one slug. Knocks enemies back.',f:t=>{t.pellets=1;t.slug=1;t.dmg*=1.55;t.knock=26;t.range*=1.3;t.spread=.04}},
+      {n:'Solid Slug',     c:310, d:'All of it in one slug. Shoves enemies back a step.',f:t=>{t.pellets=1;t.slug=1;t.dmg*=1.55;t.knock=8;t.range*=1.3;t.spread=.04}},
       {n:'Breaching Slug', c:700, d:'Corrodes armour by 40% on hit.',     f:t=>{t.corrode=.4;t.dmg*=1.4}},
       {n:'DRAGONSBREATH',  c:2100,d:'Ignites for heavy burn, +120% damage.',f:t=>{t.dmg*=2.2;t.burn=34}},
     ]},
@@ -747,15 +747,15 @@ inferno: {
 cryo: {
   name:'CRYO', role:'Control', color:'#7fd4ff', cost:140, kind:'pulse',
   draw:7,
-  dmg:16, cd:70, range:190, splash:95, chill:.45, chillT:110, shots:1, air:true, ground:true,
+  dmg:16, cd:70, range:190, splash:95, chill:.30, chillT:80, shots:1, air:true, ground:true,
   detect:true,
   desc:'Frost pulse slows everything caught in its radius. Frost reveals cloaks.',
   paths:[
     {name:'ABSOLUTE ZERO', color:'#ffffff', ups:[
-      {n:'Deep Chill',     c:150, d:'Slow 45% → 62%, lasts longer.',      f:t=>{t.chill=.62;t.chillT=170}},
-      {n:'Flash Freeze',   c:330, d:'25% chance to freeze targets solid.',f:t=>{t.freezeCh=.25;t.dmg*=1.4}},
-      {n:'Shatter',        c:780, d:'Frozen enemies take 2.6× damage.',   f:t=>{t.shatter=2.6;t.freezeCh=.4}},
-      {n:'ABSOLUTE ZERO',  c:2400,d:'Every pulse freezes all in radius.', f:t=>{t.freezeCh=1;t.dmg*=2.2;t.splash*=1.3}},
+      {n:'Deep Chill',     c:150, d:'Slow 30% → 42%, lasts longer.',      f:t=>{t.chill=.42;t.chillT=120}},
+      {n:'Flash Freeze',   c:330, d:'12% chance to freeze targets solid.',f:t=>{t.freezeCh=.12;t.dmg*=1.4}},
+      {n:'Shatter',        c:780, d:'Frozen enemies take 1.6× damage.',   f:t=>{t.shatter=1.6;t.freezeCh=.18}},
+      {n:'ABSOLUTE ZERO',  c:2400,d:'Each pulse has a 35% chance to freeze all in radius.',f:t=>{t.freezeCh=.35;t.dmg*=2.2;t.splash*=1.3}},
     ]},
     {name:'PERMAFROST', color:'#22e6ff', ups:[
       {n:'Wide Field',     c:160, d:'+40% radius and range.',             f:t=>{t.range*=1.4;t.splash*=1.4}},
@@ -779,9 +779,9 @@ tesla: {
     ]},
     {name:'OVERLOAD', color:'#ffd633', ups:[
       {n:'Capacitor Bank', c:210, d:'+70% damage.',                       f:t=>t.dmg*=1.7},
-      {n:'Stun Coil',      c:430, d:'Hits briefly stun their target.',    f:t=>{t.shock=36;t.dmg*=1.15}},
-      {n:'EMP Discharge',  c:980, d:'Strips enemy shields, longer stun.', f:t=>{t.shock=70;t.emp=1;t.dmg*=1.4}},
-      {n:'SINGULARITY ARC',c:2900,d:'Colossal damage, 2s stun, ignores armour.',f:t=>{t.dmg*=3.2;t.shock=130;t.pierceArmor=1}},
+      {n:'Stun Coil',      c:430, d:'Hits briefly stun their target.',    f:t=>{t.shock=20;t.dmg*=1.15}},
+      {n:'EMP Discharge',  c:980, d:'Strips enemy shields, longer stun.', f:t=>{t.shock=34;t.emp=1;t.dmg*=1.4}},
+      {n:'SINGULARITY ARC',c:2900,d:'Colossal damage, a short stun, ignores armour.',f:t=>{t.dmg*=3.2;t.shock=55;t.pierceArmor=1}},
     ]},
   ]},
 
@@ -800,9 +800,9 @@ rail: {
     ]},
     {name:'SIEGE', color:'#ff8a3d', ups:[
       {n:'Heavy Slug',     c:250, d:'+85% damage, slightly slower.',      f:t=>{t.dmg*=1.85;t.cd*=1.12}},
-      {n:'Concussive Round',c:500,d:'Impact splashes 70 and stuns.',      f:t=>{t.splash=70;t.shock=45}},
+      {n:'Concussive Round',c:500,d:'Impact splashes 70 and stuns.',      f:t=>{t.splash=70;t.shock=24}},
       {n:'Armour Breaker', c:1150,d:'Corrodes 55% armour, +50% damage.',  f:t=>{t.corrode=.55;t.dmg*=1.5}},
-      {n:'ANNIHILATION',   c:3400,d:'+250% damage, 140 splash, huge stun.',f:t=>{t.dmg*=3.5;t.splash=140;t.shock=90}},
+      {n:'ANNIHILATION',   c:3400,d:'+250% damage, 140 splash, and a stun.',f:t=>{t.dmg*=3.5;t.splash=140;t.shock=40}},
     ]},
   ]},
 
@@ -820,7 +820,7 @@ mortar: {
     ]},
     {name:'SIEGE', color:'#ff2d9b', ups:[
       {n:'High Explosive', c:200, d:'+80% damage.',                       f:t=>t.dmg*=1.8},
-      {n:'Concussion Wave',c:440, d:'Blast slows and stuns survivors.',   f:t=>{t.shock=44;t.chill=.5;t.chillT=110}},
+      {n:'Concussion Wave',c:440, d:'Blast slows and stuns survivors.',   f:t=>{t.shock=24;t.chill=.32;t.chillT=110}},
       {n:'Bunker Buster',  c:1000,d:'Ignores armour, +60% damage.',       f:t=>{t.pierceArmor=1;t.dmg*=1.6}},
       {n:'TACTICAL NUKE',  c:3200,d:'Enormous blast, +200% damage.',      f:t=>{t.dmg*=3;t.splash*=1.9;t.nuke=1}},
     ]},
@@ -843,7 +843,7 @@ tempest: {
       {n:'Warhead Upgrade',c:200, d:'+85% damage, +45% blast.',           f:t=>{t.dmg*=1.85;t.splash*=1.45}},
       {n:'Flak Warhead',   c:420, d:'Double blast, 3× damage to air.',    f:t=>{t.splash*=1.7;t.airMul=3}},
       {n:'Ground Strike',  c:960, d:'Full damage against ground targets.',f:t=>{t.groundMul=1;t.dmg*=1.3}},
-      {n:'HYDRA BATTERY',  c:2900,d:'+180% damage, massive blast, stuns.',f:t=>{t.dmg*=2.8;t.splash*=1.6;t.shock=50}},
+      {n:'HYDRA BATTERY',  c:2900,d:'+180% damage, massive blast, stuns.',f:t=>{t.dmg*=2.8;t.splash*=1.6;t.shock=26}},
     ]},
   ]},
 
@@ -926,21 +926,21 @@ halo: {
     ]},
     {name:'EDGE', color:'#ff2d9b', ups:[
       {n:'Monofilament',   c:200, d:'+70% damage.',                       f:t=>t.dmg*=1.7},
-      {n:'Rending Blades', c:480, d:'Cuts through armour and slows.',     f:t=>{t.pierceArmor=1;t.chill=.4;t.chillT=60}},
+      {n:'Rending Blades', c:480, d:'Cuts through armour and slows.',     f:t=>{t.pierceArmor=1;t.chill=.26;t.chillT=60}},
     ]},
   ]},
 
 mire: {
   name:'MIRE', role:'Area Denial', color:'#8a6bff', cost:175, kind:'trap',
   draw:6,
-  dmg:14, cd:150, range:250, tarR:88, tarLife:420, tarSlow:.5, shots:1, air:false, ground:true,
+  dmg:14, cd:150, range:250, tarR:88, tarLife:420, tarSlow:.34, shots:1, air:false, ground:true,
   desc:'Floods the lane with corrosive tar. Nothing walks through it quickly and nothing keeps its armour.',
   paths:[
     {name:'VISCOSITY', color:'#3dd6ff', ups:[
-      {n:'Thicker Sludge', c:180, d:'Slow 50% → 68%.',                    f:t=>t.tarSlow=.68},
+      {n:'Thicker Sludge', c:180, d:'Slow 34% → 46%.',                    f:t=>t.tarSlow=.46},
       {n:'Wider Spill',    c:390, d:'+45% pool size, lasts longer.',      f:t=>{t.tarR*=1.45;t.tarLife*=1.4}},
-      {n:'Quicksand',      c:900, d:'Slow 82%. Pools last twice as long.',f:t=>{t.tarSlow=.82;t.tarLife*=1.5}},
-      {n:'EVENT HORIZON',  c:2400,d:'Slow 92% — a near standstill — in huge pools.',f:t=>{t.tarSlow=.9;t.tarR*=1.3;t.tarPull=1.1}},
+      {n:'Quicksand',      c:900, d:'Slow 58%. Pools last twice as long.',f:t=>{t.tarSlow=.58;t.tarLife*=1.5}},
+      {n:'EVENT HORIZON',  c:2400,d:'Slow 66% in huge pools, and they drag you backwards.',f:t=>{t.tarSlow=.66;t.tarR*=1.3;t.tarPull=1.1}},
     ]},
     {name:'CAUSTIC', color:'#7dff4d', ups:[
       {n:'Acid Mix',       c:200, d:'Pools corrode 45% of armour.',       f:t=>{t.corrode=.45;t.dmg*=1.5}},
@@ -951,18 +951,18 @@ mire: {
 seismic: {
   name:'SEISMIC', role:'Concussion', color:'#ff6a3d', cost:270, kind:'pulse',
   draw:9,
-  dmg:110, cd:140, range:215, splash:215, shots:1, knock:70, shock:36, air:false, ground:true,
-  desc:'Slams the ground and throws everything back down the lane. The only tower that undoes progress.',
+  dmg:110, cd:140, range:215, splash:215, shots:1, knock:26, shock:20, air:false, ground:true,
+  desc:'Slams the ground and shoves everything back down the lane. Each shove lands softer than the last.',
   paths:[
     {name:'AFTERSHOCK', color:'#ffd633', ups:[
       {n:'Deeper Charge',  c:280, d:'+60% damage and blast radius.',      f:t=>{t.dmg*=1.6;t.splash*=1.25;t.range*=1.25}},
-      {n:'Ground Rupture', c:620, d:'Knocks back twice as far.',          f:t=>{t.knock=150;t.dmg*=1.2}},
+      {n:'Ground Rupture', c:620, d:'Knocks back twice as far.',          f:t=>{t.knock=52;t.dmg*=1.2}},
       {n:'Chain Fault',    c:1450,d:'Each slam fires a second delayed wave.',f:t=>{t.doubleTap=1;t.dmg*=1.3}},
-      {n:'CONTINENTAL',   c:3500,d:'+150% damage, knocks back 260, longer stun.',f:t=>{t.dmg*=2.5;t.knock=260;t.shock=64}},
+      {n:'CONTINENTAL',   c:3500,d:'+150% damage, knocks back 90, longer stun.',f:t=>{t.dmg*=2.5;t.knock=90;t.shock=40}},
     ]},
     {name:'RESONANCE', color:'#b46bff', ups:[
       {n:'Tremor Coils',   c:290, d:'+45% fire rate.',                    f:t=>t.cd*=.69},
-      {n:'Liquefaction',   c:640, d:'Slams also slow 55% and corrode 40%.',f:t=>{t.chill=.55;t.chillT=140;t.corrode=.4}},
+      {n:'Liquefaction',   c:640, d:'Slams also slow 35% and corrode 40%.',f:t=>{t.chill=.35;t.chillT=140;t.corrode=.4}},
     ]},
   ]},
 
@@ -1003,6 +1003,8 @@ const SCHOOL_C = {KINETIC:'#ffd633', ARC:'#22e6ff', CHEM:'#7dff4d'};
 const ADAPT_RES = .6;        // how much the attuned school is cut by
 const ADAPT_WINDOW = 300;    // 5s between re-reads
 const SUPPRESS_CD = 380, SUPPRESS_R = 300, SUPPRESS_T = 180;
+// GEMINI's speed by split stage: whole, half, quarter.
+const TWIN_SPD = [1, 1.45, 2.05];
 
 // ═══════════════════════════════════════════════════════════
 //  ENEMY DEFINITIONS
@@ -1037,7 +1039,7 @@ const ENEMIES = {
   // its own map rather than around a bigger number.
   shard:   {name:'SHARD',      hp:2600, spd:.82, r:24, bounty:90, leak:8, armor:.34, color:'#ff7bd2', shape:'split', desc:'Architect fragment. While one lives the Architect rebuilds itself.'},
   nemesis: {name:'NEMESIS',    hp:15000,spd:.55, r:44, bounty:700,leak:22,armor:.3,  color:'#d8ff6b', shape:'bossA',  boss:1, adapts:1, desc:'BOSS — hardens against whichever damage school hurts it most. One school will not kill it.'},
-  gemini:  {name:'GEMINI',     hp:19000,spd:.6,  r:44, bounty:760,leak:24,armor:.34, color:'#ff5ce0', shape:'bossB',  boss:1, twins:1, desc:'BOSS — tears itself in half twice. The halves take separate lanes.'},
+  gemini:  {name:'GEMINI',     hp:19000,spd:.6,  r:44, bounty:760,leak:24,armor:.34, color:'#ff5ce0', shape:'bossB',  boss:1, twins:1, desc:'BOSS — tears itself in half twice. The halves take separate lanes, and each split runs faster than the last.'},
   tyrant:  {name:'TYRANT',     hp:24000,spd:.5,  r:48, bounty:880,leak:28,armor:.42, color:'#ff6a3d', shape:'bossC',  boss:1, suppress:1, ccImmuneAlways:1, desc:'BOSS — suppression pulses knock every tower around it offline for three seconds.'},
 };
 
@@ -1509,9 +1511,9 @@ function spawnEnemy(type, hs, laneIdx, affix) {
     sprintT:rint(90), sporeCd:40, jamCd:0, drainCd:120, haste:0, hasteF:0,
     front:d.front || 0, ccProof:!!d.ccImmuneAlways,
     healedCd:0, wardedCd:0,
-    affix:null, bossPhase:0,
+    affix:null, bossPhase:0, eid:++enemyId,
     adapt:d.adapts ? {KINETIC:0, ARC:0, CHEM:0} : null, attune:null, adaptCd:ADAPT_WINDOW,
-    splitN:0, supCd:260, forkAt:0, eid:++enemyId,
+    splitN:0, supCd:260, forkAt:0, knockRes:0,
   };
   e.px = e.x; e.py = e.y;
   if (affix) { e.affix = affix; affix.f(e); }
@@ -1568,10 +1570,10 @@ function damage(e, amt, o) {
 function applyCC(e, kind, dur) {
   if (e.ccProof) { if (Math.random() < .25) float(e.x, e.y - e.r - 6, 'IMMUNE', '#b4f0ff', 11); return; }
   if (e.ccImmune > 0) return;
-  dur = Math.round(e.boss ? dur * .28 : Math.min(dur, 100));
+  dur = Math.round(e.boss ? dur * .18 : Math.min(dur, 60));
   if (dur < 1) return;
   if (kind === 'shock') e.shock = dur; else e.freeze = dur;
-  e.ccImmune = dur + (e.boss ? 260 : 100);
+  e.ccImmune = dur + (e.boss ? 400 : 220);
 }
 // stack a toxin dose onto one enemy, capped by the tower's stack limit
 function applyVenom(e, t, stacks) {
@@ -1590,7 +1592,13 @@ function statusHit(e, t) {
   if (t.amp) { e.amp = 180; e.ampV = Math.max(e.ampV, t.amp); }
   if (t.emp && e.shield > 0) { e.shield = 0; burst(e.x, e.y, '#ffd633', 14, 3); }
   if (t.freezeCh && !e.boss && Math.random() < t.freezeCh) applyCC(e, 'freeze', 90);
-  if (t.knock && !e.boss) e.d = Math.max(4, e.d - t.knock);
+  if (t.knock && !e.boss) {
+    const eff = t.knock * Math.max(0, 1 - (e.knockRes || 0));
+    if (eff >= 1) {
+      e.d = Math.max(4, e.d - eff);
+      e.knockRes = Math.min(1, (e.knockRes || 0) + .34);
+    }
+  }
 }
 function killEnemy(e, src) {
   if (e.dead) return;
@@ -1741,7 +1749,7 @@ function curSpeed(e) {
   if (e.markSlow > 0) f -= e.markSlow;     // jammed by an oracle
   // Hard floor: however much is stacked on it, a unit always creeps forward.
   // Without this, a slow field outside tower reach stalls a wave forever.
-  return e.spd * clamp(f, .08, 1);
+  return e.spd * clamp(f, .34, 1);
 }
 
 function fireTower(t) {
@@ -2049,6 +2057,7 @@ function tick() {
     if (e.hitFlash > 0) e.hitFlash--;
     if (e.chill > 0) { e.chill--; if (e.chill === 0) e.chillF = 0; }
     if (e.ccImmune > 0) e.ccImmune--;
+    if (e.knockRes > 0) e.knockRes = Math.max(0, e.knockRes - .0028);
     if (e.healedCd > 0) e.healedCd--;
     if (e.wardedCd > 0) e.wardedCd--;
     if (e.freeze > 0) e.freeze--;
@@ -2143,6 +2152,10 @@ function tick() {
         const tw = spawnEnemy(e.type, 1, 0, null);
         tw.hp = half; tw.maxHp = e.maxHp; tw.bounty = e.bounty; tw.splitN = e.splitN;
         tw.shield = 0; tw.maxShield = 0;
+        // both halves step up a speed stage: a quarter of the hull is a quarter
+        // of the weight, and the last pair are the ones that actually run at you
+        const sm = TWIN_SPD[Math.min(e.splitN, TWIN_SPD.length - 1)];
+        e.spd = e.baseSpd * sm; tw.spd = tw.baseSpd * sm;
         const L = G.lanes, li = L.indexOf(e.route);
         tw.route = L[(Math.max(0, li) + 1) % L.length];
         tw.d = e.d; tw.seg = 0;
@@ -5408,6 +5421,7 @@ function buildCodex() {
       ['🛰', 'NO LINE OF SIGHT', 'HALO blades and HIVE drones do not aim and cannot miss. They ignore cloaks and reach anything that comes close, which makes them the safety net behind a chokepoint.', '#5cffd0'],
       ['🧱', 'FACING', 'A BULWARK carries its plate on the front. Shots that hit its nose are mostly wasted — towers placed further down the lane, hitting it side-on or from behind, do full damage.', '#6bb8ff'],
       ['❄', 'CONTROL IMMUNITY', 'GLACIERS and the COLOSSUS cannot be frozen, chilled, stunned or held by a stasis field. There is no trick for them: bring damage.', '#b4f0ff'],
+      ['⛓', 'CONTROL HAS LIMITS', 'Nothing can be held forever. A freeze or stun leaves a unit immune for far longer than it lasted, every knockback shoves less than the one before it, and no stack of slows drops anything below a third of its speed. Control buys you time; it does not win the wave.', '#7fd4ff'],
       ['📡', 'JAMMING & DRAIN', 'A SIREN cuts the range of every tower near it while it passes. A LEECH quietly takes credits out of your account each second it stays alive. Both are priority targets.', '#ff5ce0'],
       ['⚠', 'THE FINAL STAND', `On a sector's last wave the score turns and the requisition office doubles every price — towers and upgrades both. Build what you need BEFORE the last wave starts; anything you buy once it has begun costs ${FINALE_PRICE}x. Endless runs have no last wave, so they never trigger it.`, '#ff2d9b'],
       ['∞', 'ENDLESS', 'Clear a sector on any threat level and its ENDLESS run unlocks. Waves never stop, hulls keep thickening, and extra bosses stack in every fifth wave past the campaign length. Flux paid grows with the square of your depth, so a deep run is worth far more than several shallow ones.', '#b46bff'],
