@@ -1181,6 +1181,27 @@ lance: {
     ]},
   ]},
 
+rotor: {
+  name:'ROTOR', role:'Air Wing', color:'#ffb03d', cost:270, kind:'heli',
+  draw:10,
+  dmg:24, cd:8, range:320, shots:1, air:true, ground:true,
+  heliMax:1, heliAmmo:30, heliSpd:2.6, heliRearm:110, heliGun:145,
+  desc:'A pad, not a gun. Gunships lift off and chase what they are shooting, over walls and over water, then break off to rearm. Damage shown is per bird.',
+  paths:[
+    {name:'ORDNANCE', color:'#ff2d9b', ups:[
+      {n:'Autocannon',     c:250, d:'+65% chaingun damage.',              f:t=>t.dmg*=1.65},
+      {n:'Rocket Pods',    c:560, d:'Every eighth burst is a rocket.',    f:t=>{t.heliRocket=110;t.heliRocketR=72}},
+      {n:'Depleted Slugs', c:1300,d:'Ignores 60% of armour, +30% damage.',f:t=>{t.pierceArmor=.6;t.dmg*=1.3}},
+      {n:'GUNSHIP',       c:3300,d:'+120% damage, far heavier rockets, and it keeps firing on the way home.',f:t=>{t.dmg*=2.2;t.heliRocket*=1.9;t.heliRocketR*=1.35;t.heliHot=1}},
+    ]},
+    {name:'AIRFIELD', color:'#22e6ff', ups:[
+      {n:'Second Bird',    c:310, d:'A second gunship flies off the pad.',f:t=>t.heliMax+=1},
+      {n:'Fuel Cell',      c:580, d:'+70% ammunition, +25% patrol radius.',f:t=>{t.heliAmmo*=1.7;t.range*=1.25}},
+      {n:'Ground Crew',    c:1250,d:'Rearms in half the time, +30% flight speed.',f:t=>{t.heliRearm*=.5;t.heliSpd*=1.3}},
+      {n:'CARRIER',       c:3400,d:'Two more gunships, and the wing rearms on station instead of flying home.',f:t=>{t.heliMax+=2;t.heliAmmo*=1.4;t.heliHover=1}},
+    ]},
+  ]},
+
 hive: {
   name:'HIVE', role:'Interceptor', color:'#5cffd0', cost:240, kind:'hive',
   draw:9,
@@ -1524,7 +1545,7 @@ function doBloom() {
 const G = {
   mode:'title', map:0, diff:1,
   cash:0, cores:0, maxCores:0, wave:0, score:0, kills:0, leaked:0, spent:0,
-  towers:[], enemies:[], projs:[], parts:[], fx:[], floats:[], pools:[], arcs:[], drones:[], rigs:[],
+  towers:[], enemies:[], projs:[], parts:[], fx:[], floats:[], pools:[], arcs:[], drones:[], rigs:[], helis:[],
   groups:[], waveActive:false, waveDone:true, prepT:0,
   combo:1, comboT:0, comboKills:0,
   speed:1, paused:false, auto:false, time:0, sandbox:false,
@@ -1971,6 +1992,9 @@ function makeTower(x, y, type) {
     spool:d.spool || 0, spoolMax:d.spoolMax || 1, spoolHold:0, spin2:0,
     venom:d.venom || 0, venomMax:d.venomMax || 0, contagion:0,
     orbs:d.orbs || 0, orbR:d.orbR || 0, orbSpd:d.orbSpd || 0, orbA:0, orbHit:[],
+    heliMax:d.heliMax || 0, heliAmmo:d.heliAmmo || 0, heliSpd:d.heliSpd || 2.6,
+    heliRearm:d.heliRearm || 110, heliGun:d.heliGun || 145,
+    heliRocket:0, heliRocketR:0, heliHot:0, heliHover:0, heliLive:0, heliT:0,
     rigEvery:d.rigEvery || 0, rigHp:d.rigHp || 0, rigRamMul:d.rigRamMul || 1,
     rigSpd:d.rigSpd || 1.4, rigMax:d.rigMax || 0, rigLive:0, rigT:0,
     rigGun:0, rigGunRange:0, rigDetect:0, rigCannon:0, rigSplash:0,
@@ -2273,6 +2297,96 @@ function callStrike(t) {
   }
   shake(5, .08);
   sfx('boom');
+}
+
+// ── ROTOR: the pad launches, the birds do the work ────────────────
+// The pad never fires. It holds a wing, and a bird that runs dry has to break
+// off, which is why ammunition and rearm time are the real stats here.
+function tickHeliPad(t) {
+  t.spin += .02;
+  if (t.heliLive >= t.heliMax) return;
+  if (--t.heliT > 0) return;
+  t.heliT = 45;
+  const a = rnd(TAU);
+  G.helis.push({src:t, x:t.x + Math.cos(a) * 7, y:t.y + Math.sin(a) * 7, ang:a,
+                ammo:t.heliAmmo, cd:0, rearm:0, rot:rnd(TAU), burst:0, fire:0, orb:a});
+  t.heliLive++;
+  t.flash = 6;
+  ring(t.x, t.y, 6, 44, t.color, 14);
+}
+function heliMoveTo(h, x, y, spd, stand) {
+  const dx = x - h.x, dy = y - h.y, d = Math.hypot(dx, dy) || 1;
+  h.ang = angLerp(h.ang, Math.atan2(dy, dx), .2);
+  if (stand && d < stand) return d;
+  const st = Math.min(spd, d);
+  h.x += dx / d * st; h.y += dy / d * st;
+  return d;
+}
+// A bird hunts whatever is nearest to ITSELF, but only inside the pad's patrol
+// radius -- the range ring on the pad is the area the wing covers, not a gun.
+function heliTarget(t, h, R) {
+  nearby(t.x, t.y, R, _q2);
+  let best = null, bd = 1e9;
+  for (const e of _q2) {
+    if (!canHit(t, e)) continue;
+    const d = dist2(h.x, h.y, e.x, e.y);
+    if (d < bd) { bd = d; best = e; }
+  }
+  return best;
+}
+function heliFire(h, t, e, free) {
+  if (h.cd > 0) return;
+  h.cd = Math.max(2, Math.round(eCd(t)));
+  if (!free) h.ammo--;
+  h.fire = 3;
+  damage(e, eDmg(t), {src:t, pierceArmor:t.pierceArmor, shatter:t.shatter});
+  statusHit(e, t);
+  G.fx.push({k:'beam', x:h.x, y:h.y, x2:e.x, y2:e.y, life:3, max:3, c:t.color, w:1.3});
+  if (t.heliRocket && ++h.burst % 8 === 0) {
+    splashAt(e.x, e.y, t.heliRocketR, t.heliRocket, t);
+    ring(e.x, e.y, 5, t.heliRocketR, '#ff8a3d', 16);
+    burst(e.x, e.y, '#ff8a3d', 10, 4);
+    sfx('boom');
+  } else sfxT('vulcan');
+}
+function tickHelis() {
+  for (let i = G.helis.length - 1; i >= 0; i--) {
+    const h = G.helis[i], t = h.src;
+    if (!t || G.towers.indexOf(t) < 0) {          // the pad was sold out from under it
+      burst(h.x, h.y, '#ffb03d', 12, 4);
+      G.helis.splice(i, 1);
+      continue;
+    }
+    h.rot += .62;
+    if (h.cd > 0) h.cd--;
+    if (h.fire > 0) h.fire--;
+    const R = eRange(t);
+
+    if (h.rearm > 0) {                            // on the deck, or hovering on station
+      if (t.heliHover) h.orb += .014;
+      else heliMoveTo(h, t.x, t.y, t.heliSpd, 5);
+      if (--h.rearm <= 0) { h.ammo = t.heliAmmo; ring(t.x, t.y, 4, 32, t.color, 12); }
+      continue;
+    }
+    if (h.ammo <= 0) {
+      if (t.heliHover) { h.rearm = Math.round(t.heliRearm * 1.5); continue; }
+      const d = heliMoveTo(h, t.x, t.y, t.heliSpd * 1.3);
+      if (d < 14) h.rearm = Math.round(t.heliRearm);
+      if (t.heliHot) {                            // GUNSHIP does not stop shooting to go home
+        const e = heliTarget(t, h, R);
+        if (e && dist2(h.x, h.y, e.x, e.y) < t.heliGun * t.heliGun) heliFire(h, t, e, 1);
+      }
+      continue;
+    }
+    const e = heliTarget(t, h, R);
+    if (!e) {                                     // nothing in the sector: circle the pad
+      h.orb += .022;
+      heliMoveTo(h, t.x + Math.cos(h.orb) * 52, t.y + Math.sin(h.orb) * 52, t.heliSpd * .7);
+      continue;
+    }
+    heliMoveTo(h, e.x, e.y, t.heliSpd, t.heliGun * .72);
+    if (dist2(h.x, h.y, e.x, e.y) < t.heliGun * t.heliGun) heliFire(h, t, e);
+  }
 }
 
 // ── rigs on the road ──────────────────────────────────────────────
@@ -2775,6 +2889,7 @@ function tick() {
     if (t.kind === 'beam') { tickBeam(t); continue; }
     if (t.kind === 'orbit') { tickOrbit(t); continue; }
     if (t.kind === 'convoy') { tickConvoy(t); continue; }
+    if (t.kind === 'heli') { tickHeliPad(t); continue; }
     if (t.kind === 'pulse' && t.aura) { tickAura(t); }
     t.cool--;
     if (t.cool <= 0) {
@@ -2795,6 +2910,7 @@ function tick() {
   }
 
   tickRigs();
+  tickHelis();
 
   // ── projectiles ──
   for (let i = G.projs.length - 1; i >= 0; i--) {
@@ -3184,6 +3300,45 @@ function drawRigs() {
         ctx.fillStyle = '#7dffd4';
         ctx.fillRect(r.x - 18, r.y - 29, 36 * over, 2);
       }
+    }
+  }
+}
+function drawHelis() {
+  for (const h of G.helis) {
+    const t = h.src, c = t && t.color ? t.color : '#ffb03d';
+    ctx.save(); ctx.translate(h.x, h.y);
+    ctx.fillStyle = 'rgba(0,0,0,.34)';
+    ctx.beginPath(); ctx.ellipse(4, 10, 9, 4, 0, 0, TAU); ctx.fill();
+    ctx.rotate(h.ang);
+    // fuselage: nose, cabin, boom
+    ctx.fillStyle = h.fire > 0 ? '#ffffff' : 'rgba(10,13,24,.95)';
+    ctx.strokeStyle = c; ctx.lineWidth = 1.7;
+    ctx.beginPath();
+    ctx.moveTo(9, 0); ctx.lineTo(3.5, -5); ctx.lineTo(-6, -3.2); ctx.lineTo(-13, -1.5);
+    ctx.lineTo(-13, 1.5); ctx.lineTo(-6, 3.2); ctx.lineTo(3.5, 5);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = rgba(c, .8); ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.moveTo(-13, -4.5); ctx.lineTo(-13, 4.5); ctx.stroke();
+    // rotor wash, then the blades over it
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = rgba(c, .14); ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.arc(0, 0, 15, 0, TAU); ctx.stroke();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = rgba('#ffffff', .8); ctx.lineWidth = 1.5;
+    for (let b = 0; b < 2; b++) {
+      const a = h.rot + b * Math.PI / 2, cx = Math.cos(a) * 15, cy = Math.sin(a) * 15;
+      ctx.beginPath(); ctx.moveTo(-cx, -cy); ctx.lineTo(cx, cy); ctx.stroke();
+    }
+    glowDot(7, 0, 2, '#ffffff', .8);
+    ctx.restore();
+    // ammunition, and the rearm filling back up in its place
+    if (t && t.heliAmmo) {
+      const re = h.rearm > 0, f = re ? 1 - h.rearm / Math.max(1, t.heliRearm)
+                                     : clamp(h.ammo / t.heliAmmo, 0, 1);
+      ctx.fillStyle = 'rgba(0,0,0,.55)';
+      ctx.fillRect(h.x - 11, h.y - 20, 22, 3.4);
+      ctx.fillStyle = re ? '#22e6ff' : f > .3 ? c : '#ff2d9b';
+      ctx.fillRect(h.x - 10, h.y - 19.3, 20 * f, 2);
     }
   }
 }
@@ -3992,6 +4147,27 @@ function drawTower(t, ghost) {
         ctx.strokeStyle = rgba(c, hit * .7); ctx.lineWidth = 3;
         ctx.beginPath(); ctx.arc(0, 6, 18 + (1 - hit) * 22, 0, TAU); ctx.stroke();
         ctx.globalCompositeOperation = 'source-over';
+      }
+      break;
+    }
+    case 'rotor': {
+      ctx.rotate(-t.ang);
+      // a landing deck: painted circle, an H, and approach lights chasing round
+      ctx.fillStyle = '#17110a'; ctx.strokeStyle = rgba(c, .85); ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.arc(0, 0, 16, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = rgba(c, .28); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(0, 0, 11, 0, TAU); ctx.stroke();
+      ctx.strokeStyle = rgba(c, .95); ctx.lineWidth = 2.4; ctx.lineCap = 'butt';
+      ctx.beginPath();
+      ctx.moveTo(-5, -6.5); ctx.lineTo(-5, 6.5);
+      ctx.moveTo(5, -6.5); ctx.lineTo(5, 6.5);
+      ctx.moveTo(-5, 0); ctx.lineTo(5, 0);
+      ctx.stroke();
+      const chase = Math.floor(T * .09) % 8;
+      for (let i = 0; i < 8; i++) {
+        const a = i * TAU / 8, lit = i === chase;
+        ctx.fillStyle = rgba(lit ? '#ffffff' : c, lit ? .95 : .26);
+        ctx.beginPath(); ctx.arc(Math.cos(a) * 20, Math.sin(a) * 20, lit ? 2.3 : 1.5, 0, TAU); ctx.fill();
       }
       break;
     }
@@ -4946,6 +5122,7 @@ function render(alpha) {
   drawProjs(alpha);
   drawDrones();
   drawRigs();
+  drawHelis();
   drawPeer();
   drawAimOverlay();
   drawFloats();
@@ -5069,7 +5246,7 @@ function startGame(mapIdx, diffIdx, endless) {
   G.cores = G.maxCores = Math.round(m.cores * d.cores);
   G.wave = 0; G.score = 0; G.kills = 0; G.leaked = 0; G.spent = 0;
   G.towers = []; G.enemies = []; G.projs = []; G.parts = []; G.fx = []; G.floats = []; G.pools = []; G.drones = [];
-  G.rigs = [];
+  G.rigs = []; G.helis = [];
   G.groups = []; G.waveActive = false; G.prepT = 0;
   G.combo = 1; G.comboT = 0; G.comboKills = 0;
   G.speed = 1; G.paused = false; G.time = 0;
@@ -5246,6 +5423,8 @@ function sellTower(t) {
   G.towers.splice(G.towers.indexOf(t), 1);
   if (t.kind === 'convoy') for (let i = G.rigs.length - 1; i >= 0; i--)
     if (G.rigs[i].src === t) { burst(G.rigs[i].x, G.rigs[i].y, t.color, 14, 5); G.rigs.splice(i, 1); }
+  if (t.kind === 'heli') for (let i = G.helis.length - 1; i >= 0; i--)
+    if (G.helis[i].src === t) { burst(G.helis[i].x, G.helis[i].y, t.color, 14, 5); G.helis.splice(i, 1); }
   burst(t.x, t.y, t.color, 20, 5);
   float(t.x, t.y, '+' + v, '#ffd633', 16);
   if (G.selTower === t) { G.selTower = null; closeInspector(); }
@@ -5690,7 +5869,7 @@ const ASTARTERS = ['strike', 'freeze', 'over', 'repair'];
 const TOWER_PRICE = {
   pulse:0, scatter:0, cryo:0,
   inferno:450, mire:700, tesla:900, halo:1150, mortar:1400,
-  tempest:1700, hive:2000, rail:2350, lance:2550, venom:2800, prism:3150, seismic:3550, nexus:4000,
+  tempest:1700, hive:2000, rail:2350, lance:2550, rotor:2700, venom:2800, prism:3150, seismic:3550, nexus:4000,
 };
 // Every time sectors are inserted in the middle, every index above them moves,
 // and progress is keyed by index -- so a save made before the insert would mark
@@ -7199,6 +7378,16 @@ function snapshot() {
   for (const r of G.rigs) Rg.push(Math.round(r.x), Math.round(r.y), Math.round(r.ang * 100),
     Math.round(clamp(r.hp / Math.max(1, r.maxHp), 0, 1) * 255),
     (r.src && r.src.rigCannon ? 2 : 0) | (r.src && r.src.rigGun ? 1 : 0));
+  // gunships: heading and rotor phase so they read as flying, plus one bar
+  // that is ammunition while hunting and the rearm filling back up on the pad
+  const Hl = [];
+  for (const h of G.helis) {
+    const t = h.src, re = h.rearm > 0;
+    const fill = re ? clamp(1 - h.rearm / Math.max(1, t.heliRearm), 0, 1)
+                    : clamp(h.ammo / Math.max(1, t.heliAmmo), 0, 1);
+    Hl.push(Math.round(h.x), Math.round(h.y), Math.round(h.ang * 100), Math.round(h.rot * 100),
+            Math.round(fill * 255), (re ? 1 : 0) | (h.fire > 0 ? 2 : 0), TIDX[t.type] | 0);
+  }
   const X = [];
   for (const f of G.fx)
     X.push([f.k, Math.round(f.x), Math.round(f.y), Math.round(f.x2 || 0), Math.round(f.y2 || 0),
@@ -7210,7 +7399,7 @@ function snapshot() {
         G.kills, G.leaked, Math.round(G.combo * 100), G.finale ? 1 : 0, G.stasis, G.overclock,
         G.aegis, Math.round(G.prepT), G.mode === 'play' ? 1 : 0, G.paused ? 1 : 0],
     a: G.abilCd.slice(),
-    T, E, P, L, W: Wl, N: Mn, D: Dr, G: Rg, X,
+    T, E, P, L, W: Wl, N: Mn, D: Dr, G: Rg, H: Hl, X,
     f: NET.fxq.splice(0, NET.fxq.length),
     c: G.hover ? [Math.round(G.hover.x), Math.round(G.hover.y)] : null,
   };
@@ -7344,6 +7533,15 @@ function applySnap(s) {
                  hp: RG[i + 3], maxHp: 255, flash: 0, wob: (RG[i] + RG[i + 1]) * .01,
                  src: {color: TOWERS.lance ? TOWERS.lance.color : '#7dffd4',
                        rigGun: fl & 1, rigCannon: fl & 2}});
+  }
+  // the fake src carries 255 as its full scale, so one byte drives the bar
+  G.helis.length = 0;
+  const HL = s.H || [];
+  for (let i = 0; i < HL.length; i += 7) {
+    const fl = HL[i + 5] | 0, src = TOWERS[TKEYS[HL[i + 6]]];
+    G.helis.push({x: HL[i], y: HL[i + 1], ang: HL[i + 2] / 100, rot: HL[i + 3] / 100,
+                  ammo: HL[i + 4], rearm: (fl & 1) ? 255 - HL[i + 4] : 0, fire: (fl & 2) ? 2 : 0,
+                  src: {color: src ? src.color : '#ffb03d', heliAmmo: 255, heliRearm: 255}});
   }
   G.fx = [];
   for (const f of s.X)
