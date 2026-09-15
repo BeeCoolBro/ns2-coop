@@ -4873,8 +4873,11 @@ function loop(now) {
     else {
       acc += dt * G.speed;
       let steps = 0;
-      while (acc >= STEP && steps < 10) { tick(); acc -= STEP; steps++; }
-      if (steps === 10) acc = 0;
+      // The catch-up budget has to grow with the speed or 4x quietly runs slow:
+      // a 30fps frame at 4x already needs eight steps, and the leftover is dropped.
+      const cap = G.speed > 2 ? G.speed * 4 : 10;
+      while (acc >= STEP && steps < cap) { tick(); acc -= STEP; steps++; }
+      if (steps === cap) acc = 0;
     }
     syncHUD();
   }
@@ -6202,7 +6205,7 @@ function togglePause() {
   if (mBus && actx) mBus.gain.setTargetAtTime(musicVol(), actx.currentTime, .05);
 }
 function cycleSpeed() {
-  G.speed = G.speed === 1 ? 2 : G.speed === 2 ? 3 : 1;
+  G.speed = G.speed >= 4 ? 1 : G.speed + 1;
   $('spdBtn').textContent = G.speed + '×';
   $('spdBtn').classList.toggle('on', G.speed > 1);
   sfx('click');
