@@ -1615,7 +1615,7 @@ const G = {
   towers:[], enemies:[], projs:[], parts:[], fx:[], floats:[], pools:[], arcs:[], drones:[], rigs:[], helis:[],
   groups:[], waveActive:false, waveDone:true, prepT:0,
   combo:1, comboT:0, comboKills:0,
-  speed:1, paused:false, auto:false, time:0, sandbox:false,
+  speed:1, paused:false, auto:true, time:0, sandbox:false,
   selType:null, selTower:null, hover:null, aiming:-1,
   abilCd:[0,0,0,0], stasis:0, overclock:0, endless:false,
   rally:0, uplink:0, dilate:0, bounty:0, bulwark:0, freeBuild:0, meteors:[],
@@ -3137,8 +3137,9 @@ function tick() {
 
   // ── wave complete ──
   if (G.waveActive && !G.groups.length && !G.enemies.length) endWave();
-  if (!G.waveActive && G.auto && G.prepT > 0 && G.mode === 'play') {
-    G.prepT--;
+  if (!G.waveActive && G.auto && G.mode === 'play') {
+    // no breather: the countdown only exists for a prep timer someone else set
+    if (G.prepT > 0) G.prepT--;
     if (G.prepT <= 0) startWave();
   }
 }
@@ -5371,7 +5372,12 @@ function startGame(mapIdx, diffIdx, endless) {
   G.wave = 0; G.score = 0; G.kills = 0; G.leaked = 0; G.spent = 0;
   G.towers = []; G.enemies = []; G.projs = []; G.parts = []; G.fx = []; G.floats = []; G.pools = []; G.drones = [];
   G.rigs = []; G.helis = [];
-  G.groups = []; G.waveActive = false; G.prepT = 0;
+  G.groups = [];
+  G.waveActive = false;
+  // No cooldown BETWEEN waves, but the opening is not a cooldown -- it is the
+  // only chance to put anything on the board. Auto still gives you that, and
+  // the SEND WAVE button skips it whenever you are ready.
+  G.prepT = G.auto ? 60 * 12 : 0;
   G.combo = 1; G.comboT = 0; G.comboKills = 0;
   G.speed = 1; G.paused = false; G.time = 0;
   G.selType = null; G.selTower = null; G.hover = null; G.aiming = -1;
@@ -5393,6 +5399,7 @@ function startGame(mapIdx, diffIdx, endless) {
   syncHUD(); updateWavePreview();
   document.getElementById('spdBtn').textContent = '1×';
   document.getElementById('spdBtn').classList.remove('on');
+  document.getElementById('autoBtn').classList.toggle('on', G.auto);
   banner(m.name, m.desc, m.theme.a);
   initAudio(); startMusic();
   if (isHost()) sendStart();
@@ -5432,7 +5439,7 @@ function endWave() {
   ring(G.core.x, G.core.y, 20, 420, '#22e6ff', 40);
   sfx('waveClear');
   musicCue('clear');
-  G.prepT = 60 * 8;
+  G.prepT = G.auto ? 0 : 60 * 8;     // auto chains straight into the next wave
   updateWavePreview();
   syncHUD();
 }
@@ -7152,8 +7159,8 @@ function cycleSpeed() {
 function toggleAuto() {
   G.auto = !G.auto;
   $('autoBtn').classList.toggle('on', G.auto);
-  toast('⏩', 'AUTO-WAVE ' + (G.auto ? 'ON' : 'OFF'), G.auto ? 'Waves launch automatically after a short breather.' : 'You control when each wave starts.', G.auto ? '#5cff9d' : '#7b96b8');
-  if (G.auto && !G.waveActive && G.prepT <= 0) G.prepT = 300;
+  toast('⏩', 'AUTO-WAVE ' + (G.auto ? 'ON' : 'OFF'), G.auto ? 'The next wave launches the moment the last one is cleared.' : 'You control when each wave starts.', G.auto ? '#5cff9d' : '#7b96b8');
+  if (G.auto && !G.waveActive) G.prepT = 0;
   sfx('click');
 }
 let codexPaused = false;   // did the codex itself pause the game?
@@ -8446,6 +8453,7 @@ resize();
 G.map = 0; G.diff = 1;
 loadMap(0); buildAirRoutes(); buildBG();
 buildMapGrid(); buildDiffRow(); updateFluxLabels();
+$('autoBtn').classList.toggle('on', G.auto);
 render(0);
 raf = requestAnimationFrame(loop);
 netCapture();
