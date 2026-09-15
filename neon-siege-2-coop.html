@@ -6830,13 +6830,15 @@ function armTab(p) {
   $('paneAbils').hidden = shopMode !== 'abils';
 }
 
-// ── stock of the day ────────────────────────────────────────────────
-// Same for everyone on the same date without a server: the day number is the
-// seed. Only ever offers something you do not already own, so the strip is
+// ── stock ───────────────────────────────────────────────────────────
+// Same for everyone in the same two hours without a server: the slot number is
+// the seed. Only ever offers something you do not already own, so the strip is
 // never a dead advert, and the shop restocks the moment you buy the deal.
-function shopDay() { return Math.floor(Date.now() / 864e5); }
+const RESTOCK_MS = 2 * 60 * 60 * 1000;
+function shopSlot() { return Math.floor(Date.now() / RESTOCK_MS); }
+function restockIn() { return RESTOCK_MS - (Date.now() % RESTOCK_MS); }
 function shopRand(n, salt) {
-  let h = (shopDay() * 2654435761 + salt * 40503) >>> 0;
+  let h = (shopSlot() * 2654435761 + salt * 40503) >>> 0;
   h ^= h >>> 15; h = Math.imul(h, 2246822507); h ^= h >>> 13;
   return (h >>> 0) % n;
 }
@@ -6860,6 +6862,10 @@ function abilFlux(k) {
   const d = dealFor('abils');
   return d && d.key === k ? Math.round(a.price * (100 - d.pct) / 100) : a.price;
 }
+function restockLabel() {
+  const m = Math.max(1, Math.round(restockIn() / 60000));
+  return m >= 60 ? `NEW STOCK IN ${Math.floor(m / 60)}H ${m % 60}M` : `NEW STOCK IN ${m}M`;
+}
 function renderDeal() {
   const strip = $('dealStrip'); if (!strip) return;
   strip.innerHTML = '';
@@ -6879,7 +6885,7 @@ function renderDeal() {
   if (isT) row.appendChild(towerIcon(d.key, 34));
   else row.insertAdjacentHTML('beforeend', `<div class="dIc" style="color:${col}">${ABIL[d.key].icon}</div>`);
   row.insertAdjacentHTML('beforeend',
-    `<div><div class="dTag">TODAY'S STOCK</div><div class="dName">${name}</div></div>` +
+    `<div><div class="dTag">IN STOCK · ${restockLabel()}</div><div class="dName">${name}</div></div>` +
     `<div class="dPrice"><div class="dWas">\u2b21 ${fmt(was)}</div>` +
     `<div class="dNow">\u2b21 ${fmt(now)}<span class="dOff">-${d.pct}%</span></div></div>`);
   row.onclick = () => openArmDetail(isT ? 't' : 'a', d.key);
