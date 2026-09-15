@@ -541,7 +541,7 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
        that fight the neon HUD and change shape on every OS. -->
   <div id="topR" class="panel">
     <button class="ibtn" id="spdBtn" title="Game speed (F)">1×</button>
-    <button class="ibtn" id="autoBtn" title="Auto-start waves (A)"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="fil" d="M3.6 5.6 11.5 12l-7.9 6.4z"/><path class="fil" d="M12.4 5.6 20.3 12l-7.9 6.4z"/></svg></button>
+    <button class="ibtn" id="autoBtn" title="Skip the breather between waves (A)"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="fil" d="M3.6 5.6 11.5 12l-7.9 6.4z"/><path class="fil" d="M12.4 5.6 20.3 12l-7.9 6.4z"/></svg></button>
     <span class="isep"></span>
     <button class="ibtn" id="sndBtn" title="Sound (M)"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="fil" d="M4 9.3h3.3l4.3-3.7v12.8l-4.3-3.7H4z"/><g class="g1"><path d="M14.9 9.4a3.7 3.7 0 0 1 0 5.2"/><path d="M17.5 7.1a7.3 7.3 0 0 1 0 9.8"/></g><g class="g2"><path d="M15.4 9.8 20.2 14.2"/><path d="M20.2 9.8 15.4 14.2"/></g></svg></button>
     <button class="ibtn" id="codexBtn" title="Codex (C)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7.3c0-1.4-2.1-2.5-5.2-2.5H3.6v12.5h3.2c3.1 0 5.2 1.1 5.2 2.5z"/><path d="M12 7.3c0-1.4 2.1-2.5 5.2-2.5h3.2v12.5h-3.2c-3.1 0-5.2 1.1-5.2 2.5z"/></svg></button>
@@ -632,7 +632,7 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
     <div id="titleKeys">
       <b>1–6</b> equipped towers · <b>SPACE</b> send wave ·
       <b>Q W E R</b> power-ups · <b>C</b> codex ·
-      <b>F</b> speed · <b>A</b> auto-wave · <b>ESC</b> pause
+      <b>F</b> speed · <b>A</b> skip breather · <b>ESC</b> pause
     </div>
   </div>
 </div>
@@ -1609,13 +1609,16 @@ function doBloom() {
 // ═══════════════════════════════════════════════════════════
 //  GAME STATE
 // ═══════════════════════════════════════════════════════════
+// The breather between waves. Waves always send themselves; the fast-forward
+// button is the only thing that skips this.
+const WAVE_GAP = 60 * 8;
 const G = {
   mode:'title', map:0, diff:1,
   cash:0, cores:0, maxCores:0, wave:0, score:0, kills:0, leaked:0, spent:0,
   towers:[], enemies:[], projs:[], parts:[], fx:[], floats:[], pools:[], arcs:[], drones:[], rigs:[], helis:[],
   groups:[], waveActive:false, waveDone:true, prepT:0,
   combo:1, comboT:0, comboKills:0,
-  speed:1, paused:false, auto:true, time:0, sandbox:false,
+  speed:1, paused:false, auto:false, time:0, sandbox:false,
   selType:null, selTower:null, hover:null, aiming:-1,
   abilCd:[0,0,0,0], stasis:0, overclock:0, endless:false,
   rally:0, uplink:0, dilate:0, bounty:0, bulwark:0, freeBuild:0, meteors:[],
@@ -3137,8 +3140,10 @@ function tick() {
 
   // ── wave complete ──
   if (G.waveActive && !G.groups.length && !G.enemies.length) endWave();
-  if (!G.waveActive && G.auto && G.mode === 'play') {
-    // no breather: the countdown only exists for a prep timer someone else set
+  // Waves always launch themselves. G.auto is not "auto-start" any more, it is
+  // "no breather" -- it only decides how long prepT was set to. Sandbox is the
+  // exception: its whole point is driving the wave counter by hand.
+  if (!G.waveActive && G.mode === 'play' && !G.sandbox) {
     if (G.prepT > 0) G.prepT--;
     if (G.prepT <= 0) startWave();
   }
@@ -5374,10 +5379,7 @@ function startGame(mapIdx, diffIdx, endless) {
   G.rigs = []; G.helis = [];
   G.groups = [];
   G.waveActive = false;
-  // Wave 1 goes the moment you deploy. There is no hold at the opening either:
-  // the build time is the walk from the spawn to your end of the lane, which is
-  // several seconds, and the opening cash grant covers a first tower or two.
-  G.prepT = 0;
+  G.prepT = G.auto ? 0 : WAVE_GAP;   // the opening gets the same breather
   G.combo = 1; G.comboT = 0; G.comboKills = 0;
   G.speed = 1; G.paused = false; G.time = 0;
   G.selType = null; G.selTower = null; G.hover = null; G.aiming = -1;
@@ -5439,7 +5441,7 @@ function endWave() {
   ring(G.core.x, G.core.y, 20, 420, '#22e6ff', 40);
   sfx('waveClear');
   musicCue('clear');
-  G.prepT = G.auto ? 0 : 60 * 8;     // auto chains straight into the next wave
+  G.prepT = G.auto ? 0 : WAVE_GAP;   // the button is the only thing that skips it
   updateWavePreview();
   syncHUD();
 }
@@ -5890,7 +5892,7 @@ function syncHUD() {
   } else {
     btn.disabled = false;
     sp.textContent = `SEND WAVE ${G.wave + 1}`;
-    $('nextFill').style.width = G.auto && G.prepT > 0 ? (100 - G.prepT / 480 * 100) + '%' : '0%';
+    $('nextFill').style.width = G.prepT > 0 ? (100 - G.prepT / WAVE_GAP * 100) + '%' : '0%';
   }
   refreshDockAfford();
   if (G.selTower) refreshInspectorLive();
@@ -7159,8 +7161,11 @@ function cycleSpeed() {
 function toggleAuto() {
   G.auto = !G.auto;
   $('autoBtn').classList.toggle('on', G.auto);
-  toast('⏩', 'AUTO-WAVE ' + (G.auto ? 'ON' : 'OFF'), G.auto ? 'The next wave launches the moment the last one is cleared.' : 'You control when each wave starts.', G.auto ? '#5cff9d' : '#7b96b8');
-  if (G.auto && !G.waveActive) G.prepT = 0;
+  toast('⏩', G.auto ? 'NO BREATHER' : 'BREATHER RESTORED',
+        G.auto ? 'The next wave launches the instant the last one is cleared.'
+               : 'Waves still send themselves, after ' + (WAVE_GAP / 60) + ' seconds.',
+        G.auto ? '#5cff9d' : '#7b96b8');
+  if (!G.waveActive) G.prepT = G.auto ? 0 : WAVE_GAP;
   sfx('click');
 }
 let codexPaused = false;   // did the codex itself pause the game?
