@@ -429,17 +429,17 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
 #armDetail{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
   background:rgba(2,4,10,.74);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);padding:18px}
 #armDetail.on{display:flex}
-#armDetailBox{width:100%;max-width:430px;text-align:left;padding:20px;
+#armDetailBox{width:100%;max-width:520px;text-align:left;padding:24px;
   animation:ovIn .2s cubic-bezier(.2,1.1,.4,1)}
 .adHead{display:flex;gap:13px;align-items:center}
-.adIc{width:56px;height:56px;flex:none;border-radius:11px;display:flex;align-items:center;
+.adIc{width:64px;height:64px;flex:none;border-radius:12px;display:flex;align-items:center;
   justify-content:center;overflow:hidden;background:rgba(255,255,255,.04);border:1px solid var(--ac);
-  font-size:30px;color:var(--ac)}
-.adN{font-family:var(--f1);font-size:17px;font-weight:900;letter-spacing:.07em;color:var(--ac);line-height:1.1}
+  font-size:34px;color:var(--ac)}
+.adN{font-family:var(--f1);font-size:19px;font-weight:900;letter-spacing:.07em;color:var(--ac);line-height:1.1}
 .adR{font-family:var(--f1);font-size:9px;letter-spacing:.13em;color:var(--txd);font-weight:700;margin-top:5px}
-.adPrev{position:static;width:100%;height:auto;aspect-ratio:760/300;display:block;margin-top:13px;
+.adPrev{position:static;width:100%;height:auto;aspect-ratio:880/370;display:block;margin-top:14px;
   border-radius:9px;border:1px solid var(--line);background:#04060d}
-.adD{font-size:12.5px;color:var(--txm);font-weight:600;line-height:1.5;margin-top:13px}
+.adD{font-size:13.5px;color:var(--txm);font-weight:600;line-height:1.5;margin-top:14px}
 .adTags{display:flex;flex-wrap:wrap;gap:5px;margin-top:11px}
 .adTag{font-family:var(--f1);font-size:8px;font-weight:700;letter-spacing:.1em;padding:3px 7px;border-radius:5px}
 .adState{font-family:var(--f1);font-size:10px;font-weight:700;letter-spacing:.1em;margin-top:13px;
@@ -6795,7 +6795,7 @@ function renderArmDetail() {
   if (isT) {                                   // a live firing preview, not a picture
     const pc = document.createElement('canvas');
     pc.className = 'adPrev';
-    pc.width = 760; pc.height = 300;
+    pc.width = 880; pc.height = 370;
     box.appendChild(pc);
     pvStart(adKey, pc);
   } else pvStop();
