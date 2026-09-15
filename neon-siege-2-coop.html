@@ -437,6 +437,8 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
   font-size:30px;color:var(--ac)}
 .adN{font-family:var(--f1);font-size:17px;font-weight:900;letter-spacing:.07em;color:var(--ac);line-height:1.1}
 .adR{font-family:var(--f1);font-size:9px;letter-spacing:.13em;color:var(--txd);font-weight:700;margin-top:5px}
+.adPrev{position:static;width:100%;height:auto;aspect-ratio:760/300;display:block;margin-top:13px;
+  border-radius:9px;border:1px solid var(--line);background:#04060d}
 .adD{font-size:12.5px;color:var(--txm);font-weight:600;line-height:1.5;margin-top:13px}
 .adTags{display:flex;flex-wrap:wrap;gap:5px;margin-top:11px}
 .adTag{font-family:var(--f1);font-size:8px;font-weight:700;letter-spacing:.1em;padding:3px 7px;border-radius:5px}
@@ -1509,8 +1511,12 @@ const cam = {sx:0, sy:0, shake:0, rot:0, flash:0, flashC:'#fff', chroma:0};
 // sits lower. SHAKE_CAP stops a pile-up of simultaneous hits from stacking into
 // something unreadable.
 const SHAKE = .42, SHAKE_CAP = 18;
-function shake(amt, ch) { cam.shake = Math.min(SHAKE_CAP, cam.shake + amt * SHAKE); if (ch) cam.chroma = Math.min(1, cam.chroma + ch); }
-function flash(c, a) { cam.flash = Math.max(cam.flash, a); cam.flashC = c; }
+// Set while the armoury preview is simulating. The preview calls the real
+// tick, so without this the card would shake the board behind it and fire the
+// whole sound bank at you while you read a description.
+let PV = 0;
+function shake(amt, ch) { if (PV) return; cam.shake = Math.min(SHAKE_CAP, cam.shake + amt * SHAKE); if (ch) cam.chroma = Math.min(1, cam.chroma + ch); }
+function flash(c, a) { if (PV) return; cam.flash = Math.max(cam.flash, a); cam.flashC = c; }
 
 // Rendering at full device resolution is what actually costs: a 1920x1080
 // window at devicePixelRatio 2 is an 8.3 megapixel canvas, and the frame time
@@ -6525,9 +6531,153 @@ function armBadge(eq, own, afford, price, color) {
           bg:afford ? 'rgba(180,107,255,.16)' : 'rgba(255,45,155,.12)'};
 }
 
+// ── the firing preview ───────────────────────────────────────────
+// Everything on G that the simulation writes to. G itself is a const, but
+// swapping its arrays out and back is a world swap in everything but name.
+const PV_ARRAYS = ['towers', 'enemies', 'projs', 'parts', 'fx', 'floats', 'pools',
+                   'arcs', 'drones', 'rigs', 'helis', 'mines', 'wells', 'meteors', 'groups', 'abilCd'];
+const PV_FIELDS = ['time', 'wave', 'waveActive', 'prepT', 'cash', 'score', 'kills', 'leaked',
+                   'combo', 'comboT', 'comboKills', 'cores', 'maxCores', 'finale', 'stasis',
+                   'overclock', 'aegis', 'rally', 'uplink', 'dilate', 'bounty', 'bulwark',
+                   'freeBuild', 'sandbox', 'selTower', 'selType', 'hover', 'aiming', 'endless', 'auto'];
+let pvWorld = null, pvHeld = null, pvRaf = 0, pvType = null, pvCv = null;
+
+// hand the game's world to the preview, and the preview's world back
+function pvSwap() {
+  const held = pvHeld;
+  pvHeld = {};
+  for (const k of PV_ARRAYS) { pvHeld[k] = G[k]; G[k] = held ? held[k] : pvWorld[k]; }
+  for (const k of PV_FIELDS) { pvHeld[k] = G[k]; G[k] = held ? held[k] : pvWorld[k]; }
+}
+function pvEnter() { PV = 1; pvSwap(); }
+function pvExit() { pvSwap(); PV = 0; }
+
+function pvBuild(type) {
+  // a real lane on the loaded map, with the tower set beside it the way you
+  // would actually place it
+  const lane = G.lanes[0];
+  if (!lane) return null;
+  const d0 = lane.len * .34;
+  const a = routeAt(lane, d0, {}), b = routeAt(lane, d0 + 30, {});
+  const ang = Math.atan2(b.y - a.y, b.x - a.x);
+  const off = TOWERS[type].kind === 'convoy' || TOWERS[type].kind === 'heli' ? 92 : 74;
+  const w = {lane, d0, cx:a.x, cy:a.y};
+  for (const k of PV_ARRAYS) w[k] = [];
+  for (const k of PV_FIELDS) w[k] = 0;
+  w.cores = w.maxCores = 9999;
+  w.combo = 1; w.cash = 9e6; w.wave = 12;
+  w.selTower = null; w.selType = null; w.hover = null; w.aiming = -1;
+  // these are read as booleans, and `false !== 0` would trip the finale branch
+  // into firing a banner and a music change on every single preview frame
+  w.finale = false; w.waveActive = false; w.sandbox = false; w.endless = false; w.auto = false;
+  w.abilCd = [0, 0, 0, 0];
+  w.tx = a.x + Math.cos(ang + Math.PI / 2) * off;
+  w.ty = a.y + Math.sin(ang + Math.PI / 2) * off;
+  return w;
+}
+function pvSeed() {
+  // three walkers and one flier, so anti-air towers have something to shoot
+  const kinds = ['runner', 'brute', 'runner', 'hover'];
+  for (let i = 0; i < kinds.length; i++) {
+    const e = spawnEnemy(kinds[i], 90, 0, null);
+    if (!e) continue;
+    e.route = pvWorld.lane;
+    e.d = pvWorld.d0 - 230 + i * 130;
+    e.seg = 0;
+    const p = routeAt(e.route, e.d, e);
+    e.x = e.px = p.x; e.y = e.py = p.y;
+  }
+}
+function pvRecycle() {
+  for (const e of G.enemies) {
+    // send them round again before they can reach the core and end anything
+    if (e.dead || e.d > pvWorld.d0 + 250) {
+      e.dead = false; e.hp = e.maxHp; e.shield = e.maxShield || 0;
+      e.d = pvWorld.d0 - 260;
+      e.freeze = e.shock = e.chill = e.burn = e.venom = e.tar = 0;
+      e.corrode = 0; e.amp = 0; e.scrambled = 0;
+      const p = routeAt(e.route, e.d, e);
+      e.x = e.px = p.x; e.y = e.py = p.y;
+    }
+  }
+  if (G.enemies.length < 4) pvSeed();
+}
+function pvDraw() {
+  const c = pvCv, g = c.getContext('2d');
+  const t = G.towers[0];
+  // frame the shot on what this tower actually covers, so a flamethrower is not
+  // shown at the same zoom as a tower that reaches twice as far
+  const span = clamp((t ? eRange(t) : 300) * 3.1, 500, 980);
+  const w = c.width, h = c.height, sc = w / span;
+  const real = ctx;
+  ctx = g;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.fillStyle = MAPS[G.map].theme.fog || '#04060d';
+  g.fillRect(0, 0, w, h);
+  g.setTransform(sc, 0, 0, sc, w / 2 - pvWorld.tx * sc, h / 2 - pvWorld.ty * sc + 10 * sc);
+
+  // the lane, drawn the way the thumbnails draw it
+  const th = MAPS[G.map].theme.a, L = pvWorld.lane;
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  g.beginPath();
+  for (let d = Math.max(0, pvWorld.d0 - 620); d < Math.min(L.len, pvWorld.d0 + 620); d += 18) {
+    const p = routeAt(L, d, {});
+    if (d <= Math.max(0, pvWorld.d0 - 620)) g.moveTo(p.x, p.y); else g.lineTo(p.x, p.y);
+  }
+  g.strokeStyle = rgba(th, .18); g.lineWidth = MAPS[G.map].pathW + 8; g.stroke();
+  g.strokeStyle = '#05080f'; g.lineWidth = MAPS[G.map].pathW; g.stroke();
+  g.strokeStyle = rgba(th, .5); g.lineWidth = 2; g.stroke();
+
+  if (t) {                                        // the reach of it, as placed
+    g.strokeStyle = rgba(t.color, .3); g.lineWidth = 2;
+    g.setLineDash([9, 9]);
+    g.beginPath(); g.arc(t.x, t.y, eRange(t), 0, TAU); g.stroke();
+    g.setLineDash([]);
+  }
+  for (const e of G.enemies) if (!e.air) drawEnemy(e, 1);
+  for (const e of G.enemies) if (e.air) drawEnemy(e, 1);
+  drawProjs(1);
+  drawDrones();
+  drawRigs();
+  drawHelis();
+  if (t) drawTower(t);
+  drawFX();
+  g.globalCompositeOperation = 'source-over';
+  ctx = real;
+}
+function pvFrame() {
+  pvRaf = 0;
+  if (!pvType || !pvWorld || !pvCv || !pvCv.isConnected) return;
+  pvEnter();
+  try {
+    pvRecycle();
+    tick();
+    pvDraw();
+  } catch (e) { pvType = null; } finally { pvExit(); }
+  if (pvType) pvRaf = requestAnimationFrame(pvFrame);
+}
+function pvStart(type, canvas) {
+  pvStop();
+  pvWorld = pvBuild(type);
+  if (!pvWorld) return;
+  pvType = type; pvCv = canvas;
+  pvEnter();
+  try {
+    const t = makeTower(pvWorld.tx, pvWorld.ty, type);
+    t.ang = t.tAng = -Math.PI / 2;
+    G.towers.push(t);
+    pvSeed();
+  } finally { pvExit(); }
+  pvRaf = requestAnimationFrame(pvFrame);
+}
+function pvStop() {
+  if (pvRaf) cancelAnimationFrame(pvRaf);
+  pvRaf = 0; pvType = null; pvWorld = null; pvCv = null; pvHeld = null;
+}
+
 // ── the detail card ──────────────────────────────────────────────
 let adKind = null, adKey = null;
-function closeArmDetail() { adKind = null; $('armDetail').classList.remove('on'); }
+function closeArmDetail() { pvStop(); adKind = null; $('armDetail').classList.remove('on'); }
 function openArmDetail(kind, key) {
   adKind = kind; adKey = key;
   renderArmDetail();
@@ -6557,6 +6707,15 @@ function renderArmDetail() {
                            : (d.cd / 60).toFixed(0) + 'S COOLDOWN · ' + (d.aim ? 'AIMED' : 'INSTANT')}</div>
   </div>`);
   box.appendChild(head);
+
+  if (isT) {                                   // a live firing preview, not a picture
+    const pc = document.createElement('canvas');
+    pc.className = 'adPrev';
+    pc.width = 760; pc.height = 300;
+    box.appendChild(pc);
+    pvStart(adKey, pc);
+  } else pvStop();
+
   box.insertAdjacentHTML('beforeend', `<div class="adD">${d.desc}</div>`);
 
   const tags = [];
@@ -7193,7 +7352,7 @@ const SFXT = {
   hive:   () => throttled('o', 80)  && (tone({f:1300, f2:2100, type:'square', dur:.07, v:.05}), noise({f:4200, q:3, dur:.05, v:.03, type:'highpass'})),
   voidcannon:()=>throttled('p',200) && (tone({f:60, f2:170, type:'sine', dur:.5, v:.2}), tone({f:900, f2:120, type:'triangle', dur:.4, v:.07})),
 };
-function sfxT(k) { const f = SFXT[k]; if (f) f(); }
+function sfxT(k) { if (PV) return; const f = SFXT[k]; if (f) f(); }
 const SFX = {
   click:    () => tone({f:760, f2:980, dur:.05, v:.07}),
   deny:     () => tone({f:200, f2:110, type:'square', dur:.12, v:.1}),
@@ -7227,7 +7386,7 @@ const SFX = {
   victory:  () => [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => tone({f, dur:i === 6 ? .8 : .22, v:.2, d:[0, .16, .32, .48, .64, .78, .94][i]})),
   defeat:   () => [440, 330, 220, 150].forEach((f, i) => tone({f, f2:f * .45, type:'sawtooth', dur:.5, v:.2, d:i * .3})),
 };
-function sfx(k) { if (!actx) initAudio(); const f = SFX[k]; if (f) f(); }
+function sfx(k) { if (PV) return; if (!actx) initAudio(); const f = SFX[k]; if (f) f(); }
 
 // ══════════════════════════════════════════════════════════
 //  ADAPTIVE MUSIC
@@ -7922,14 +8081,18 @@ function netAlpha() {
 function netCapture() {
   const _burst = burst, _spark = spark, _float = float, _sfx = sfx,
         _banner = banner, _toast = toast, _shake = shake, _flash = flash;
-  burst = (x, y, c, n, sp) => { if (isHost()) NET.fxq.push(['b', Math.round(x), Math.round(y), c, n, sp]); return _burst(x, y, c, n, sp); };
-  spark = (x, y, c) => { if (isHost()) NET.fxq.push(['k', Math.round(x), Math.round(y), c]); return _spark(x, y, c); };
-  float = (x, y, t, c, s) => { if (isHost()) NET.fxq.push(['f', Math.round(x), Math.round(y), t, c, s]); return _float(x, y, t, c, s); };
-  sfx = k => { if (isHost()) NET.fxq.push(['s', k]); return _sfx(k); };
-  banner = (t, s, c) => { if (isHost()) NET.fxq.push(['B', t, s, c]); return _banner(t, s, c); };
-  toast = (i, t, d, c) => { if (isHost()) NET.fxq.push(['T', i, t, d, c]); return _toast(i, t, d, c); };
-  shake = (a, c) => { if (isHost()) NET.fxq.push(['q', a, c]); return _shake(a, c); };
-  flash = (c, a) => { if (isHost()) NET.fxq.push(['l', c, a]); return _flash(c, a); };
+  // PV is set while the armoury preview is running the real tick on a world of
+  // its own. Without it a host reading a tower's card would stream that card's
+  // explosions, floats and sounds onto their partner's board.
+  const send = () => isHost() && !PV;
+  burst = (x, y, c, n, sp) => { if (send()) NET.fxq.push(['b', Math.round(x), Math.round(y), c, n, sp]); return _burst(x, y, c, n, sp); };
+  spark = (x, y, c) => { if (send()) NET.fxq.push(['k', Math.round(x), Math.round(y), c]); return _spark(x, y, c); };
+  float = (x, y, t, c, s) => { if (send()) NET.fxq.push(['f', Math.round(x), Math.round(y), t, c, s]); return _float(x, y, t, c, s); };
+  sfx = k => { if (send()) NET.fxq.push(['s', k]); return _sfx(k); };
+  banner = (t, s, c) => { if (send()) NET.fxq.push(['B', t, s, c]); return _banner(t, s, c); };
+  toast = (i, t, d, c) => { if (send()) NET.fxq.push(['T', i, t, d, c]); return _toast(i, t, d, c); };
+  shake = (a, c) => { if (send()) NET.fxq.push(['q', a, c]); return _shake(a, c); };
+  flash = (c, a) => { if (send()) NET.fxq.push(['l', c, a]); return _flash(c, a); };
 }
 
 // ── partner cursor ───────────────────────────────────────────────
