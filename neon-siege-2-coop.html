@@ -4385,6 +4385,37 @@ function drawTower(t, ghost) {
       ctx.globalCompositeOperation = 'source-over';
       break;
     }
+    case 'lance': {
+      ctx.rotate(-t.ang);
+      // a forge: rails running out of a gate, with the next wedge taking shape
+      ctx.fillStyle = '#04201c'; ctx.strokeStyle = rgba(c, .85); ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.roundRect(-15, -12, 30, 24, 4); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = rgba(c, .3); ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(-20, -6.5); ctx.lineTo(20, -6.5);
+      ctx.moveTo(-20, 6.5); ctx.lineTo(20, 6.5);
+      ctx.stroke();
+      // the wedge on the line, brightening as the next one finishes forging
+      const lp = t.rigEvery ? 1 - clamp(t.rigT / t.rigEvery, 0, 1) : 1;
+      ctx.fillStyle = rgba(c, .16 + lp * .5);
+      ctx.beginPath();
+      ctx.moveTo(9, 0); ctx.lineTo(-5, -7); ctx.lineTo(-2, 0); ctx.lineTo(-5, 7);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = rgba(c, .5 + lp * .45); ctx.lineWidth = 1.4; ctx.stroke();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = rgba(c, .06 + lp * .14);
+      ctx.beginPath(); ctx.arc(0, 0, 13, 0, TAU); ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+      // one pip per lance currently out on the road
+      for (let i = 0; i < (t.rigMax || 0); i++) {
+        const on = i < (t.rigLive || 0);
+        ctx.fillStyle = rgba(on ? '#ffffff' : c, on ? .9 : .26);
+        ctx.beginPath();
+        ctx.arc(-((t.rigMax - 1) * 3.75) + i * 7.5, -16.5, 2, 0, TAU);
+        ctx.fill();
+      }
+      break;
+    }
     case 'nexus': {
       ctx.rotate(-t.ang);
       ctx.save(); ctx.rotate(T * .014);
@@ -6560,7 +6591,14 @@ function pvBuild(type) {
   const d0 = lane.len * .34;
   const a = routeAt(lane, d0, {}), b = routeAt(lane, d0 + 30, {});
   const ang = Math.atan2(b.y - a.y, b.x - a.x);
-  const off = TOWERS[type].kind === 'convoy' || TOWERS[type].kind === 'heli' ? 92 : 74;
+  const def = TOWERS[type];
+  // How far off the lane this one wants to stand. A blade ring has to cross the
+  // road to cut anything, and a tower with a dead zone has to stand back far
+  // enough that the road is outside it.
+  let off = 74;
+  if (def.kind === 'orbit') off = Math.max(34, (def.orbR || 96) * .62);
+  else if (def.kind === 'convoy' || def.kind === 'heli' || def.kind === 'support') off = 96;
+  else if (def.minRange) off = Math.max(74, def.minRange * .6);
   const w = {lane, d0, cx:a.x, cy:a.y};
   for (const k of PV_ARRAYS) w[k] = [];
   for (const k of PV_FIELDS) w[k] = 0;
@@ -6571,18 +6609,33 @@ function pvBuild(type) {
   // into firing a banner and a music change on every single preview frame
   w.finale = false; w.waveActive = false; w.sandbox = false; w.endless = false; w.auto = false;
   w.abilCd = [0, 0, 0, 0];
-  w.tx = a.x + Math.cos(ang + Math.PI / 2) * off;
-  w.ty = a.y + Math.sin(ang + Math.PI / 2) * off;
+  const nx = Math.cos(ang + Math.PI / 2), ny = Math.sin(ang + Math.PI / 2);
+  w.tx = a.x + nx * off;
+  w.ty = a.y + ny * off;
+  // A support tower buffs other towers and shoots nothing, so on its own the
+  // preview is a still life. It gets a gun to stand behind, placed up the road
+  // and inside its radius, and what you watch is that gun firing faster.
+  w.buddy = def.kind === 'support' ? 'pulse' : null;
+  // A lance is spent on the first thing it rams. Against wave-12 hulls it dies
+  // the instant it arrives, so the card shows an empty road. Softer targets let
+  // the wedge drive, block and shove -- which is the whole tower.
+  w.soft = def.kind === 'convoy';
+  if (w.buddy) {
+    const c2 = routeAt(lane, d0 + 120, {});
+    w.bx = c2.x + nx * 74;
+    w.by = c2.y + ny * 74;
+  }
   return w;
 }
 function pvSeed() {
-  // three walkers and one flier, so anti-air towers have something to shoot
-  const kinds = ['runner', 'brute', 'runner', 'hover'];
+  // walkers and fliers together, close enough that a 96-unit blade ring always
+  // has something to bite and an anti-air tower always has a flier
+  const kinds = ['runner', 'brute', 'hover', 'runner', 'brute', 'hover'];
   for (let i = 0; i < kinds.length; i++) {
-    const e = spawnEnemy(kinds[i], 90, 0, null);
+    const e = spawnEnemy(kinds[i], pvWorld.soft ? 26 : 90, 0, null);
     if (!e) continue;
     e.route = pvWorld.lane;
-    e.d = pvWorld.d0 - 230 + i * 130;
+    e.d = pvWorld.d0 - 210 + i * 86;
     e.seg = 0;
     const p = routeAt(e.route, e.d, e);
     e.x = e.px = p.x; e.y = e.py = p.y;
@@ -6600,14 +6653,24 @@ function pvRecycle() {
       e.x = e.px = p.x; e.y = e.py = p.y;
     }
   }
-  if (G.enemies.length < 4) pvSeed();
+  if (G.enemies.length < 6) pvSeed();
+  // A lance enters at the far end of the lane and drives against traffic, which
+  // in a preview means it starts hundreds of units off-screen. Bring it to the
+  // edge of frame and let it drive in from there.
+  for (const r of G.rigs) {
+    if (r.d > pvWorld.d0 + 330) {
+      r.d = pvWorld.d0 + 330;
+      const p = routeAt(r.route, r.d, r);
+      r.x = p.x; r.y = p.y;
+    }
+  }
 }
 function pvDraw() {
   const c = pvCv, g = c.getContext('2d');
   const t = G.towers[0];
   // frame the shot on what this tower actually covers, so a flamethrower is not
   // shown at the same zoom as a tower that reaches twice as far
-  const span = clamp((t ? eRange(t) : 300) * 3.1, 500, 980);
+  const span = clamp((t ? eRange(t) : 300) * (pvWorld.buddy ? 2.4 : 3.1), 500, 980);
   const w = c.width, h = c.height, sc = w / span;
   const real = ctx;
   ctx = g;
@@ -6634,14 +6697,22 @@ function pvDraw() {
     g.beginPath(); g.arc(t.x, t.y, eRange(t), 0, TAU); g.stroke();
     g.setLineDash([]);
   }
+  // The same list the real renderer uses, in the same order, minus the three
+  // overlays that belong to a live board (selection, build ghost, aim line).
+  // Leaving any of these out is what made a HALO show no blades, a MIRE no
+  // pools and every impact in the game land without a single particle.
+  drawPools();
+  drawWellsMines();
+  drawHalos();
+  drawFX();
+  drawParts();
+  for (const o of G.towers) drawTower(o, false);
   for (const e of G.enemies) if (!e.air) drawEnemy(e, 1);
   for (const e of G.enemies) if (e.air) drawEnemy(e, 1);
   drawProjs(1);
   drawDrones();
   drawRigs();
   drawHelis();
-  if (t) drawTower(t);
-  drawFX();
   g.globalCompositeOperation = 'source-over';
   ctx = real;
 }
@@ -6666,6 +6737,17 @@ function pvStart(type, canvas) {
     const t = makeTower(pvWorld.tx, pvWorld.ty, type);
     t.ang = t.tAng = -Math.PI / 2;
     G.towers.push(t);
+    if (pvWorld.buddy) {
+      const b = makeTower(pvWorld.bx, pvWorld.by, pvWorld.buddy);
+      b.ang = b.tAng = -Math.PI / 2;
+      G.towers.push(b);
+    }
+    // A pad that waits to launch spends the first second of the preview empty,
+    // and a forge that takes six and a half seconds spends most of the card
+    // empty. Both are shortened here and here only -- the description carries
+    // the real numbers, the picture carries what the tower does.
+    if (t.kind === 'heli') { t.heliT = 1; }
+    if (t.kind === 'convoy') { t.rigEvery = Math.max(80, t.rigEvery * .28); t.rigT = 1; }
     pvSeed();
   } finally { pvExit(); }
   pvRaf = requestAnimationFrame(pvFrame);
