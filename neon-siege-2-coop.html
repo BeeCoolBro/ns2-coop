@@ -468,7 +468,7 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
 #shopSign{display:inline-block;padding:5px 17px 4px;border-radius:5px;
   background:linear-gradient(#f2f6ff,#c9d6e8);color:#0a0f1c;
   font-family:var(--f1);font-size:clamp(20px,3.3vw,31px);font-weight:900;letter-spacing:.13em;
-  box-shadow:0 5px 0 rgba(0,0,0,.45),0 0 34px -6px rgba(180,107,255,.75);line-height:1.12}
+  box-shadow:0 5px 0 rgba(0,0,0,.45),0 0 34px -6px var(--ac,#b46bff);line-height:1.12}
 #fluxChip{display:flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;
   border:1px solid rgba(180,107,255,.4);background:rgba(180,107,255,.11);
   font-family:var(--f1);font-weight:900;letter-spacing:.1em}
@@ -482,6 +482,22 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
   #shopCol .sect,#shopCol #loadoutRow,#shopCol #abilRow,#shopCol .armTabs{
     text-align:center;justify-content:center}
 }
+#dealStrip{margin-top:14px}
+.deal{display:flex;align-items:center;gap:12px;padding:10px 13px;border-radius:12px;
+  border:1px solid var(--ac);background:rgba(255,255,255,.035);cursor:pointer;
+  transition:transform .15s,box-shadow .15s}
+.deal:hover{transform:translateY(-2px);box-shadow:0 12px 30px -14px var(--ac)}
+.deal canvas,.deal .dIc{width:34px;height:34px;flex:none}
+.deal .dIc{display:flex;align-items:center;justify-content:center;font-size:24px;line-height:1}
+.dTag{font-family:var(--f1);font-size:8px;letter-spacing:.22em;color:var(--txd);font-weight:700}
+.dName{font-family:var(--f1);font-size:13px;font-weight:900;letter-spacing:.08em;color:var(--ac);
+  margin-top:3px}
+.dPrice{margin-left:auto;text-align:right;flex:none}
+.dWas{font-size:11px;color:var(--txd);text-decoration:line-through;font-weight:600}
+.dNow{font-family:var(--f1);font-size:16px;font-weight:900;color:var(--ac);letter-spacing:.06em}
+.dOff{font-family:var(--f1);font-size:9px;font-weight:900;letter-spacing:.1em;color:#0a0f1c;
+  background:var(--ac);border-radius:4px;padding:2px 6px;margin-left:8px}
+.dEmpty{font-size:12px;color:var(--txd);font-weight:600;padding:9px 2px}
 .armTabs{display:flex;gap:8px;justify-content:center;margin-top:16px}
 .armTab{font-family:var(--f1);font-size:10.5px;font-weight:700;letter-spacing:.14em;
   padding:9px 20px;border-radius:8px;cursor:pointer;transition:.15s;
@@ -666,6 +682,7 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
     <div class="sect">ACCOUNT</div>
     <div id="titleUtil">
       <button class="btn" id="btnArmoury2">ARMOURY</button>
+      <button class="btn" id="btnPowerups2">POWER-UPS</button>
       <button class="btn" id="btnCodex2">CODEX</button>
       <button class="btn sm" id="btnTransfer">TRANSFER SAVE</button>
       <button class="btn sm dng" id="btnWipe">RESET PROGRESS</button>
@@ -747,6 +764,7 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
       <button class="btn go" id="btnEndless" style="font-size:13px;padding:13px 34px;display:none" title="Survive as long as you can. Unlocked by clearing the sector.">∞ ENDLESS</button>
       <button class="btn go" id="btnSandbox" style="font-size:13px;padding:13px 34px;display:none" title="Every tower, endless credits, an unbreakable core. Earns nothing.">SANDBOX RUN</button>
       <button class="btn" id="btnArmoury3">ARMOURY</button>
+      <button class="btn" id="btnPowerups3">POWER-UPS</button>
       <button class="btn" id="btnBackTitle">BACK</button>
     </div>
   </div>
@@ -782,6 +800,7 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
     <div class="ovBtns">
       <button class="btn pri" id="btnNextMap">▶ NEXT SECTOR</button>
       <button class="btn" id="btnArmoury4">🛠 ARMOURY</button>
+      <button class="btn" id="btnPowerups4">✦ POWER-UPS</button>
       <button class="btn" id="btnRetry">↻ RETRY</button>
       <button class="btn" id="btnMenu">◀ SECTORS</button>
     </div>
@@ -801,19 +820,16 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
           </div>
           <div id="fluxChip"><span class="fhex">⬡</span><span class="fx" id="armFlux">0</span><span class="fxl">FLUX</span></div>
         </div>
-        <div class="ovS" style="margin-top:0">Equip up to <b id="slotMax">6</b> towers and <b id="aslotMax">4</b> power-ups. Only what you equip comes with you.</div>
-    <div class="armTabs">
-      <button class="armTab on" data-pane="towers">🗼 TOWERS</button>
-      <button class="armTab" data-pane="abils">✦ POWER-UPS</button>
-    </div>
+        <div class="ovS" id="shopBlurb" style="margin-top:0"></div>
+    <div id="dealStrip"></div>
     <div id="paneTowers">
-      <div class="sect">LOADOUT</div>
+      <div class="sect">LOADOUT — <b id="slotMax">6</b> SLOTS</div>
       <div id="loadoutRow"></div>
       <div class="sect">ALL TOWERS</div>
       <div id="armGrid"></div>
     </div>
     <div id="paneAbils" hidden>
-      <div class="sect">POWER-UPS <span style="font-family:var(--f2);font-size:11.5px;color:var(--txm);font-weight:600;letter-spacing:.04em">— bound to Q W E R in a match</span></div>
+      <div class="sect">CARRIED — <b id="aslotMax">4</b> SLOTS, BOUND TO Q W E R</div>
       <div id="abilRow"></div>
       <div class="sect">ALL POWER-UPS</div>
       <div id="abilGrid"></div>
@@ -6731,7 +6747,8 @@ function buildDiffRow() {
 }
 
 // ── armoury ──
-function openArmoury() {
+function openArmoury(mode) {
+  armTab(typeof mode === 'string' ? mode : 'towers');
   buildArmoury();
   $('ovArmoury').classList.add('on');
 }
@@ -6780,7 +6797,7 @@ function unequipTower(k) {
   saveMeta(); sfx('click'); buildArmoury();
 }
 function buyTower(k) {
-  const price = TOWER_PRICE[k] || 0;
+  const price = towerFlux(k);
   if (owns(k)) return;
   if (META.flux < price) {
     toast('⬡', 'NOT ENOUGH FLUX', `${TOWERS[k].name} costs ${fmt(price)} flux. Clear more sectors to earn it.`, '#ff2d9b');
@@ -6793,10 +6810,80 @@ function buyTower(k) {
   toast('🛠', 'TOWER UNLOCKED', `${TOWERS[k].name} added to your armoury.`, TOWERS[k].color);
   buildArmoury();
 }
+// Two shops through one overlay. Everything inside them but the sign, the
+// colour and which grid is showing was already identical.
+const SHOPS = {
+  towers: {top:"HARDWARE'S", name:'ARMOURY', ac:'#b46bff',
+           blurb:'Guns you bolt to the grid. Equip up to <b>%s</b> \u2014 only what you equip comes with you.'},
+  abils:  {top:"SOFTWARE'S", name:'POWERUPS', ac:'#22e6ff',
+           blurb:'Code you fire once. Carry up to <b>%s</b>, bound to Q W E R in a match.'},
+};
+let shopMode = 'towers';
 function armTab(p) {
-  document.querySelectorAll('.armTab').forEach(b => b.classList.toggle('on', b.dataset.pane === p));
-  $('paneTowers').hidden = p !== 'towers';
-  $('paneAbils').hidden = p !== 'abils';
+  const sh = SHOPS[p] || SHOPS.towers;
+  shopMode = SHOPS[p] ? p : 'towers';
+  $('shopSignTop').textContent = sh.top;
+  $('shopSign').textContent = sh.name;
+  $('ovArmoury').style.setProperty('--ac', sh.ac);
+  $('shopBlurb').innerHTML = sh.blurb.replace('%s', shopMode === 'towers' ? SLOTS : ASLOTS);
+  $('paneTowers').hidden = shopMode !== 'towers';
+  $('paneAbils').hidden = shopMode !== 'abils';
+}
+
+// ── stock of the day ────────────────────────────────────────────────
+// Same for everyone on the same date without a server: the day number is the
+// seed. Only ever offers something you do not already own, so the strip is
+// never a dead advert, and the shop restocks the moment you buy the deal.
+function shopDay() { return Math.floor(Date.now() / 864e5); }
+function shopRand(n, salt) {
+  let h = (shopDay() * 2654435761 + salt * 40503) >>> 0;
+  h ^= h >>> 15; h = Math.imul(h, 2246822507); h ^= h >>> 13;
+  return (h >>> 0) % n;
+}
+const DEAL_CUTS = [15, 20, 25, 30];
+function dealFor(mode) {
+  const pool = mode === 'towers'
+    ? TKEYS.filter(k => !owns(k) && (TOWER_PRICE[k] || 0) > 0)
+    : ABILITIES.filter(a => !ownsA(a.id)).map(a => a.id);
+  if (!pool.length) return null;
+  const salt = mode === 'towers' ? 1 : 2;
+  return {key:pool[shopRand(pool.length, salt)], pct:DEAL_CUTS[shopRand(DEAL_CUTS.length, salt + 7)]};
+}
+// Every price in either shop runs through these, so a discount cannot be shown
+// in one place and charged in another.
+function towerFlux(k) {
+  const base = TOWER_PRICE[k] || 0, d = dealFor('towers');
+  return d && d.key === k ? Math.round(base * (100 - d.pct) / 100) : base;
+}
+function abilFlux(k) {
+  const a = ABIL[k]; if (!a) return 0;
+  const d = dealFor('abils');
+  return d && d.key === k ? Math.round(a.price * (100 - d.pct) / 100) : a.price;
+}
+function renderDeal() {
+  const strip = $('dealStrip'); if (!strip) return;
+  strip.innerHTML = '';
+  const isT = shopMode === 'towers';
+  const d = dealFor(shopMode);
+  if (!d) {
+    strip.innerHTML = '<div class="dEmpty">Shelves are bare \u2014 you own everything here.</div>';
+    return;
+  }
+  const name = isT ? TOWERS[d.key].name : ABIL[d.key].name;
+  const col = isT ? TOWERS[d.key].color : ABIL[d.key].color;
+  const was = isT ? (TOWER_PRICE[d.key] || 0) : ABIL[d.key].price;
+  const now = isT ? towerFlux(d.key) : abilFlux(d.key);
+  const row = document.createElement('div');
+  row.className = 'deal';
+  row.style.setProperty('--ac', col);
+  if (isT) row.appendChild(towerIcon(d.key, 34));
+  else row.insertAdjacentHTML('beforeend', `<div class="dIc" style="color:${col}">${ABIL[d.key].icon}</div>`);
+  row.insertAdjacentHTML('beforeend',
+    `<div><div class="dTag">TODAY'S STOCK</div><div class="dName">${name}</div></div>` +
+    `<div class="dPrice"><div class="dWas">\u2b21 ${fmt(was)}</div>` +
+    `<div class="dNow">\u2b21 ${fmt(now)}<span class="dOff">-${d.pct}%</span></div></div>`);
+  row.onclick = () => openArmDetail(isT ? 't' : 'a', d.key);
+  strip.appendChild(row);
 }
 function equipAbil(k) {
   if (!ownsA(k)) return;
@@ -6814,11 +6901,12 @@ function unequipAbil(k) {
 function buyAbil(k) {
   const a = ABIL[k];
   if (ownsA(k)) return;
-  if (META.flux < a.price) {
-    toast('⬡', 'NOT ENOUGH FLUX', `${a.name} costs ${fmt(a.price)} flux.`, '#ff2d9b');
+  const aprice = abilFlux(k);
+  if (META.flux < aprice) {
+    toast('⬡', 'NOT ENOUGH FLUX', `${a.name} costs ${fmt(aprice)} flux.`, '#ff2d9b');
     sfx('deny'); return;
   }
-  META.flux -= a.price;
+  META.flux -= aprice;
   META.ownedAbil.push(k);
   if (!META.abilBought.includes(k)) META.abilBought.push(k);   // the receipt, so a migration never takes it
   if (META.abils.length < ASLOTS) META.abils.push(k);
@@ -7047,7 +7135,7 @@ function renderArmDetail() {
   const isT = adKind === 't';
   const d = isT ? TOWERS[adKey] : ABIL[adKey];
   if (!d) { closeArmDetail(); return; }
-  const price = isT ? (TOWER_PRICE[adKey] || 0) : d.price;
+  const price = isT ? towerFlux(adKey) : abilFlux(adKey);
   const own = isT ? owns(adKey) : ownsA(adKey);
   const eq = isT ? equipped(adKey) : equippedA(adKey);
   const afford = META.flux >= price;
@@ -7131,13 +7219,14 @@ function buildAbilPane() {
     }
     row.appendChild(el);
   }
+  renderDeal();
   const grid = $('abilGrid'); grid.innerHTML = '';
   for (const a of ABILITIES) {
-    const own = ownsA(a.id), eq = equippedA(a.id), afford = META.flux >= a.price;
+    const own = ownsA(a.id), aPr = abilFlux(a.id), eq = equippedA(a.id), afford = META.flux >= aPr;
     const el = document.createElement('div');
     el.className = 'arm' + (eq ? ' equipped' : own ? '' : afford ? ' locked' : ' locked cant');
     el.style.setProperty('--ac', a.color);
-    const b = armBadge(eq, own, afford, a.price, a.color);
+    const b = armBadge(eq, own, afford, aPr, a.color);
     el.innerHTML = `<div class="aicon">${a.icon}</div>
       <div class="an">${a.name}</div>
       <div class="ab2" style="color:${b.col};background:${b.bg};border:1px solid ${b.col}44">${b.text}</div>`;
@@ -7172,7 +7261,7 @@ function buildArmoury() {
   // all towers
   const grid = $('armGrid'); grid.innerHTML = '';
   TKEYS.forEach(k => {
-    const d = TOWERS[k], price = TOWER_PRICE[k] || 0;
+    const d = TOWERS[k], price = towerFlux(k);
     const own = owns(k), eq = equipped(k);
     const afford = META.flux >= price;
     const el = document.createElement('div');
@@ -7468,7 +7557,9 @@ $('btnArmoury3').onclick = () => openArmoury();
 $('btnArmoury4').onclick = () => openArmoury();
 $('btnCloseArm').onclick = () => closeArmoury();
 $('armDetail').onclick = ev => { if (ev.target === $('armDetail')) closeArmDetail(); };
-document.querySelectorAll('.armTab').forEach(b => b.onclick = () => { armTab(b.dataset.pane); sfx('click'); });
+$('btnPowerups2').onclick = () => { initAudio(); openArmoury('abils'); };
+$('btnPowerups3').onclick = () => openArmoury('abils');
+$('btnPowerups4').onclick = () => openArmoury('abils');
 // The three modes all land on the sector screen; which one is armed decides
 // what the launch button does, so there is one launch button instead of three.
 let launchMode = 'campaign';
