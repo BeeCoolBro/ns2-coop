@@ -482,6 +482,43 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
   #shopCol .sect,#shopCol #loadoutRow,#shopCol #abilRow,#shopCol .armTabs{
     text-align:center;justify-content:center}
 }
+/* -- HARDWARE: a counter in a workshop -- */
+#ovArmoury .ovBox{position:relative}
+#ovArmoury.hw #dealStrip .deal{
+  border-left:0;padding-left:22px;
+  background:
+    repeating-linear-gradient(135deg,rgba(255,214,51,.16) 0 7px,transparent 7px 14px) left/9px 100% no-repeat,
+    rgba(255,255,255,.035)}
+
+/* -- SOFTWARE: a terminal, not a shop -- */
+#ovArmoury.sw{--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+#ovArmoury.sw .ovBox:before{content:'';position:absolute;inset:-6px;pointer-events:none;
+  border-radius:14px;
+  background:repeating-linear-gradient(to bottom,rgba(34,230,255,.05) 0 1px,transparent 1px 3px)}
+#ovArmoury.sw #shopSignWrap{transform:none}
+#ovArmoury.sw #shopSignTop{font-family:var(--mono);letter-spacing:.14em;color:var(--c);opacity:.72}
+#ovArmoury.sw #shopSignTop:before{content:'~/ '}
+#ovArmoury.sw #shopSign{
+  background:#050a12;color:var(--c);border:1px solid rgba(34,230,255,.45);border-radius:4px;
+  font-family:var(--mono);font-weight:700;letter-spacing:.06em;padding:7px 15px 6px;
+  box-shadow:0 0 34px -10px var(--ac),inset 0 0 44px -20px var(--ac)}
+#ovArmoury.sw #shopSign:before{content:'> ';opacity:.55}
+#ovArmoury.sw #shopSign:after{content:'\2588';margin-left:4px;
+  animation:swCaret 1.05s steps(1,end) infinite}
+@keyframes swCaret{0%,50%{opacity:1}50.01%,100%{opacity:0}}
+#ovArmoury.sw #shopBlurb{font-family:var(--mono);font-size:12px;letter-spacing:0}
+#ovArmoury.sw .sect{font-family:var(--mono);letter-spacing:.12em}
+#ovArmoury.sw .sect:before{content:'// ';color:var(--c);opacity:.6}
+#ovArmoury.sw .arm,#ovArmoury.sw .slot{border-radius:3px}
+#ovArmoury.sw .arm .an,#ovArmoury.sw .arm .ab2,#ovArmoury.sw .slot .sn{
+  font-family:var(--mono);letter-spacing:.02em}
+#ovArmoury.sw .dTag,#ovArmoury.sw .dName,#ovArmoury.sw .dNow,
+#ovArmoury.sw .dWas,#ovArmoury.sw .dOff,#ovArmoury.sw .dEmpty{
+  font-family:var(--mono);letter-spacing:.04em}
+#ovArmoury.sw .deal{position:relative;border-radius:3px;padding-left:18px;
+  background:rgba(34,230,255,.045)}
+#ovArmoury.sw .deal:before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;
+  background:var(--ac)}
 #dealStrip{margin-top:14px}
 .deal{display:flex;align-items:center;gap:12px;padding:10px 13px;border-radius:12px;
   border:1px solid var(--ac);background:rgba(255,255,255,.035);cursor:pointer;
@@ -6825,6 +6862,8 @@ function armTab(p) {
   $('shopSignTop').textContent = sh.top;
   $('shopSign').textContent = sh.name;
   $('ovArmoury').style.setProperty('--ac', sh.ac);
+  $('ovArmoury').classList.toggle('sw', shopMode === 'abils');
+  $('ovArmoury').classList.toggle('hw', shopMode === 'towers');
   $('shopBlurb').innerHTML = sh.blurb.replace('%s', shopMode === 'towers' ? SLOTS : ASLOTS);
   $('paneTowers').hidden = shopMode !== 'towers';
   $('paneAbils').hidden = shopMode !== 'abils';
@@ -6862,9 +6901,11 @@ function abilFlux(k) {
   const d = dealFor('abils');
   return d && d.key === k ? Math.round(a.price * (100 - d.pct) / 100) : a.price;
 }
+// One shop restocks a shelf, the other ships a build. Same clock, own words.
 function restockLabel() {
   const m = Math.max(1, Math.round(restockIn() / 60000));
-  return m >= 60 ? `NEW STOCK IN ${Math.floor(m / 60)}H ${m % 60}M` : `NEW STOCK IN ${m}M`;
+  const verb = shopMode === 'towers' ? 'NEW STOCK IN' : 'REBUILD IN';
+  return m >= 60 ? `${verb} ${Math.floor(m / 60)}H ${m % 60}M` : `${verb} ${m}M`;
 }
 function renderDeal() {
   const strip = $('dealStrip'); if (!strip) return;
@@ -6872,7 +6913,9 @@ function renderDeal() {
   const isT = shopMode === 'towers';
   const d = dealFor(shopMode);
   if (!d) {
-    strip.innerHTML = '<div class="dEmpty">Shelves are bare \u2014 you own everything here.</div>';
+    strip.innerHTML = '<div class="dEmpty">' + (isT
+      ? 'Shelves are bare \u2014 you own everything here.'
+      : 'No packages available \u2014 everything is already installed.') + '</div>';
     return;
   }
   const name = isT ? TOWERS[d.key].name : ABIL[d.key].name;
@@ -6885,7 +6928,7 @@ function renderDeal() {
   if (isT) row.appendChild(towerIcon(d.key, 34));
   else row.insertAdjacentHTML('beforeend', `<div class="dIc" style="color:${col}">${ABIL[d.key].icon}</div>`);
   row.insertAdjacentHTML('beforeend',
-    `<div><div class="dTag">IN STOCK · ${restockLabel()}</div><div class="dName">${name}</div></div>` +
+    `<div><div class="dTag">${isT ? 'IN STOCK' : 'BUILD ' + shopSlot() % 10000} · ${restockLabel()}</div><div class="dName">${name}</div></div>` +
     `<div class="dPrice"><div class="dWas">\u2b21 ${fmt(was)}</div>` +
     `<div class="dNow">\u2b21 ${fmt(now)}<span class="dOff">-${d.pct}%</span></div></div>`);
   row.onclick = () => openArmDetail(isT ? 't' : 'a', d.key);
