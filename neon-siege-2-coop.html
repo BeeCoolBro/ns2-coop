@@ -1399,15 +1399,47 @@ const DIFFS = [
 
 const ASLOTS = 4;                       // power-ups you can carry into a match
 const ABILITIES = [
-  // ── issued free with every account ──
-  {id:'strike', name:'ORBITAL STRIKE', icon:'☄️', cd:2100, color:'#ff6a3d', aim:true, price:0,
+  // ── the cheap end: what a new account buys first ──
+  {id:'strike', name:'ORBITAL STRIKE', icon:'☄️', cd:2100, color:'#ff6a3d', aim:true, price:300,
    desc:'Call down a devastating blast at the targeted point.'},
-  {id:'freeze', name:'STASIS FIELD',   icon:'❄️', cd:1500, color:'#7fd4ff', aim:false, price:0,
-   desc:'Halts every enemy on the field for 4 seconds.'},
-  {id:'over',   name:'OVERCLOCK',      icon:'⚡', cd:1800, color:'#ffd633', aim:false, price:0,
-   desc:'All towers fire at triple speed for 8 seconds.'},
-  {id:'repair', name:'CORE REPAIR',    icon:'🛡️', cd:2700, color:'#5cff9d', aim:false, price:0,
+  {id:'repair', name:'CORE REPAIR',    icon:'🛡️', cd:2700, color:'#5cff9d', aim:false, price:350,
    desc:'Restores core integrity and grants a bonus payout.'},
+  {id:'salvage',name:'SALVAGE CALL',   icon:'💰', cd:1500, color:'#ffd633', aim:false, price:450,
+   desc:'Strips the wrecks on the field for an immediate credit injection.'},
+  {id:'freeze', name:'STASIS FIELD',   icon:'❄️', cd:1500, color:'#7fd4ff', aim:false, price:500,
+   desc:'Halts every enemy on the field for 4 seconds.'},
+  {id:'over',   name:'OVERCLOCK',      icon:'⚡', cd:1800, color:'#ffd633', aim:false, price:650,
+   desc:'All towers fire at triple speed for 8 seconds.'},
+  {id:'chain',  name:'ARC CASCADE',    icon:'🌩️', cd:1600, color:'#3dd6ff', aim:true, price:700,
+   desc:'A bolt that jumps between up to 14 enemies, losing a little on every hop.'},
+  {id:'bounty', name:'BOUNTY SURGE',   icon:'💹', cd:2400, color:'#ffd633', aim:false, price:800,
+   desc:'Every kill pays triple for 15 seconds.'},
+  {id:'napalm', name:'FIRESTORM',      icon:'🔥', cd:1900, color:'#ff8a3d', aim:true, price:850,
+   desc:'Sets the ground alight. Everything caught burns hard for 8 seconds.'},
+  {id:'flak',   name:'FLAK BURST',     icon:'💥', cd:1800, color:'#3dd6ff', aim:false, price:900,
+   desc:'Fills the sky with shrapnel. Hits every air unit on the map, wherever it is.'},
+  {id:'shockw', name:'SHOCKWAVE',      icon:'🌊', cd:1700, color:'#b4f0ff', aim:true, price:1000,
+   desc:'Shoves everything in the blast back down its own lane and stuns it.'},
+  {id:'rally',  name:'WAR CRY',        icon:'📣', cd:2000, color:'#ff2d9b', aim:false, price:1000,
+   desc:'Every tower hits 70% harder for 10 seconds.'},
+  {id:'scramble',name:'SCRAMBLER',     icon:'📶', cd:1900, color:'#b46bff', aim:true, price:1100,
+   desc:'Drops shields, reveals cloaks and shuts off repair and mending for 10 seconds.'},
+  {id:'zero',   name:'FLASH FREEZE',   icon:'🧊', cd:2100, color:'#7fd4ff', aim:true, price:1200,
+   desc:'Freezes the radius solid, and anything caught takes 60% more from every source.'},
+  {id:'uplink', name:'TARGETING UPLINK',icon:'📡', cd:2200, color:'#5cffd0', aim:false, price:1300,
+   desc:'+45% range on every tower for 12 seconds, and nothing stays cloaked.'},
+  {id:'nanite', name:'NANITE CLOUD',   icon:'🧬', cd:2300, color:'#d8ff6b', aim:true, price:1500,
+   desc:'Eats 90% of armour for 10 seconds and chews through a slice of maximum health.'},
+  {id:'dilate', name:'TIME DILATION',  icon:'⏳', cd:2600, color:'#b46bff', aim:false, price:1600,
+   desc:'The whole field crawls at a third speed for 12 seconds. Bosses included.'},
+  {id:'bulwark',name:'BULWARK',        icon:'🧱', cd:3200, color:'#5cff9d', aim:false, price:2000,
+   desc:'Nothing touches the core for 8 seconds, however much gets through.'},
+  {id:'rift',   name:'VOID RIFT',      icon:'🕳️', cd:2700, color:'#b46bff', aim:true, price:2200,
+   desc:'Tears a hole that hauls everything backwards and grinds off a fifth of maximum health.'},
+  {id:'forge',  name:'FIELD FORGE',    icon:'🔨', cd:3000, color:'#ffd633', aim:false, price:2400,
+   desc:'The next two towers you place cost nothing.'},
+  {id:'meteor', name:'METEOR SHOWER',  icon:'🌌', cd:3600, color:'#ff6a3d', aim:true, price:2800,
+   desc:'Nine strikes walked across a wide area over two and a half seconds.'},
   // ── bought in the armoury ──
   {id:'emp',    name:'EMP BURST',      icon:'📡', cd:1700, color:'#3dd6ff', aim:true, price:500,
    desc:'Shatters every shield in a wide radius, corrodes armour and burns off cloaks for 8s.'},
@@ -1551,6 +1583,7 @@ const G = {
   speed:1, paused:false, auto:false, time:0, sandbox:false,
   selType:null, selTower:null, hover:null, aiming:-1,
   abilCd:[0,0,0,0], stasis:0, overclock:0, endless:false,
+  rally:0, uplink:0, dilate:0, bounty:0, bulwark:0, freeBuild:0, meteors:[],
   finale:false,
   wells:[], mines:[], aegis:0,
   lanes:[], core:{x:W*.9, y:H*.5}, grid:null, blocks:[],
@@ -1941,7 +1974,7 @@ function killEnemy(e, src) {
   G.kills++;
   G.comboKills++; G.comboT = 160;
   G.combo = clamp(1 + Math.floor(G.comboKills / 6) * .25, 1, COMBO_MAX);
-  let bounty = e.bounty * G.combo;
+  let bounty = e.bounty * G.combo * (G.bounty > 0 ? 3 : 1);
   if (src && src.bounty) bounty *= 1 + src.bounty;
   bounty = Math.round(bounty);
   G.cash += bounty;
@@ -2035,15 +2068,15 @@ function placeBlock(type) {
   if (G.cash < towerCost(type)) return 'cash';
   return null;
 }
-function eDmg(t) { return t.dmg * (1 + t.buff.dmg); }
-function eRange(t) { return t.range * (1 + t.buff.range) * (1 - (t.jammed || 0)); }
+function eDmg(t) { return t.dmg * (1 + t.buff.dmg) * (G.rally > 0 ? 1.7 : 1); }
+function eRange(t) { return t.range * (1 + t.buff.range) * (1 - (t.jammed || 0)) * (G.uplink > 0 ? 1.45 : 1); }
 function eCd(t) { return Math.max(1, t.cd / (1 + t.buff.rate) / (G.overclock > 0 ? 3 : 1)); }
 
 function canHit(t, e) {
   if (e.dead) return false;
   if (e.air && !t.air) return false;
   if (!e.air && !t.ground) return false;
-  if (e.cloak && !e.revealed && !t.detect) return false;
+  if (e.cloak && !e.revealed && !t.detect && G.uplink <= 0) return false;
   return true;
 }
 const TMODES = ['FIRST', 'LAST', 'STRONG', 'CLOSE'];
@@ -2086,7 +2119,8 @@ function curSpeed(e) {
   if (e.markSlow > 0) f -= e.markSlow * r; // jammed by an oracle
   // Hard floor: however much is stacked on it, a unit always creeps forward.
   // Without this, a slow field outside tower reach stalls a wave forever.
-  return e.spd * clamp(f, .34, 1);
+  // Dilation sits outside the floor -- it is a power-up, it is allowed to bite.
+  return e.spd * clamp(f, .34, 1) * (G.dilate > 0 && !e.ccProof ? .35 : 1);
 }
 
 function fireTower(t) {
@@ -2566,6 +2600,11 @@ function tick() {
   G.time++;
   if (G.stasis > 0) G.stasis--;
   if (G.overclock > 0) G.overclock--;
+  if (G.rally > 0) G.rally--;
+  if (G.uplink > 0) G.uplink--;
+  if (G.dilate > 0) G.dilate--;
+  if (G.bounty > 0) G.bounty--;
+  if (G.bulwark > 0) G.bulwark--;
   for (let i = 0; i < ASLOTS; i++) if (G.abilCd[i] > 0) G.abilCd[i]--;
 
   // ── finale: the sector's last stand ──
@@ -2674,15 +2713,16 @@ function tick() {
       if (e.venom === 0) { e.venomN = 0; e.venomSrc = null; }
     }
     if (e.amp > 0) { e.amp--; if (e.amp === 0) e.ampV = 0; }
+    if (e.scrambled > 0) e.scrambled--;
     if (e.burn > 0) {
       e.burn--;
       e.hp -= e.burnDps / 60 * 4;
       if (G.time % 7 === 0) spark(e.x + rnd(e.r, -e.r), e.y + rnd(e.r, -e.r), '#ff8a3d');
       if (e.hp <= 0) { killEnemy(e, null); continue; }
     }
-    if (e.def.regen && e.hp < e.maxHp) e.hp = Math.min(e.maxHp, e.hp + e.def.regen / 60 * 4);
+    if (e.def.regen && e.hp < e.maxHp && !(e.scrambled > 0)) e.hp = Math.min(e.maxHp, e.hp + e.def.regen / 60 * 4);
     // specials
-    if (e.def.heals) {
+    if (e.def.heals && !(e.scrambled > 0)) {
       if (--e.healCd <= 0) {
         e.healCd = 48;
         nearby(e.x, e.y, 150, _q2);
@@ -2696,7 +2736,7 @@ function tick() {
         if (did) ring(e.x, e.y, 8, 150, '#ff9ddb', 18);
       }
     }
-    if (e.def.wards) {
+    if (e.def.wards && !(e.scrambled > 0)) {
       if (--e.wardCd <= 0) {
         e.wardCd = 260;
         nearby(e.x, e.y, 170, _q2);
@@ -2909,6 +2949,18 @@ function tick() {
     for (let i = 0; i < G.abilCd.length; i++) if (G.abilCd[i] > 0) G.abilCd[i] = 0;
   }
 
+  // meteors land on a timer, so the shower walks across the ground
+  for (let i = G.meteors.length - 1; i >= 0; i--) {
+    const m = G.meteors[i];
+    if (--m.t > 0) continue;
+    const R = 150, dmg = 520 + G.wave * 70;
+    ring(m.x, m.y, 8, R * 1.5, '#ff6a3d', 26);
+    burst(m.x, m.y, '#ff8a3d', 30, 8);
+    nearby(m.x, m.y, R, _q2);
+    for (const e of _q2) damage(e, dmg, {pierceArmor:1});
+    shake(9, .22); sfx('boom');
+    G.meteors.splice(i, 1);
+  }
   tickRigs();
   tickHelis();
 
@@ -3189,6 +3241,12 @@ function hitProj(p, x, y, direct) {
 }
 
 function leakCore(e) {
+  if (G.bulwark > 0) {                     // the core simply is not there to hit
+    ring(G.core.x, G.core.y, 30, 260, '#5cff9d', 22);
+    float(e.x, e.y - 30, 'BLOCKED', '#5cff9d', 16);
+    sfx('aegisSoak');
+    return;
+  }
   if (G.aegis > 0) {                       // aegis eats the hit and pays a bounty for it
     const soak = Math.min(G.aegis, e.leak);
     G.aegis -= soak;
@@ -5252,6 +5310,8 @@ function startGame(mapIdx, diffIdx, endless) {
   G.speed = 1; G.paused = false; G.time = 0;
   G.selType = null; G.selTower = null; G.hover = null; G.aiming = -1;
   G.abilCd = [0, 0, 0, 0]; G.stasis = 0; G.overclock = 0;
+  G.rally = 0; G.uplink = 0; G.dilate = 0; G.bounty = 0; G.bulwark = 0; G.freeBuild = 0;
+  G.meteors = [];
   G.wells = []; G.mines = []; G.aegis = 0;
   G.finale = false;
   G.mode = 'play'; G.started = true;
@@ -5406,11 +5466,16 @@ function placeTower(x, y, type) {
     toast('⚡', 'GRID AT CAPACITY', `Not enough power for ${TOWERS[type].name} (${TOWERS[type].draw} GW). Sell something first.`, '#ffd633');
     sfx('deny'); return false;
   }
-  if (block === 'cash') { toast('✕', 'INSUFFICIENT CREDITS', `${TOWERS[type].name} costs ${cost}.`, '#ff2d9b'); sfx('deny'); return false; }
+  if (block === 'cash' && G.freeBuild <= 0) { toast('✕', 'INSUFFICIENT CREDITS', `${TOWERS[type].name} costs ${cost}.`, '#ff2d9b'); sfx('deny'); return false; }
   if (!canPlace(x, y)) { sfx('deny'); return false; }
   const t = makeTower(x, y, type);
   G.towers.push(t);
-  G.cash -= cost; G.spent += cost;
+  if (G.freeBuild > 0) {                    // FIELD FORGE picks up the bill
+    G.freeBuild--;
+    t.spent = 0;                            // and a gift cannot be sold back for profit
+    float(x, y - 34, 'FREE BUILD', '#ffd633', 16);
+    ring(x, y, 8, 74, '#ffd633', 22);
+  } else { G.cash -= cost; G.spent += cost; }
   burst(x, y, t.color, 18, 4); ring(x, y, 6, 60, t.color, 22);
   sfx('place'); syncHUD();
   return true;
@@ -5547,6 +5612,152 @@ function fireAbility(i, x, y) {
     }
     float(G.core.x, G.core.y - 90, n + ' PURGED', '#ff2d9b', 22);
     flash('#ff2d9b', .38); shake(22, .6); hitstop = 60;
+  } else if (a.id === 'salvage') {
+    const cash = Math.round(420 + G.wave * 85 + G.kills * 3);
+    G.cash += cash;
+    ring(G.core.x, G.core.y, 20, 380, '#ffd633', 34);
+    float(G.core.x, G.core.y - 80, '+' + fmt(cash) + '¢', '#ffd633', 22);
+    flash('#ffd633', .22);
+  } else if (a.id === 'chain') {
+    // one bolt, hopping to whatever is nearest that it has not hit yet
+    let from = {x, y}, dmg = 520 + G.wave * 80, hit = 0;
+    const seen = [];
+    for (let j = 0; j < 14; j++) {
+      nearby(from.x, from.y, 260, _q2);
+      let best = null, bd = 1e9;
+      for (const e of _q2) {
+        if (e.dead || seen.indexOf(e) >= 0) continue;
+        const d = dist2(from.x, from.y, e.x, e.y);
+        if (d < bd) { bd = d; best = e; }
+      }
+      if (!best) break;
+      G.fx.push({k:'arc', x:from.x, y:from.y, x2:best.x, y2:best.y, life:12, max:12, c:'#3dd6ff', w:3});
+      damage(best, dmg, {pierceArmor:.5});
+      applyCC(best, 'shock', 40);
+      seen.push(best); from = best; dmg *= .88; hit++;
+    }
+    float(x, y - 40, hit + ' CHAINED', '#3dd6ff', 16);
+    flash('#3dd6ff', .24); shake(10, .28);
+  } else if (a.id === 'napalm') {
+    const R = 250;
+    ring(x, y, 10, R * 1.2, '#ff8a3d', 30);
+    burst(x, y, '#ff8a3d', 60, 10);
+    nearby(x, y, R, _q2);
+    for (const e of _q2) {
+      damage(e, 260 + G.wave * 40, {pierceArmor:.5});
+      e.burn = Math.max(e.burn, 480);                       // eight seconds of it
+      e.burnDps = Math.max(e.burnDps, 34 + G.wave * 5);
+    }
+    flash('#ff8a3d', .3); shake(12, .3);
+  } else if (a.id === 'flak') {
+    let n = 0;
+    for (const e of G.enemies) {
+      if (e.dead || !e.air) continue;
+      damage(e, 900 + G.wave * 130, {pierceArmor:1});
+      applyCC(e, 'shock', 45);
+      ring(e.x, e.y, 2, e.r * 4, '#3dd6ff', 16);
+      burst(e.x, e.y, '#3dd6ff', 14, 6);
+      n++;
+    }
+    float(G.core.x, G.core.y - 90, n ? n + ' AIRBURST' : 'NO AIR CONTACTS', '#3dd6ff', 20);
+    flash('#3dd6ff', .26); shake(12, .3);
+  } else if (a.id === 'shockw') {
+    const R = 300;
+    ring(x, y, 10, R * 1.4, '#b4f0ff', 30);
+    nearby(x, y, R, _q2);
+    for (const e of _q2) {
+      if (e.dead) continue;
+      e.d = Math.max(4, e.d - (e.boss ? 60 : 180));         // shoved back down its own lane
+      const p = routeAt(e.route, e.d, e);
+      e.x = e.px = p.x; e.y = e.py = p.y;
+      applyCC(e, 'shock', 60);
+      damage(e, 180 + G.wave * 26, {pierceArmor:.4});
+    }
+    flash('#b4f0ff', .3); shake(18, .45);
+  } else if (a.id === 'rally') {
+    G.rally = 600;
+    for (const t of G.towers) { ring(t.x, t.y, 6, 52, '#ff2d9b', 20); t.flash = 8; }
+    float(G.core.x, G.core.y - 90, 'WAR CRY', '#ff2d9b', 22);
+    flash('#ff2d9b', .26);
+  } else if (a.id === 'scramble') {
+    const R = 320;
+    ring(x, y, 10, R * 1.25, '#b46bff', 30);
+    nearby(x, y, R, _q2);
+    for (const e of _q2) {
+      if (e.dead) continue;
+      if (e.shield > 0) { float(e.x, e.y - e.r, 'SHIELD DOWN', '#3dd6ff', 13); e.shield = 0; }
+      if (e.cloak) { e.revealed = true; e.empRevealed = 600; }
+      e.scrambled = 600;                                    // no regen, no mending, for 10s
+    }
+    flash('#b46bff', .24); shake(9, .24);
+  } else if (a.id === 'zero') {
+    const R = 270;
+    ring(x, y, 10, R * 1.3, '#7fd4ff', 32);
+    burst(x, y, '#7fd4ff', 50, 8);
+    nearby(x, y, R, _q2);
+    for (const e of _q2) {
+      if (e.dead) continue;
+      applyCC(e, 'freeze', 240);
+      e.chill = Math.max(e.chill, 360); e.chillF = Math.max(e.chillF, .55);
+      e.amp = Math.max(e.amp, 600); e.ampV = Math.max(e.ampV, .6);
+      damage(e, 200 + G.wave * 30, {pierceArmor:.3});
+    }
+    flash('#7fd4ff', .3); shake(10, .28);
+  } else if (a.id === 'uplink') {
+    G.uplink = 720;
+    for (const t of G.towers) ring(t.x, t.y, 6, 70, '#5cffd0', 18);
+    float(G.core.x, G.core.y - 90, 'UPLINK ONLINE', '#5cffd0', 22);
+    flash('#5cffd0', .22);
+  } else if (a.id === 'nanite') {
+    const R = 280;
+    ring(x, y, 10, R * 1.2, '#d8ff6b', 30);
+    nearby(x, y, R, _q2);
+    for (const e of _q2) {
+      if (e.dead) continue;
+      e.corrode = 600; e.corrodeV = Math.max(e.corrodeV, .9);
+      damage(e, Math.max(140, e.maxHp * .12), {pierceArmor:1});
+      e.burn = Math.max(e.burn, 420);
+      e.burnDps = Math.max(e.burnDps, Math.max(18, e.maxHp * .006));
+    }
+    flash('#d8ff6b', .24); shake(9, .24);
+  } else if (a.id === 'dilate') {
+    G.dilate = 720;
+    for (const e of G.enemies) ring(e.x, e.y, 2, e.r * 2.6, '#b46bff', 16);
+    float(G.core.x, G.core.y - 90, 'TIME DILATED', '#b46bff', 22);
+    flash('#b46bff', .28); shake(6, .2);
+  } else if (a.id === 'bounty') {
+    G.bounty = 900;
+    float(G.core.x, G.core.y - 90, 'BOUNTY ×3', '#ffd633', 22);
+    flash('#ffd633', .2);
+  } else if (a.id === 'bulwark') {
+    G.bulwark = 480;
+    ring(G.core.x, G.core.y, 24, 440, '#5cff9d', 40);
+    ring(G.core.x, G.core.y, 24, 320, '#ffffff', 26);
+    float(G.core.x, G.core.y - 90, 'BULWARK UP', '#5cff9d', 22);
+    flash('#5cff9d', .3);
+  } else if (a.id === 'forge') {
+    G.freeBuild = 2;
+    float(G.core.x, G.core.y - 90, 'TWO FREE BUILDS', '#ffd633', 22);
+    flash('#ffd633', .22);
+  } else if (a.id === 'rift') {
+    G.wells.push({x, y, r:300, life:300, spin:0});
+    ring(x, y, 300, 16, '#b46bff', 36);
+    nearby(x, y, 300, _q2);
+    for (const e of _q2) {
+      if (e.dead) continue;
+      damage(e, Math.max(220, e.maxHp * .2), {pierceArmor:1});
+      burst(e.x, e.y, '#b46bff', 10, 5);
+    }
+    flash('#b46bff', .3); shake(16, .4);
+  } else if (a.id === 'meteor') {
+    // nine strikes walked across the area, one every seven frames
+    for (let j = 0; j < 9; j++) {
+      const a2 = rnd(TAU), rr = 300 * Math.sqrt(Math.random());
+      const mx = x + Math.cos(a2) * rr, my = y + Math.sin(a2) * rr;
+      G.meteors.push({x:mx, y:my, t:8 + j * 7});
+    }
+    ring(x, y, 20, 340, '#ff6a3d', 30);
+    flash('#ff6a3d', .2);
   } else if (a.id === 'repair') {
     const heal = Math.max(10, Math.round(G.maxCores * .18));
     G.cores = Math.min(G.maxCores, G.cores + heal);
@@ -5924,6 +6135,10 @@ let META = loadMeta();
 function loadMeta() {
   let m = {};
   try { m = JSON.parse(HOST.get('ns2_meta') || '{}') || {}; } catch (e) { m = {}; }
+  // Decided before anything below fills the blanks in: a save with any field at
+  // all was written by an account that played under the old rules, when the four
+  // power-ups were free. A brand-new account's meta is an empty object.
+  const playedBefore = !!(m.ownedAbil || m.abils || m.owned || m.loadout || m.flux || m.cleared || m.endless);
   m.owned = renameTowers(m.owned);
   m.loadout = renameTowers(m.loadout);
   m.flux = Math.max(0, m.flux | 0);
@@ -5933,10 +6148,16 @@ function loadMeta() {
   m.loadout = m.loadout.slice(0, SLOTS);
   if (!m.loadout.length) m.loadout = STARTERS.slice(0, SLOTS);
   m.ownedAbil = Array.isArray(m.ownedAbil) ? m.ownedAbil.filter(k => ABIL[k]) : [];
-  for (const k of ASTARTERS) if (!m.ownedAbil.includes(k)) m.ownedAbil.push(k);
+  // Power-ups used to be issued free with every account. They are sold now, but
+  // an account that existed before the change keeps the four it was handed --
+  // a brand-new one has no save to read from, so it starts with none.
+  if (m.abilV !== 1) {
+    if (playedBefore) for (const k of ASTARTERS) if (!m.ownedAbil.includes(k)) m.ownedAbil.push(k);
+    m.abilV = 1;
+  }
   m.abils = Array.isArray(m.abils) ? m.abils.filter(k => ABIL[k] && m.ownedAbil.includes(k)) : [];
   m.abils = m.abils.slice(0, ASLOTS);
-  if (!m.abils.length) m.abils = ASTARTERS.slice(0, ASLOTS);
+  if (!m.abils.length) m.abils = m.ownedAbil.slice(0, ASLOTS);   // carry whatever is owned
   m.cleared = m.cleared && typeof m.cleared === 'object' ? m.cleared : {};
   m.endless = m.endless && typeof m.endless === 'object' ? m.endless : {};   // best wave per sector
   m.sandbox = !!m.sandbox;                                                  // bought with flux, kept forever
