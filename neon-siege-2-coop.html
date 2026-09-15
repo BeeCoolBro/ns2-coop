@@ -5684,8 +5684,11 @@ function honeyReward(won, wave, map, diff) {
   const first = won && !HOST.paid[key] ? Math.round((400 + map * 180) * dm) : 0;
   return {base, win, first, total:base + win + first, key, endless:false};
 }
+// Flux income runs at 1.5x. The rate rides on the difficulty multiplier so every
+// component scales together and the end-screen breakdown still sums to the total.
+const FLUX_RATE = 1.5;
 function fluxReward(won, wave, map, diff) {
-  const dm = [.7, 1, 1.6, 2.4][diff];
+  const dm = [.7, 1, 1.6, 2.4][diff] * FLUX_RATE;
   const key = map + '_' + diff;
   if (G.endless) {
     // depth pays quadratically, so pushing deeper is always worth the attempt
