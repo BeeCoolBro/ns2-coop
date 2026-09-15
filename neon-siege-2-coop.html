@@ -284,15 +284,6 @@ button{font-family:var(--f2);color:inherit;background:none;border:none;cursor:po
 .btn.sm:hover:not(:disabled){opacity:1}
 #titleKeys{margin-top:22px;font-size:11px;color:var(--txd);letter-spacing:.11em;font-weight:600;line-height:2}
 #titleKeys b{color:var(--txm)}
-/* launch mode, chosen on the sector screen as well as the title */
-#modePills{display:inline-flex;gap:3px;padding:4px;border-radius:11px;
-  border:1px solid var(--line);background:rgba(255,255,255,.026)}
-.mpill{font-family:var(--f1);font-size:10px;font-weight:700;letter-spacing:.13em;padding:8px 15px;
-  border-radius:8px;border:1px solid transparent;color:var(--txm);cursor:pointer;transition:.14s}
-.mpill:hover{color:var(--tx);background:rgba(255,255,255,.05)}
-.mpill.on{color:var(--c);border-color:rgba(34,230,255,.45);background:rgba(34,230,255,.12)}
-.mpill:focus{outline:none}
-.mpill:focus-visible{outline:2px solid var(--c);outline-offset:1px}
 @media (max-width:560px){#titleStats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:430px){.ovBox{padding:20px 14px}.modeCard{padding:12px 13px}}
 
@@ -679,17 +670,10 @@ button{font-family:var(--f2);color:inherit;background:none;border:none;cursor:po
     <div id="diffRow"></div>
     <div class="sect">LOADOUT <span id="loadoutPeek" style="font-family:var(--f2);font-size:11.5px;letter-spacing:.04em;color:var(--txm);font-weight:600"></span></div>
     <div class="sect">LAUNCH</div>
-    <div class="ovBtns" style="margin-top:12px">
-      <div id="modePills">
-        <button class="mpill on" data-mode="campaign">CAMPAIGN</button>
-        <button class="mpill" data-mode="endless">ENDLESS</button>
-        <button class="mpill" data-mode="sandbox">SANDBOX</button>
-      </div>
-    </div>
     <div class="ovBtns">
       <button class="btn go" id="btnDeploy" style="font-size:13px;padding:13px 34px">⚡ DEPLOY</button>
-      <button class="btn go" id="btnEndless" style="font-size:13px;padding:13px 34px" title="Survive as long as you can. Unlocked by clearing the sector.">∞ ENDLESS</button>
-      <button class="btn go" id="btnSandbox" style="font-size:13px;padding:13px 34px" title="Every tower, endless credits, an unbreakable core. Earns nothing.">SANDBOX RUN</button>
+      <button class="btn go" id="btnEndless" style="font-size:13px;padding:13px 34px;display:none" title="Survive as long as you can. Unlocked by clearing the sector.">∞ ENDLESS</button>
+      <button class="btn go" id="btnSandbox" style="font-size:13px;padding:13px 34px;display:none" title="Every tower, endless credits, an unbreakable core. Earns nothing.">SANDBOX RUN</button>
       <button class="btn" id="btnArmoury3">ARMOURY</button>
       <button class="btn" id="btnBackTitle">BACK</button>
     </div>
@@ -6498,9 +6482,6 @@ function buySandbox() {
 }
 const LAUNCH_MODES = ['campaign', 'endless', 'sandbox'];
 function setLaunchMode(m) {
-  // done before any early return, or a locked sandbox keeps its pill on the row
-  const sp = document.querySelector('.mpill[data-mode="sandbox"]');
-  if (sp) sp.classList.toggle('hide', coopActive() || !sandboxOwned());
   if (LAUNCH_MODES.indexOf(m) < 0) m = 'campaign';
   if (m === 'sandbox' && !sandboxOwned()) { buySandbox(); return; }
   if (m === 'sandbox' && coopActive()) {
@@ -6508,7 +6489,6 @@ function setLaunchMode(m) {
     sfx('deny'); return;
   }
   launchMode = m;
-  document.querySelectorAll('.mpill').forEach(p => p.classList.toggle('on', p.dataset.mode === m));
   $('btnDeploy').style.display  = m === 'campaign' ? '' : 'none';
   $('btnEndless').style.display = m === 'endless'  ? '' : 'none';
   $('btnSandbox').style.display = m === 'sandbox'  ? '' : 'none';
@@ -6523,7 +6503,6 @@ function openSectors(m) {
 }
 $('bookPrev').onclick = () => bookTo(pickedMap - 1);
 $('bookNext').onclick = () => bookTo(pickedMap + 1);
-document.querySelectorAll('.mpill').forEach(p => p.onclick = () => { setLaunchMode(p.dataset.mode); sfx('click'); });
 $('btnCampaign').onclick = () => openSectors('campaign');
 $('btnEndlessMode').onclick = () => openSectors('endless');
 $('btnSandboxMode').onclick = () => sandboxOwned() ? openSectors('sandbox') : buySandbox();
