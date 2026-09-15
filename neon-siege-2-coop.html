@@ -297,7 +297,53 @@ button{font-family:var(--f2);color:inherit;background:none;border:none;cursor:po
 @media (max-width:430px){.ovBox{padding:20px 14px}.modeCard{padding:12px 13px}}
 
 /* map select */
-#mapGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(206px,1fr));gap:11px;margin-top:20px;text-align:left}
+/* the book: art on the left page, the briefing on the right */
+#book{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;margin-top:16px}
+#bookSpread{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  border:1px solid var(--line);border-radius:12px;overflow:hidden;
+  background:rgba(255,255,255,.026);min-height:238px;text-align:left}
+#bookSpread::after{content:'';position:absolute;left:50%;top:12px;bottom:12px;width:1px;pointer-events:none;
+  background:linear-gradient(180deg,transparent,rgba(255,255,255,.18) 20%,rgba(255,255,255,.18) 80%,transparent)}
+.pLeft{position:relative;background:#04060d;min-height:238px}
+#bookArt{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover}
+#bookSeal{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:7px;background:rgba(4,6,13,.84);backdrop-filter:blur(2px);z-index:2}
+#bookSeal svg{width:26px;height:26px;fill:none;stroke:var(--txm);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.sealT{font-family:var(--f1);font-size:11px;font-weight:900;letter-spacing:.24em;color:var(--txm)}
+.sealS{font-size:11px;color:var(--txd);font-weight:600;letter-spacing:.06em}
+.pRight{padding:16px 18px;display:flex;flex-direction:column;gap:7px;min-width:0}
+.bkNo{font-family:var(--f1);font-size:9px;letter-spacing:.26em;color:var(--txd);font-weight:700}
+.bkName{font-family:var(--f1);font-size:19px;font-weight:900;letter-spacing:.07em;line-height:1.1;color:var(--ac)}
+.bkDesc{font-size:12.5px;color:var(--txm);font-weight:600;line-height:1.45}
+.bkMeta{display:flex;flex-wrap:wrap;gap:8px;font-family:var(--f1);font-size:9.5px;font-weight:700;
+  letter-spacing:.12em;color:var(--txd);margin-top:auto}
+.bkRec{font-size:11px;color:var(--txd);font-weight:600;letter-spacing:.05em}
+.bkStars{font-size:15px;letter-spacing:5px;color:var(--txd)}
+.bkStars b{color:var(--y);text-shadow:0 0 10px var(--y)}
+.pageArrow{width:34px;height:64px;border-radius:9px;border:1px solid var(--line);
+  background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:center;
+  color:var(--txm);cursor:pointer;transition:.14s}
+.pageArrow:hover:not(:disabled){color:var(--c);border-color:rgba(34,230,255,.45);background:rgba(34,230,255,.1)}
+.pageArrow:disabled{opacity:.22;cursor:not-allowed}
+.pageArrow:focus{outline:none}
+.pageArrow:focus-visible{outline:2px solid var(--c);outline-offset:2px}
+.pageArrow svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* the spine: every sector at a glance, and a way to jump */
+#bookSpine{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-top:9px}
+.sTab{min-width:31px;height:26px;padding:0 6px;border-radius:7px;border:1px solid var(--line);
+  background:rgba(255,255,255,.03);font-family:var(--f1);font-size:10px;font-weight:700;
+  color:var(--txm);cursor:pointer;transition:.14s}
+.sTab:hover{color:var(--tx);border-color:rgba(255,255,255,.3)}
+.sTab.done{color:var(--g)}
+.sTab.lock{opacity:.38}
+.sTab.on{color:var(--ac);border-color:var(--ac);background:rgba(255,255,255,.07);box-shadow:0 0 15px -5px var(--ac)}
+.sTab:focus{outline:none}
+.sTab:focus-visible{outline:2px solid var(--c);outline-offset:1px}
+@media (max-width:620px){
+  #bookSpread{grid-template-columns:minmax(0,1fr)}
+  .pLeft{min-height:150px}
+  #bookSpread::after{display:none}
+}
 .mcard{border:1px solid rgba(255,255,255,.1);border-radius:11px;overflow:hidden;cursor:pointer;
   transition:.16s;background:rgba(255,255,255,.026);position:relative}
 .mcard:hover:not(.mlock){transform:translateY(-4px);border-color:var(--ac);box-shadow:0 12px 34px -8px var(--ac)}
@@ -616,7 +662,19 @@ button{font-family:var(--f2);color:inherit;background:none;border:none;cursor:po
     <div class="ovT" style="font-size:clamp(22px,4vw,38px);color:var(--c)">SELECT SECTOR</div>
     <div class="ovS" id="progTxt">0 / 8 sectors secured</div>
     <div class="sect">SECTORS</div>
-    <div id="mapGrid"></div>
+    <div id="book">
+      <button class="pageArrow" id="bookPrev" title="Previous sector (left arrow)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4.6 7.6 12 15 19.4"/></svg>
+      </button>
+      <div id="bookSpread">
+        <div class="pLeft"><canvas id="bookArt"></canvas><div id="bookSeal" class="hide"></div></div>
+        <div class="pRight" id="bookInfo"></div>
+      </div>
+      <button class="pageArrow" id="bookNext" title="Next sector (right arrow)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4.6 16.4 12 9 19.4"/></svg>
+      </button>
+    </div>
+    <div id="bookSpine"></div>
     <div class="sect">THREAT LEVEL</div>
     <div id="diffRow"></div>
     <div class="sect">LOADOUT <span id="loadoutPeek" style="font-family:var(--f2);font-size:11.5px;letter-spacing:.04em;color:var(--txm);font-weight:600"></span></div>
@@ -5164,7 +5222,8 @@ function quitToMenu() {
   closeAll();
   document.getElementById('hud').classList.add('hide');
   document.getElementById('ovMaps').classList.add('on');
-  buildMapGrid();
+  pickedMap = defaultSector(launchMode);
+  buildMapGrid(); updateLoadoutPeek();
 }
 function closeAll() {
   updateFluxLabels();
@@ -5834,9 +5893,9 @@ function saveProgress(map, won, stars, score, wave) {
 }
 function isUnlocked(i) { return i === 0 || !!(prog[i - 1] && prog[i - 1].won); }
 
-function drawThumb(c, m) {
+function drawThumb(c, m, cw, ch) {
   const g = c.getContext('2d');
-  const w = c.width = 300, h = c.height = 94;
+  const w = c.width = cw || 300, h = c.height = ch || 94;
   const sx = w / W, sy = h / H;
   g.fillStyle = m.theme.fog; g.fillRect(0, 0, w, h);
   g.strokeStyle = rgba(m.theme.a, .1); g.lineWidth = .6;
@@ -5862,33 +5921,86 @@ function drawThumb(c, m) {
   for (const lane of m.lanes) { g.beginPath(); g.arc(Math.max(6, lane[0][0] * w), lane[0][1] * h, 3.5, 0, TAU); g.fill(); }
 }
 let pickedMap = 0;
+// Which page the book falls open at: the first unlocked sector you have not
+// beaten. Endless wants the opposite -- the furthest sector you HAVE cleared,
+// since that is the only kind it will launch.
+function defaultSector(mode) {
+  if (mode === 'endless') {
+    for (let i = MAPS.length - 1; i >= 0; i--) if (sectorCleared(i)) return i;
+    return 0;
+  }
+  let last = 0;
+  for (let i = 0; i < MAPS.length; i++) {
+    if (!isUnlocked(i)) break;
+    last = i;
+    if (!(prog[i] && prog[i].won)) return i;
+  }
+  return last;
+}
+function bookTo(i) {
+  const n = clamp(i, 0, MAPS.length - 1);
+  if (n === pickedMap) return;
+  pickedMap = n;
+  buildMapGrid(); updateLoadoutPeek(); sfx('click');
+}
+// A locked page can be read but not launched, so the launch row is gated here
+// rather than by refusing to turn to it.
+function refreshSectorLock() {
+  const un = isUnlocked(pickedMap);
+  for (const id of ['btnDeploy', 'btnSandbox']) {
+    const b = $(id); if (!b) continue;
+    b.disabled = !un;
+    b.style.opacity = un ? '' : '.3';
+  }
+  const e = $('btnEndless');                 // endless has its own locked state
+  if (e) e.disabled = !un;
+}
 function buildMapGrid() {
-  // (endless availability is surfaced on the DEPLOY row, see refreshEndlessBtn)
-  const grid = $('mapGrid'); grid.innerHTML = '';
+  // (endless availability is surfaced on the launch row, see refreshEndlessBtn)
   let done = 0;
-  MAPS.forEach((m, i) => {
-    if (prog[i] && prog[i].won) done++;
-    const un = isUnlocked(i);
-    const el = document.createElement('div');
-    el.className = 'mcard' + (un ? '' : ' mlock') + (i === pickedMap && un ? ' sel' : '');
-    el.style.setProperty('--ac', m.theme.a);
-    const st = prog[i] ? prog[i].stars || 0 : 0;
-    const c = document.createElement('canvas');
-    el.appendChild(c);
-    el.insertAdjacentHTML('beforeend', `<div class="mb">
-      <div class="mn">${i + 1}. ${m.name}</div>
-      <div class="md">${m.desc}</div>
-      <div class="mm"><span>${m.waves} WAVES</span><span style="color:${m.diffTag === 'EXTREME' ? 'var(--m)' : m.diffTag === 'HARD' ? 'var(--o)' : 'var(--txd)'}">${m.diffTag}</span>
-      <span class="stars">${[0, 1, 2].map(s => `<span class="star${s < st ? ' on' : ''}">★</span>`).join('')}</span></div>
-      ${prog[i] && prog[i].score ? `<div style="font-size:10px;color:var(--txd);margin-top:4px;font-family:var(--f1)">BEST ${fmt(prog[i].score)}</div>` : ''}
-    </div>`);
-    if (!un) el.insertAdjacentHTML('beforeend', `<div class="mlockI">🔒<small>CLEAR SECTOR ${i}</small></div>`);
-    drawThumb(c, m);
-    if (un) el.onclick = () => { pickedMap = i; buildMapGrid(); updateLoadoutPeek(); sfx('click'); };
-    grid.appendChild(el);
+  for (let i = 0; i < MAPS.length; i++) if (prog[i] && prog[i].won) done++;
+  pickedMap = clamp(pickedMap, 0, MAPS.length - 1);
+
+  const i = pickedMap, m = MAPS[i], un = isUnlocked(i), p = prog[i] || {}, st = p.stars || 0;
+  const tagCol = m.diffTag === 'EXTREME' ? 'var(--m)' : m.diffTag === 'HARD' ? 'var(--o)' : 'var(--txd)';
+  const best = endlessBest(i);
+
+  drawThumb($('bookArt'), m, 480, 270);
+  const seal = $('bookSeal');
+  seal.classList.toggle('hide', un);
+  if (!un) seal.innerHTML =
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.6" y="10.4" width="14.8" height="9.8" rx="2.2"/>' +
+    '<path d="M8.3 10.4V7.3a3.7 3.7 0 0 1 7.4 0v3.1"/></svg>' +
+    '<div class="sealT">SEALED</div><div class="sealS">Clear ' + MAPS[i - 1].name + ' to open this page</div>';
+
+  $('bookInfo').style.setProperty('--ac', m.theme.a);
+  $('bookInfo').innerHTML =
+    `<div class="bkNo">SECTOR ${String(i + 1).padStart(2, '0')} / ${MAPS.length}</div>
+     <div class="bkName">${m.name}</div>
+     <div class="bkDesc">${m.desc}</div>
+     <div class="bkStars">${[0, 1, 2].map(x => x < st ? '<b>★</b>' : '★').join('')}</div>
+     ${p.score ? `<div class="bkRec">BEST ${fmt(p.score)}${best ? ` · ENDLESS WAVE ${best}` : ''}</div>`
+               : best ? `<div class="bkRec">ENDLESS WAVE ${best}</div>` : ''}
+     <div class="bkMeta"><span>${m.waves} WAVES</span><span>${m.lanes.length} LANES</span>
+       <span style="color:${tagCol}">${m.diffTag}</span>
+       <span style="color:${p.won ? 'var(--g)' : 'var(--txd)'}">${p.won ? 'SECURED' : un ? 'UNCLEARED' : 'LOCKED'}</span></div>`;
+
+  const sp = $('bookSpine'); sp.innerHTML = '';
+  MAPS.forEach((mm, k) => {
+    const b = document.createElement('button');
+    const kun = isUnlocked(k), kwon = prog[k] && prog[k].won;
+    b.className = 'sTab' + (k === i ? ' on' : '') + (kwon ? ' done' : '') + (kun ? '' : ' lock');
+    b.style.setProperty('--ac', mm.theme.a);
+    b.textContent = k + 1;
+    b.title = kun ? mm.name : 'Locked';
+    b.onclick = () => bookTo(k);
+    sp.appendChild(b);
   });
+
+  $('bookPrev').disabled = i === 0;
+  $('bookNext').disabled = i === MAPS.length - 1;
   $('progTxt').textContent = `${done} / ${MAPS.length} sectors secured`;
-  if (!isUnlocked(pickedMap)) { pickedMap = 0; }
+  refreshSectorLock();
 }
 function buildDiffRow() {
   const r = $('diffRow'); r.innerHTML = '';
@@ -6256,6 +6368,11 @@ addEventListener('keydown', ev => {
        el.tagName === 'SELECT' || el.isContentEditable)) return;
   const k = ev.key.toLowerCase();
   const ov = document.querySelector('.ov.on');
+  // the book turns with the arrow keys
+  if (ov && ov.id === 'ovMaps' && (k === 'arrowleft' || k === 'arrowright')) {
+    bookTo(pickedMap + (k === 'arrowright' ? 1 : -1));
+    ev.preventDefault(); return;
+  }
   if (k === 'escape') {
     if (ov && G.mode === 'play') {
       if (ov.id === 'ovCodex') closeCodex();
@@ -6399,10 +6516,13 @@ function setLaunchMode(m) {
 }
 function openSectors(m) {
   initAudio(); G.mode = 'menu'; closeAll();
+  pickedMap = defaultSector(LAUNCH_MODES.indexOf(m) < 0 ? 'campaign' : m);
   buildMapGrid(); buildDiffRow(); updateFluxLabels(); updateLoadoutPeek();
   setLaunchMode(m);
   $('ovMaps').classList.add('on'); sfx('click');
 }
+$('bookPrev').onclick = () => bookTo(pickedMap - 1);
+$('bookNext').onclick = () => bookTo(pickedMap + 1);
 document.querySelectorAll('.mpill').forEach(p => p.onclick = () => { setLaunchMode(p.dataset.mode); sfx('click'); });
 $('btnCampaign').onclick = () => openSectors('campaign');
 $('btnEndlessMode').onclick = () => openSectors('endless');
