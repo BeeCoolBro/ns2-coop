@@ -457,6 +457,54 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
   padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.026)}
 .adBtns{display:flex;gap:8px;margin-top:15px}
 .adBtns .btn{flex:1;padding:11px}
+/* ── the shop counter ───────────────────────────────────────── */
+#shopWrap{display:grid;grid-template-columns:232px minmax(0,1fr);gap:20px;
+  align-items:start;text-align:left}
+#keeperCol{position:sticky;top:0}
+#keeperArt{position:relative;border-radius:14px;overflow:hidden;
+  border:1px solid rgba(180,107,255,.24);
+  background:radial-gradient(120% 90% at 50% 12%,rgba(180,107,255,.16),rgba(6,10,20,.9) 62%)}
+#keeperCv{display:block;width:100%;height:auto;aspect-ratio:232/262}
+#keeperBox{margin-top:10px;padding:12px 13px 13px;border-radius:12px;
+  border:1px solid rgba(255,255,255,.13);background:rgba(10,15,28,.92);position:relative}
+#keeperBox:before{content:'';position:absolute;top:-7px;left:26px;width:12px;height:12px;
+  background:rgba(10,15,28,.92);border-left:1px solid rgba(255,255,255,.13);
+  border-top:1px solid rgba(255,255,255,.13);transform:rotate(45deg)}
+#keeperName{font-family:var(--f1);font-size:17px;font-weight:900;letter-spacing:.12em;color:var(--v);
+  text-shadow:0 0 18px rgba(180,107,255,.5);line-height:1}
+#keeperRole{font-family:var(--f1);font-size:8px;letter-spacing:.24em;color:var(--txd);
+  font-weight:700;margin-top:5px}
+#keeperLine{font-size:12.5px;color:var(--txm);font-weight:600;line-height:1.5;margin-top:9px;
+  min-height:38px}
+#keeperLine b{color:var(--tx)}
+
+#shopHead{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  margin-bottom:11px}
+#shopSignWrap{transform:rotate(-1.1deg)}
+#shopSignTop{font-family:var(--f1);font-size:9.5px;letter-spacing:.3em;color:var(--txd);
+  font-weight:700;margin-bottom:3px;margin-left:3px}
+#shopSign{display:inline-block;padding:5px 17px 4px;border-radius:5px;
+  background:linear-gradient(#f2f6ff,#c9d6e8);color:#0a0f1c;
+  font-family:var(--f1);font-size:clamp(20px,3.3vw,31px);font-weight:900;letter-spacing:.13em;
+  box-shadow:0 5px 0 rgba(0,0,0,.45),0 0 34px -6px rgba(180,107,255,.75);line-height:1.12}
+#fluxChip{display:flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;
+  border:1px solid rgba(180,107,255,.4);background:rgba(180,107,255,.11);
+  font-family:var(--f1);font-weight:900;letter-spacing:.1em}
+#fluxChip .fhex{font-size:14px;color:var(--v)}
+#fluxChip .fx{font-size:20px;color:var(--v);text-shadow:0 0 18px rgba(180,107,255,.55)}
+#fluxChip .fxl{font-size:9px;letter-spacing:.24em;color:var(--txd)}
+#shopCol .sect{text-align:left}
+#shopCol #loadoutRow,#shopCol #abilRow,#shopCol .armTabs{justify-content:flex-start}
+@media (max-width:780px){
+  #shopWrap{grid-template-columns:minmax(0,1fr)}
+  #keeperCol{position:static;display:grid;grid-template-columns:118px minmax(0,1fr);gap:12px;align-items:start}
+  #keeperBox{margin-top:0}
+  #keeperBox:before{top:22px;left:-7px;border-left:1px solid rgba(255,255,255,.13);
+    border-top:none;border-bottom:1px solid rgba(255,255,255,.13)}
+  #shopHead{justify-content:center}
+  #shopCol .sect,#shopCol #loadoutRow,#shopCol #abilRow,#shopCol .armTabs{
+    text-align:center;justify-content:center}
+}
 .armTabs{display:flex;gap:8px;justify-content:center;margin-top:16px}
 .armTab{font-family:var(--f1);font-size:10.5px;font-weight:700;letter-spacing:.14em;
   padding:9px 20px;border-radius:8px;cursor:pointer;transition:.15s;
@@ -765,10 +813,27 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
 
 <!-- ══════════ ARMOURY ══════════ -->
 <div class="ov" id="ovArmoury">
-  <div class="ovBox" style="max-width:960px">
-    <div class="ovT" style="font-size:clamp(22px,4vw,38px);color:var(--v)">ARMOURY</div>
-    <div class="ovS">Equip up to <b id="slotMax">6</b> towers and <b id="aslotMax">4</b> power-ups. Only what you equip comes with you.</div>
-    <div class="fluxRow"><span class="fx" id="armFlux">0</span><span class="fxl">FLUX</span></div>
+  <div class="ovBox" style="max-width:1020px">
+    <div id="shopWrap">
+
+      <div id="keeperCol">
+        <div id="keeperArt"><canvas id="keeperCv"></canvas></div>
+        <div id="keeperBox">
+          <div id="keeperName">VOLT</div>
+          <div id="keeperRole">QUARTERMASTER</div>
+          <div id="keeperLine">&nbsp;</div>
+        </div>
+      </div>
+
+      <div id="shopCol">
+        <div id="shopHead">
+          <div id="shopSignWrap">
+            <div id="shopSignTop">VOLT'S</div>
+            <div id="shopSign">ARMOURY</div>
+          </div>
+          <div id="fluxChip"><span class="fhex">⬡</span><span class="fx" id="armFlux">0</span><span class="fxl">FLUX</span></div>
+        </div>
+        <div class="ovS" style="margin-top:0">Equip up to <b id="slotMax">6</b> towers and <b id="aslotMax">4</b> power-ups. Only what you equip comes with you.</div>
     <div class="armTabs">
       <button class="armTab on" data-pane="towers">🗼 TOWERS</button>
       <button class="armTab" data-pane="abils">✦ POWER-UPS</button>
@@ -784,6 +849,8 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
       <div id="abilRow"></div>
       <div class="sect">ALL POWER-UPS</div>
       <div id="abilGrid"></div>
+    </div>
+      </div>
     </div>
     <div class="ovBtns"><button class="btn pri" id="btnCloseArm">DONE</button></div>
   </div>
@@ -6696,13 +6763,184 @@ function buildDiffRow() {
 }
 
 // ── armoury ──
+// ═══════════════════════════════════════════════════════════
+//  THE QUARTERMASTER
+// ═══════════════════════════════════════════════════════════
+// Blocky body, lit visor, and a cluster of salvage turning over the head.
+// Drawn rather than drawn-from: same canvas the tower icons use, so it sits in
+// the game's own line-and-glow style instead of looking pasted in.
+let keeperRaf = 0, keeperT = 0, keeperMood = 0;
+
+function drawKeeper(g, w, h) {
+  const T = keeperT, sc = w / 232;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, w, h);
+  g.setTransform(sc, 0, 0, sc, 0, 0);
+  const cx = 116, bob = Math.sin(T / 47) * 2.6;
+  const AC = keeperMood > 0 ? '#5cff9d' : keeperMood < 0 ? '#ff2d9b' : '#b46bff';
+  const plate = '#dbe6f4', edge = 'rgba(6,10,20,.85)';
+  const ty = 168 + bob;                       // torso centre
+  const hyy = ty - 78;                        // head centre
+
+  // ── salvage turning overhead, well clear of him ───────────
+  const hx = cx, hy = 38 + bob * .5;
+  g.globalCompositeOperation = 'lighter';
+  g.fillStyle = rgba('#ffffff', .09 + Math.abs(Math.sin(T / 120)) * .09);
+  g.beginPath(); g.ellipse(hx, hy, 34, 17, 0, 0, TAU); g.fill();
+  g.globalCompositeOperation = 'source-over';
+  for (let i = 0; i < 9; i++) {
+    const a = T / 104 + i * TAU / 9;
+    const rr = 33 + Math.sin(T / 41 + i * 1.7) * 5;
+    const x = hx + Math.cos(a) * rr, y = hy + Math.sin(a) * rr * .42;
+    const sz = 5.5 + (i % 3) * 2;
+    g.save();
+    g.translate(x, y); g.rotate(a * 1.6 + T / 70);
+    g.fillStyle = '#0b1020';
+    g.strokeStyle = rgba(AC, .5); g.lineWidth = 1.1;
+    g.beginPath(); g.roundRect(-sz / 2, -sz / 2, sz, sz, 1.5); g.fill(); g.stroke();
+    g.restore();
+  }
+
+  // ── arms, behind the torso ────────────────────────────────
+  for (const sd of [-1, 1]) {
+    g.save();
+    g.translate(cx + sd * 60, ty - 2);
+    g.rotate(sd * (.06 + Math.sin(T / 53 + (sd > 0 ? 1.4 : 0)) * .05));
+    g.fillStyle = plate; g.strokeStyle = edge; g.lineWidth = 2;
+    g.beginPath(); g.roundRect(-12, -34, 24, 74, 8); g.fill(); g.stroke();
+    g.fillStyle = rgba(AC, .22);
+    g.beginPath(); g.roundRect(-12, 14, 24, 10, 4); g.fill();
+    g.restore();
+  }
+
+  // ── torso ─────────────────────────────────────────────────
+  g.fillStyle = plate; g.strokeStyle = edge; g.lineWidth = 2.4;
+  g.beginPath(); g.roundRect(cx - 49, ty - 36, 98, 92, 12); g.fill(); g.stroke();
+  g.fillStyle = '#0b1020';
+  g.beginPath(); g.roundRect(cx - 27, ty - 19, 54, 47, 8); g.fill();
+  g.strokeStyle = rgba(AC, .55); g.lineWidth = 1.5; g.stroke();
+  g.globalCompositeOperation = 'lighter';
+  g.strokeStyle = rgba(AC, .85); g.lineWidth = 2.1;
+  g.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = -Math.PI / 2 + i * TAU / 6, r = 14;
+    const x = cx + Math.cos(a) * r, y = ty + 5 + Math.sin(a) * r;
+    i ? g.lineTo(x, y) : g.moveTo(x, y);
+  }
+  g.closePath(); g.stroke();
+  g.fillStyle = rgba(AC, .26 + Math.abs(Math.sin(T / 84)) * .22);
+  g.fill();
+  g.globalCompositeOperation = 'source-over';
+
+  // ── head ──────────────────────────────────────────────────
+  g.fillStyle = plate; g.strokeStyle = edge; g.lineWidth = 2.4;
+  g.beginPath(); g.roundRect(cx - 34, hyy - 29, 68, 62, 13); g.fill(); g.stroke();
+  g.fillStyle = '#080d18';
+  g.beginPath(); g.roundRect(cx - 26, hyy - 13, 52, 26, 8); g.fill();
+  g.globalCompositeOperation = 'lighter';
+  const blink = (T % 260) > 250 ? .16 : 1;
+  g.fillStyle = rgba(AC, .9 * blink);
+  for (const sd of [-1, 1]) {
+    g.beginPath();
+    g.roundRect(cx + sd * 12.5 - 6, hyy - 4, 12, 8 * blink + .6, 2.6);
+    g.fill();
+  }
+  g.globalCompositeOperation = 'source-over';
+  g.strokeStyle = edge; g.lineWidth = 2;
+  g.beginPath(); g.moveTo(cx + 21, hyy - 29); g.lineTo(cx + 29, hyy - 44); g.stroke();
+  g.fillStyle = rgba(AC, .9);
+  g.beginPath(); g.arc(cx + 29, hyy - 46, 3.4, 0, TAU); g.fill();
+
+  // ── the counter he stands behind ──────────────────────────
+  // Does more for "shopkeeper" than any amount of detail on the torso, and
+  // gives the bottom of the frame something to be.
+  const cyy = 216;
+  g.fillStyle = '#070c16';
+  g.beginPath(); g.roundRect(-6, cyy, 244, 60, 4); g.fill();
+  g.fillStyle = 'rgba(255,255,255,.05)';
+  g.beginPath(); g.roundRect(-6, cyy, 244, 9, 3); g.fill();
+  g.strokeStyle = rgba(AC, .45); g.lineWidth = 1.6;
+  g.beginPath(); g.moveTo(-6, cyy + 1); g.lineTo(238, cyy + 1); g.stroke();
+  g.globalCompositeOperation = 'lighter';
+  g.fillStyle = rgba(AC, .07);
+  g.beginPath(); g.roundRect(-6, cyy, 244, 22, 3); g.fill();
+  g.globalCompositeOperation = 'source-over';
+  // a crate and a spare part left on the top
+  g.fillStyle = '#0d1424'; g.strokeStyle = rgba(AC, .34); g.lineWidth = 1.3;
+  g.beginPath(); g.roundRect(16, cyy - 17, 26, 18, 3); g.fill(); g.stroke();
+  g.strokeStyle = rgba(AC, .22);
+  g.beginPath(); g.moveTo(29, cyy - 17); g.lineTo(29, cyy + 1); g.stroke();
+  g.fillStyle = '#0d1424'; g.strokeStyle = rgba(AC, .34); g.lineWidth = 1.3;
+  g.beginPath(); g.arc(200, cyy - 8, 9, 0, TAU); g.fill(); g.stroke();
+  g.fillStyle = rgba(AC, .5);
+  g.beginPath(); g.arc(200, cyy - 8, 3, 0, TAU); g.fill();
+
+  g.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+function keeperFrame() {
+  keeperRaf = 0;
+  const cv = $('keeperCv');
+  if (!cv || !cv.isConnected || !$('ovArmoury').classList.contains('on')) return;
+  const w = cv.clientWidth || 232;
+  const h = Math.round(w * 262 / 232);
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+  keeperT++;
+  drawKeeper(cv.getContext('2d'), w, h);
+  keeperRaf = requestAnimationFrame(keeperFrame);
+}
+
+// Lines the counter actually has something to say about. `mood` tints the
+// figure: green when something went your way, pink when it did not.
+const KEEPER_LINES = {
+  open:    [['Back again. Everything on these shelves works, some of it twice.', 0],
+            ['Take your time. The grid is not going anywhere, probably.', 0],
+            ['Salvage came in this morning. Ask me what it used to be.', 0]],
+  broke:   [['Flux first, hardware second. That is the whole arrangement.', -1],
+            ['I would front you the difference, but I have met you.', -1]],
+  bought:  [['Good pick. Try to bring it back in one piece.', 1],
+            ['Sold. I will not ask what happens to it out there.', 1],
+            ['That one has never come back to me for a refund.', 1]],
+  equip:   [['Loaded. It only counts if it goes with you.', 0],
+            ['In the rack. Six is the limit, not a suggestion.', 0]],
+  unequip: [['Off the rack. I will keep it warm.', 0]],
+  full:    [['Rack is full. Something has to come off first.', -1],
+            ['Six slots. I did not design the harness.', -1]],
+  lastone: [['You cannot walk out of here empty-handed.', -1]],
+  look:    [['Handle it all you like. Handling is free.', 0]],
+};
+let keeperLast = '';
+function keeperSay(kind, override) {
+  const box = $('keeperLine'); if (!box) return;
+  let line = override, mood = 0;
+  if (!line) {
+    const pool = KEEPER_LINES[kind] || KEEPER_LINES.open;
+    let pickLine = pool[(Math.random() * pool.length) | 0];
+    if (pool.length > 1) {                       // never the same line twice running
+      let guard = 0;
+      while (pickLine[0] === keeperLast && guard++ < 6) pickLine = pool[(Math.random() * pool.length) | 0];
+    }
+    line = pickLine[0]; mood = pickLine[1];
+  }
+  keeperLast = line;
+  keeperMood = mood;
+  box.textContent = line;
+  box.animate([{opacity:0, transform:'translateY(3px)'}, {opacity:1, transform:'none'}],
+              {duration:190, easing:'ease-out'});
+  clearTimeout(keeperSay._t);
+  keeperSay._t = setTimeout(() => { keeperMood = 0; }, 2600);
+}
+
 function openArmoury() {
   buildArmoury();
   $('ovArmoury').classList.add('on');
+  keeperSay('open');
+  if (!keeperRaf) keeperRaf = requestAnimationFrame(keeperFrame);
 }
 function closeArmoury() {
   closeArmDetail();
   $('ovArmoury').classList.remove('on');
+  if (keeperRaf) { cancelAnimationFrame(keeperRaf); keeperRaf = 0; }
   saveMeta();
   if (G.mode === 'menu') buildMapGrid();
   updateLoadoutPeek();
@@ -6731,23 +6969,25 @@ function equipTower(k) {
   if (!owns(k)) return;
   if (equipped(k)) { unequipTower(k); return; }
   if (META.loadout.length >= SLOTS) {
-    toast('🛠', 'LOADOUT FULL', `Remove a tower first — only ${SLOTS} slots.`, '#ff2d9b'); sfx('deny'); return;
+    toast('🛠', 'LOADOUT FULL', `Remove a tower first — only ${SLOTS} slots.`, '#ff2d9b');
+    sfx('deny'); keeperSay('full'); return;
   }
-  META.loadout.push(k); saveMeta(); sfx('click'); buildArmoury();
+  META.loadout.push(k); saveMeta(); sfx('click'); buildArmoury(); keeperSay('equip');
 }
 function unequipTower(k) {
   if (META.loadout.length <= 1) {
-    toast('🛠', 'AT LEAST ONE', 'You must take at least one tower into a match.', '#ff2d9b'); sfx('deny'); return;
+    toast('🛠', 'AT LEAST ONE', 'You must take at least one tower into a match.', '#ff2d9b');
+    sfx('deny'); keeperSay('lastone'); return;
   }
   META.loadout = META.loadout.filter(x => x !== k);
-  saveMeta(); sfx('click'); buildArmoury();
+  saveMeta(); sfx('click'); buildArmoury(); keeperSay('unequip');
 }
 function buyTower(k) {
   const price = TOWER_PRICE[k] || 0;
   if (owns(k)) return;
   if (META.flux < price) {
     toast('⬡', 'NOT ENOUGH FLUX', `${TOWERS[k].name} costs ${fmt(price)} flux. Clear more sectors to earn it.`, '#ff2d9b');
-    sfx('deny'); return;
+    sfx('deny'); keeperSay('broke'); return;
   }
   META.flux -= price;
   META.owned.push(k);
@@ -6755,6 +6995,9 @@ function buyTower(k) {
   saveMeta(); sfx('upgrade');
   toast('🛠', 'TOWER UNLOCKED', `${TOWERS[k].name} added to your armoury.`, TOWERS[k].color);
   buildArmoury();
+  keeperSay(null, `${TOWERS[k].name} is yours. ` +
+    KEEPER_LINES.bought[(Math.random() * KEEPER_LINES.bought.length) | 0][0]);
+  keeperMood = 1;
 }
 function armTab(p) {
   document.querySelectorAll('.armTab').forEach(b => b.classList.toggle('on', b.dataset.pane === p));
@@ -6765,9 +7008,10 @@ function equipAbil(k) {
   if (!ownsA(k)) return;
   if (equippedA(k)) { unequipAbil(k); return; }
   if (META.abils.length >= ASLOTS) {
-    toast('✦', 'NO FREE SLOT', `Unequip a power-up first — only ${ASLOTS} go into a match.`, '#ff2d9b'); sfx('deny'); return;
+    toast('✦', 'NO FREE SLOT', `Unequip a power-up first — only ${ASLOTS} go into a match.`, '#ff2d9b');
+    sfx('deny'); keeperSay('full'); return;
   }
-  META.abils.push(k); saveMeta(); sfx('click'); buildArmoury();
+  META.abils.push(k); saveMeta(); sfx('click'); buildArmoury(); keeperSay('equip');
 }
 function unequipAbil(k) {
   META.abils = META.abils.filter(x => x !== k);
@@ -6777,7 +7021,8 @@ function buyAbil(k) {
   const a = ABIL[k];
   if (ownsA(k)) return;
   if (META.flux < a.price) {
-    toast('⬡', 'NOT ENOUGH FLUX', `${a.name} costs ${fmt(a.price)} flux.`, '#ff2d9b'); sfx('deny'); return;
+    toast('⬡', 'NOT ENOUGH FLUX', `${a.name} costs ${fmt(a.price)} flux.`, '#ff2d9b');
+    sfx('deny'); keeperSay('broke'); return;
   }
   META.flux -= a.price;
   META.ownedAbil.push(k);
@@ -6786,6 +7031,9 @@ function buyAbil(k) {
   saveMeta(); sfx('upgrade');
   toast(a.icon, 'POWER-UP UNLOCKED', `${a.name} added to your armoury.`, a.color);
   buildArmoury();
+  keeperSay(null, `${a.name} is yours. ` +
+    KEEPER_LINES.bought[(Math.random() * KEEPER_LINES.bought.length) | 0][0]);
+  keeperMood = 1;
 }
 // one badge for both grids, so a tower and a power-up read the same way
 function armBadge(eq, own, afford, price, color) {
