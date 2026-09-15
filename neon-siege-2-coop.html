@@ -245,13 +245,50 @@ button{font-family:var(--f2);color:inherit;background:none;border:none;cursor:po
 .ovBtns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}
 
 /* title screen */
-#logo{font-family:var(--f1);font-weight:900;font-size:clamp(38px,8.4vw,92px);letter-spacing:.09em;
+#logo{font-family:var(--f1);font-weight:900;font-size:clamp(32px,6.2vw,74px);letter-spacing:.09em;
   line-height:.95;background:linear-gradient(180deg,#ffffff 8%,var(--c) 46%,var(--m) 108%);
   -webkit-background-clip:text;background-clip:text;color:transparent;
   filter:drop-shadow(0 0 26px rgba(34,230,255,.42))}
 #logo b{display:block;font-size:.34em;letter-spacing:.62em;color:var(--m);
   -webkit-text-fill-color:var(--m);margin-top:6px;filter:drop-shadow(0 0 14px rgba(255,45,155,.6))}
-#tagline{font-size:13.5px;color:var(--txm);letter-spacing:.34em;margin-top:14px;font-weight:600;text-transform:uppercase}
+#tagline{font-size:13px;color:var(--txm);letter-spacing:.34em;margin-top:12px;font-weight:600;text-transform:uppercase}
+#titleBox{max-width:740px}
+/* the account at a glance -- the title screen used to show flux and nothing else */
+#titleStats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:20px}
+.tStat{padding:10px 8px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.026)}
+.tStat .k{font-family:var(--f1);font-size:8.5px;letter-spacing:.17em;color:var(--txd);font-weight:700}
+.tStat .v{font-family:var(--f1);font-size:19px;font-weight:900;margin-top:5px;line-height:1}
+/* modes are cards, not another button in the row: each one says what it is */
+#modeGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(214px,100%),1fr));gap:10px;margin-top:13px}
+.modeCard{display:flex;align-items:center;gap:12px;text-align:left;padding:14px 15px;border-radius:12px;
+  border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);color:var(--tx);
+  cursor:pointer;transition:transform .16s,border-color .16s,box-shadow .16s,background .16s}
+.modeCard:hover{transform:translateY(-3px);border-color:var(--ac);box-shadow:0 14px 34px -13px var(--ac)}
+.modeCard:active{transform:translateY(-1px)}
+.modeCard:focus{outline:none}
+.modeCard:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.modeCard svg{width:27px;height:27px;flex:none;fill:none;stroke:var(--ac);stroke-width:1.75;
+  stroke-linecap:round;stroke-linejoin:round}
+.modeCard .mn{display:block;font-family:var(--f1);font-size:12.5px;font-weight:900;letter-spacing:.11em;color:var(--ac)}
+.modeCard .mz{display:block;font-size:11.5px;color:var(--txm);font-weight:600;margin-top:3px;line-height:1.35}
+.modeCard.pri{border-color:var(--ac);background:rgba(34,230,255,.08);box-shadow:0 0 28px -9px var(--ac)}
+/* housekeeping sits below the play controls and is visibly quieter */
+#titleUtil{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin-top:13px;align-items:center}
+.btn.sm{font-size:9.5px;padding:7px 11px;letter-spacing:.12em;opacity:.7}
+.btn.sm:hover:not(:disabled){opacity:1}
+#titleKeys{margin-top:22px;font-size:11px;color:var(--txd);letter-spacing:.11em;font-weight:600;line-height:2}
+#titleKeys b{color:var(--txm)}
+/* launch mode, chosen on the sector screen as well as the title */
+#modePills{display:inline-flex;gap:3px;padding:4px;border-radius:11px;
+  border:1px solid var(--line);background:rgba(255,255,255,.026)}
+.mpill{font-family:var(--f1);font-size:10px;font-weight:700;letter-spacing:.13em;padding:8px 15px;
+  border-radius:8px;border:1px solid transparent;color:var(--txm);cursor:pointer;transition:.14s}
+.mpill:hover{color:var(--tx);background:rgba(255,255,255,.05)}
+.mpill.on{color:var(--c);border-color:rgba(34,230,255,.45);background:rgba(34,230,255,.12)}
+.mpill:focus{outline:none}
+.mpill:focus-visible{outline:2px solid var(--c);outline-offset:1px}
+@media (max-width:560px){#titleStats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:430px){.ovBox{padding:20px 14px}.modeCard{padding:12px 13px}}
 
 /* map select */
 #mapGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(206px,1fr));gap:11px;margin-top:20px;text-align:left}
@@ -479,27 +516,59 @@ button{font-family:var(--f2);color:inherit;background:none;border:none;cursor:po
 
 <!-- ══════════ TITLE ══════════ -->
 <div class="ov on" id="ovTitle">
-  <div class="ovBox">
+  <div class="ovBox" id="titleBox">
     <div id="logo">NEON SIEGE<b>II</b></div>
     <div id="tagline">Defend the core · Hold the grid</div>
-    <div class="fluxRow"><span class="fx" id="titleFlux">0</span><span class="fxl">FLUX</span></div>
-    <div class="ovBtns">
-      <button class="btn pri" id="btnCampaign" style="font-size:13px;padding:13px 30px">▶ CAMPAIGN</button>
-      <button class="btn" id="btnArmoury2">🛠 ARMOURY</button>
-      <button class="btn" id="btnCodex2">📖 CODEX</button>
-      <button class="btn" id="btnTransfer">⇄ TRANSFER SAVE</button>
-      <button class="btn" id="btnCoop">👥 CO-OP</button>
-      <button class="btn" id="btnWipe">RESET PROGRESS</button>
+
+    <div id="titleStats">
+      <div class="tStat"><div class="k">FLUX</div><div class="v" id="titleFlux" style="color:var(--v)">0</div></div>
+      <div class="tStat"><div class="k">SECTORS</div><div class="v" id="titleSectors" style="color:var(--c)">0</div></div>
+      <div class="tStat"><div class="k">TOWERS</div><div class="v" id="titleTowers" style="color:var(--g)">0</div></div>
+      <div class="tStat"><div class="k">BEST ENDLESS</div><div class="v" id="titleBest" style="color:var(--y)">—</div></div>
     </div>
-    <div style="margin-top:24px;font-size:11.5px;color:var(--txd);letter-spacing:.14em;font-weight:600;line-height:1.9">
-      <b style="color:var(--txm)">1–6</b> equipped towers · <b style="color:var(--txm)">SPACE</b> send wave ·
-      <b style="color:var(--txm)">Q W E R</b> power-ups · <b style="color:var(--txm)">C</b> codex ·
-      <b style="color:var(--txm)">F</b> fast-forward · <b style="color:var(--txm)">ESC</b> pause
+
+    <div class="sect">MODE</div>
+    <div id="modeGrid">
+      <button class="modeCard pri" id="btnCampaign" style="--ac:#22e6ff">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.4 19 12 8 18.6z"/></svg>
+        <span><span class="mn">CAMPAIGN</span><span class="mz">Twelve sectors, three stars each</span></span>
+      </button>
+      <button class="modeCard" id="btnEndlessMode" style="--ac:#b46bff">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 8.6c1.9 0 3 1.5 4.5 3.4s2.6 3.4 4.5 3.4a3.4 3.4 0 1 0 0-6.8c-1.9 0-3 1.5-4.5 3.4s-2.6 3.4-4.5 3.4a3.4 3.4 0 1 1 0-6.8z"/></svg>
+        <span><span class="mn">ENDLESS</span><span class="mz">Cleared sectors, run until the core falls</span></span>
+      </button>
+      <button class="modeCard" id="btnSandboxMode" style="--ac:#ffd633">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3.4v5.3L4.7 17a2.2 2.2 0 0 0 1.9 3.3h10.8a2.2 2.2 0 0 0 1.9-3.3l-4.8-8.3V3.4"/><path d="M8.5 3.4h7"/><path d="M6.9 14.2h10.2"/></svg>
+        <span><span class="mn">SANDBOX</span><span class="mz">Every tower, endless credits, earns nothing</span></span>
+      </button>
+      <button class="modeCard" id="btnCoop" style="--ac:#5cff9d">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.4 19.6v-1.8a3.6 3.6 0 0 0-3.6-3.6H6.6A3.6 3.6 0 0 0 3 17.8v1.8"/><circle cx="9.2" cy="7.3" r="3.6"/><path d="M21 19.6v-1.8a3.6 3.6 0 0 0-2.7-3.5"/><path d="M15.8 4.1a3.6 3.6 0 0 1 0 7"/></svg>
+        <span><span class="mn">CO-OP</span><span class="mz">Two commanders, one grid</span></span>
+      </button>
+    </div>
+
+    <div class="sect">ACCOUNT</div>
+    <div id="titleUtil">
+      <button class="btn" id="btnArmoury2">ARMOURY</button>
+      <button class="btn" id="btnCodex2">CODEX</button>
+      <button class="btn sm" id="btnTransfer">TRANSFER SAVE</button>
+      <button class="btn sm dng" id="btnWipe">RESET PROGRESS</button>
+    </div>
+
+    <div id="titleKeys">
+      <b>1–6</b> equipped towers · <b>SPACE</b> send wave ·
+      <b>Q W E R</b> power-ups · <b>C</b> codex ·
+      <b>F</b> speed · <b>A</b> auto-wave · <b>ESC</b> pause
     </div>
   </div>
 </div>
 
 <!-- ══════════ CO-OP ══════════ -->
+<style>
+/* this build has four modes, so they sit two by two instead of three and a stray */
+#modeGrid{grid-template-columns:repeat(2,1fr)}
+@media (max-width:520px){#modeGrid{grid-template-columns:1fr}}
+</style>
 <div class="ov" id="ovCoop">
   <div class="ovBox" style="max-width:760px">
     <div class="ovT" style="font-size:clamp(20px,3.4vw,32px);color:var(--c)">CO-OP</div>
@@ -544,12 +613,20 @@ button{font-family:var(--f2);color:inherit;background:none;border:none;cursor:po
     <div class="sect">THREAT LEVEL</div>
     <div id="diffRow"></div>
     <div class="sect">LOADOUT <span id="loadoutPeek" style="font-family:var(--f2);font-size:11.5px;letter-spacing:.04em;color:var(--txm);font-weight:600"></span></div>
+    <div class="sect">LAUNCH</div>
+    <div class="ovBtns" style="margin-top:12px">
+      <div id="modePills">
+        <button class="mpill on" data-mode="campaign">CAMPAIGN</button>
+        <button class="mpill" data-mode="endless">ENDLESS</button>
+        <button class="mpill" data-mode="sandbox">SANDBOX</button>
+      </div>
+    </div>
     <div class="ovBtns">
       <button class="btn go" id="btnDeploy" style="font-size:13px;padding:13px 34px">⚡ DEPLOY</button>
-      <button class="btn" id="btnEndless" title="Survive as long as you can. Unlocked by clearing the sector.">∞ ENDLESS</button>
-      <button class="btn" id="btnSandbox" title="Every tower, endless credits, an unbreakable core. Earns nothing.">🧪 SANDBOX</button>
-      <button class="btn" id="btnArmoury3">🛠 ARMOURY</button>
-      <button class="btn" id="btnBackTitle">◀ BACK</button>
+      <button class="btn go" id="btnEndless" style="font-size:13px;padding:13px 34px" title="Survive as long as you can. Unlocked by clearing the sector.">∞ ENDLESS</button>
+      <button class="btn go" id="btnSandbox" style="font-size:13px;padding:13px 34px" title="Every tower, endless credits, an unbreakable core. Earns nothing.">SANDBOX RUN</button>
+      <button class="btn" id="btnArmoury3">ARMOURY</button>
+      <button class="btn" id="btnBackTitle">BACK</button>
     </div>
   </div>
 </div>
@@ -5832,6 +5909,14 @@ function closeArmoury() {
 function updateFluxLabels() {
   $('armFlux').textContent = fmt(META.flux);
   $('titleFlux').textContent = fmt(META.flux);
+  let done = 0, best = 0;
+  for (let i = 0; i < MAPS.length; i++) {
+    if (prog[i] && prog[i].won) done++;
+    if (endlessBest(i) > best) best = endlessBest(i);
+  }
+  $('titleSectors').textContent = done + ' / ' + MAPS.length;
+  $('titleTowers').textContent = META.owned.length + ' / ' + TKEYS.length;
+  $('titleBest').textContent = best ? 'WAVE ' + best : '—';
 }
 function updateLoadoutPeek() {
   if (typeof refreshEndlessBtn === 'function') refreshEndlessBtn();
@@ -6248,12 +6333,36 @@ $('btnArmoury3').onclick = () => openArmoury();
 $('btnArmoury4').onclick = () => openArmoury();
 $('btnCloseArm').onclick = () => closeArmoury();
 document.querySelectorAll('.armTab').forEach(b => b.onclick = () => { armTab(b.dataset.pane); sfx('click'); });
-function openSectors() {
+// The three modes all land on the sector screen; which one is armed decides
+// what the launch button does, so there is one launch button instead of three.
+let launchMode = 'campaign';
+const LAUNCH_MODES = ['campaign', 'endless', 'sandbox'];
+function setLaunchMode(m) {
+  if (LAUNCH_MODES.indexOf(m) < 0) m = 'campaign';
+  if (m === 'sandbox' && coopActive()) {
+    toast('🧪', 'NOT IN CO-OP', 'Sandbox is a solo mode.', '#ff2d9b');
+    sfx('deny'); return;
+  }
+  launchMode = m;
+  document.querySelectorAll('.mpill').forEach(p => {
+    p.classList.toggle('on', p.dataset.mode === m);
+    if (p.dataset.mode === 'sandbox') p.classList.toggle('hide', coopActive());
+  });
+  $('btnDeploy').style.display  = m === 'campaign' ? '' : 'none';
+  $('btnEndless').style.display = m === 'endless'  ? '' : 'none';
+  $('btnSandbox').style.display = m === 'sandbox'  ? '' : 'none';
+  refreshEndlessBtn();
+}
+function openSectors(m) {
   initAudio(); G.mode = 'menu'; closeAll();
   buildMapGrid(); buildDiffRow(); updateFluxLabels(); updateLoadoutPeek();
+  setLaunchMode(m);
   $('ovMaps').classList.add('on'); sfx('click');
 }
-$('btnCampaign').onclick = openSectors;
+document.querySelectorAll('.mpill').forEach(p => p.onclick = () => { setLaunchMode(p.dataset.mode); sfx('click'); });
+$('btnCampaign').onclick = () => openSectors('campaign');
+$('btnEndlessMode').onclick = () => openSectors('endless');
+$('btnSandboxMode').onclick = () => openSectors('sandbox');
 $('btnBackTitle').onclick = () => { closeAll(); updateFluxLabels(); $('ovTitle').classList.add('on'); };
 $('btnDeploy').onclick = () => startGame(pickedMap, G.diff, false);
 $('btnSandbox').onclick = () => {
@@ -7424,7 +7533,7 @@ function devApply(m) {
 resize();
 G.map = 0; G.diff = 1;
 loadMap(0); buildAirRoutes(); buildBG();
-buildMapGrid(); buildDiffRow();
+buildMapGrid(); buildDiffRow(); updateFluxLabels();
 render(0);
 raf = requestAnimationFrame(loop);
 netCapture();
@@ -7436,7 +7545,7 @@ $('btnCoopStop').onclick = () => {
   if (NET.link && NET.mode === 'searching') { try { NET.link.ws.send(JSON.stringify({t:'cancel'})); } catch (e) {} }
   coopLeave();
 };
-$('coopGo').onclick = openSectors;
+$('coopGo').onclick = () => openSectors('campaign');
 
 document.addEventListener('pointerdown', () => initAudio(), {once:true});
 addEventListener('blur', () => { if (G.mode === 'play' && !G.paused) togglePause(); });
