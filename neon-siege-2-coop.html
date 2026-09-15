@@ -1007,24 +1007,24 @@ seismic: {
     ]},
   ]},
 
-convoy: {
-  name:'CONVOY', role:'Deployment', color:'#ffb03d', cost:235, kind:'convoy',
+lance: {
+  name:'LANCE', role:'Vanguard', color:'#7dffd4', cost:235, kind:'convoy',
   draw:9,
   dmg:0, cd:0, range:210, shots:0, air:false, ground:true,
-  rigEvery:390, rigHp:900, rigRamMul:1, rigSpd:1.45, rigMax:2,
-  desc:'Rolls armoured rigs the wrong way up the lane. A collision trades hull for hull and ignores armour, so nothing walks through a living rig - but anything bigger than the rig survives it. Useless against air.',
+  rigEvery:390, rigHp:900, rigRamMul:1, rigSpd:1.45, rigMax:2, rigFeed:.35, rigCap:2.5,
+  desc:'Forges a wedge of hard light and drives it up the lane against traffic. It trades mass on contact, ignores armour, and FEEDS \u2014 every hull it breaks makes it bigger, until it meets something bigger still. Nothing walks through a living lance. Nothing it does touches air.',
   paths:[
-    {name:'COLUMN', color:'#ff8a3d', ups:[
-      {n:'Reinforced Plate',c:240, d:'+85% hull on every rig.',            f:t=>t.rigHp*=1.85},
-      {n:'Rolling Start',  c:520, d:'Rigs roll out 30% sooner, one more on the road.',f:t=>{t.rigEvery*=.7;t.rigMax+=1}},
-      {n:'Ram Prow',       c:1250,d:'A rig hull counts for 2.2x on impact.', f:t=>t.rigRamMul*=2.2},
-      {n:'ARMOURED COLUMN',c:3200,d:'Four rigs at once, +150% hull, +80% impact.',f:t=>{t.rigMax=4;t.rigHp*=2.5;t.rigRamMul*=1.8}},
+    {name:'MASS', color:'#22e6ff', ups:[
+      {n:'Dense Weave',    c:240, d:'+85% mass on every lance.',           f:t=>t.rigHp*=1.85},
+      {n:'Twin Forge',     c:520, d:'Forges 30% sooner, one more lance out at a time.',f:t=>{t.rigEvery*=.7;t.rigMax+=1}},
+      {n:'Momentum',       c:1250,d:'Mass counts for 2.2\u00d7 on impact.',   f:t=>t.rigRamMul*=2.2},
+      {n:'AVALANCHE',      c:3200,d:'Four lances, +150% mass, +80% impact, and they feed far harder.',f:t=>{t.rigMax=4;t.rigHp*=2.5;t.rigRamMul*=1.8;t.rigFeed=.7;t.rigCap=4}},
     ]},
-    {name:'FIRE SUPPORT', color:'#ffd633', ups:[
-      {n:'Mounted Gunner', c:260, d:'Rigs carry a gun. Ground only, and armour still counts.',f:t=>{t.rigGun=26;t.rigGunRange=210}},
-      {n:'Optics',         c:560, d:'+70% gun damage, and the gunner sees cloaks.',f:t=>{t.rigGun*=1.7;t.detect=true;t.rigDetect=1}},
-      {n:'Cannon',         c:1350,d:'A turret cannon whose blast ignores armour.',f:t=>{t.rigCannon=150;t.rigSplash=95}},
-      {n:'AIRSTRIKE',      c:3400,d:'Calls a six-bomb cluster onto the lane every 12s.',f:t=>{t.strikeEvery=720;t.strikeDmg=260;t.strikeR=120;t.strikeT=720;t.rigCannon*=1.4}},
+    {name:'CHARGE', color:'#b46bff', ups:[
+      {n:'Arc Tip',        c:260, d:'The wedge arcs at the nearest ground target. Armour still counts.',f:t=>{t.rigGun=26;t.rigGunRange=210}},
+      {n:'Sensor Weave',   c:560, d:'+70% arc damage, and a lance sees through cloaks.',f:t=>{t.rigGun*=1.7;t.detect=true;t.rigDetect=1}},
+      {n:'Overcharge',     c:1350,d:'The wedge discharges a pulse that ignores armour.',f:t=>{t.rigCannon=150;t.rigSplash=95}},
+      {n:'SUPERNOVA',      c:3400,d:'A dying lance detonates everything it has eaten \u2014 the one thing here that reaches air.',f:t=>{t.rigNova=1.4;t.rigNovaR=190;t.rigCannon*=1.4}},
     ]},
   ]},
 
@@ -1821,6 +1821,7 @@ function makeTower(x, y, type) {
     rigEvery:d.rigEvery || 0, rigHp:d.rigHp || 0, rigRamMul:d.rigRamMul || 1,
     rigSpd:d.rigSpd || 1.4, rigMax:d.rigMax || 0, rigLive:0, rigT:0,
     rigGun:0, rigGunRange:0, rigDetect:0, rigCannon:0, rigSplash:0,
+    rigFeed:d.rigFeed || 0, rigCap:d.rigCap || 2.5, rigNova:0, rigNovaR:0,
     strikeEvery:0, strikeDmg:0, strikeR:0, strikeT:0,
     tarR:d.tarR || 0, tarLife:d.tarLife || 0, tarSlow:d.tarSlow || 0, tarPull:0,
     doubleTap:0, drones:d.drones || 0, droneSpd:d.droneSpd || 0, live:0,
@@ -2087,7 +2088,7 @@ function tickConvoy(t) {
   if (!route) return;
   const hp = t.rigHp * (1 + t.buff.dmg * .5);
   const r = {src:t, route, d:route.len - 10, x:0, y:0, ang:0,
-             hp, maxHp:hp, gunCd:0, canCd:0, flash:0, wob:rnd(TAU)};
+             hp, maxHp:hp, fed:0, gunCd:0, canCd:0, flash:0, wob:rnd(TAU)};
   const p = routeAt(route, r.d, r);
   r.x = p.x; r.y = p.y;
   G.rigs.push(r);
@@ -2126,11 +2127,29 @@ function tickRigs() {
   for (let i = G.rigs.length - 1; i >= 0; i--) {
     const r = G.rigs[i];
     const t = r.src;
-    if (r.hp <= 0 || !t || G.towers.indexOf(t) < 0) {      // wrecked, or its depot was sold
+    if (r.hp <= 0 || !t || G.towers.indexOf(t) < 0) {      // broken, or its forge was sold
       if (t) t.rigLive--;
-      burst(r.x, r.y, '#ff8a3d', 22, 6);
-      ring(r.x, r.y, 5, 70, '#ff8a3d', 20);
-      if (r.hp <= 0) sfx('boom');
+      const c = t ? t.color : '#7dffd4';
+      // SUPERNOVA: everything it ate comes back out. This is the only part of
+      // the tower that reaches air -- a detonation does not care what flies.
+      if (r.hp <= 0 && t && t.rigNova) {
+        const R = t.rigNovaR || 190;
+        const power = (r.maxHp + (r.fed || 0)) * t.rigNova;
+        nearby(r.x, r.y, R, _q3);
+        for (const e of _q3) {
+          if (e.dead) continue;
+          const f = 1 - clamp(dist(e, {x:r.x, y:r.y}) / R, 0, 1) * .5;
+          damage(e, power * f, {src:t, pierceArmor:1});
+        }
+        ring(r.x, r.y, 8, R, c, 40);
+        burst(r.x, r.y, c, 40, 9);
+        flash(c, .18); shake(7, .1);
+        sfx('bossDie');
+      } else {
+        burst(r.x, r.y, c, 22, 6);
+        ring(r.x, r.y, 5, 70, c, 20);
+        if (r.hp <= 0) sfx('boom');
+      }
       G.rigs.splice(i, 1);
       continue;
     }
@@ -2175,8 +2194,17 @@ function tickRigs() {
         const spent = Math.min(e.hp, r.hp * mul);
         damage(e, spent, {src:t, pierceArmor:1});
         r.hp -= spent / mul;
+        // It feeds. A share of everything broken comes back as mass, capped so
+        // a lance cannot grow without limit -- it reaches a terminal size and
+        // then meets whatever is bigger than that.
+        if (t.rigFeed) {
+          const room = r.maxHp * (t.rigCap || 2.5) - r.hp;
+          const fed = Math.min(Math.max(0, room), spent * t.rigFeed);
+          r.hp += fed;
+          r.fed = (r.fed || 0) + fed;
+        }
         r.flash = 5;
-        burst(r.x, r.y, '#ffd633', 8, 5);
+        burst(r.x, r.y, t.color, 8, 5);
       }
       if (r.hp > 0) ring(r.x, r.y, 4, 30, '#ffd633', 10);
     }
@@ -2958,39 +2986,50 @@ function tickMines() {
 }
 function drawRigs() {
   for (const r of G.rigs) {
-    const c = r.src && r.src.color ? r.src.color : '#ffb03d';
-    ctx.save(); ctx.translate(r.x, r.y); ctx.rotate(r.ang);
-    ctx.fillStyle = 'rgba(0,0,0,.4)';
-    ctx.beginPath(); ctx.ellipse(0, 4, 19, 12, 0, 0, TAU); ctx.fill();
-    // hull
-    ctx.fillStyle = r.flash > 0 ? '#fff' : '#241503';
-    ctx.strokeStyle = c; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.roundRect(-17, -11, 34, 22, 4); ctx.fill(); ctx.stroke();
-    // tracks
-    ctx.fillStyle = 'rgba(10,8,4,.95)';
-    for (const sd of [-1, 1]) ctx.fillRect(-17, sd * 11 - 4, 34, 8);
-    ctx.strokeStyle = rgba(c, .5); ctx.lineWidth = 1;
-    for (let i = -2; i <= 2; i++) {
-      const o = ((r.wob * 6 + i * 7) % 34) - 17;
-      ctx.beginPath(); ctx.moveTo(o, -15); ctx.lineTo(o, -7); ctx.moveTo(o, 7); ctx.lineTo(o, 15); ctx.stroke();
-    }
-    // turret, pointing the way it drives
     const t = r.src;
-    if (t && (t.rigGun || t.rigCannon)) {
-      ctx.fillStyle = '#2e1c05'; ctx.strokeStyle = c; ctx.lineWidth = 1.6;
-      ctx.beginPath(); ctx.arc(0, 0, 8, 0, TAU); ctx.fill(); ctx.stroke();
-      ctx.strokeStyle = c; ctx.lineWidth = t.rigCannon ? 3.4 : 2;
-      ctx.beginPath(); ctx.moveTo(4, 0); ctx.lineTo(t.rigCannon ? 26 : 20, 0); ctx.stroke();
+    const c = t && t.color ? t.color : '#7dffd4';
+    // a fed lance is visibly a bigger wedge, which is the whole read on it
+    const grow = clamp(r.hp / Math.max(1, r.maxHp), .5, 4);
+    const L = 15 + grow * 7, Wd = 9 + grow * 4;
+    ctx.save(); ctx.translate(r.x, r.y); ctx.rotate(r.ang);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = rgba(c, .16);
+    ctx.beginPath(); ctx.ellipse(0, 0, L * 1.5, Wd * 1.5, 0, 0, TAU); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+    // the wedge itself: a chevron driving point-first
+    ctx.fillStyle = r.flash > 0 ? '#fff' : 'rgba(4,22,20,.92)';
+    ctx.strokeStyle = c; ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.moveTo(L, 0); ctx.lineTo(-L * .55, -Wd); ctx.lineTo(-L * .25, 0); ctx.lineTo(-L * .55, Wd);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // trailing light, shed as it drives
+    ctx.strokeStyle = rgba(c, .45); ctx.lineWidth = 1.4;
+    for (let i = 1; i <= 3; i++) {
+      const o = -L * .55 - i * 7 - (r.wob * 3 % 6);
+      ctx.beginPath(); ctx.moveTo(o, -Wd * .5); ctx.lineTo(o, Wd * .5); ctx.stroke();
     }
-    glowDot(-13, 0, 3, '#ffd633', .7);
+    // charge ring once it carries one
+    if (t && (t.rigGun || t.rigCannon)) {
+      ctx.strokeStyle = rgba(t.rigCannon ? '#b46bff' : c, .8);
+      ctx.lineWidth = t.rigCannon ? 2.6 : 1.6;
+      ctx.beginPath(); ctx.arc(0, 0, Wd * .8, 0, TAU); ctx.stroke();
+    }
+    glowDot(L * .55, 0, 3.4, '#ffffff', .85);
     ctx.restore();
     // hull bar
-    const f = clamp(r.hp / Math.max(1, r.maxHp), 0, 1);
-    if (f < .999) {
+    const raw = r.hp / Math.max(1, r.maxHp);
+    const f = clamp(raw, 0, 1);
+    if (raw < .999 || r.fed > 0) {
       ctx.fillStyle = 'rgba(0,0,0,.6)';
-      ctx.fillRect(r.x - 19, r.y - 24, 38, 4);
+      ctx.fillRect(r.x - 19, r.y - 26, 38, 4);
       ctx.fillStyle = f > .5 ? '#5cff9d' : f > .22 ? '#ffd633' : '#ff2d9b';
-      ctx.fillRect(r.x - 18, r.y - 23, 36 * f, 2);
+      ctx.fillRect(r.x - 18, r.y - 25, 36 * f, 2);
+      // anything above its forged mass is what it has eaten
+      if (raw > 1) {
+        const over = clamp((raw - 1) / 3, 0, 1);
+        ctx.fillStyle = '#7dffd4';
+        ctx.fillRect(r.x - 18, r.y - 29, 36 * over, 2);
+      }
     }
   }
 }
@@ -5467,7 +5506,7 @@ const ASTARTERS = ['strike', 'freeze', 'over', 'repair'];
 const TOWER_PRICE = {
   pulse:0, scatter:0, cryo:0,
   inferno:450, mire:700, tesla:900, halo:1150, mortar:1400,
-  tempest:1700, hive:2000, rail:2350, convoy:2550, venom:2800, prism:3150, seismic:3550, nexus:4000,
+  tempest:1700, hive:2000, rail:2350, lance:2550, venom:2800, prism:3150, seismic:3550, nexus:4000,
 };
 // Every time sectors are inserted in the middle, every index above them moves,
 // and progress is keyed by index -- so a save made before the insert would mark
@@ -5513,9 +5552,17 @@ function migrateSave() {
 }
 migrateSave();
 let META = loadMeta();
+// A tower that gets renamed would otherwise have its unlock silently dropped by
+// the filters below, which only keep keys that still exist in TOWERS.
+const TOWER_RENAMES = {convoy:'lance'};
+function renameTowers(list) {
+  return Array.isArray(list) ? list.map(k => TOWER_RENAMES[k] || k) : list;
+}
 function loadMeta() {
   let m = {};
   try { m = JSON.parse(HOST.get('ns2_meta') || '{}') || {}; } catch (e) { m = {}; }
+  m.owned = renameTowers(m.owned);
+  m.loadout = renameTowers(m.loadout);
   m.flux = Math.max(0, m.flux | 0);
   m.owned = Array.isArray(m.owned) ? m.owned.filter(k => TOWERS[k]) : [];
   for (const k of STARTERS) if (!m.owned.includes(k)) m.owned.push(k);
@@ -6975,7 +7022,7 @@ function applySnap(s) {
     const fl = RG[i + 4] | 0;
     G.rigs.push({x: RG[i], y: RG[i + 1], ang: RG[i + 2] / 100,
                  hp: RG[i + 3], maxHp: 255, flash: 0, wob: (RG[i] + RG[i + 1]) * .01,
-                 src: {color: TOWERS.convoy ? TOWERS.convoy.color : '#ffb03d',
+                 src: {color: TOWERS.lance ? TOWERS.lance.color : '#7dffd4',
                        rigGun: fl & 1, rigCannon: fl & 2}});
   }
   G.fx = [];

@@ -430,41 +430,40 @@ without handing the stun back.
 | OVERLOAD, 1 target | 596 | 763 |
 | OVERLOAD, 8 packed | 1,555 | 2,467 |
 
-## CONVOY
+## LANCE
 
-A sixteenth tower, taken from Tower Defense Simulator's Military Base -- the
-shape of it, not its numbers. The tower shoots nothing. It is a depot that rolls
-armoured rigs the wrong way up the lane; they ram what they meet, slow to 40%
-wherever there is something to fight, and die when the hull is gone. Reaching
-the far end simply ends the rig, with no reward.
+A sixteenth tower. The gimmick came from Tower Defense Simulator's Military
+Base -- a unit launched from the core end that drives the lane against traffic
+and body-blocks -- but the tower around it is its own. A forge that prints a
+wedge of hard light, not a motor pool: in a game of PULSE, PRISM and MIRE, tanks
+and airstrikes read as a guest from somewhere else.
 
-What was worth keeping from the original, and is verified:
+Its own idea is that **a lance feeds**. A share of every hull it breaks comes
+back as mass, capped so it reaches a terminal size rather than growing forever.
+That inverts the unit: it is not a tank wearing down, it is a snowball that
+either gets fat or meets the one thing bigger than it has become.
 
-- **Ramming is a hull trade**, resolved the instant they touch, so nothing walks
-  through a living rig. The smaller of the two pools is spent: a rig that meets
-  something bigger dies and takes its own hull out of the enemy on the way; one
-  that meets something smaller kills it outright and pays that much hull. A
-  900-hull rig leaves a 5,000 HP enemy on exactly 4,100 and dies; against a 300
-  HP enemy it kills and keeps 600; against four drones in a row it killed all
-  four and none got past.
-- **Armour does not soften the trade.** That same 5,000 HP enemy with 82% armour
-  also drops to exactly 4,100.
-- The ram upgrades are a multiplier on what a hull is worth on impact, not a
-  separate damage number -- under a trade model a flat "+120% ram damage" would
-  have done nothing. Ram Prow takes the same rig's hit from 900 to 1,980 of
-  enemy health; ARMOURED COLUMN stacks to 3.96x, so a maxed 4,163-hull rig hits
-  for roughly 16,500.
-- **Rigs cannot touch air at all.** An immortal gunship parked on a maxed rig
-  for eight seconds took exactly 0. That is the tower's real weakness.
-- Mounted guns *do* respect armour and cannot hit air; the cannon's blast
-  ignores armour. The AIRSTRIKE is the only part that reaches flyers.
-- Selling the depot destroys its rigs.
+The feed is a share of damage *dealt* while mass lost is damage divided by the
+impact multiplier, so growth only turns net-positive once MASS is invested in.
+Twenty-four drones fed to one lance:
 
-COLUMN maxes at 4 rigs, 4,163 hull, 1,505 ram. FIRE SUPPORT maxes at a 44 gun,
-a 210 splash cannon and a six-bomb airstrike every 12s.
+| build | impact | feed | result |
+|---|---|---|---|
+| base | 1.0x | 35% | 900 -> 536, bleeds slower |
+| Momentum | 2.2x | 35% | 1665 -> 1606, near break-even |
+| AVALANCHE | 3.96x | 70% | 4163 -> 4413, **grows** |
 
-Rigs are in the snapshot (position, facing, hull ratio, whether a turret is
-fitted), so a co-op guest sees them rather than an empty road.
+**SUPERNOVA** turns everything a dying lance has eaten into a detonation, and is
+the only part of the tower that reaches air -- an explosion does not care what
+flies. Verified at 5,880 into an airborne gunship.
+
+Otherwise unchanged from the original mechanic: collisions trade mass and ignore
+armour so nothing walks through a living lance, the arc and pulse weapons cannot
+touch air, and selling the forge destroys its lances.
+
+An unlock survives the rename -- `TOWER_RENAMES` maps `convoy` to `lance` before
+loadMeta's filters drop unknown keys, which would otherwise have silently eaten
+the unlock for anyone who bought it.
 
 ## Typed codes
 
