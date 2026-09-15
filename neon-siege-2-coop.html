@@ -5374,10 +5374,10 @@ function startGame(mapIdx, diffIdx, endless) {
   G.rigs = []; G.helis = [];
   G.groups = [];
   G.waveActive = false;
-  // No cooldown BETWEEN waves, but the opening is not a cooldown -- it is the
-  // only chance to put anything on the board. Auto still gives you that, and
-  // the SEND WAVE button skips it whenever you are ready.
-  G.prepT = G.auto ? 60 * 12 : 0;
+  // Wave 1 goes the moment you deploy. There is no hold at the opening either:
+  // the build time is the walk from the spawn to your end of the lane, which is
+  // several seconds, and the opening cash grant covers a first tower or two.
+  G.prepT = 0;
   G.combo = 1; G.comboT = 0; G.comboKills = 0;
   G.speed = 1; G.paused = false; G.time = 0;
   G.selType = null; G.selTower = null; G.hover = null; G.aiming = -1;
