@@ -1012,7 +1012,7 @@ lance: {
   draw:9,
   dmg:0, cd:0, range:210, shots:0, air:false, ground:true,
   rigEvery:390, rigHp:900, rigRamMul:1, rigSpd:1.45, rigMax:2, rigFeed:.35, rigCap:2.5,
-  desc:'Forges a wedge of hard light and drives it up the lane against traffic. It trades mass on contact, ignores armour, and FEEDS \u2014 every hull it breaks makes it bigger, until it meets something bigger still. Nothing walks through a living lance. Nothing it does touches air.',
+  desc:'Drives a wedge of hard light up the lane. Ignores armour, grows with every kill, blocks the way. Cannot hit air.',
   paths:[
     {name:'MASS', color:'#22e6ff', ups:[
       {n:'Dense Weave',    c:240, d:'+85% mass on every lance.',           f:t=>t.rigHp*=1.85},
@@ -5291,6 +5291,31 @@ function towerIcon(type, size) {
   ctx = real;
   return c;
 }
+// The codex listed enemies as a coloured diamond, which told you nothing about
+// what you were looking for on the board. This draws the real thing, the same
+// way towerIcon does: borrow the global ctx, render into a small canvas, put it
+// back. spawnEnemy is used so every field drawEnemy touches actually exists,
+// and the unit is pulled straight back out of the world.
+function enemyIcon(type, size) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size; c.className = 'ic';
+  const g = c.getContext('2d');
+  const real = ctx;
+  ctx = g;
+  try {
+    const e = spawnEnemy(type, 1, 0, null);
+    G.enemies.pop();                       // it was never meant to be in the game
+    e.x = e.px = 0; e.y = e.py = 0; e.ang = 0;
+    e.hp = e.maxHp; e.hitFlash = 0; e.affix = null;
+    e.boss = false;                        // suppresses the name plate, not the hull
+    e.shield = 0; e.maxShield = 0;
+    const sc = (size * .40) / Math.max(9, e.r);
+    g.setTransform(sc, 0, 0, sc, size / 2, size / 2);
+    drawEnemy(e, 1);
+  } catch (err) { /* an icon is never worth breaking the codex over */ }
+  ctx = real;
+  return c;
+}
 function buildDock() {
   const d = $('buildDock'); d.innerHTML = '';
   // a sandbox shows the whole roster, not the six you happen to have equipped
@@ -5961,8 +5986,15 @@ function buildCodex() {
   } else if (cxTab === 'enemies') {
     Object.keys(ENEMIES).forEach(k => {
       const d = ENEMIES[k];
-      body.insertAdjacentHTML('beforeend', `<div class="cxRow">
-        <div class="cxIc" style="background:${rgba(d.color, .12)};border:1px solid ${rgba(d.color, .3)};color:${d.color};font-size:19px">${d.boss ? '☠' : d.air ? '✈' : d.cloak ? '👁' : '◆'}</div>
+      const row = document.createElement('div');
+      row.className = 'cxRow';
+      const ic = document.createElement('div');
+      ic.className = 'cxIc';
+      ic.style.cssText = `background:${rgba(d.color, .12)};border:1px solid ${rgba(d.color, .3)}`;
+      ic.appendChild(enemyIcon(k, 34));
+      row.appendChild(ic);
+      body.appendChild(row);
+      row.insertAdjacentHTML('beforeend', `
         <div style="flex:1"><div class="cxN" style="color:${d.color}">${d.name}</div>
         <div class="cxD">${d.desc}</div>
         <div><span class="cxTag" style="background:rgba(255,255,255,.06);color:var(--txm)">HP ${d.hp}</span>
@@ -5970,7 +6002,7 @@ function buildCodex() {
         ${d.armor ? `<span class="cxTag" style="background:rgba(255,176,61,.14);color:#ffb03d">ARMOUR ${Math.round(d.armor * 100)}%</span>` : ''}
         ${d.air ? `<span class="cxTag" style="background:rgba(61,214,255,.14);color:#3dd6ff">AIR</span>` : ''}
         ${d.cloak ? `<span class="cxTag" style="background:rgba(157,123,255,.16);color:#9d7bff">CLOAKED</span>` : ''}
-        <span class="cxTag" style="background:rgba(255,214,51,.12);color:var(--y)">${d.bounty}¢</span></div></div></div>`);
+        <span class="cxTag" style="background:rgba(255,214,51,.12);color:var(--y)">${d.bounty}¢</span></div></div>`);
     });
   } else {
     const sys = [
