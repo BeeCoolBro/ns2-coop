@@ -600,6 +600,11 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
       <div class="tStat"><div class="k">BEST ENDLESS</div><div class="v" id="titleBest" style="color:var(--y)">—</div></div>
     </div>
 
+    <button class="modeCard pri" id="resumeCard" style="--ac:#5cff9d;display:none;width:100%;margin-top:18px">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M5.6 3.4v4.2h4.2"/></svg>
+      <span><span class="mn">CONTINUE</span><span class="mz"><b id="resumeN"></b> · <span id="resumeZ"></span></span></span>
+    </button>
+
     <div class="sect">MODE</div>
     <div id="modeGrid">
       <button class="modeCard pri" id="btnCampaign" style="--ac:#22e6ff">
@@ -2082,7 +2087,7 @@ function makeTower(x, y, type) {
     buffDmg:d.buffDmg || 0, buffRate:d.buffRate || 0, buffRange:d.buffRange || 0,
     income:d.income || 0, bounty:0,
     cool:0, ang:-Math.PI / 2, tAng:-Math.PI / 2, flash:0, recoil:0, heat:0, spin:0, spun:0,
-    tiers:[0, 0], spent:towerCost(type), kills:0, dmgDone:0, targetMode:0,
+    tiers:[0, 0], ord:[], spent:towerCost(type), kills:0, dmgDone:0, targetMode:0,
     buff:{dmg:0, rate:0, range:0}, beamT:[], rampV:[], pulseT:0, silence:0, id:++towerId,
   };
   return t;
@@ -5409,6 +5414,7 @@ function startGame(mapIdx, diffIdx, endless) {
   G.wells = []; G.mines = []; G.aegis = 0;
   G.finale = false;
   G.mode = 'play'; G.started = true;
+  if (!resumingRun) clearRun();
   hitstop = 0; acc = 0; last = 0;
   cam.shake = 0; cam.flash = 0;
   closeAll();
@@ -5461,6 +5467,7 @@ function endWave() {
   ring(G.core.x, G.core.y, 20, 420, '#22e6ff', 40);
   sfx('waveClear');
   musicCue('clear');
+  saveRun();                              // the wave is banked; nothing in flight
   G.prepT = G.auto ? 0 : WAVE_GAP;   // the button is the only thing that skips it
   updateWavePreview();
   syncHUD();
@@ -5469,6 +5476,7 @@ function endGame(won) {
   if (isHost()) sendOver(won);
   G.mode = won ? 'win' : 'lose';
   stopMusic();
+  clearRun();                             // the run is over; nothing to go back to
   const m = MAPS[G.map];
   let stars = 0;
   if (won) { stars = 1; if (G.cores >= G.maxCores * .5) stars = 2; if (G.leaked === 0) stars = 3; }
@@ -5533,6 +5541,118 @@ function endGame(won) {
   document.getElementById('ovEnd').classList.add('on');
   if (won) { flash('#5cff9d', .5); for (let i = 0; i < 8; i++) setTimeout(() => { burst(rnd(W), rnd(H * .7, H * .2), pick(['#22e6ff', '#ffd633', '#5cff9d', '#ff2d9b']), 40, 8); }, i * 130); }
 }
+// ===========================================================
+//  SAVED RUN
+// ===========================================================
+const RUN_KEY = 'ns2_run', RUN_V = 1;
+let resumingRun = false;
+
+// A co-op match belongs to the host's session, not to this browser; resuming
+// half of one alone would be restoring a game that no longer exists.
+function runSavable() { return G.started && G.mode === 'play' && !coopActive(); }
+
+function snapRun() {
+  return {
+    v:RUN_V, t:Date.now(),
+    map:G.map, diff:G.diff, endless:!!G.endless, sandbox:!!G.sandbox,
+    wave:G.wave, cash:Math.round(G.cash), cores:G.cores, maxCores:G.maxCores,
+    score:G.score, kills:G.kills, leaked:G.leaked, spent:G.spent,
+    combo:G.combo, comboT:G.comboT, comboKills:G.comboKills,
+    auto:!!G.auto, speed:G.speed,
+    abils:META.abils.slice(), abilCd:G.abilCd.slice(),
+    towers:G.towers.map(t => ({
+      k:t.type, x:Math.round(t.x), y:Math.round(t.y),
+      o:t.ord.slice(), m:t.targetMode || 0,
+      s:t.spent, kl:t.kills, dd:Math.round(t.dmgDone || 0),
+    })),
+  };
+}
+function saveRun() {
+  if (!runSavable()) return;
+  try { HOST.set(RUN_KEY, JSON.stringify(snapRun())); } catch (e) {}
+}
+function readRun() {
+  let r = null;
+  try { r = JSON.parse(HOST.get(RUN_KEY) || 'null'); } catch (e) { return null; }
+  if (!r || r.v !== RUN_V || !MAPS[r.map] || !DIFFS[r.diff]) return null;
+  if (!Array.isArray(r.towers)) return null;
+  return r;
+}
+function clearRun() { try { HOST.del(RUN_KEY); } catch (e) {} }
+
+// rebuild a tower by replaying what was bought, through the game's own code
+function towerFromSave(d) {
+  const def = TOWERS[d.k];
+  if (!def) return null;                  // a tower that no longer exists
+  const t = makeTower(d.x, d.y, d.k);
+  for (const pi of (d.o || [])) {
+    const path = def.paths[pi];
+    const up = path && path.ups[t.tiers[pi]];
+    if (!up) continue;
+    t.tiers[pi]++; t.ord.push(pi); up.f(t);
+  }
+  t.targetMode = d.m | 0; t.spent = d.s | 0;
+  t.kills = d.kl | 0; t.dmgDone = d.dd || 0;
+  return t;
+}
+
+function resumeRun() {
+  // a solo run cannot be dropped into a live co-op match
+  if (coopActive()) return false;
+  const r = readRun();
+  if (!r) { clearRun(); refreshResumeCard(); return false; }
+  resumingRun = true;
+  sandboxNext = !!r.sandbox;
+  try { startGame(r.map, r.diff, r.endless); } finally { resumingRun = false; }
+  G.wave = r.wave | 0;
+  G.cash = r.cash | 0;
+  G.cores = r.cores | 0; G.maxCores = r.maxCores || G.maxCores;
+  G.score = r.score | 0; G.kills = r.kills | 0; G.leaked = r.leaked | 0; G.spent = r.spent | 0;
+  G.combo = r.combo || 1; G.comboT = r.comboT | 0; G.comboKills = r.comboKills | 0;
+  G.auto = !!r.auto; G.speed = r.speed || 1;
+  // cooldowns are per slot, so they only mean anything if the loadout still is
+  if (Array.isArray(r.abilCd) && String(r.abils) === String(META.abils))
+    G.abilCd = r.abilCd.slice(0, ASLOTS);
+  for (const d of r.towers) {
+    const t = towerFromSave(d);
+    if (t) G.towers.push(t);
+  }
+  G.prepT = G.auto ? 0 : WAVE_GAP;        // you always get the breather back
+  if (G.sandbox) sandboxSetWave(G.wave);
+  buildDock(); buildAbilityDock(); syncHUD(); updateWavePreview();
+  const m = MAPS[G.map];
+  toast('\u23f4', 'RUN RESTORED',
+        m.name + ' \u00b7 wave ' + (G.wave + 1) + ' \u00b7 ' + G.towers.length + ' towers on the grid.',
+        '#22e6ff');
+  return true;
+}
+
+// Launching from the menu discards whatever run is held. Say so first.
+function confirmNewRun() {
+  const r = readRun();
+  if (!r) return true;
+  const ok = confirm('A run is in progress on ' + MAPS[r.map].name +
+                     ' (wave ' + ((r.wave | 0) + 1) + ', ' + r.cores + ' cores left).\n\n' +
+                     'Starting a new one discards it. Continue?');
+  if (!ok) return false;
+  clearRun();
+  return true;
+}
+
+function refreshResumeCard() {
+  const card = $('resumeCard'); if (!card) return;
+  const r = readRun();
+  card.style.display = r ? '' : 'none';
+  if (!r) return;
+  const m = MAPS[r.map], n = r.towers.length;
+  $('resumeN').textContent = m.name;
+  $('resumeZ').textContent =
+    (r.sandbox ? 'Sandbox' : r.endless ? 'Endless' : DIFFS[r.diff].name) +
+    ' \u00b7 wave ' + ((r.wave | 0) + 1) +
+    ' \u00b7 ' + n + ' tower' + (n === 1 ? '' : 's') +
+    ' \u00b7 ' + r.cores + ' core' + (r.cores === 1 ? '' : 's');
+}
+
 function quitToMenu() {
   G.mode = 'menu'; stopMusic();
   closeAll();
@@ -5573,6 +5693,7 @@ function placeTower(x, y, type) {
   } else { G.cash -= cost; G.spent += cost; }
   burst(x, y, t.color, 18, 4); ring(x, y, 6, 60, t.color, 22);
   sfx('place'); syncHUD();
+  if (!G.waveActive) saveRun();
   return true;
 }
 function sellTower(t) {
@@ -5589,6 +5710,7 @@ function sellTower(t) {
   float(t.x, t.y, '+' + v, '#ffd633', 16);
   if (G.selTower === t) { G.selTower = null; closeInspector(); }
   sfx('sell'); syncHUD();
+  if (!G.waveActive) saveRun();
 }
 function buyUpgrade(t, pi, ti) {
   if (isClient()) { NET.link.send({k:'upg', id:t.id, pi, ti}); return; }
@@ -5603,12 +5725,14 @@ function buyUpgrade(t, pi, ti) {
   G.cash -= cost; G.spent += cost;
   t.spent += cost;
   t.tiers[pi]++;
+  t.ord.push(pi);                         // so a save can replay this exactly
   up.f(t);
   ring(t.x, t.y, 10, 90, path.color, 26);
   burst(t.x, t.y, path.color, 22, 5);
   float(t.x, t.y - 28, up.n.toUpperCase(), path.color, 14);
   sfx('upgrade');
   openInspector(t); syncHUD();
+  if (!G.waveActive) saveRun();
 }
 function upgradeLocked(t, pi, ti) {
   const other = t.tiers[1 - pi];
@@ -6516,6 +6640,7 @@ function updateFluxLabels() {
   $('titleTowers').textContent = META.owned.length + ' / ' + TKEYS.length;
   $('titleBest').textContent = best ? 'WAVE ' + best : '—';
   refreshSandboxCard();
+  refreshResumeCard();
 }
 function updateLoadoutPeek() {
   if (typeof refreshEndlessBtn === 'function') refreshEndlessBtn();
@@ -7280,17 +7405,21 @@ function openSectors(m) {
 }
 $('bookPrev').onclick = () => bookTo(pickedMap - 1);
 $('bookNext').onclick = () => bookTo(pickedMap + 1);
+$('resumeCard').onclick = () => {
+  if (!resumeRun()) toast('\u2715', 'NOTHING TO RESUME', 'That saved run could not be read.', '#ff2d9b');
+};
 $('btnCampaign').onclick = () => openSectors('campaign');
 $('btnEndlessMode').onclick = () => openSectors('endless');
 $('btnSandboxMode').onclick = () => sandboxOwned() ? openSectors('sandbox') : buySandbox();
 $('btnBackTitle').onclick = () => { closeAll(); updateFluxLabels(); $('ovTitle').classList.add('on'); };
-$('btnDeploy').onclick = () => startGame(pickedMap, G.diff, false);
+$('btnDeploy').onclick = () => { if (confirmNewRun()) startGame(pickedMap, G.diff, false); };
 $('btnSandbox').onclick = () => {
   if (!sandboxOwned()) { buySandbox(); return; }
   if (coopActive()) {
     toast('🧪', 'NOT IN CO-OP', 'Sandbox is a solo mode.', '#ff2d9b');
     sfx('deny'); return;
   }
+  if (!confirmNewRun()) return;
   sandboxNext = true;
   startGame(pickedMap, G.diff, true);      // endless, so it never ends on its own
   toast('🧪', 'SANDBOX', 'Every tower, endless credits, unbreakable core. Nothing is earned.', '#ffd633');
@@ -7300,6 +7429,7 @@ $('btnEndless').onclick = () => {
     toast('∞', 'ENDLESS LOCKED', `Clear ${MAPS[pickedMap].name} on any threat level first.`, '#ff2d9b');
     sfx('deny'); return;
   }
+  if (!confirmNewRun()) return;
   startGame(pickedMap, G.diff, true);
 };
 // the endless button reflects whether the picked sector has been cleared
@@ -7390,6 +7520,7 @@ $('btnSaveApply').onclick = () => {
 $('btnWipe').onclick = () => {
   if (!confirm('Erase all campaign progress, flux and unlocked towers?')) return;
   try { HOST.del('ns2_prog'); HOST.del('ns2_meta'); HOST.set('ns2_sv', String(SAVE_V)); } catch (e) {}
+  clearRun();
   prog = {}; pickedMap = 0; META = loadMeta();
   buildAbilityDock();
   updateFluxLabels(); updateLoadoutPeek();
