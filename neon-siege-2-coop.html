@@ -207,7 +207,8 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
   background:linear-gradient(135deg,var(--ac) 0%,transparent 62%)}
 #iName{font-family:var(--f1);font-weight:900;font-size:16px;letter-spacing:.1em;color:var(--ac);position:relative}
 #iRole{font-size:11.5px;color:var(--txm);font-weight:600;letter-spacing:.06em;position:relative}
-#iStats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
+#iStats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
+@media (max-width:820px){#iStats{grid-template-columns:1fr 1fr}}
 .iSt{background:rgba(8,13,26,.9);padding:7px 5px;text-align:center}
 .iSt .k{font-size:8px;letter-spacing:.14em;color:var(--txd);font-family:var(--f1);font-weight:700}
 .iSt .v{font-family:var(--f1);font-size:13.5px;font-weight:700;margin-top:2px}
@@ -371,6 +372,16 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
 
 /* results */
 .resGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:9px;margin-top:20px}
+#endWork{margin-top:20px;text-align:left}
+.ewT{font-family:var(--f1);font-size:8.5px;letter-spacing:.18em;color:var(--txd);font-weight:700;margin-bottom:9px}
+.ewR{display:flex;align-items:center;gap:9px;padding:5px 0}
+.ewR canvas{flex:none;width:22px;height:22px}
+.ewN{font-family:var(--f1);font-size:10px;font-weight:700;letter-spacing:.06em;width:74px;flex:none}
+.ewBar{flex:1;height:7px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden;min-width:40px}
+.ewFill{height:100%;border-radius:4px}
+.ewP{font-family:var(--f1);font-size:10.5px;font-weight:700;width:38px;text-align:right;flex:none}
+.ewV{font-size:10.5px;color:var(--txd);font-weight:600;width:74px;text-align:right;flex:none}
+@media (max-width:560px){.ewV{display:none}.ewN{width:60px}}
 .resCell{padding:13px 9px;border:1px solid var(--line);border-radius:9px;background:rgba(255,255,255,.026)}
 .resCell .k{font-family:var(--f1);font-size:8.5px;letter-spacing:.18em;color:var(--txd);font-weight:700}
 .resCell .v{font-family:var(--f1);font-size:20px;font-weight:900;margin-top:5px}
@@ -557,6 +568,7 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
       <div class="iSt"><div class="k">DMG</div><div class="v" id="iDmg">0</div></div>
       <div class="iSt"><div class="k">RATE</div><div class="v" id="iRate">0</div></div>
       <div class="iSt"><div class="k">RANGE</div><div class="v" id="iRng">0</div></div>
+      <div class="iSt"><div class="k">PER GW</div><div class="v" id="iEff">0</div></div>
     </div>
     <div id="iPaths"></div>
     <div id="iFoot">
@@ -738,6 +750,10 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
     <div id="endFluxBreak" style="font-size:11.5px;color:var(--txd);letter-spacing:.06em;font-weight:600;margin-top:4px"></div>
     <div id="endHoney" style="display:none"></div>
     <div class="resGrid" id="endGrid"></div>
+    <div id="endWork">
+      <div class="ewT">WHAT DID THE WORK</div>
+      <div id="endWorkRows"></div>
+    </div>
     <div class="ovBtns">
       <button class="btn pri" id="btnNextMap">▶ NEXT SECTOR</button>
       <button class="btn" id="btnArmoury4">🛠 ARMOURY</button>
@@ -1634,6 +1650,7 @@ const G = {
   wells:[], mines:[], aegis:0,
   lanes:[], core:{x:W*.9, y:H*.5}, grid:null, blocks:[],
   best:0, bestWave:0, started:false,
+  dmgType:{},                           // run-long damage by tower type
 };
 const GC = 20;                          // build-grid cell size (world px)
 const GW = Math.ceil(W / GC), GH = Math.ceil(H / GC);
@@ -1958,7 +1975,11 @@ function damage(e, amt, o) {
   }
   if (dm <= 0) return;
   e.hp -= dm; e.hitFlash = 6;
-  if (o.src) { o.src.dmgDone += dm; }
+  if (o.src) {
+    o.src.dmgDone += dm;
+    // by type as well as by tower: a tower sold in wave 12 still did its work
+    if (TOWERS[o.src.type]) G.dmgType[o.src.type] = (G.dmgType[o.src.type] || 0) + dm;
+  }
   if (o.crit) float(e.x, e.y - e.r - 10, Math.round(dm), '#ffffff', 20);
   if (e.hp <= 0) killEnemy(e, o.src);
 }
@@ -5400,6 +5421,7 @@ function startGame(mapIdx, diffIdx, endless) {
   G.cash = Math.round(m.cash * d.cash * OPENING_GRANT * (1 + (G.lanes.length - 1) * .22));
   G.cores = G.maxCores = Math.round(m.cores * d.cores);
   G.wave = 0; G.score = 0; G.kills = 0; G.leaked = 0; G.spent = 0;
+  G.dmgType = {};
   G.towers = []; G.enemies = []; G.projs = []; G.parts = []; G.fx = []; G.floats = []; G.pools = []; G.drones = [];
   G.rigs = []; G.helis = [];
   G.groups = [];
@@ -5536,11 +5558,41 @@ function endGame(won) {
     ['CORE', Math.max(0, G.cores) + '/' + G.maxCores, 'var(--m)'],
     ['TOWERS', G.towers.length, 'var(--v)'],
   ].map(([k, v, c]) => `<div class="resCell"><div class="k">${k}</div><div class="v" style="color:${c}">${v}</div></div>`).join('');
+  renderWorkBreakdown();
   const nextUnlocked = won && G.map + 1 < MAPS.length;
   document.getElementById('btnNextMap').style.display = nextUnlocked ? '' : 'none';
   document.getElementById('ovEnd').classList.add('on');
   if (won) { flash('#5cff9d', .5); for (let i = 0; i < 8; i++) setTimeout(() => { burst(rnd(W), rnd(H * .7, H * .2), pick(['#22e6ff', '#ffd633', '#5cff9d', '#ff2d9b']), 40, 8); }, i * 130); }
 }
+// Which tower types carried the run, biggest first. Uses the by-type tally
+// rather than the towers still standing, so selling something does not delete
+// what it did.
+function renderWorkBreakdown() {
+  const wrap = $('endWork'), rows = $('endWorkRows');
+  if (!wrap || !rows) return;
+  const list = Object.keys(G.dmgType)
+    .filter(k => TOWERS[k] && G.dmgType[k] > 0)
+    .sort((a, b) => G.dmgType[b] - G.dmgType[a]);
+  const total = list.reduce((n, k) => n + G.dmgType[k], 0);
+  if (!total) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  rows.innerHTML = '';
+  const top = G.dmgType[list[0]];
+  for (const k of list.slice(0, 8)) {
+    const d = TOWERS[k], v = G.dmgType[k];
+    const built = G.towers.filter(t => t.type === k).length;
+    const row = document.createElement('div');
+    row.className = 'ewR';
+    row.appendChild(towerIcon(k, 22));
+    row.insertAdjacentHTML('beforeend',
+      `<div class="ewN" style="color:${d.color}">${d.name}</div>` +
+      `<div class="ewBar"><div class="ewFill" style="width:${(v / top * 100).toFixed(1)}%;background:${d.color}"></div></div>` +
+      `<div class="ewP" style="color:${d.color}">${Math.round(v / total * 100)}%</div>` +
+      `<div class="ewV">${fmt(Math.round(v))}${built ? ' \u00b7 ' + built : ''}</div>`);
+    rows.appendChild(row);
+  }
+}
+
 // ===========================================================
 //  SAVED RUN
 // ===========================================================
@@ -5558,7 +5610,7 @@ function snapRun() {
     wave:G.wave, cash:Math.round(G.cash), cores:G.cores, maxCores:G.maxCores,
     score:G.score, kills:G.kills, leaked:G.leaked, spent:G.spent,
     combo:G.combo, comboT:G.comboT, comboKills:G.comboKills,
-    auto:!!G.auto, speed:G.speed,
+    auto:!!G.auto, speed:G.speed, dmgType:G.dmgType,
     abils:META.abils.slice(), abilCd:G.abilCd.slice(),
     towers:G.towers.map(t => ({
       k:t.type, x:Math.round(t.x), y:Math.round(t.y),
@@ -5632,6 +5684,7 @@ function resumeRun() {
   G.score = r.score | 0; G.kills = r.kills | 0; G.leaked = r.leaked | 0; G.spent = r.spent | 0;
   G.combo = r.combo || 1; G.comboT = r.comboT | 0; G.comboKills = r.comboKills | 0;
   G.auto = !!r.auto; G.speed = r.speed || 1;
+  G.dmgType = (r.dmgType && typeof r.dmgType === 'object') ? r.dmgType : {};
   // cooldowns are per slot, so they only mean anything if the loadout still is
   if (Array.isArray(r.abilCd) && String(r.abils) === String(META.abils))
     G.abilCd = r.abilCd.slice(0, ASLOTS);
@@ -6227,7 +6280,8 @@ function refreshInspector() {
   $('iHead').style.setProperty('--ac', t.color);
   $('iName').textContent = t.name;
   $('iName').style.color = t.color;
-  $('iRole').textContent = `${t.def.role} · Tier ${tier} · ${t.def.draw} GW · ${t.kills} kills`;
+  $('iRole').textContent =
+    `${t.def.role} · Tier ${tier} · ${t.def.draw} GW · ${t.kills} kills · ${fmt(Math.round(t.dmgDone || 0))} dealt`;
   refreshInspectorLive();
   const box = $('iPaths'); box.innerHTML = '';
   t.def.paths.forEach((p, pi) => {
@@ -6265,11 +6319,14 @@ function refreshInspectorLive() {
     $('iRng').textContent = Math.round(t.range);
     $('iStats').children[0].querySelector('.k').textContent = 'DMG BUF';
     $('iStats').children[1].querySelector('.k').textContent = 'RATE BUF';
+    $('iEff').textContent = '\u2014';    // a buff has no output of its own to divide
   } else {
     const perSec = ['cone', 'beam'].includes(t.kind) ? eDmg(t) * 60 : eDmg(t) * (t.pellets || t.missiles || t.shots || 1) * 60 / eCd(t);
     $('iDmg').textContent = fmt(Math.round(eDmg(t) * 10) / 10);
     $('iRate').textContent = fmt(Math.round(perSec)) + '/s';
     $('iRng').textContent = (t.range > 2000 ? '∞' : Math.round(eRange(t))) + (t.minRange ? ' ▸' + Math.round(t.minRange) : '');
+    // the grid is the scarce thing, so rate the tower against a slot of it
+    $('iEff').textContent = fmt(Math.round(perSec / (t.def.draw || 5)));
     $('iStats').children[0].querySelector('.k').textContent = 'DAMAGE';
     $('iStats').children[1].querySelector('.k').textContent = 'DPS';
   }
@@ -6746,7 +6803,8 @@ const PV_ARRAYS = ['towers', 'enemies', 'projs', 'parts', 'fx', 'floats', 'pools
 const PV_FIELDS = ['time', 'wave', 'waveActive', 'prepT', 'cash', 'score', 'kills', 'leaked',
                    'combo', 'comboT', 'comboKills', 'cores', 'maxCores', 'finale', 'stasis',
                    'overclock', 'aegis', 'rally', 'uplink', 'dilate', 'bounty', 'bulwark',
-                   'freeBuild', 'sandbox', 'selTower', 'selType', 'hover', 'aiming', 'endless', 'auto'];
+                   'freeBuild', 'sandbox', 'selTower', 'selType', 'hover', 'aiming', 'endless', 'auto',
+                   'dmgType'];
 let pvWorld = null, pvHeld = null, pvRaf = 0, pvType = null, pvCv = null;
 
 // hand the game's world to the preview, and the preview's world back
@@ -6786,6 +6844,7 @@ function pvBuild(type) {
   // into firing a banner and a music change on every single preview frame
   w.finale = false; w.waveActive = false; w.sandbox = false; w.endless = false; w.auto = false;
   w.abilCd = [0, 0, 0, 0];
+  w.dmgType = {};                       // seeded, or damage() would write onto a 0
   const nx = Math.cos(ang + Math.PI / 2), ny = Math.sin(ang + Math.PI / 2);
   w.tx = a.x + nx * off;
   w.ty = a.y + ny * off;
