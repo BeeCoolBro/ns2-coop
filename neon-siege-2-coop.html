@@ -5567,10 +5567,28 @@ function snapRun() {
     })),
   };
 }
+let runT = 0, runPending = null;
+function flushRun() {
+  runT = 0;
+  if (runPending === null) return;
+  const data = runPending;
+  runPending = null;
+  try { HOST.set(RUN_KEY, data); } catch (e) {}
+}
+// Building out a board is a burst of clicks and none of them should wait on a
+// disk. What is deferred is only the write: the snapshot is taken here, at the
+// moment the caller decided the board was worth saving, because by the time
+// the timer runs a wave may well be on the board again.
 function saveRun() {
   if (!runSavable()) return;
-  try { HOST.set(RUN_KEY, JSON.stringify(snapRun())); } catch (e) {}
+  runPending = JSON.stringify(snapRun());
+  if (!runT) runT = setTimeout(flushRun, 400);
 }
+// A pending write must not die with the tab.
+addEventListener('pagehide', () => { if (runT) { clearTimeout(runT); flushRun(); } });
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && runT) { clearTimeout(runT); flushRun(); }
+});
 function readRun() {
   let r = null;
   try { r = JSON.parse(HOST.get(RUN_KEY) || 'null'); } catch (e) { return null; }
@@ -5578,7 +5596,11 @@ function readRun() {
   if (!Array.isArray(r.towers)) return null;
   return r;
 }
-function clearRun() { try { HOST.del(RUN_KEY); } catch (e) {} }
+function clearRun() {
+  if (runT) { clearTimeout(runT); runT = 0; }   // do not let a queued write undo this
+  runPending = null;
+  try { HOST.del(RUN_KEY); } catch (e) {}
+}
 
 // rebuild a tower by replaying what was bought, through the game's own code
 function towerFromSave(d) {
@@ -7176,7 +7198,11 @@ cv.addEventListener('pointerdown', ev => {
   if (G.aiming >= 0) { fireAbility(G.aiming, p.x, p.y); return; }
   if (G.selType) {
     if (placeTower(p.x, p.y, G.selType) && !ev.shiftKey) {
-      if (G.cash < towerCost(G.selType)) { G.selType = null; refreshDock(); $('hint').classList.remove('on'); }
+      // Only let go of the tower when holding it is pointless: the type is
+      // capped, or the grid is full. Being short of cash for a moment is not
+      // that -- the card already greys itself and the price is right there.
+      const b = placeBlock(G.selType);
+      if (b === 'cap' || b === 'grid') { G.selType = null; refreshDock(); $('hint').classList.remove('on'); }
     }
     return;
   }
