@@ -125,6 +125,10 @@ button{font-family:var(--f2);color:inherit;background:none;border:none;cursor:po
 .toast.out{animation:tOut .3s forwards}
 @keyframes tOut{to{opacity:0;transform:translateX(34px) scale(.94)}}
 .toast .ti{font-size:19px;line-height:1}
+/* power-up glyphs: drawn, sized off whatever font-size the container sets */
+svg.pi{width:1em;height:1em;display:block;margin:0 auto;fill:none;stroke:currentColor;
+  stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
 .toast .tt{font-family:var(--f1);font-size:9.5px;letter-spacing:.15em;font-weight:700}
 .toast .td{font-size:12.5px;color:var(--txm);line-height:1.25;font-weight:600}
 
@@ -1400,56 +1404,56 @@ const DIFFS = [
 const ASLOTS = 4;                       // power-ups you can carry into a match
 const ABILITIES = [
   // ── the cheap end: what a new account buys first ──
-  {id:'strike', name:'ORBITAL STRIKE', icon:'☄️', cd:2100, color:'#ff6a3d', aim:true, price:300,
+  {id:'strike', name:'ORBITAL STRIKE', icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.6 3.4 10.6 13.4"/><circle cx="8" cy="16" r="3.4"/><path d="M15.2 3.6 12 6.8M20.4 8.8 17.2 12"/></svg>', cd:2880, color:'#ff6a3d', aim:true, price:300,
    desc:'Call down a devastating blast at the targeted point.'},
-  {id:'repair', name:'CORE REPAIR',    icon:'🛡️', cd:2700, color:'#5cff9d', aim:false, price:350,
+  {id:'repair', name:'CORE REPAIR',    icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2 20 6.2v5.4c0 4.6-3.2 7.7-8 9.2-4.8-1.5-8-4.6-8-9.2V6.2z"/><path d="M12 9v5.6M9.2 11.8h5.6"/></svg>', cd:3360, color:'#5cff9d', aim:false, price:350,
    desc:'Restores core integrity and grants a bonus payout.'},
-  {id:'salvage',name:'SALVAGE CALL',   icon:'💰', cd:1500, color:'#ffd633', aim:false, price:450,
+  {id:'salvage',name:'SALVAGE CALL',   icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6.4" rx="7" ry="3"/><path d="M5 6.4v5.2c0 1.7 3.1 3 7 3s7-1.3 7-3V6.4"/><path d="M5 11.6v5.2c0 1.7 3.1 3 7 3s7-1.3 7-3v-5.2"/></svg>', cd:2100, color:'#ffd633', aim:false, price:450,
    desc:'Strips the wrecks on the field for an immediate credit injection.'},
-  {id:'freeze', name:'STASIS FIELD',   icon:'❄️', cd:1500, color:'#7fd4ff', aim:false, price:500,
+  {id:'freeze', name:'STASIS FIELD',   icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8v18.4M4.3 7.4l15.4 9.2M19.7 7.4 4.3 16.6"/><path d="M12 6.6 9.5 4.2M12 6.6l2.5-2.4M12 17.4l-2.5 2.4M12 17.4l2.5 2.4"/></svg>', cd:2340, color:'#7fd4ff', aim:false, price:500,
    desc:'Halts every enemy on the field for 4 seconds.'},
-  {id:'over',   name:'OVERCLOCK',      icon:'⚡', cd:1800, color:'#ffd633', aim:false, price:650,
+  {id:'over',   name:'OVERCLOCK',      icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><path class="f" d="M13.4 2.4 5.2 13.6h5.6l-1.6 8 8.4-11.4h-5.6z"/></svg>', cd:2640, color:'#ffd633', aim:false, price:650,
    desc:'All towers fire at triple speed for 8 seconds.'},
-  {id:'chain',  name:'ARC CASCADE',    icon:'🌩️', cd:1600, color:'#3dd6ff', aim:true, price:700,
+  {id:'chain',  name:'ARC CASCADE',    icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="4.6" cy="6.2" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19.4" cy="7" r="2"/><circle cx="13.8" cy="19.4" r="2"/><path d="M6.2 7.4 10.4 10.8M13.8 11 17.7 8.3M12.7 13.9l.7 3.5"/></svg>', cd:2320, color:'#3dd6ff', aim:true, price:700,
    desc:'A bolt that jumps between up to 14 enemies, losing a little on every hop.'},
-  {id:'bounty', name:'BOUNTY SURGE',   icon:'💹', cd:2400, color:'#ffd633', aim:false, price:800,
+  {id:'bounty', name:'BOUNTY SURGE',   icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="14.5" r="5.4"/><path d="M9 11.6v5.8M7.4 13.2h3.2"/><path d="M14.4 11.4 17.6 7l3.2 4.4M17.6 7.4v9.2"/></svg>', cd:3120, color:'#ffd633', aim:false, price:800,
    desc:'Every kill pays triple for 15 seconds.'},
-  {id:'napalm', name:'FIRESTORM',      icon:'🔥', cd:1900, color:'#ff8a3d', aim:true, price:850,
+  {id:'napalm', name:'FIRESTORM',      icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8c2.4 3.4 1 5.2 1 5.2s2.2-1 2.4-3.4C17.8 6.4 19.2 9.4 19.2 12.2a7.2 7.2 0 0 1-14.4 0c0-3.6 2.6-6.6 4.6-8.4 0 2.4 1.4 3.6 2.6 4.2-1.4-2-1-5.2 0-5.2z"/></svg>', cd:2680, color:'#ff8a3d', aim:true, price:850,
    desc:'Sets the ground alight. Everything caught burns hard for 8 seconds.'},
-  {id:'flak',   name:'FLAK BURST',     icon:'💥', cd:1800, color:'#3dd6ff', aim:false, price:900,
+  {id:'flak',   name:'FLAK BURST',     icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.4v3.8M12 17.8v3.8M2.4 12h3.8M17.8 12h3.8"/><path d="m5.2 5.2 2.7 2.7M16.1 16.1l2.7 2.7M18.8 5.2l-2.7 2.7M7.9 16.1l-2.7 2.7"/></svg>', cd:2520, color:'#3dd6ff', aim:false, price:900,
    desc:'Fills the sky with shrapnel. Hits every air unit on the map, wherever it is.'},
-  {id:'shockw', name:'SHOCKWAVE',      icon:'🌊', cd:1700, color:'#b4f0ff', aim:true, price:1000,
+  {id:'shockw', name:'SHOCKWAVE',      icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.6 4.4a10.2 10.2 0 0 1 0 15.2"/><path d="M13.4 7a6.2 6.2 0 0 1 0 10"/><path d="M9.4 9.4a2.9 2.9 0 0 1 0 5.2"/><path d="M6.2 12H2.4M4.6 9.6 2.2 12l2.4 2.4"/></svg>', cd:2480, color:'#b4f0ff', aim:true, price:1000,
    desc:'Shoves everything in the blast back down its own lane and stuns it.'},
-  {id:'rally',  name:'WAR CRY',        icon:'📣', cd:2000, color:'#ff2d9b', aim:false, price:1000,
+  {id:'rally',  name:'WAR CRY',        icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.4 21V3"/><path d="M5.4 4.4h11.8l-2.4 3.7 2.4 3.7H5.4z"/></svg>', cd:2900, color:'#ff2d9b', aim:false, price:1000,
    desc:'Every tower hits 70% harder for 10 seconds.'},
-  {id:'scramble',name:'SCRAMBLER',     icon:'📶', cd:1900, color:'#b46bff', aim:true, price:1100,
+  {id:'scramble',name:'SCRAMBLER',     icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.6 15.2a5 5 0 0 1 6.8 0"/><path d="M5.6 11.8a9.3 9.3 0 0 1 12.8 0"/><circle cx="12" cy="18.6" r="1.1"/><path d="M4.6 4.6 19.4 19.4"/></svg>', cd:2680, color:'#b46bff', aim:true, price:1100,
    desc:'Drops shields, reveals cloaks and shuts off repair and mending for 10 seconds.'},
-  {id:'zero',   name:'FLASH FREEZE',   icon:'🧊', cd:2100, color:'#7fd4ff', aim:true, price:1200,
+  {id:'zero',   name:'FLASH FREEZE',   icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6 20.2 7.3v9.4L12 21.4 3.8 16.7V7.3z"/><path d="M12 8.2l3.6 2.1v4.2L12 16.6l-3.6-2.1v-4.2z"/></svg>', cd:3000, color:'#7fd4ff', aim:true, price:1200,
    desc:'Freezes the radius solid, and anything caught takes 60% more from every source.'},
-  {id:'uplink', name:'TARGETING UPLINK',icon:'📡', cd:2200, color:'#5cffd0', aim:false, price:1300,
+  {id:'uplink', name:'TARGETING UPLINK',icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="5.6"/><circle cx="12" cy="13" r="1.4"/><path d="M12 4.4v3M12 19v2.6M3.4 13h3M17.6 13h3"/></svg>', cd:3100, color:'#5cffd0', aim:false, price:1300,
    desc:'+45% range on every tower for 12 seconds, and nothing stays cloaked.'},
-  {id:'nanite', name:'NANITE CLOUD',   icon:'🧬', cd:2300, color:'#d8ff6b', aim:true, price:1500,
+  {id:'nanite', name:'NANITE CLOUD',   icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6.8" cy="9" r="2.4"/><circle cx="16.4" cy="7.2" r="2.4"/><circle cx="12.4" cy="16.4" r="2.4"/><path d="M9 9.8 11 14.2M9.2 8.4l4.8-.9M15.6 9.5l-2 4.6"/></svg>', cd:3200, color:'#d8ff6b', aim:true, price:1500,
    desc:'Eats 90% of armour for 10 seconds and chews through a slice of maximum health.'},
-  {id:'dilate', name:'TIME DILATION',  icon:'⏳', cd:2600, color:'#b46bff', aim:false, price:1600,
+  {id:'dilate', name:'TIME DILATION',  icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 3h10.8M6.6 21h10.8"/><path d="M7.6 3v3.2c0 2 4.4 3.9 4.4 5.8s-4.4 3.8-4.4 5.8V21"/><path d="M16.4 3v3.2c0 2-4.4 3.9-4.4 5.8s4.4 3.8 4.4 5.8V21"/></svg>', cd:3620, color:'#b46bff', aim:false, price:1600,
    desc:'The whole field crawls at a third speed for 12 seconds. Bosses included.'},
-  {id:'bulwark',name:'BULWARK',        icon:'🧱', cd:3200, color:'#5cff9d', aim:false, price:2000,
+  {id:'bulwark',name:'BULWARK',        icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.2" y="5" width="17.6" height="14" rx="1.6"/><path d="M3.2 9.7h17.6M3.2 14.3h17.6M9 5v4.7M15 9.7v4.6M9 14.3V19"/></svg>', cd:4160, color:'#5cff9d', aim:false, price:2000,
    desc:'Nothing touches the core for 8 seconds, however much gets through.'},
-  {id:'rift',   name:'VOID RIFT',      icon:'🕳️', cd:2700, color:'#b46bff', aim:true, price:2200,
+  {id:'rift',   name:'VOID RIFT',      icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.4a7.6 7.6 0 1 1-7.5 8.9"/><path d="M12 8a4 4 0 1 1-3.8 5.2"/><path d="M12.2 11.4a1.4 1.4 0 1 1-1.3 2"/></svg>', cd:3720, color:'#b46bff', aim:true, price:2200,
    desc:'Tears a hole that hauls everything backwards and grinds off a fifth of maximum health.'},
-  {id:'forge',  name:'FIELD FORGE',    icon:'🔨', cd:3000, color:'#ffd633', aim:false, price:2400,
+  {id:'forge',  name:'FIELD FORGE',    icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.8 8.2h6.8l2.2 2.7h7.4a4.6 4.6 0 0 1-4.6 4.6H9l-1.7 1.7H5.4l1.5-2.4a5.1 5.1 0 0 1-3.1-5.1z"/><path d="M7.6 19.6h9.6"/></svg>', cd:4080, color:'#ffd633', aim:false, price:2400,
    desc:'The next two towers you place cost nothing.'},
-  {id:'meteor', name:'METEOR SHOWER',  icon:'🌌', cd:3600, color:'#ff6a3d', aim:true, price:2800,
+  {id:'meteor', name:'METEOR SHOWER',  icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.4 3.6 15.6 8.4M12.6 3.2 9.4 6.4M7.4 12.6 4.6 15.4M21 11.4l-3.2 3.2"/><circle cx="13" cy="11.4" r="2.6"/><circle cx="4.4" cy="18.2" r="1.8"/></svg>', cd:4800, color:'#ff6a3d', aim:true, price:2800,
    desc:'Nine strikes walked across a wide area over two and a half seconds.'},
   // ── bought in the armoury ──
-  {id:'emp',    name:'EMP BURST',      icon:'📡', cd:1700, color:'#3dd6ff', aim:true, price:500,
+  {id:'emp',    name:'EMP BURST',      icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2.8"/><path d="M7 7a7 7 0 0 0 0 10M17 7a7 7 0 0 1 0 10"/><path d="M3.8 3.8a11.6 11.6 0 0 0 0 16.4M20.2 3.8a11.6 11.6 0 0 1 0 16.4"/></svg>', cd:2420, color:'#3dd6ff', aim:true, price:500,
    desc:'Shatters every shield in a wide radius, corrodes armour and burns off cloaks for 8s.'},
-  {id:'well',   name:'GRAVITY WELL',   icon:'🌀', cd:2000, color:'#b46bff', aim:true, price:900,
+  {id:'well',   name:'GRAVITY WELL',   icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6.6" rx="8" ry="3.4"/><path d="M4 6.6c0 4.8 3.6 8.6 8 13.4 4.4-4.8 8-8.6 8-13.4"/><path d="M12 10.4v5.2M10.2 13.8 12 15.8l1.8-2"/></svg>', cd:2780, color:'#b46bff', aim:true, price:900,
    desc:'Drags enemies backwards down the lane for 6s and packs them together.'},
-  {id:'mine',   name:'MINEFIELD',      icon:'💣', cd:2300, color:'#ff8a3d', aim:true, price:1300,
+  {id:'mine',   name:'MINEFIELD',      icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="14.2" r="5.6"/><path d="M12 8.6V5.2M10 5.2h4"/><path d="M9.4 14.2a2.6 2.6 0 0 1 5.2 0"/><path d="M4.6 14.2H2.4M21.6 14.2h-2.2"/></svg>', cd:3140, color:'#ff8a3d', aim:true, price:1300,
    desc:'Scatters 9 proximity charges along the lane. They wait until something walks into them.'},
-  {id:'aegis',  name:'AEGIS PROTOCOL', icon:'🔰', cd:3000, color:'#5cff9d', aim:false, price:1900,
+  {id:'aegis',  name:'AEGIS PROTOCOL', icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2 20 6.2v5.4c0 4.6-3.2 7.7-8 9.2-4.8-1.5-8-4.6-8-9.2V6.2z"/><circle cx="12" cy="11.4" r="3"/></svg>', cd:3960, color:'#5cff9d', aim:false, price:1900,
    desc:'The core absorbs the next 30 points of leak damage and pays a bounty for each one.'},
-  {id:'purge',  name:'SYSTEM PURGE',   icon:'☢️', cd:3400, color:'#ff2d9b', aim:false, price:2600,
+  {id:'purge',  name:'SYSTEM PURGE',   icon:'<svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12.4" r="2.4"/><path d="M9.9 11.2 5 8.4a8 8 0 0 1 6.9-4"/><path d="M14.1 11.2 19 8.4a8 8 0 0 0-6.9-4"/><path d="M12 14.8v5.6a8 8 0 0 1-7-4.1"/><path d="M12 14.8v5.6a8 8 0 0 0 7-4.1"/></svg>', cd:4600, color:'#ff2d9b', aim:false, price:2600,
    desc:'Executes every badly wounded unit on the field outright. Bosses take a heavy flat hit.'},
 ];
 const ABIL = {}; for (const a of ABILITIES) ABIL[a.id] = a;
