@@ -6139,10 +6139,10 @@ let META = loadMeta();
 function loadMeta() {
   let m = {};
   try { m = JSON.parse(HOST.get('ns2_meta') || '{}') || {}; } catch (e) { m = {}; }
-  // Decided before anything below fills the blanks in: a save with any field at
-  // all was written by an account that played under the old rules, when the four
-  // power-ups were free. A brand-new account's meta is an empty object.
-  const playedBefore = !!(m.ownedAbil || m.abils || m.owned || m.loadout || m.flux || m.cleared || m.endless);
+  // Every power-up costs flux, with no exceptions and no grandfathering: the
+  // four that used to be issued free are taken back from accounts still holding
+  // a granted copy, because a granted copy was never paid for. abilBought is the
+  // receipt -- anything on it was bought with flux and is never touched.
   m.owned = renameTowers(m.owned);
   m.loadout = renameTowers(m.loadout);
   m.flux = Math.max(0, m.flux | 0);
@@ -6152,12 +6152,10 @@ function loadMeta() {
   m.loadout = m.loadout.slice(0, SLOTS);
   if (!m.loadout.length) m.loadout = STARTERS.slice(0, SLOTS);
   m.ownedAbil = Array.isArray(m.ownedAbil) ? m.ownedAbil.filter(k => ABIL[k]) : [];
-  // Power-ups used to be issued free with every account. They are sold now, but
-  // an account that existed before the change keeps the four it was handed --
-  // a brand-new one has no save to read from, so it starts with none.
-  if (m.abilV !== 1) {
-    if (playedBefore) for (const k of ASTARTERS) if (!m.ownedAbil.includes(k)) m.ownedAbil.push(k);
-    m.abilV = 1;
+  m.abilBought = Array.isArray(m.abilBought) ? m.abilBought.filter(k => ABIL[k]) : [];
+  if (m.abilV !== 2) {
+    m.ownedAbil = m.ownedAbil.filter(k => !ASTARTERS.includes(k) || m.abilBought.includes(k));
+    m.abilV = 2;
   }
   m.abils = Array.isArray(m.abils) ? m.abils.filter(k => ABIL[k] && m.ownedAbil.includes(k)) : [];
   m.abils = m.abils.slice(0, ASLOTS);
@@ -6487,6 +6485,7 @@ function buyAbil(k) {
   }
   META.flux -= a.price;
   META.ownedAbil.push(k);
+  if (!META.abilBought.includes(k)) META.abilBought.push(k);   // the receipt, so a migration never takes it
   if (META.abils.length < ASLOTS) META.abils.push(k);
   saveMeta(); sfx('upgrade');
   toast(a.icon, 'POWER-UP UNLOCKED', `${a.name} added to your armoury.`, a.color);
