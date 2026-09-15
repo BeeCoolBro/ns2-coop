@@ -1257,6 +1257,9 @@ hive: {
 
 };
 const TKEYS = Object.keys(TOWERS);
+// Each upgrade remembers which rung of the ladder it is, so upCost can charge
+// for depth. Done once here rather than threaded through three call sites.
+for (const k of TKEYS) for (const p of TOWERS[k].paths) p.ups.forEach((u, i) => { u.tier = i; });
 
 // Damage schools. Only the NEMESIS reads these: it hardens against whichever
 // school is hurting it most, so a board built entirely out of one of them
@@ -2103,14 +2106,20 @@ function powerMax() { return MAPS[G.map].grid || 300; }
 // Everything costs double once the last wave is on the board.
 const FINALE_PRICE = 2;
 const COMBO_MAX = 2;              // kill-streak bounty multiplier ceiling
-// Every upgrade price runs through here. Listed prices in the tower data are
-// the old ones; this is the dial that moves them all at once. At 1.5 an
-// upgrade bought roughly a fifth of the damage per credit that simply placing
-// another tower did, in every path of every tower, which made the entire tree
-// a trap. Upgrades cost no grid capacity, so this is what going tall buys.
-const UPGRADE_PRICE = .5;
+// Every upgrade price runs through here, scaled by how deep it sits. The first
+// rung is cheap because it has to beat placing another copy of the tower --
+// at the old flat 1.5 it never did, in any path of any tower, which made the
+// whole tree a trap. The capstone is dear because by then the grid is full and
+// upgrades are the only thing left to buy: it is the end of the map's economy,
+// and it has to be able to absorb one.
+const UPGRADE_TIER = [.5, .65, .9, 1.3];
+const UPGRADE_PRICE = .5;              // fallback for anything untagged
+function upTierMul(up) {
+  const m = UPGRADE_TIER[up.tier];
+  return m === undefined ? UPGRADE_PRICE : m;
+}
 function finaleMul() { return G.finale ? FINALE_PRICE : 1; }
-function upCost(up) { return Math.round(up.c * UPGRADE_PRICE * finaleMul()); }
+function upCost(up) { return Math.round(up.c * upTierMul(up) * finaleMul()); }
 function placeBlock(type) {
   if (countOf(type) >= TYPE_CAP) return 'cap';
   if (powerUsed() + (TOWERS[type].draw || 5) > powerMax()) return 'grid';
