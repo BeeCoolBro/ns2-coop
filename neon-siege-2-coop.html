@@ -73,13 +73,37 @@ button{font-family:var(--f2);color:inherit;background:none;border:none;cursor:po
   border-color:rgba(255,138,61,.4)!important}
 #combo .v{color:var(--o)}
 
-#topR{position:absolute;top:12px;right:12px;display:flex;gap:7px;align-items:center}
-.ibtn{width:38px;height:38px;display:flex;align-items:center;justify-content:center;
-  font-size:16px;border-radius:8px;border:1px solid var(--line);background:var(--glass);
-  backdrop-filter:blur(14px);transition:.14s;cursor:pointer}
-.ibtn:hover{border-color:rgba(34,230,255,.55);background:rgba(34,230,255,.12);transform:translateY(-1px)}
-.ibtn.on{border-color:var(--g);color:var(--g);background:rgba(92,255,157,.14)}
-#spdBtn{width:auto;padding:0 13px;font-family:var(--f1);font-weight:700;font-size:12px}
+/* One pod, not five floating tiles: the buttons share a single glass surface and
+   read as one control cluster instead of competing with the stat panels. */
+#topR{position:absolute;top:12px;right:12px;display:flex;gap:2px;align-items:center;
+  padding:4px;border-radius:12px}
+.isep{width:1px;height:20px;margin:0 4px;background:var(--line);flex:none}
+.ibtn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;
+  border-radius:8px;border:1px solid transparent;background:transparent;color:var(--txm);
+  transition:color .14s,background .14s,border-color .14s,box-shadow .14s;cursor:pointer}
+.ibtn svg{width:19px;height:19px;display:block;fill:none;stroke:currentColor;
+  stroke-width:1.85;stroke-linecap:round;stroke-linejoin:round}
+.ibtn svg .fil{fill:currentColor;stroke:currentColor;stroke-width:1.1}
+.ibtn:hover{color:var(--c);background:rgba(34,230,255,.12);border-color:rgba(34,230,255,.42);
+  box-shadow:0 0 14px rgba(34,230,255,.18)}
+.ibtn:active{transform:translateY(1px)}
+.ibtn:focus{outline:none}                 /* a mouse click must not leave a ring behind */
+.ibtn:focus-visible{outline:2px solid var(--c);outline-offset:1px}
+/* every two-state icon carries both glyphs; .alt picks the second one */
+.ibtn .g2{display:none}
+.ibtn.alt .g1{display:none}
+.ibtn.alt .g2{display:inline}
+/* Lit buttons are colour-coded, so two of them never mean the same thing:
+   green auto-wave, yellow fast-forward, yellow paused, dimmed muted. */
+.ibtn.on{color:var(--g);border-color:rgba(92,255,157,.45);background:rgba(92,255,157,.13);
+  box-shadow:0 0 16px rgba(92,255,157,.2)}
+#spdBtn{width:auto;min-width:42px;padding:0 11px;font-family:var(--f1);font-weight:700;
+  font-size:12px;color:var(--tx)}
+#spdBtn.on{color:var(--y);border-color:rgba(255,214,51,.5);background:rgba(255,214,51,.13);
+  box-shadow:0 0 16px rgba(255,214,51,.2)}
+#sndBtn.alt{color:var(--txd)}
+#pauseBtn.alt{color:var(--y);border-color:rgba(255,214,51,.5);background:rgba(255,214,51,.13);
+  box-shadow:0 0 16px rgba(255,214,51,.2)}
 
 /* wave banner / toast */
 #banner{position:fixed;top:22%;left:50%;transform:translateX(-50%);z-index:14;
@@ -403,12 +427,15 @@ button{font-family:var(--f2);color:inherit;background:none;border:none;cursor:po
     <div class="stat panel" id="combo"><div class="k">COMBO</div><div class="v" id="sCombo">×1</div><div class="bar" id="sComboBar" style="width:100%;background:var(--o);box-shadow:0 0 8px var(--o)"></div></div>
   </div>
 
-  <div id="topR">
+  <!-- Drawn, not emoji: the platform emoji font renders these as colour blobs
+       that fight the neon HUD and change shape on every OS. -->
+  <div id="topR" class="panel">
     <button class="ibtn" id="spdBtn" title="Game speed (F)">1×</button>
-    <button class="ibtn" id="autoBtn" title="Auto-start waves (A)">⏩</button>
-    <button class="ibtn" id="sndBtn" title="Sound (M)">🔊</button>
-    <button class="ibtn" id="codexBtn" title="Codex (C)">📖</button>
-    <button class="ibtn" id="pauseBtn" title="Pause (Esc)">⏸</button>
+    <button class="ibtn" id="autoBtn" title="Auto-start waves (A)"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="fil" d="M3.6 5.6 11.5 12l-7.9 6.4z"/><path class="fil" d="M12.4 5.6 20.3 12l-7.9 6.4z"/></svg></button>
+    <span class="isep"></span>
+    <button class="ibtn" id="sndBtn" title="Sound (M)"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="fil" d="M4 9.3h3.3l4.3-3.7v12.8l-4.3-3.7H4z"/><g class="g1"><path d="M14.9 9.4a3.7 3.7 0 0 1 0 5.2"/><path d="M17.5 7.1a7.3 7.3 0 0 1 0 9.8"/></g><g class="g2"><path d="M15.4 9.8 20.2 14.2"/><path d="M20.2 9.8 15.4 14.2"/></g></svg></button>
+    <button class="ibtn" id="codexBtn" title="Codex (C)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7.3c0-1.4-2.1-2.5-5.2-2.5H3.6v12.5h3.2c3.1 0 5.2 1.1 5.2 2.5z"/><path d="M12 7.3c0-1.4 2.1-2.5 5.2-2.5h3.2v12.5h-3.2c-3.1 0-5.2 1.1-5.2 2.5z"/></svg></button>
+    <button class="ibtn" id="pauseBtn" title="Pause (Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><g class="g1"><rect class="fil" x="6.7" y="5" width="3.6" height="14" rx="1.3"/><rect class="fil" x="13.7" y="5" width="3.6" height="14" rx="1.3"/></g><g class="g2"><path class="fil" d="M7.8 5.2 18.8 12 7.8 18.8z"/></g></svg></button>
   </div>
 
   <div id="toasts"></div>
@@ -4933,6 +4960,7 @@ function startGame(mapIdx, diffIdx, endless) {
   closeInspector();
   syncHUD(); updateWavePreview();
   document.getElementById('spdBtn').textContent = '1×';
+  document.getElementById('spdBtn').classList.remove('on');
   banner(m.name, m.desc, m.theme.a);
   initAudio(); startMusic();
   if (isHost()) sendStart();
@@ -6135,7 +6163,7 @@ addEventListener('keydown', ev => {
     if (ov && G.mode === 'play') {
       if (ov.id === 'ovCodex') closeCodex();
       else if (ov.id === 'ovArmoury') closeArmoury();
-      else { closeAll(); G.paused = false; $('pauseBtn').textContent = '⏸'; }
+      else { closeAll(); G.paused = false; $('pauseBtn').classList.remove('alt'); }
       return;
     }
     if (G.aiming >= 0 || G.selType || G.selTower) { cancelAction(); return; }
@@ -6169,7 +6197,7 @@ function togglePause() {
   if (G.mode !== 'play') return;
   G.paused = !G.paused;
   $('ovPause').classList.toggle('on', G.paused);
-  $('pauseBtn').textContent = G.paused ? '▶' : '⏸';
+  $('pauseBtn').classList.toggle('alt', G.paused);
   if (G.paused) $('pauseSub').textContent = `${MAPS[G.map].name} · Wave ${G.wave}/${MAPS[G.map].waves} · ${fmt(G.score)} pts`;
   if (mBus && actx) mBus.gain.setTargetAtTime(musicVol(), actx.currentTime, .05);
 }
@@ -6191,13 +6219,13 @@ function openCodex() {
   buildCodex();
   $('ovCodex').classList.add('on');
   codexPaused = G.mode === 'play' && !G.paused;
-  if (codexPaused) { G.paused = true; $('pauseBtn').textContent = '▶'; }
+  if (codexPaused) { G.paused = true; $('pauseBtn').classList.add('alt'); }
 }
 function closeCodex() {
   $('ovCodex').classList.remove('on');
   // only resume if the codex was what paused us — otherwise the pause menu
   // is still up and owns the paused state
-  if (codexPaused && G.mode === 'play') { G.paused = false; $('pauseBtn').textContent = '⏸'; }
+  if (codexPaused && G.mode === 'play') { G.paused = false; $('pauseBtn').classList.remove('alt'); }
   codexPaused = false;
 }
 
@@ -6354,7 +6382,7 @@ function toggleSound() {
   muted = !muted;
   if (master) master.gain.value = muted ? 0 : .26;
   if (mBus && actx) mBus.gain.setTargetAtTime(musicVol(), actx.currentTime, .05);
-  $('sndBtn').textContent = muted ? '🔇' : '🔊';
+  $('sndBtn').classList.toggle('alt', muted);
 }
 function throttled(id, ms) {
   const n = performance.now();
