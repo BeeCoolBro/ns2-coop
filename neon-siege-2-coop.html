@@ -2127,12 +2127,12 @@ function tickRigs() {
   for (let i = G.rigs.length - 1; i >= 0; i--) {
     const r = G.rigs[i];
     const t = r.src;
-    if (r.hp <= 0 || !t || G.towers.indexOf(t) < 0) {      // broken, or its forge was sold
+    if (r.hp < 1 || !t || G.towers.indexOf(t) < 0) {       // broken, or its forge was sold
       if (t) t.rigLive--;
       const c = t ? t.color : '#7dffd4';
       // SUPERNOVA: everything it ate comes back out. This is the only part of
       // the tower that reaches air -- a detonation does not care what flies.
-      if (r.hp <= 0 && t && t.rigNova) {
+      if (r.hp < 1 && t && t.rigNova) {
         const R = t.rigNovaR || 190;
         const power = (r.maxHp + (r.fed || 0)) * t.rigNova;
         nearby(r.x, r.y, R, _q3);
@@ -2148,7 +2148,7 @@ function tickRigs() {
       } else {
         burst(r.x, r.y, c, 22, 6);
         ring(r.x, r.y, 5, 70, c, 20);
-        if (r.hp <= 0) sfx('boom');
+        if (r.hp < 1) sfx('boom');
       }
       G.rigs.splice(i, 1);
       continue;
@@ -2194,6 +2194,7 @@ function tickRigs() {
         const spent = Math.min(e.hp, r.hp * mul);
         damage(e, spent, {src:t, pierceArmor:1});
         r.hp -= spent / mul;
+        if (r.hp < 1) r.hp = 0;             // never leave a float residue alive
         // It feeds. A share of everything broken comes back as mass, capped so
         // a lance cannot grow without limit -- it reaches a terminal size and
         // then meets whatever is bigger than that.
