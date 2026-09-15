@@ -6597,7 +6597,8 @@ function pvBuild(type) {
   // enough that the road is outside it.
   let off = 74;
   if (def.kind === 'orbit') off = Math.max(34, (def.orbR || 96) * .62);
-  else if (def.kind === 'convoy' || def.kind === 'heli' || def.kind === 'support') off = 96;
+  else if (def.kind === 'heli') off = 210;
+  else if (def.kind === 'convoy' || def.kind === 'support') off = 96;
   else if (def.minRange) off = Math.max(74, def.minRange * .6);
   const w = {lane, d0, cx:a.x, cy:a.y};
   for (const k of PV_ARRAYS) w[k] = [];
@@ -6677,7 +6678,8 @@ function pvDraw() {
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.fillStyle = MAPS[G.map].theme.fog || '#04060d';
   g.fillRect(0, 0, w, h);
-  g.setTransform(sc, 0, 0, sc, w / 2 - pvWorld.tx * sc, h / 2 - pvWorld.ty * sc + 10 * sc);
+  const fx = (pvWorld.tx + pvWorld.cx) / 2, fy = (pvWorld.ty + pvWorld.cy) / 2;
+  g.setTransform(sc, 0, 0, sc, w / 2 - fx * sc, h / 2 - fy * sc);
 
   // the lane, drawn the way the thumbnails draw it
   const th = MAPS[G.map].theme.a, L = pvWorld.lane;
