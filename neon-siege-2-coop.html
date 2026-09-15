@@ -272,6 +272,12 @@ button{font-family:var(--f2);color:inherit;background:none;border:none;cursor:po
 .modeCard .mn{display:block;font-family:var(--f1);font-size:12.5px;font-weight:900;letter-spacing:.11em;color:var(--ac)}
 .modeCard .mz{display:block;font-size:11.5px;color:var(--txm);font-weight:600;margin-top:3px;line-height:1.35}
 .modeCard.pri{border-color:var(--ac);background:rgba(34,230,255,.08);box-shadow:0 0 28px -9px var(--ac)}
+.modeCard .lockIcon{width:16px;height:16px;margin-left:auto;stroke:var(--txd);flex:none}
+.modeCard.locked{opacity:.78}
+.modeCard.locked .mn{color:var(--txm)}
+.modeCard.armed{border-color:var(--ac);background:rgba(255,214,51,.1);opacity:1}
+.modeCard.armed .mn{color:var(--ac)}
+.modeCard.armed .lockIcon{stroke:var(--ac)}
 /* housekeeping sits below the play controls and is visibly quieter */
 #titleUtil{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin-top:13px;align-items:center}
 .btn.sm{font-size:9.5px;padding:7px 11px;letter-spacing:.12em;opacity:.7}
@@ -539,7 +545,8 @@ button{font-family:var(--f2);color:inherit;background:none;border:none;cursor:po
       </button>
       <button class="modeCard" id="btnSandboxMode" style="--ac:#ffd633">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3.4v5.3L4.7 17a2.2 2.2 0 0 0 1.9 3.3h10.8a2.2 2.2 0 0 0 1.9-3.3l-4.8-8.3V3.4"/><path d="M8.5 3.4h7"/><path d="M6.9 14.2h10.2"/></svg>
-        <span><span class="mn">SANDBOX</span><span class="mz">Every tower, endless credits, earns nothing</span></span>
+        <span><span class="mn">SANDBOX</span><span class="mz" id="sbCardText">Every tower, endless credits, earns nothing</span></span>
+        <svg class="lockIcon" id="sbLock" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.6" y="10.4" width="14.8" height="9.8" rx="2.2"/><path d="M8.3 10.4V7.3a3.7 3.7 0 0 1 7.4 0v3.1"/></svg>
       </button>
       <button class="modeCard" id="btnCoop" style="--ac:#5cff9d">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.4 19.6v-1.8a3.6 3.6 0 0 0-3.6-3.6H6.6A3.6 3.6 0 0 0 3 17.8v1.8"/><circle cx="9.2" cy="7.3" r="3.6"/><path d="M21 19.6v-1.8a3.6 3.6 0 0 0-2.7-3.5"/><path d="M15.8 4.1a3.6 3.6 0 0 1 0 7"/></svg>
@@ -5710,6 +5717,7 @@ function loadMeta() {
   if (!m.abils.length) m.abils = ASTARTERS.slice(0, ASLOTS);
   m.cleared = m.cleared && typeof m.cleared === 'object' ? m.cleared : {};
   m.endless = m.endless && typeof m.endless === 'object' ? m.endless : {};   // best wave per sector
+  m.sandbox = !!m.sandbox;                                                  // bought with flux, kept forever
   return m;
 }
 function saveMeta() { try { HOST.set('ns2_meta', JSON.stringify(META)); } catch (e) {} }
@@ -5917,6 +5925,7 @@ function updateFluxLabels() {
   $('titleSectors').textContent = done + ' / ' + MAPS.length;
   $('titleTowers').textContent = META.owned.length + ' / ' + TKEYS.length;
   $('titleBest').textContent = best ? 'WAVE ' + best : '—';
+  refreshSandboxCard();
 }
 function updateLoadoutPeek() {
   if (typeof refreshEndlessBtn === 'function') refreshEndlessBtn();
@@ -6336,18 +6345,53 @@ document.querySelectorAll('.armTab').forEach(b => b.onclick = () => { armTab(b.d
 // The three modes all land on the sector screen; which one is armed decides
 // what the launch button does, so there is one launch button instead of three.
 let launchMode = 'campaign';
+// Sandbox is bought once and then owned forever. It is deliberately the only
+// thing flux buys that is not a tower: infinite credits has to cost something.
+const SANDBOX_PRICE = 2000;
+let sbArmed = 0;
+function sandboxOwned() { return !!META.sandbox; }
+function refreshSandboxCard() {
+  const card = $('btnSandboxMode'), txt = $('sbCardText'), lock = $('sbLock');
+  if (!card || !txt || !lock) return;
+  const owned = sandboxOwned(), armed = !owned && sbArmed > performance.now();
+  card.classList.toggle('locked', !owned);
+  card.classList.toggle('armed', armed);
+  lock.style.display = owned ? 'none' : '';
+  txt.textContent = owned ? 'Every tower, endless credits, earns nothing'
+    : armed ? 'Click again to spend ' + fmt(SANDBOX_PRICE) + ' flux'
+    : 'Locked · ' + fmt(SANDBOX_PRICE) + ' flux to unlock';
+}
+function buySandbox() {
+  if (META.flux < SANDBOX_PRICE) {
+    sbArmed = 0; refreshSandboxCard();
+    toast('⬡', 'NOT ENOUGH FLUX', 'Sandbox costs ' + fmt(SANDBOX_PRICE) + ' flux. You have ' + fmt(META.flux) + '.', '#ff2d9b');
+    sfx('deny'); return;
+  }
+  if (sbArmed < performance.now()) {          // the first click only arms the price
+    sbArmed = performance.now() + 4000;
+    refreshSandboxCard(); sfx('click');
+    setTimeout(refreshSandboxCard, 4100);
+    return;
+  }
+  sbArmed = 0;
+  META.flux -= SANDBOX_PRICE;
+  META.sandbox = true;
+  saveMeta(); updateFluxLabels(); refreshSandboxCard(); sfx('upgrade');
+  toast('🧪', 'SANDBOX UNLOCKED', 'Every tower, endless credits, an unbreakable core. Nothing is earned in it.', '#ffd633');
+}
 const LAUNCH_MODES = ['campaign', 'endless', 'sandbox'];
 function setLaunchMode(m) {
+  // done before any early return, or a locked sandbox keeps its pill on the row
+  const sp = document.querySelector('.mpill[data-mode="sandbox"]');
+  if (sp) sp.classList.toggle('hide', coopActive() || !sandboxOwned());
   if (LAUNCH_MODES.indexOf(m) < 0) m = 'campaign';
+  if (m === 'sandbox' && !sandboxOwned()) { buySandbox(); return; }
   if (m === 'sandbox' && coopActive()) {
     toast('🧪', 'NOT IN CO-OP', 'Sandbox is a solo mode.', '#ff2d9b');
     sfx('deny'); return;
   }
   launchMode = m;
-  document.querySelectorAll('.mpill').forEach(p => {
-    p.classList.toggle('on', p.dataset.mode === m);
-    if (p.dataset.mode === 'sandbox') p.classList.toggle('hide', coopActive());
-  });
+  document.querySelectorAll('.mpill').forEach(p => p.classList.toggle('on', p.dataset.mode === m));
   $('btnDeploy').style.display  = m === 'campaign' ? '' : 'none';
   $('btnEndless').style.display = m === 'endless'  ? '' : 'none';
   $('btnSandbox').style.display = m === 'sandbox'  ? '' : 'none';
@@ -6362,10 +6406,11 @@ function openSectors(m) {
 document.querySelectorAll('.mpill').forEach(p => p.onclick = () => { setLaunchMode(p.dataset.mode); sfx('click'); });
 $('btnCampaign').onclick = () => openSectors('campaign');
 $('btnEndlessMode').onclick = () => openSectors('endless');
-$('btnSandboxMode').onclick = () => openSectors('sandbox');
+$('btnSandboxMode').onclick = () => sandboxOwned() ? openSectors('sandbox') : buySandbox();
 $('btnBackTitle').onclick = () => { closeAll(); updateFluxLabels(); $('ovTitle').classList.add('on'); };
 $('btnDeploy').onclick = () => startGame(pickedMap, G.diff, false);
 $('btnSandbox').onclick = () => {
+  if (!sandboxOwned()) { buySandbox(); return; }
   if (coopActive()) {
     toast('🧪', 'NOT IN CO-OP', 'Sandbox is a solo mode.', '#ff2d9b');
     sfx('deny'); return;
