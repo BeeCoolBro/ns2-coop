@@ -408,17 +408,42 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
 .slot .sx{position:absolute;top:3px;right:6px;font-size:12px;color:var(--txm);opacity:0}
 .slot.filled:hover .sx{opacity:1}
 .slot .empty{font-size:10px;letter-spacing:.16em;color:var(--txd);font-family:var(--f1)}
-#armGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px;margin-top:12px;text-align:left}
-.arm{border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px;cursor:pointer;
-  transition:.15s;background:rgba(255,255,255,.026);display:flex;gap:9px;align-items:flex-start;position:relative}
+/* the grid is a wall of tiles; everything else lives in the detail card */
+#armGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:7px;margin-top:12px}
+.arm{border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 6px 8px;cursor:pointer;
+  transition:transform .15s,border-color .15s,background .15s,box-shadow .15s;
+  background:rgba(255,255,255,.026);display:flex;flex-direction:column;align-items:center;
+  gap:4px;text-align:center;position:relative;min-width:0}
 .arm:hover{transform:translateY(-3px);border-color:var(--ac)}
+.arm:focus{outline:none}
+.arm:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
 .arm.equipped{border-color:var(--ac);background:rgba(255,255,255,.06);box-shadow:0 0 20px -8px var(--ac)}
 .arm.locked{opacity:.72}
-.arm.cant{opacity:.4;cursor:not-allowed}
-.arm .an{font-family:var(--f1);font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--ac)}
-.arm .ar{font-size:11px;color:var(--txm);font-weight:600;line-height:1.25;margin-top:2px}
-.arm .ab2{display:inline-block;margin-top:6px;font-family:var(--f1);font-size:8.5px;font-weight:700;
-  letter-spacing:.1em;padding:3px 7px;border-radius:5px}
+.arm.cant{opacity:.42}
+.arm .an{font-family:var(--f1);font-size:8.5px;font-weight:700;letter-spacing:.04em;color:var(--ac);
+  line-height:1.2;width:100%;overflow-wrap:anywhere}
+.arm .ab2{font-family:var(--f1);font-size:7.5px;font-weight:700;letter-spacing:.07em;
+  padding:2px 5px;border-radius:5px;white-space:nowrap}
+
+/* the detail card: what the tile does not have room to say */
+#armDetail{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+  background:rgba(2,4,10,.74);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);padding:18px}
+#armDetail.on{display:flex}
+#armDetailBox{width:100%;max-width:430px;text-align:left;padding:20px;
+  animation:ovIn .2s cubic-bezier(.2,1.1,.4,1)}
+.adHead{display:flex;gap:13px;align-items:center}
+.adIc{width:56px;height:56px;flex:none;border-radius:11px;display:flex;align-items:center;
+  justify-content:center;overflow:hidden;background:rgba(255,255,255,.04);border:1px solid var(--ac);
+  font-size:30px;color:var(--ac)}
+.adN{font-family:var(--f1);font-size:17px;font-weight:900;letter-spacing:.07em;color:var(--ac);line-height:1.1}
+.adR{font-family:var(--f1);font-size:9px;letter-spacing:.13em;color:var(--txd);font-weight:700;margin-top:5px}
+.adD{font-size:12.5px;color:var(--txm);font-weight:600;line-height:1.5;margin-top:13px}
+.adTags{display:flex;flex-wrap:wrap;gap:5px;margin-top:11px}
+.adTag{font-family:var(--f1);font-size:8px;font-weight:700;letter-spacing:.1em;padding:3px 7px;border-radius:5px}
+.adState{font-family:var(--f1);font-size:10px;font-weight:700;letter-spacing:.1em;margin-top:13px;
+  padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.026)}
+.adBtns{display:flex;gap:8px;margin-top:15px}
+.adBtns .btn{flex:1;padding:11px}
 .armTabs{display:flex;gap:8px;justify-content:center;margin-top:16px}
 .armTab{font-family:var(--f1);font-size:10.5px;font-weight:700;letter-spacing:.14em;
   padding:9px 20px;border-radius:8px;cursor:pointer;transition:.15s;
@@ -428,9 +453,8 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
   box-shadow:0 0 18px -6px var(--v)}
 #abilRow{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin-top:12px}
 #abilRow .slot .aicon{font-size:26px;line-height:1}
-#abilGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin-top:12px;text-align:left}
-#abilGrid .arm .aicon{font-size:26px;line-height:1;width:38px;text-align:center;flex:none}
-#abilGrid .ar{white-space:normal}
+#abilGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:7px;margin-top:12px}
+#abilGrid .arm .aicon{font-size:25px;line-height:1}
 /* codex */
 #codexBody{text-align:left;max-height:62vh;overflow-y:auto;padding-right:5px;margin-top:14px}
 .cxRow{display:flex;gap:11px;padding:9px;border-radius:8px;background:rgba(255,255,255,.026);
@@ -741,6 +765,7 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
     <div class="ovBtns"><button class="btn pri" id="btnCloseArm">DONE</button></div>
   </div>
 </div>
+<div id="armDetail"><div id="armDetailBox" class="panel"></div></div>
 
 <!-- ══════════ CODEX ══════════ -->
 <div class="ov" id="ovSave">
@@ -6407,6 +6432,7 @@ function openArmoury() {
   $('ovArmoury').classList.add('on');
 }
 function closeArmoury() {
+  closeArmDetail();
   $('ovArmoury').classList.remove('on');
   saveMeta();
   if (G.mode === 'menu') buildMapGrid();
@@ -6491,6 +6517,85 @@ function buyAbil(k) {
   toast(a.icon, 'POWER-UP UNLOCKED', `${a.name} added to your armoury.`, a.color);
   buildArmoury();
 }
+// one badge for both grids, so a tower and a power-up read the same way
+function armBadge(eq, own, afford, price, color) {
+  if (eq) return {text:'✓', col:color, bg:rgba(color, .18)};
+  if (own) return {text:'OWNED', col:'#5cff9d', bg:'rgba(92,255,157,.14)'};
+  return {text:'⬡ ' + fmt(price), col:afford ? '#b46bff' : '#ff2d9b',
+          bg:afford ? 'rgba(180,107,255,.16)' : 'rgba(255,45,155,.12)'};
+}
+
+// ── the detail card ──────────────────────────────────────────────
+let adKind = null, adKey = null;
+function closeArmDetail() { adKind = null; $('armDetail').classList.remove('on'); }
+function openArmDetail(kind, key) {
+  adKind = kind; adKey = key;
+  renderArmDetail();
+  $('armDetail').classList.add('on');
+  sfx('click');
+}
+function renderArmDetail() {
+  if (!adKind) return;
+  const isT = adKind === 't';
+  const d = isT ? TOWERS[adKey] : ABIL[adKey];
+  if (!d) { closeArmDetail(); return; }
+  const price = isT ? (TOWER_PRICE[adKey] || 0) : d.price;
+  const own = isT ? owns(adKey) : ownsA(adKey);
+  const eq = isT ? equipped(adKey) : equippedA(adKey);
+  const afford = META.flux >= price;
+  const box = $('armDetailBox');
+  box.innerHTML = '';
+  box.style.setProperty('--ac', d.color);
+
+  const head = document.createElement('div'); head.className = 'adHead';
+  const ic = document.createElement('div'); ic.className = 'adIc';
+  if (isT) ic.appendChild(towerIcon(adKey, 46)); else ic.innerHTML = d.icon;
+  head.appendChild(ic);
+  head.insertAdjacentHTML('beforeend', `<div style="min-width:0">
+    <div class="adN">${d.name}</div>
+    <div class="adR">${isT ? d.role + ' · ' + d.draw + ' GW · ' + fmt(d.cost) + '¢ TO PLACE'
+                           : (d.cd / 60).toFixed(0) + 'S COOLDOWN · ' + (d.aim ? 'AIMED' : 'INSTANT')}</div>
+  </div>`);
+  box.appendChild(head);
+  box.insertAdjacentHTML('beforeend', `<div class="adD">${d.desc}</div>`);
+
+  const tags = [];
+  if (isT) {
+    if (d.air) tags.push(['ANTI-AIR', '#3dd6ff']);
+    if (d.ground) tags.push(['GROUND', '#ff8a3d']);
+    if (d.detect) tags.push(['DETECTOR', '#b46bff']);
+    if (d.pierceArmor) tags.push(['ARMOUR-PIERCING', '#d8ff6b']);
+    if (d.minRange) tags.push(['DEAD ZONE ' + d.minRange, '#ff2d9b']);
+    for (const p of d.paths) tags.push([p.name + ' PATH', p.color]);
+  }
+  if (tags.length) box.insertAdjacentHTML('beforeend',
+    `<div class="adTags">${tags.map(([t, c]) =>
+      `<span class="adTag" style="color:${c};background:${rgba(c, .14)};border:1px solid ${c}44">${t}</span>`).join('')}</div>`);
+
+  const state = eq ? 'EQUIPPED · IN YOUR LOADOUT'
+    : own ? 'OWNED · NOT EQUIPPED'
+    : afford ? 'LOCKED · ' + fmt(price) + ' FLUX · YOU HAVE ' + fmt(META.flux)
+             : 'LOCKED · ' + fmt(price) + ' FLUX · YOU HAVE ONLY ' + fmt(META.flux);
+  box.insertAdjacentHTML('beforeend',
+    `<div class="adState" style="color:${eq ? d.color : own ? '#5cff9d' : afford ? '#b46bff' : '#ff2d9b'}">${state}</div>`);
+
+  const act = eq ? 'UNEQUIP' : own ? 'EQUIP' : afford ? 'BUY · ⬡ ' + fmt(price) : 'NOT ENOUGH FLUX';
+  const cls = eq ? 'btn' : own ? 'btn go' : 'btn pri';
+  box.insertAdjacentHTML('beforeend', `<div class="adBtns">
+    <button class="btn" id="adCancel">CANCEL</button>
+    <button class="${cls}" id="adAct"${!own && !afford ? ' disabled' : ''}>${act}</button>
+  </div>`);
+
+  $('adCancel').onclick = () => { closeArmDetail(); sfx('click'); };
+  $('adAct').onclick = () => {
+    // A purchase auto-equips when there is room, so leaving the card open would
+    // put UNEQUIP under the cursor that just pressed BUY. The toast confirms it.
+    if (!own) { isT ? buyTower(adKey) : buyAbil(adKey); closeArmDetail(); return; }
+    if (eq) { isT ? unequipTower(adKey) : unequipAbil(adKey); }
+    else { isT ? equipTower(adKey) : equipAbil(adKey); }
+    closeArmDetail();
+  };
+}
 function buildAbilPane() {
   $('aslotMax').textContent = ASLOTS;
   const row = $('abilRow'); row.innerHTML = '';
@@ -6515,18 +6620,12 @@ function buildAbilPane() {
     const el = document.createElement('div');
     el.className = 'arm' + (eq ? ' equipped' : own ? '' : afford ? ' locked' : ' locked cant');
     el.style.setProperty('--ac', a.color);
-    let badge, bcol, bbg;
-    if (eq) { badge = '✓ EQUIPPED'; bcol = a.color; bbg = rgba(a.color, .16); }
-    else if (own) { badge = 'EQUIP'; bcol = '#5cff9d'; bbg = 'rgba(92,255,157,.14)'; }
-    else if (afford) { badge = '⬡ ' + fmt(a.price); bcol = '#b46bff'; bbg = 'rgba(180,107,255,.16)'; }
-    else { badge = '⬡ ' + fmt(a.price); bcol = '#ff2d9b'; bbg = 'rgba(255,45,155,.12)'; }
-    el.innerHTML = `<div class="aicon">${a.icon}</div><div style="flex:1;min-width:0">
+    const b = armBadge(eq, own, afford, a.price, a.color);
+    el.innerHTML = `<div class="aicon">${a.icon}</div>
       <div class="an">${a.name}</div>
-      <div class="ar">${a.desc}</div>
-      <div class="ar" style="opacity:.7">${(a.cd / 60).toFixed(0)}s cooldown</div>
-      <div class="ab2" style="color:${bcol};background:${bbg};border:1px solid ${bcol}44">${badge}</div>
-    </div>`;
-    el.onclick = () => own ? equipAbil(a.id) : buyAbil(a.id);
+      <div class="ab2" style="color:${b.col};background:${b.bg};border:1px solid ${b.col}44">${b.text}</div>`;
+    el.title = a.name;
+    el.onclick = () => openArmDetail('a', a.id);
     grid.appendChild(el);
   }
 }
@@ -6562,18 +6661,13 @@ function buildArmoury() {
     const el = document.createElement('div');
     el.className = 'arm' + (eq ? ' equipped' : own ? '' : afford ? ' locked' : ' locked cant');
     el.style.setProperty('--ac', d.color);
-    el.appendChild(towerIcon(k, 38));
-    let badge, bcol, bbg;
-    if (eq) { badge = '✓ EQUIPPED'; bcol = d.color; bbg = rgba(d.color, .16); }
-    else if (own) { badge = 'EQUIP'; bcol = '#5cff9d'; bbg = 'rgba(92,255,157,.14)'; }
-    else if (afford) { badge = '⬡ ' + fmt(price); bcol = '#b46bff'; bbg = 'rgba(180,107,255,.16)'; }
-    else { badge = '⬡ ' + fmt(price); bcol = '#ff2d9b'; bbg = 'rgba(255,45,155,.12)'; }
-    el.insertAdjacentHTML('beforeend', `<div style="flex:1;min-width:0">
-      <div class="an">${d.name}</div>
-      <div class="ar">${d.role} · ${d.draw} GW</div>
-      <div class="ab2" style="color:${bcol};background:${bbg};border:1px solid ${bcol}44">${badge}</div>
-    </div>`);
-    el.onclick = () => own ? equipTower(k) : buyTower(k);
+    el.appendChild(towerIcon(k, 34));
+    const b = armBadge(eq, own, afford, price, d.color);
+    el.insertAdjacentHTML('beforeend',
+      `<div class="an">${d.name}</div>
+       <div class="ab2" style="color:${b.col};background:${b.bg};border:1px solid ${b.col}44">${b.text}</div>`);
+    el.title = d.name + ' — ' + d.role;
+    el.onclick = () => openArmDetail('t', k);
     grid.appendChild(el);
   });
 }
@@ -6755,6 +6849,10 @@ addEventListener('keydown', ev => {
        el.tagName === 'SELECT' || el.isContentEditable)) return;
   const k = ev.key.toLowerCase();
   const ov = document.querySelector('.ov.on');
+  // the detail card is the innermost thing open, so escape closes it first
+  if (k === 'escape' && $('armDetail').classList.contains('on')) {
+    closeArmDetail(); ev.preventDefault(); return;
+  }
   // the book turns with the arrow keys
   if (ov && ov.id === 'ovMaps' && (k === 'arrowleft' || k === 'arrowright')) {
     bookTo(pickedMap + (k === 'arrowright' ? 1 : -1));
@@ -6845,6 +6943,7 @@ $('btnArmoury2').onclick = () => { initAudio(); openArmoury(); };
 $('btnArmoury3').onclick = () => openArmoury();
 $('btnArmoury4').onclick = () => openArmoury();
 $('btnCloseArm').onclick = () => closeArmoury();
+$('armDetail').onclick = ev => { if (ev.target === $('armDetail')) closeArmDetail(); };
 document.querySelectorAll('.armTab').forEach(b => b.onclick = () => { armTab(b.dataset.pane); sfx('click'); });
 // The three modes all land on the sector screen; which one is armed decides
 // what the launch button does, so there is one launch button instead of three.
