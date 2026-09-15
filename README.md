@@ -507,6 +507,41 @@ from zero, abilities reset, wave jumps land, CLEAR empties the field, flux is
 unchanged across a sandbox ending while a normal run still pays, and a normal
 run afterwards shows only the equipped 3 with the dock hidden.
 
+## Balance pass
+
+Every tower measured one at a time, each path maxed alone (the path lock stops
+you taking both past tier 2), against pinned dummies on the lane. Placement was
+normalised out by trying several distances and keeping the best, because the
+first two passes were measuring positioning rather than towers -- CRYO is a
+short-splash pulse that reads zero past 160px, and MORTAR lobs at where a target
+*will* be, so dummies whose lane position was never set made it aim at the lane
+start. Dummy `maxHp` is realistic too: VENOM deals a share of max health, and
+immortal dummies with 1e9 gave nine-figure nonsense.
+
+Four outliers came out of it, and all four were adjusted:
+
+| | was | now |
+|---|---|---|
+| pulse RAPID FIRE | 281 dmg per 1k credits -- best in the game, on the free starter | 93 |
+| mire CAUSTIC | 264, and 15,759 against a crowd, from an "Area Denial" tower | 53, crowd 4,448 |
+| cryo ABSOLUTE ZERO | 9, last place | 19 alone, **1.62x lift** on a neighbour |
+| lance CHARGE | 0 kills -- units died before the weapons mattered | 59, matching MASS |
+
+PULSE is free and needs no unlock, so its ceiling has to sit under the towers
+you spend flux on. MIRE's corrosion and slow are what it is for; four stacked
+damage multipliers had quietly made an area-denial tower the biggest number on
+the board, and pools overlap so a crowd took it several times over.
+
+CRYO's capstone is the interesting one. It measured last because a single-tower
+test cannot see what it does: it now freezes harder and opens anything caught up
+to +45% from *every* source, so its value is the lift it gives the rest of the
+board -- verified as 458 -> 743 dps on a neighbouring TESLA. LANCE's CHARGE path
+now carries its own mass, since without the MASS path its wedges were spent on
+the first thing they touched and never fired.
+
+These are lab numbers for one tower in isolation. They do not capture targeting
+priority, synergy, or how a real wave actually arrives.
+
 ## Files
 
 | | |

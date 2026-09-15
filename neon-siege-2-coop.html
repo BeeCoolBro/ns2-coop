@@ -730,8 +730,8 @@ pulse: {
     {name:'RAPID FIRE', color:'#ffd633', ups:[
       {n:'Cooling Fins',   c:100, d:'+35% fire rate.',                    f:t=>t.cd*=.74},
       {n:'Twin Barrel',    c:240, d:'Fires 2 bolts per volley.',          f:t=>t.shots=2},
-      {n:'Hypervelocity',  c:560, d:'+45% rate, +30% damage, faster shots.',f:t=>{t.cd*=.69;t.dmg*=1.3;t.ps*=1.5}},
-      {n:'NEEDLE STORM',   c:1750,d:'4 bolts per volley, +45% rate.',     f:t=>{t.shots=4;t.cd*=.69}},
+      {n:'Hypervelocity',  c:560, d:'+45% rate, +15% damage, faster shots.',f:t=>{t.cd*=.69;t.dmg*=1.15;t.ps*=1.5}},
+      {n:'NEEDLE STORM',   c:1750,d:'4 bolts per volley, +30% rate. Each bolt is lighter.',f:t=>{t.shots=4;t.cd*=.77;t.dmg*=.8}},
     ]},
   ]},
 
@@ -787,8 +787,8 @@ cryo: {
     {name:'ABSOLUTE ZERO', color:'#ffffff', ups:[
       {n:'Deep Chill',     c:150, d:'Slow 30% → 42%, lasts longer.',      f:t=>{t.chill=.42;t.chillT=120}},
       {n:'Flash Freeze',   c:330, d:'12% chance to freeze targets solid.',f:t=>{t.freezeCh=.12;t.dmg*=1.4}},
-      {n:'Shatter',        c:780, d:'Frozen enemies take 1.6× damage.',   f:t=>{t.shatter=1.6;t.freezeCh=.18}},
-      {n:'ABSOLUTE ZERO',  c:2400,d:'Each pulse has a 35% chance to freeze all in radius.',f:t=>{t.freezeCh=.35;t.dmg*=2.2;t.splash*=1.3}},
+      {n:'Shatter',        c:780, d:'Frozen enemies take 2× damage.',     f:t=>{t.shatter=2;t.freezeCh=.18}},
+      {n:'ABSOLUTE ZERO',  c:2400,d:'Half of every pulse freezes the whole radius, and anything caught takes +45% from every source.',f:t=>{t.freezeCh=.5;t.dmg*=3.4;t.splash*=1.45;t.shatter=2.6;t.amp=.45;t.chillT=160}},
     ]},
     {name:'PERMAFROST', color:'#22e6ff', ups:[
       {n:'Wide Field',     c:160, d:'+40% radius and range.',             f:t=>{t.range*=1.4;t.splash*=1.4}},
@@ -980,10 +980,10 @@ mire: {
       {n:'EVENT HORIZON',  c:2400,d:'Slow 66% in huge pools, and they drag you backwards.',f:t=>{t.tarSlow=.66;t.tarR*=1.3;t.tarPull=1.1}},
     ]},
     {name:'CAUSTIC', color:'#7dff4d', ups:[
-      {n:'Acid Mix',       c:200, d:'Pools corrode 45% of armour.',       f:t=>{t.corrode=.45;t.dmg*=1.5}},
-      {n:'Dissolution',    c:520, d:'Triple pool damage, corrodes 65%.',  f:t=>{t.dmg*=3;t.corrode=.65}},
-      {n:'Reagent Bath',   c:1200,d:'+120% pool damage in wider pools.',   f:t=>{t.dmg*=2.2;t.tarR*=1.3}},
-      {n:'PRIMORDIAL SOUP',c:3000,d:'Strips 85% of armour, and the pools linger.',f:t=>{t.corrode=.85;t.tarLife*=1.7;t.dmg*=1.8}},
+      {n:'Acid Mix',       c:200, d:'Pools corrode 45% of armour.',       f:t=>{t.corrode=.45;t.dmg*=1.25}},
+      {n:'Dissolution',    c:520, d:'Double pool damage, corrodes 65%.',  f:t=>{t.dmg*=2;t.corrode=.65}},
+      {n:'Reagent Bath',   c:1200,d:'+50% pool damage in wider pools.',    f:t=>{t.dmg*=1.5;t.tarR*=1.3}},
+      {n:'PRIMORDIAL SOUP',c:3000,d:'Strips 85% of armour, and the pools linger.',f:t=>{t.corrode=.85;t.tarLife*=1.7;t.dmg*=1.3}},
     ]},
   ]},
 
@@ -1021,10 +1021,10 @@ lance: {
       {n:'AVALANCHE',      c:3200,d:'Four lances, +150% mass, +80% impact, and they feed far harder.',f:t=>{t.rigMax=4;t.rigHp*=2.5;t.rigRamMul*=1.8;t.rigFeed=.7;t.rigCap=4}},
     ]},
     {name:'CHARGE', color:'#b46bff', ups:[
-      {n:'Arc Tip',        c:260, d:'The wedge arcs at the nearest ground target. Armour still counts.',f:t=>{t.rigGun=26;t.rigGunRange=210}},
-      {n:'Sensor Weave',   c:560, d:'+70% arc damage, and a lance sees through cloaks.',f:t=>{t.rigGun*=1.7;t.detect=true;t.rigDetect=1}},
-      {n:'Overcharge',     c:1350,d:'The wedge discharges a pulse that ignores armour.',f:t=>{t.rigCannon=150;t.rigSplash=95}},
-      {n:'SUPERNOVA',      c:3400,d:'A dying lance detonates everything it has eaten \u2014 the one thing here that reaches air.',f:t=>{t.rigNova=1.4;t.rigNovaR=190;t.rigCannon*=1.4}},
+      {n:'Arc Tip',        c:260, d:'The wedge arcs at the nearest ground target, and carries more mass to do it with.',f:t=>{t.rigGun=26;t.rigGunRange=210;t.rigHp*=1.35}},
+      {n:'Sensor Weave',   c:560, d:'+70% arc damage, +40% mass, and a lance sees through cloaks.',f:t=>{t.rigGun*=1.7;t.rigHp*=1.4;t.detect=true;t.rigDetect=1}},
+      {n:'Overcharge',     c:1350,d:'The wedge discharges a pulse that ignores armour, and holds together far better.',f:t=>{t.rigCannon=150;t.rigSplash=95;t.rigHp*=1.7;t.rigFeed=.45}},
+      {n:'SUPERNOVA',      c:3400,d:'A dying lance detonates everything it has eaten \u2014 the one thing here that reaches air.',f:t=>{t.rigNova=1.4;t.rigNovaR=190;t.rigCannon*=1.4;t.rigGun*=1.5;t.rigHp*=1.8;t.rigMax+=1}},
     ]},
   ]},
 
