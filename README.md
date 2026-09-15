@@ -498,6 +498,11 @@ it. The end screen says SANDBOX ENDED rather than claiming a result.
 Sandbox is solo only. In co-op the host would be handing the guest a free run,
 so the flag is cleared whenever a partner is connected.
 
+The controls live inside `#waveDock` rather than being pinned over it, so the
+column that already spaces the wave preview and SEND WAVE spaces them too, and
+`#buildDock` reserves room for the ability dock and the wave dock on either
+side -- sixteen towers otherwise run straight under both.
+
 Verified: all 16 towers offered against a 3-tower loadout, cash and cores refill
 from zero, abilities reset, wave jumps land, CLEAR empties the field, flux is
 unchanged across a sandbox ending while a normal run still pays, and a normal

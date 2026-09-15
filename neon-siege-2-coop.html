@@ -106,7 +106,11 @@ button{font-family:var(--f2);color:inherit;background:none;border:none;cursor:po
 
 /* ─────────── build bar ─────────── */
 #buildDock{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
-  display:flex;gap:7px;padding:9px;align-items:stretch;max-width:min(96vw,1180px);overflow-x:auto}
+  display:flex;gap:7px;padding:9px;align-items:stretch;overflow-x:auto;
+  /* keep clear of the ability dock on the left and the wave dock on the right */
+  max-width:min(calc(100vw - 580px),1180px)}
+#buildDock::-webkit-scrollbar{height:5px}
+#buildDock::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border-radius:3px}
 .tcard{width:74px;flex:0 0 74px;border-radius:9px;border:1px solid rgba(255,255,255,.1);
   background:rgba(255,255,255,.032);padding:7px 4px 6px;display:flex;flex-direction:column;
   align-items:center;gap:3px;cursor:pointer;transition:.13s;position:relative;overflow:hidden}
@@ -430,15 +434,14 @@ button{font-family:var(--f2);color:inherit;background:none;border:none;cursor:po
 
   <div id="abilDock" class="panel"></div>
   <div id="buildDock" class="panel"></div>
-<div id="sandDock" class="panel hide" style="position:absolute;bottom:86px;right:12px;
-     display:flex;gap:6px;align-items:center;padding:7px 9px">
-  <span style="font-family:var(--f1);font-size:9px;letter-spacing:.16em;color:var(--y)">SANDBOX</span>
-  <button class="btn" id="sbWaveDn" style="padding:5px 9px;font-size:10px">WAVE \u2212</button>
-  <span id="sbWave" class="mono" style="font-size:12px;min-width:28px;text-align:center">1</span>
-  <button class="btn" id="sbWaveUp" style="padding:5px 9px;font-size:10px">WAVE +</button>
-  <button class="btn" id="sbClear" style="padding:5px 9px;font-size:10px">CLEAR</button>
-</div>
   <div id="waveDock">
+    <div id="sandDock" class="panel hide" style="display:flex;gap:6px;align-items:center;padding:7px 9px">
+      <span style="font-family:var(--f1);font-size:9px;letter-spacing:.16em;color:var(--y)">SANDBOX</span>
+      <button class="btn" id="sbWaveDn" style="padding:5px 9px;font-size:11px">−</button>
+      <span id="sbWave" class="mono" style="font-size:13px;min-width:26px;text-align:center;color:var(--y)">1</span>
+      <button class="btn" id="sbWaveUp" style="padding:5px 9px;font-size:11px">+</button>
+      <button class="btn" id="sbClear" style="padding:5px 9px;font-size:10px">CLEAR</button>
+    </div>
     <div id="wavePrev" class="panel"></div>
     <button id="nextBtn"><div class="fill" id="nextFill"></div><span>SEND WAVE 1</span></button>
   </div>
@@ -6139,12 +6142,12 @@ $('btnBackTitle').onclick = () => { closeAll(); updateFluxLabels(); $('ovTitle')
 $('btnDeploy').onclick = () => startGame(pickedMap, G.diff, false);
 $('btnSandbox').onclick = () => {
   if (coopActive()) {
-    toast('\U0001f9ea', 'NOT IN CO-OP', 'Sandbox is a solo mode.', '#ff2d9b');
+    toast('🧪', 'NOT IN CO-OP', 'Sandbox is a solo mode.', '#ff2d9b');
     sfx('deny'); return;
   }
   sandboxNext = true;
   startGame(pickedMap, G.diff, true);      // endless, so it never ends on its own
-  toast('\U0001f9ea', 'SANDBOX', 'Every tower, endless credits, unbreakable core. Nothing is earned.', '#ffd633');
+  toast('🧪', 'SANDBOX', 'Every tower, endless credits, unbreakable core. Nothing is earned.', '#ffd633');
 };
 $('btnEndless').onclick = () => {
   if (!sectorCleared(pickedMap)) {
