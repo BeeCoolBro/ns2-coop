@@ -5291,7 +5291,9 @@ function refreshDockAfford() {
   });
 }
 function selectType(k) {
-  if (!equipped(k)) { toast('🛠', 'NOT EQUIPPED', `${TOWERS[k].name} is not in your loadout. Change it in the Armoury.`, '#b46bff'); sfx('deny'); return; }
+  // a sandbox offers the whole roster, so the loadout cannot gate it -- this
+  // is the check that actually blocks a click, not anything in placeTower
+  if (!equipped(k) && !G.sandbox) { toast('🛠', 'NOT EQUIPPED', `${TOWERS[k].name} is not in your loadout. Change it in the Armoury.`, '#b46bff'); sfx('deny'); return; }
   if (G.selType !== k) {
     const b = placeBlock(k);
     if (b === 'cap') { toast('✕', 'TYPE LIMIT REACHED', `You already have ${TYPE_CAP} ${TOWERS[k].name} towers.`, '#ff2d9b'); sfx('deny'); return; }
