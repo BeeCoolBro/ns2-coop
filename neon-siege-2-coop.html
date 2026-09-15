@@ -5512,6 +5512,12 @@ const TOWER_PRICE = {
 // and progress is keyed by index -- so a save made before the insert would mark
 // the new sectors as already cleared and lose the ones above. Each insert is
 // recorded here as a step, and a save walks whichever steps it has not seen.
+// A tower that gets renamed would otherwise have its unlock silently dropped by
+// the filters below, which only keep keys that still exist in TOWERS.
+const TOWER_RENAMES = {convoy:'lance'};
+function renameTowers(list) {
+  return Array.isArray(list) ? list.map(k => TOWER_RENAMES[k] || k) : list;
+}
 const SECTOR_MOVES = [
   {v:2, at:5, by:2},        // COOLANT RUN + THE LATTICE
   {v:3, at:9, by:2},        // VOLTAIC SPINE + THE MAW
@@ -5552,12 +5558,6 @@ function migrateSave() {
 }
 migrateSave();
 let META = loadMeta();
-// A tower that gets renamed would otherwise have its unlock silently dropped by
-// the filters below, which only keep keys that still exist in TOWERS.
-const TOWER_RENAMES = {convoy:'lance'};
-function renameTowers(list) {
-  return Array.isArray(list) ? list.map(k => TOWER_RENAMES[k] || k) : list;
-}
 function loadMeta() {
   let m = {};
   try { m = JSON.parse(HOST.get('ns2_meta') || '{}') || {}; } catch (e) { m = {}; }
