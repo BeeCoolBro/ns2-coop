@@ -530,7 +530,15 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
 .dName{font-family:var(--f1);font-size:13px;font-weight:900;letter-spacing:.08em;color:var(--ac);
   margin-top:3px}
 .dPrice{margin-left:auto;text-align:right;flex:none}
-.dWas{font-size:11px;color:var(--txd);text-decoration:line-through;font-weight:600}
+.dWas{font-size:11px;color:var(--txd);font-weight:600;
+  /* A line straight through the digits closes the top of an 8 and turns 2,800
+     into 2,000 at a glance -- which is exactly how it got misread. Thin it,
+     dim it below the text it crosses, and label it so the number is never the
+     only thing telling you which price is which. */
+  text-decoration:line-through;text-decoration-thickness:1px;
+  text-decoration-color:rgba(255,255,255,.34)}
+.dWas:before{content:'WAS ';text-decoration:none;display:inline-block;
+  font-family:var(--f1);font-size:8px;letter-spacing:.16em;opacity:.7}
 .dNow{font-family:var(--f1);font-size:16px;font-weight:900;color:var(--ac);letter-spacing:.06em}
 .dOff{font-family:var(--f1);font-size:9px;font-weight:900;letter-spacing:.1em;color:#0a0f1c;
   background:var(--ac);border-radius:4px;padding:2px 6px;margin-left:8px}
