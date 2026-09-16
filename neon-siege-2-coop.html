@@ -1331,8 +1331,11 @@ lance: {
     ]},
   ]},
 
+// The internal key stays `accel` on purpose: it is written into saved runs and
+// into the account's owned-tower list, and renaming it would quietly delete the
+// tower from anyone who has already bought it. Only the shown name changed.
 accel: {
-  name:'ACCELERATOR', role:'Overcharge', color:'#4de0ff', cost:300, kind:'accel',
+  name:'CYCLOTRON', role:'Overcharge', color:'#4de0ff', cost:300, kind:'accel',
   draw:12,
   dmg:78, cd:3, range:250, ps:30, shots:1, air:true, ground:true,
   detect:true, pierceArmor:.35,
