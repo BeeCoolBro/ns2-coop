@@ -1319,7 +1319,7 @@ lance: {
       {n:'Dense Weave',    c:240, d:'+85% mass on every lance.',           f:t=>t.rigHp*=1.85},
       {n:'Twin Forge',     c:520, d:'Forges 30% sooner, one more lance out at a time.',f:t=>{t.rigEvery*=.7;t.rigMax+=1}},
       {n:'Momentum',       c:1250,d:'Mass counts for 2.2\u00d7 on impact.',   f:t=>t.rigRamMul*=2.2},
-      {n:'AVALANCHE',      c:3200,d:'Four lances, +62% mass, +20% impact, and they feed harder.',f:t=>{t.rigMax=4;t.rigHp*=1.62;t.rigRamMul*=1.2;t.rigFeed=.65;t.rigCap=3.6}},
+      {n:'AVALANCHE',      c:3200,d:'Four lances, +42% mass, +12% impact, and they feed harder.',f:t=>{t.rigMax=4;t.rigHp*=1.42;t.rigRamMul*=1.12;t.rigFeed=.54;t.rigCap=3.15}},
     ]},
     {name:'CHARGE', color:'#b46bff', ups:[
       {n:'Arc Tip',        c:260, d:'The wedge arcs at the nearest ground target, and carries more mass to do it with.',f:t=>{t.rigGun=26;t.rigGunRange=210;t.rigHp*=1.35}},
@@ -5648,14 +5648,14 @@ function endGame(won) {
     (won && !G.endless) ? [0, 1, 2].map(i => `<span style="color:${i < stars ? 'var(--y)' : 'var(--txd)'};text-shadow:${i < stars ? '0 0 16px var(--y)' : 'none'}">★</span>`).join('') : '';
   $('endFlux').innerHTML = `<span class="fx">+${fmt(fr.total)}</span><span class="fxl">FLUX EARNED</span>`;
   $('endFluxBreak').textContent =
-    `${fr.base} waves` + (fr.win ? ` · ${fr.win} victory` : '') + (fr.first ? ` · ${fr.first} ${fr.firstLabel}` : '') +
+    `${fr.base} from waves` + (fr.win ? ` · ${fr.win} for the win` : '') + (fr.first ? ` · ${fr.first} ${fr.firstLabel}` : '') +
     `  —  balance ${fmt(META.flux)}`;
   const eh = $('endHoney');
   eh.style.display = HOST.on ? '' : 'none';
   if (HOST.on) {
     const hb = G.endless
       ? `depth bonus · wave ${G.wave}`
-      : `${hr.base} waves` + (hr.win ? ` · ${hr.win} victory` : '') +
+      : `${hr.base} from waves` + (hr.win ? ` · ${hr.win} for the win` : '') +
         (hr.first ? ` · <b>${hr.first} FIRST CLEAR</b>` : '');
     eh.innerHTML = `<span class="hnyV">+${fmt(hr.total)}</span><span class="hnyL">HONEY BANKED</span>` +
       `<span class="hnyB">${hb}  —  vault balance ${fmt(HOST.bal)}</span>`;
