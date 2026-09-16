@@ -366,6 +366,8 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
 .dcard .dd{font-size:11px;color:var(--txm);margin-top:4px;line-height:1.3;font-weight:600}
 .dcard .dx{font-family:var(--f1);font-size:9.5px;color:var(--y);margin-top:5px;font-weight:700}
 
+.pthK{font-family:var(--f1);font-size:8.5px;font-weight:900;letter-spacing:.06em;
+  border:1px solid currentColor;border-radius:4px;padding:1px 5px;opacity:.8;margin-right:7px}
 .sect{font-family:var(--f1);font-size:10px;letter-spacing:.26em;color:var(--txd);
   font-weight:700;margin:20px 0 0;text-align:left;display:flex;align-items:center;gap:10px}
 .sect::after{content:'';flex:1;height:1px;background:var(--line)}
@@ -735,7 +737,7 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
 
     <div id="titleKeys">
       <b>1–6</b> equipped towers · <b>SPACE</b> send wave ·
-      <b>Q W E R</b> power-ups · <b>C</b> codex ·
+      <b>Q E</b> upgrade paths · <b>C</b> codex ·
       <b>F</b> speed · <b>A</b> skip breather · <b>ESC</b> pause
     </div>
   </div>
@@ -874,7 +876,7 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
       <div id="armGrid"></div>
     </div>
     <div id="paneAbils" hidden>
-      <div class="sect">CARRIED — <b id="aslotMax">4</b> SLOTS, BOUND TO Q W E R</div>
+      <div class="sect">CARRIED — <b id="aslotMax">4</b> SLOTS</div>
       <div id="abilRow"></div>
       <div class="sect">ALL POWER-UPS</div>
       <div id="abilGrid"></div>
@@ -1608,7 +1610,8 @@ const ABILITIES = [
    desc:'Executes every badly wounded unit on the field outright. Bosses take a heavy flat hit.'},
 ];
 const ABIL = {}; for (const a of ABILITIES) ABIL[a.id] = a;
-const AKEYS = ['Q', 'W', 'E', 'R'];
+// One key per upgrade path, shown on the path header in the inspector.
+const UP_KEYS = ['Q', 'E'];
 // the ability sitting in loadout slot i, or null
 function slotAbil(i) { const id = META.abils[i]; return id ? ABIL[id] : null; }
 
@@ -6349,7 +6352,7 @@ function buildAbilityDock() {
     const a = ABIL[id]; if (!a) return;
     const el = document.createElement('div');
     el.className = 'ab'; el.style.setProperty('--ac', a.color);
-    el.innerHTML = `<div class="ai">${a.icon}</div><div class="ak">${AKEYS[i]}</div><div class="cd" style="display:none"></div>`;
+    el.innerHTML = `<div class="ai">${a.icon}</div><div class="cd" style="display:none"></div>`;
     el.onclick = () => useAbility(i);
     el.onpointerenter = () => { $('hint').classList.add('on'); $('hint').textContent = `${a.name} — ${a.desc}`; };
     el.onpointerleave = hideTip;
@@ -6407,7 +6410,8 @@ function refreshInspector() {
     wrap.style.borderColor = rgba(p.color, .3);
     const lvl = t.tiers[pi];
     wrap.innerHTML = `<div class="pthH" style="color:${p.color};background:${rgba(p.color, .1)}">
-      <span>${p.name}</span><span class="pips">${p.ups.map((_, i) => `<span class="pip${i < lvl ? ' on' : ''}"></span>`).join('')}</span></div>`;
+      <span class="pthK">${UP_KEYS[pi]}</span><span>${p.name}</span>
+      <span class="pips">${p.ups.map((_, i) => `<span class="pip${i < lvl ? ' on' : ''}"></span>`).join('')}</span></div>`;
     p.ups.forEach((u, ti) => {
       const own = ti < lvl;
       const next = ti === lvl;
@@ -6882,7 +6886,7 @@ const SHOPS = {
   towers: {top:"HARDWARE'S", name:'ARMOURY', ac:'#b46bff',
            blurb:'Guns you bolt to the grid. Equip up to <b>%s</b> \u2014 only what you equip comes with you.'},
   abils:  {top:"SOFTWARE'S", name:'POWERUPS', ac:'#22e6ff',
-           blurb:'Code you fire once. Carry up to <b>%s</b>, bound to Q W E R in a match.'},
+           blurb:'Code you fire once. Carry up to <b>%s</b> into a match, fired from the dock.'},
 };
 let shopMode = 'towers';
 function armTab(p) {
@@ -7302,12 +7306,12 @@ function buildAbilPane() {
     el.className = 'slot' + (a ? ' filled' : '');
     if (a) {
       el.style.setProperty('--ac', a.color);
-      el.innerHTML = `<div class="sk">${AKEYS[i]}</div><div class="sx">✕</div>` +
+      el.innerHTML = `<div class="sk">${i + 1}</div><div class="sx">✕</div>` +
         `<div class="aicon">${a.icon}</div><div class="sn">${a.name}</div>`;
       el.title = 'Click to unequip ' + a.name;
       el.onclick = () => unequipAbil(a.id);
     } else {
-      el.innerHTML = `<div class="sk">${AKEYS[i]}</div><div class="empty">EMPTY</div>`;
+      el.innerHTML = `<div class="sk">${i + 1}</div><div class="empty">EMPTY</div>`;
     }
     row.appendChild(el);
   }
@@ -7427,7 +7431,7 @@ function buildCodex() {
   } else {
     const sys = [
       ['🛠', 'ARMOURY & LOADOUT', `Finishing a sector pays FLUX — more for higher threat levels, winning, and first clears. Spend it in the Armoury to unlock towers, then equip up to ${SLOTS} of them. Only equipped towers can be built, so pick a loadout that covers ground, air and armour.`, '#b46bff'],
-      ['✦', 'POWER-UPS', `${ASLOTS} power-ups ride with you, bound to Q W E R. Four are issued free; the other ${ABILITIES.length - 4} are bought with flux in the Armoury. Swap them per run — EMP answers shields and cloaks, GRAVITY WELL buys time, MINEFIELD front-loads damage, AEGIS forgives a leak, PURGE clears a wave that got away from you.`, '#b46bff'],
+      ['✦', 'POWER-UPS', `${ASLOTS} power-ups ride with you, fired from the dock. Four are issued free; the other ${ABILITIES.length - 4} are bought with flux in the Armoury. Swap them per run — EMP answers shields and cloaks, GRAVITY WELL buys time, MINEFIELD front-loads damage, AEGIS forgives a leak, PURGE clears a wave that got away from you.`, '#b46bff'],
       ['⚡', 'POWER GRID', 'Every sector has a fixed grid capacity and every tower draws power from it. You cannot blanket the map — you have to decide what is worth the wattage.', '#b46bff'],
       ['🔢', 'TOWER LIMITS', `You may build at most ${TYPE_CAP} of any single tower type, and each extra copy of a type costs 10% more than the last. Stacking one tower is deliberately expensive; mixed defences are cheaper and stronger.`, '#ff2d9b'],
       ['🎯', 'DEAD ZONES', 'Long-range towers like RAIL cannot fire into the circle right around them. Put snipers at the back and short-range guns on the chokepoints.', '#d8ff6b'],
@@ -7584,7 +7588,15 @@ addEventListener('keydown', ev => {
     if (kit[i]) selectType(kit[i]);
     ev.preventDefault(); return;
   }
-  if (k === 'q' || k === 'w' || k === 'e' || k === 'r') useAbility('qwer'.indexOf(k));
+  // Q and E buy the next tier on the selected tower's two paths. They are the
+  // keys directly above 1-6, so the hand that just picked the tower is on them.
+  if ((k === 'q' || k === 'e') && G.selTower) {
+    const pi = k === 'q' ? 0 : 1, t = G.selTower;
+    const ti = t.tiers[pi];
+    if (t.def.paths[pi] && t.def.paths[pi].ups[ti] && !upgradeLocked(t, pi, ti)) buyUpgrade(t, pi, ti);
+    else sfx('deny');
+    ev.preventDefault();
+  }
   else if (k === ' ') { ev.preventDefault(); startWave(); }
   else if (k === 'f') cycleSpeed();
   else if (k === 'a') toggleAuto();
