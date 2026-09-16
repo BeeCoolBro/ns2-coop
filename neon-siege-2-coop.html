@@ -1311,7 +1311,7 @@ lance: {
       {n:'Dense Weave',    c:240, d:'+85% mass on every lance.',           f:t=>t.rigHp*=1.85},
       {n:'Twin Forge',     c:520, d:'Forges 30% sooner, one more lance out at a time.',f:t=>{t.rigEvery*=.7;t.rigMax+=1}},
       {n:'Momentum',       c:1250,d:'Mass counts for 2.2\u00d7 on impact.',   f:t=>t.rigRamMul*=2.2},
-      {n:'AVALANCHE',      c:3200,d:'Four lances, +80% mass, +25% impact, and they feed far harder.',f:t=>{t.rigMax=4;t.rigHp*=1.8;t.rigRamMul*=1.25;t.rigFeed=.7;t.rigCap=4}},
+      {n:'AVALANCHE',      c:3200,d:'Four lances, +70% mass, +22% impact, and they feed far harder.',f:t=>{t.rigMax=4;t.rigHp*=1.7;t.rigRamMul*=1.22;t.rigFeed=.68;t.rigCap=3.8}},
     ]},
     {name:'CHARGE', color:'#b46bff', ups:[
       {n:'Arc Tip',        c:260, d:'The wedge arcs at the nearest ground target, and carries more mass to do it with.',f:t=>{t.rigGun=26;t.rigGunRange=210;t.rigHp*=1.35}},
@@ -6897,9 +6897,13 @@ function shopRand(n, salt) {
 }
 const DEAL_CUTS = [15, 20, 25, 30];
 function dealFor(mode) {
+  // The pool must not depend on a single thing about the player. It used to
+  // skip what you already owned, which quietly made the sale personal: two
+  // people in the same shop in the same minute drew from different lists and
+  // saw different items at different prices, and neither was wrong.
   const pool = mode === 'towers'
-    ? TKEYS.filter(k => !owns(k) && (TOWER_PRICE[k] || 0) > 0)
-    : ABILITIES.filter(a => !ownsA(a.id)).map(a => a.id);
+    ? TKEYS.filter(k => (TOWER_PRICE[k] || 0) > 0)
+    : ABILITIES.map(a => a.id);
   if (!pool.length) return null;
   const salt = mode === 'towers' ? 1 : 2;
   return {key:pool[shopRand(pool.length, salt)], pct:DEAL_CUTS[shopRand(DEAL_CUTS.length, salt + 7)]};
@@ -6928,23 +6932,33 @@ function renderDeal() {
   const d = dealFor(shopMode);
   if (!d) {
     strip.innerHTML = '<div class="dEmpty">' + (isT
-      ? 'Shelves are bare \u2014 you own everything here.'
-      : 'No packages available \u2014 everything is already installed.') + '</div>';
+      ? 'Shelves are bare \u2014 nothing on offer.'
+      : 'No packages available \u2014 nothing on offer.') + '</div>';
     return;
   }
   const name = isT ? TOWERS[d.key].name : ABIL[d.key].name;
   const col = isT ? TOWERS[d.key].color : ABIL[d.key].color;
   const was = isT ? (TOWER_PRICE[d.key] || 0) : ABIL[d.key].price;
   const now = isT ? towerFlux(d.key) : abilFlux(d.key);
+  // The window is the same for everyone, so it can be showing something you
+  // already have. Say so rather than dangling a price you cannot spend.
+  const have = isT ? owns(d.key) : ownsA(d.key);
   const row = document.createElement('div');
   row.className = 'deal';
   row.style.setProperty('--ac', col);
+  if (have) row.style.opacity = '.62';
   if (isT) row.appendChild(towerIcon(d.key, 34));
   else row.insertAdjacentHTML('beforeend', `<div class="dIc" style="color:${col}">${ABIL[d.key].icon}</div>`);
+  const tag = isT ? 'IN STOCK' : 'BUILD ' + (shopSlot() % 10000);
   row.insertAdjacentHTML('beforeend',
-    `<div><div class="dTag">${isT ? 'IN STOCK' : 'BUILD ' + shopSlot() % 10000} · ${restockLabel()}</div><div class="dName">${name}</div></div>` +
-    `<div class="dPrice"><div class="dWas">\u2b21 ${fmt(was)}</div>` +
-    `<div class="dNow">\u2b21 ${fmt(now)}<span class="dOff">-${d.pct}%</span></div></div>`);
+    `<div><div class="dTag">${tag} \u00b7 ${restockLabel()}</div>` +
+    `<div class="dName">${name}</div></div>` +
+    `<div class="dPrice">` +
+    (have
+      ? `<div class="dNow" style="color:#5cff9d">OWNED</div>`
+      : `<div class="dWas">\u2b21 ${fmt(was)}</div>` +
+        `<div class="dNow">\u2b21 ${fmt(now)}<span class="dOff">-${d.pct}%</span></div>`) +
+    `</div>`);
   row.onclick = () => openArmDetail(isT ? 't' : 'a', d.key);
   strip.appendChild(row);
 }
