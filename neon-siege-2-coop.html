@@ -1337,22 +1337,28 @@ lance: {
 accel: {
   name:'CYCLOTRON', role:'Overcharge', color:'#4de0ff', cost:300, kind:'accel',
   draw:12,
-  dmg:78, cd:3, range:250, ps:30, shots:1, air:true, ground:true,
+  dmg:24, cd:3, range:250, ps:30, shots:1, air:true, ground:true,
   detect:true, pierceArmor:.35,
-  accCharge:100, accCool:110, accBudget:760,
-  desc:'Winds a plasma gun up, then empties it into one target. The burst ends when the charge is spent, not when the target dies \u2014 and then there is nothing at all until it has wound up again. Sees through cloaks.',
+  // Burst length is budget over in-burst damage rate, so these three are one
+  // number in three parts: 20 shots a second at 24 gives 480/s, and a 1,300
+  // charge takes about 2.7 seconds to spend.
+  accCharge:90, accCool:120, accBudget:1300,
+  desc:'Winds a plasma gun up, then holds the trigger down for seconds at a time. The burst ends when the charge is spent, not when the target dies \u2014 and then there is nothing at all until it has wound up again. Sees through cloaks.',
   paths:[
+    // Every tier that adds charge adds damage with it. Charge alone would only
+    // make the burst longer and the tower slower, which is the trap this whole
+    // rebuild exists to avoid.
     {name:'OVERCHARGE', color:'#ff2d9b', ups:[
-      {n:'Denser Coils',   c:260, d:'+45% charge to spend each burst.',   f:t=>t.accBudget*=1.45},
-      {n:'Plasma Injectors',c:540,d:'+35% damage a shot.',                f:t=>t.dmg*=1.35},
-      {n:'Runaway Reaction',c:1250,d:'+70% charge, and it strips armour outright.',f:t=>{t.accBudget*=1.7;t.pierceArmor=1}},
-      {n:'SINGULARITY',    c:3300,d:'Doubles the charge again, and every shot detonates for 45 splash.',f:t=>{t.accBudget*=2;t.splash=45;t.dmg*=1.15}},
+      {n:'Denser Coils',   c:260, d:'+50% charge a burst, +25% a shot.',  f:t=>{t.accBudget*=1.5;t.dmg*=1.25}},
+      {n:'Plasma Injectors',c:540,d:'+50% damage a shot.',                f:t=>t.dmg*=1.5},
+      {n:'Runaway Reaction',c:1250,d:'+80% charge, +30% a shot, and it strips armour outright.',f:t=>{t.accBudget*=1.8;t.dmg*=1.3;t.pierceArmor=1}},
+      {n:'SINGULARITY',    c:3300,d:'+100% charge, +35% a shot, and every shot detonates for 45 splash.',f:t=>{t.accBudget*=2;t.dmg*=1.35;t.splash=45}},
     ]},
     {name:'CYCLE', color:'#ffd633', ups:[
       {n:'Quick Spool',    c:280, d:'Winds up 30% faster.',               f:t=>t.accCharge*=.7},
-      {n:'Heat Sinks',     c:560, d:'Cools down 35% faster.',             f:t=>t.accCool*=.65},
-      {n:'Feed Lines',     c:1300,d:'Fires 35% faster inside the burst, +15% a shot, and winds up faster still.',f:t=>{t.cd*=.65;t.dmg*=1.15;t.accCharge*=.78}},
-      {n:'PERPETUAL',      c:3400,d:'Barely stops: half the wind-up, half the cooldown, +90% charge.',f:t=>{t.accCharge*=.5;t.accCool*=.5;t.accBudget*=1.9}},
+      {n:'Heat Sinks',     c:560, d:'Cools down 35% faster, +30% charge.',f:t=>{t.accCool*=.65;t.accBudget*=1.3}},
+      {n:'Feed Lines',     c:1300,d:'Fires 35% faster inside the burst, +50% a shot, and winds up faster still.',f:t=>{t.cd*=.65;t.dmg*=1.5;t.accCharge*=.78}},
+      {n:'PERPETUAL',      c:3400,d:'Barely stops: half the wind-up, half the cooldown, +180% charge, +50% a shot.',f:t=>{t.accCharge*=.5;t.accCool*=.5;t.accBudget*=2.8;t.dmg*=1.5}},
     ]},
   ]},
 
