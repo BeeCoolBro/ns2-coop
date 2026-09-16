@@ -1542,7 +1542,11 @@ const MAPS = [
 
 
 const DIFFS = [
-  {id:0,name:'RECRUIT', color:'#5cff9d', hp:.7,  spd:.9,  bounty:1.3, cash:1.35,cores:1.5, score:.7, desc:'Forgiving. Learn the systems.'},
+  // bossHp is a boss-only multiplier on top of `hp`. RECRUIT softens every
+  // hull by 30% so the waves are learnable, which also left bosses at seven
+  // tenths and turned the set pieces into non-events. 1.5 against its own 0.7
+  // puts a boss back at 1.05 -- a VETERAN hull -- with its escort still soft.
+  {id:0,name:'RECRUIT', color:'#5cff9d', hp:.7,  spd:.9,  bounty:1.3, cash:1.35,cores:1.5, score:.7, bossHp:1.5, desc:'Forgiving waves. The bosses still bite.'},
   {id:1,name:'VETERAN', color:'#22e6ff', hp:1,   spd:1,   bounty:1,   cash:1,   cores:1,   score:1,  desc:'The intended balance.'},
   {id:2,name:'ELITE',   color:'#ff8a3d', hp:1.28,spd:1.08,bounty:.92, cash:1,   cores:.85, score:1.7,desc:'Tougher hulls, thinner margins.'},
   {id:3,name:'NIGHTMARE',color:'#ff2d9b',hp:1.72,spd:1.15,bounty:.84, cash:.95, cores:.7,  score:3,  desc:'Brutal. Every leak is fatal.'},
@@ -2004,7 +2008,10 @@ function spawnEnemy(type, hs, laneIdx, affix) {
   // one change that fixed it. So it ramps -- early bosses near the old share,
   // later ones the full increase.
   const bt = clamp((G.wave - 10) / 20, 0, 1);
-  const bossMul = d.boss ? .3 + .12 * bt : d.elite ? .5 + .04 * bt : 1;
+  // dif.bossHp lets a difficulty move bosses without moving the waves around
+  // them; unset means 1, so only the difficulty that asks for it is affected.
+  const bossMul = d.boss ? (.3 + .12 * bt) * (dif.bossHp || 1)
+                : d.elite ? .5 + .04 * bt : 1;
   const air = !!d.air;
   const route = air ? pick(G.airRoutes) : G.lanes[laneIdx % G.lanes.length];
   const hp = Math.round(d.hp * hs * bossMul);
