@@ -1311,7 +1311,7 @@ lance: {
       {n:'Dense Weave',    c:240, d:'+85% mass on every lance.',           f:t=>t.rigHp*=1.85},
       {n:'Twin Forge',     c:520, d:'Forges 30% sooner, one more lance out at a time.',f:t=>{t.rigEvery*=.7;t.rigMax+=1}},
       {n:'Momentum',       c:1250,d:'Mass counts for 2.2\u00d7 on impact.',   f:t=>t.rigRamMul*=2.2},
-      {n:'AVALANCHE',      c:3200,d:'Four lances, +150% mass, +80% impact, and they feed far harder.',f:t=>{t.rigMax=4;t.rigHp*=2.5;t.rigRamMul*=1.8;t.rigFeed=.7;t.rigCap=4}},
+      {n:'AVALANCHE',      c:3200,d:'Four lances, +80% mass, +25% impact, and they feed far harder.',f:t=>{t.rigMax=4;t.rigHp*=1.8;t.rigRamMul*=1.25;t.rigFeed=.7;t.rigCap=4}},
     ]},
     {name:'CHARGE', color:'#b46bff', ups:[
       {n:'Arc Tip',        c:260, d:'The wedge arcs at the nearest ground target, and carries more mass to do it with.',f:t=>{t.rigGun=26;t.rigGunRange=210;t.rigHp*=1.35}},
@@ -2227,6 +2227,9 @@ const COMBO_MAX = 2;              // kill-streak bounty multiplier ceiling
 // upgrades are the only thing left to buy: it is the end of the map's economy,
 // and it has to be able to absorb one.
 const UPGRADE_TIER = [.5, .65, .9, 1.3];
+// A lance recovers at most this share of the hull a ram actually cost it, so
+// ramming is never profitable and a lance is always a consumable.
+const RIG_FEED_CAP = .92;
 const UPGRADE_PRICE = .5;              // fallback for anything untagged
 function upTierMul(up) {
   const m = UPGRADE_TIER[up.tier];
@@ -2665,15 +2668,26 @@ function tickRigs() {
         if (e.cloak && !e.revealed && !t.rigDetect) continue;
         if (dist2(r.x, r.y, e.x, e.y) >= (e.r + 20) * (e.r + 20)) continue;
         const spent = Math.min(e.hp, r.hp * mul);
+        const paid = spent / mul;           // hull, which is not the same as damage
         damage(e, spent, {src:t, pierceArmor:1});
-        r.hp -= spent / mul;
+        r.hp -= paid;
         if (r.hp < 1) r.hp = 0;             // never leave a float residue alive
         // It feeds. A share of everything broken comes back as mass, capped so
         // a lance cannot grow without limit -- it reaches a terminal size and
         // then meets whatever is bigger than that.
+        //
+        // The second ceiling is the one that matters: a lance may recover at
+        // most a shade under the hull it actually paid. Feeding was a share of
+        // the DAMAGE, and the ram multiplier makes damage several times the
+        // hull it cost, so ramming turned a profit as soon as rigFeed times
+        // rigRamMul passed 1 and the lance stopped being a consumable. Stating
+        // it as a fraction of `paid` keeps every tuned value that was already
+        // below the line exactly where it was, and means no future change to
+        // mass or impact can reopen it.
         if (t.rigFeed) {
           const room = r.maxHp * (t.rigCap || 2.5) - r.hp;
-          const fed = Math.min(Math.max(0, room), spent * t.rigFeed);
+          const fed = Math.min(Math.max(0, room),
+                               Math.min(spent * t.rigFeed, paid * RIG_FEED_CAP));
           r.hp += fed;
           r.fed = (r.fed || 0) + fed;
         }
