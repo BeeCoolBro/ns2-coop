@@ -1331,6 +1331,28 @@ lance: {
     ]},
   ]},
 
+accel: {
+  name:'ACCELERATOR', role:'Overcharge', color:'#4de0ff', cost:300, kind:'accel',
+  draw:12,
+  dmg:78, cd:3, range:250, ps:30, shots:1, air:true, ground:true,
+  detect:true, pierceArmor:.35,
+  accCharge:100, accCool:110, accBudget:760,
+  desc:'Winds a plasma gun up, then empties it into one target. The burst ends when the charge is spent, not when the target dies \u2014 and then there is nothing at all until it has wound up again. Sees through cloaks.',
+  paths:[
+    {name:'OVERCHARGE', color:'#ff2d9b', ups:[
+      {n:'Denser Coils',   c:260, d:'+45% charge to spend each burst.',   f:t=>t.accBudget*=1.45},
+      {n:'Plasma Injectors',c:540,d:'+35% damage a shot.',                f:t=>t.dmg*=1.35},
+      {n:'Runaway Reaction',c:1250,d:'+70% charge, and it strips armour outright.',f:t=>{t.accBudget*=1.7;t.pierceArmor=1}},
+      {n:'SINGULARITY',    c:3300,d:'Doubles the charge again, and every shot detonates for 45 splash.',f:t=>{t.accBudget*=2;t.splash=45;t.dmg*=1.15}},
+    ]},
+    {name:'CYCLE', color:'#ffd633', ups:[
+      {n:'Quick Spool',    c:280, d:'Winds up 30% faster.',               f:t=>t.accCharge*=.7},
+      {n:'Heat Sinks',     c:560, d:'Cools down 35% faster.',             f:t=>t.accCool*=.65},
+      {n:'Feed Lines',     c:1300,d:'Fires 35% faster inside the burst, +15% a shot, and winds up faster still.',f:t=>{t.cd*=.65;t.dmg*=1.15;t.accCharge*=.78}},
+      {n:'PERPETUAL',      c:3400,d:'Barely stops: half the wind-up, half the cooldown, +90% charge.',f:t=>{t.accCharge*=.5;t.accCool*=.5;t.accBudget*=1.9}},
+    ]},
+  ]},
+
 rotor: {
   name:'ROTOR', role:'Air Wing', color:'#ffb03d', cost:270, kind:'heli',
   draw:10,
@@ -2206,6 +2228,8 @@ function makeTower(x, y, type) {
     rigGun:0, rigGunRange:0, rigDetect:0, rigCannon:0, rigSplash:0,
     rigFeed:d.rigFeed || 0, rigCap:d.rigCap || 2.5, rigNova:0, rigNovaR:0,
     strikeEvery:0, strikeDmg:0, strikeR:0, strikeT:0,
+    accCharge:d.accCharge || 0, accCool:d.accCool || 0, accBudget:d.accBudget || 0,
+    accPhase:0, accT:d.accCharge || 0, accSpent:0, accLock:null, accShot:0,
     tarR:d.tarR || 0, tarLife:d.tarLife || 0, tarSlow:d.tarSlow || 0, tarPull:0,
     doubleTap:0, drones:d.drones || 0, droneSpd:d.droneSpd || 0, live:0,
     mark:d.mark || 0, markCorrode:d.markCorrode || 0, markSlow:0,
@@ -2314,6 +2338,63 @@ function curSpeed(e) {
   // Without this, a slow field outside tower reach stalls a wave forever.
   // Dilation sits outside the floor -- it is a power-up, it is allowed to bite.
   return e.spd * clamp(f, .34, 1) * (G.dilate > 0 && !e.ccProof ? .35 : 1);
+}
+
+// Charge, burst, cool -- and the burst is ended by the damage budget rather
+// than by a timer, which is what makes this tower different from everything
+// else on the board. Nothing here touches t.cool: the cycle IS the cooldown.
+function tickAccel(t) {
+  if (t.accPhase === 2) {                       // cooling
+    t.firing = 0;
+    if (--t.accT <= 0) { t.accPhase = 0; t.accT = t.accCharge; }
+    return;
+  }
+  if (t.accPhase === 0) {                       // winding up
+    t.firing = 0;
+    const tg = getTarget(t);
+    if (tg) t.tAng = Math.atan2(tg.y - t.y, tg.x - t.x);
+    t.heat = 1 - t.accT / Math.max(1, t.accCharge);   // drives the art
+    if (--t.accT <= 0) {
+      t.accPhase = 1; t.accSpent = 0; t.accLock = null; t.accShot = 0;
+      t.heat = 1; sfxT('charge');
+    }
+    return;
+  }
+
+  // bursting. It holds the lock until the target dies, walks out of reach, or
+  // the charge runs out; a kill mid-burst just moves it to the next thing.
+  t.firing = 1;
+  const R = eRange(t);
+  let e = t.accLock;
+  if (!e || e.dead || !canHit(t, e) || dist2(t.x, t.y, e.x, e.y) > R * R)
+    e = t.accLock = getTarget(t);
+  if (!e) return;                               // nothing in reach: hold the charge
+
+  t.tAng = Math.atan2(e.y - t.y, e.x - t.x);
+  if (--t.accShot > 0) return;
+  t.accShot = Math.max(1, eCd(t));
+
+  const dm = eDmg(t) * (e.air ? t.airMul : t.groundMul);
+  const crit = Math.random() < t.crit;
+  damage(e, dm, {src:t, pierceArmor:t.pierceArmor, crit, critMul:t.critMul, shatter:t.shatter});
+  statusHit(e, t);
+  if (t.splash > 0) splashAt(e.x, e.y, t.splash, dm * .5, t);
+  G.fx.push({k:'rail', x:t.x, y:t.y, x2:e.x, y2:e.y, life:7, max:7,
+             c:crit ? '#ffffff' : t.color, w:crit ? 5 : 3});
+  burst(e.x, e.y, t.color, 5, 4);
+  t.flash = 7; t.recoil = 1.6;
+  sfxT(crit ? 'crit' : 'accel');
+
+  // The budget is charged the nominal figure, not what armour let through, so
+  // the meter on the tower means the same thing against every enemy. The test
+  // happens after the shot lands, so the last one always goes through whole --
+  // a burst may overshoot its threshold, it is never cut short mid-shot.
+  t.accSpent += dm;
+  if (t.accSpent >= t.accBudget) {
+    t.accPhase = 2; t.accT = t.accCool; t.accLock = null;
+    t.heat = 0; t.firing = 0;
+    ring(t.x, t.y, 8, 54, t.color, 16);
+  }
 }
 
 function fireTower(t) {
@@ -3134,6 +3215,7 @@ function tick() {
     if (t.kind === 'orbit') { tickOrbit(t); continue; }
     if (t.kind === 'convoy') { tickConvoy(t); continue; }
     if (t.kind === 'heli') { tickHeliPad(t); continue; }
+    if (t.kind === 'accel') { tickAccel(t); continue; }
     if (t.kind === 'pulse' && t.aura) { tickAura(t); }
     t.cool--;
     if (t.cool <= 0) {
@@ -4555,6 +4637,48 @@ function drawTower(t, ghost) {
       ctx.fillStyle = rgba('#ffffff', .4 + (t.firing ? .45 : 0));
       ctx.beginPath(); ctx.arc(0, 0, 4.5, 0, TAU); ctx.fill();
       ctx.globalCompositeOperation = 'source-over';
+      break;
+    }
+    case 'accel': {
+      ctx.rotate(-t.ang);
+      const ch = t.accCharge ? clamp(1 - t.accT / t.accCharge, 0, 1) : 0;
+      const winding = t.accPhase === 0, firing = t.accPhase === 1;
+      const left = t.accBudget ? clamp(1 - t.accSpent / t.accBudget, 0, 1) : 1;
+      // the mount
+      ctx.fillStyle = '#081420'; ctx.strokeStyle = rgba(c, .8); ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.roundRect(-14, -13, 28, 26, 5); ctx.fill(); ctx.stroke();
+      // charge meter around it: fills winding up, drains while it burns
+      const amt = firing ? left : winding ? ch : 0;
+      ctx.strokeStyle = rgba(c, .16); ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(0, 0, 18, 0, TAU); ctx.stroke();
+      if (amt > 0) {
+        ctx.strokeStyle = rgba(firing ? '#ffffff' : c, firing ? .9 : .55 + ch * .4);
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(0, 0, 18, -Math.PI / 2, -Math.PI / 2 + TAU * amt); ctx.stroke();
+      }
+      ctx.rotate(t.ang);
+      // the barrel, pointing at whatever it is holding
+      ctx.fillStyle = '#05101a'; ctx.strokeStyle = rgba(c, .75); ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.roundRect(4, -5.5, 22, 11, 3); ctx.fill(); ctx.stroke();
+      // three coils along it, brightening as the charge builds
+      for (let i = 0; i < 3; i++) {
+        const lit = winding ? clamp(ch * 3 - i, 0, 1) : firing ? 1 : 0;
+        ctx.fillStyle = rgba(lit > 0 ? '#ffffff' : c, .16 + lit * .7);
+        ctx.beginPath(); ctx.roundRect(7 + i * 6, -7.5, 3.4, 15, 1.4); ctx.fill();
+      }
+      // the muzzle: dead while cooling, a hot point while firing
+      if (firing || ch > .55) {
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = rgba(firing ? '#ffffff' : c, firing ? .55 : ch * .3);
+        ctx.beginPath(); ctx.arc(28, 0, firing ? 6 + Math.sin(T * .9) * 1.6 : 3.5, 0, TAU);
+        ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
+      }
+      ctx.rotate(-t.ang);
+      // core
+      ctx.fillStyle = rgba(firing ? '#ffffff' : c, firing ? .85 : .2 + ch * .5);
+      ctx.beginPath(); ctx.arc(0, 0, 5, 0, TAU); ctx.fill();
+      ctx.rotate(t.ang);
       break;
     }
     case 'lance': {
@@ -6442,7 +6566,15 @@ function refreshInspectorLive() {
     $('iStats').children[1].querySelector('.k').textContent = 'RATE BUF';
     $('iEff').textContent = '\u2014';    // a buff has no output of its own to divide
   } else {
-    const perSec = ['cone', 'beam'].includes(t.kind) ? eDmg(t) * 60 : eDmg(t) * (t.pellets || t.missiles || t.shots || 1) * 60 / eCd(t);
+    // An ACCELERATOR's shot rate is what it does for half a second in every
+    // four. Averaging the budget over the whole cycle is the only figure that
+    // compares with the rest of the board.
+    const accCycle = t.kind === 'accel'
+      ? t.accCharge + t.accCool + Math.max(1, eCd(t)) * (t.accBudget / Math.max(1, eDmg(t)))
+      : 0;
+    const perSec = t.kind === 'accel' ? t.accBudget * 60 / Math.max(1, accCycle)
+      : ['cone', 'beam'].includes(t.kind) ? eDmg(t) * 60
+      : eDmg(t) * (t.pellets || t.missiles || t.shots || 1) * 60 / eCd(t);
     $('iDmg').textContent = fmt(Math.round(eDmg(t) * 10) / 10);
     $('iRate').textContent = fmt(Math.round(perSec)) + '/s';
     $('iRng').textContent = (t.range > 2000 ? '∞' : Math.round(eRange(t))) + (t.minRange ? ' ▸' + Math.round(t.minRange) : '');
@@ -6497,6 +6629,7 @@ const SLOTS = 6;
 const STARTERS = ['pulse', 'scatter', 'cryo'];
 const ASTARTERS = ['strike', 'freeze', 'over', 'repair'];
 const TOWER_PRICE = {
+  accel:4500,
   pulse:0, scatter:0, cryo:0,
   inferno:450, mire:700, tesla:900, halo:1150, mortar:1400,
   tempest:1700, hive:2000, rail:2350, lance:2550, rotor:2700, venom:2800, prism:3150, seismic:3550, nexus:4000,
@@ -7917,6 +8050,12 @@ const SFXT = {
   seismic:() => throttled('n', 150) && (tone({f:70, f2:26, type:'sine', dur:.45, v:.24}), noise({f:260, q:.4, dur:.35, v:.14, type:'lowpass'})),
   hive:   () => throttled('o', 80)  && (tone({f:1300, f2:2100, type:'square', dur:.07, v:.05}), noise({f:4200, q:3, dur:.05, v:.03, type:'highpass'})),
   voidcannon:()=>throttled('p',200) && (tone({f:60, f2:170, type:'sine', dur:.5, v:.2}), tone({f:900, f2:120, type:'triangle', dur:.4, v:.07})),
+  // the moment an ACCELERATOR finishes winding up: a rising note that hands
+  // straight over to the burst, so the burst has an audible beginning
+  charge: () => (tone({f:180, f2:1500, type:'sawtooth', dur:.3, v:.09}),
+                 noise({f:2600, q:3, dur:.12, v:.04, type:'bandpass'})),
+  accel:  () => throttled('q', 34) && (tone({f:1150 + rnd(180), f2:520, type:'square', dur:.05, v:.05}),
+                                       noise({f:3800, q:2.2, dur:.04, v:.03, type:'highpass'})),
 };
 function sfxT(k) { if (PV) return; const f = SFXT[k]; if (f) f(); }
 const SFX = {
