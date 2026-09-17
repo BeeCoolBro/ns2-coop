@@ -1337,14 +1337,14 @@ lance: {
 accel: {
   name:'CYCLOTRON', role:'Overcharge', color:'#4de0ff', cost:300, kind:'accel',
   draw:12,
-  dmg:36, cd:8, range:250, ps:30, shots:1, air:true, ground:true,
+  dmg:41.5, cd:8, range:250, ps:30, shots:1, air:true, ground:true,
   detect:true, pierceArmor:.35,
   // Burst length is charge over in-burst damage rate, so these are one number
-  // in three parts: 7.5 heavy shots a second at 36 is 270/s, and an 8,650 charge
+  // in three parts: 7.5 heavy shots a second at 41.5 is 311/s, and a 9,950 charge
   // takes about thirty-two seconds to spend. Change one and the other two must
   // follow, or the burst moves and the tower's output moves with it. The
   // charge is sized to the whole cycle: six up, thirty-two firing, two down.
-  accCharge:360, accCool:120, accBudget:8650,
+  accCharge:360, accCool:120, accBudget:9950,
   desc:'Spends six seconds winding a plasma gun up \u2014 and only while something is in range, losing the spin again when the lane empties \u2014 then holds the trigger down for half a minute. It picks one target and stays on it until that target is dead or gone, then takes the next. The burst ends when the charge is spent, not when the lane is clear. Sees through cloaks.',
   paths:[
     // Every tier that adds charge adds damage with it. Charge alone would only
