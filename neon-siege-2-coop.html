@@ -460,6 +460,106 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
 .adBtns{display:flex;gap:8px;margin-top:15px}
 .adBtns .btn{flex:1;padding:11px}
 /* ── the shop counter ───────────────────────────────────────── */
+
+/* ── the shops stand in rooms ───────────────────────── */
+/* One inert layer behind the stage. It never takes a click and never sits on
+   top of one: everything in it lives in the gutters the stage leaves. */
+#shopRoom{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden;
+  border-radius:12px}
+#shopStage{position:relative;z-index:1;padding:78px 82px 26px}
+#ovArmoury .ovBox{padding:0;border-radius:12px;overflow:hidden;position:relative}
+#ovArmoury .ovBtns{margin:0;padding:16px 30px 20px;position:relative;z-index:1}
+#ovArmoury.hw .swOnly,#ovArmoury.sw .hwOnly{display:none}
+
+/* -- HARDWARE'S: a workshop -- */
+#ovArmoury.hw .ovBox{
+  background:
+    radial-gradient(120% 60% at 50% -6%,rgba(255,214,51,.10),transparent 60%),
+    radial-gradient(rgba(255,255,255,.055) 1px,transparent 1.5px) 0 0/17px 17px,
+    linear-gradient(180deg,#0d1220,#080c16 55%,#0a0e19);
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 40px 90px -30px #000,inset 0 0 120px -40px rgba(255,214,51,.18)}
+#shDuct{position:absolute;left:0;right:0;top:0;height:26px;opacity:.9;
+  background:repeating-linear-gradient(90deg,#161d2d 0 12px,#111726 12px 24px);
+  border-bottom:2px solid #070b13}
+#shLamp{position:absolute;left:12%;right:12%;top:26px;height:7px;border-radius:0 0 4px 4px;
+  background:linear-gradient(#fff6d8,#ffd97a);box-shadow:0 0 40px 10px rgba(255,214,51,.35)}
+#shLampGlow{position:absolute;left:0;right:0;top:33px;height:260px;
+  background:linear-gradient(180deg,rgba(255,214,51,.13),transparent);
+  clip-path:polygon(14% 0,86% 0,100% 100%,0 100%)}
+#shHooks{position:absolute;left:70px;right:70px;top:46px;height:22px;display:flex;
+  justify-content:space-around;opacity:.5}
+#shHooks i{display:block;width:2px;height:16px;background:rgba(255,255,255,.22);
+  border-radius:0 0 3px 3px;box-shadow:2px 0 0 -.5px rgba(0,0,0,.5)}
+#shCounter{position:absolute;left:0;right:0;bottom:0;height:86px;
+  background:linear-gradient(180deg,#2a2013,#1a140c 40%,#120e08);border-top:3px solid #3d2f1b}
+#shCounter:before{content:'';position:absolute;left:0;right:0;top:-3px;height:9px;
+  background:repeating-linear-gradient(135deg,rgba(255,214,51,.75) 0 9px,rgba(20,16,8,.9) 9px 18px)}
+#shCounter:after{content:'';position:absolute;inset:14px 0 0;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.028) 0 90px,transparent 90px 92px)}
+.shCrate{position:absolute;width:64px;height:56px;border-radius:3px;
+  background:linear-gradient(180deg,#241a10,#1a130b);border:1px solid #3a2b18;
+  box-shadow:0 10px 24px -10px #000}
+.shCrate:before{content:'';position:absolute;inset:7px;border:1px dashed rgba(255,214,51,.22)}
+.shCrate span{position:absolute;left:0;right:0;bottom:6px;text-align:center;
+  font-family:var(--f1);font-size:6px;letter-spacing:.14em;color:rgba(255,214,51,.5)}
+#shCrate1{left:9px;bottom:92px;width:64px;height:52px}
+#shCrate2{left:13px;bottom:142px;width:56px;height:42px;transform:rotate(-2.5deg)}
+#shCrate3{right:9px;bottom:92px;width:64px;height:60px}
+#ovArmoury.hw #shopSignWrap{position:relative;padding-top:20px}
+#ovArmoury.hw #shopSignWrap:before,#ovArmoury.hw #shopSignWrap:after{
+  content:'';position:absolute;top:-26px;width:2px;height:46px;
+  background:repeating-linear-gradient(180deg,rgba(255,255,255,.4) 0 3px,transparent 3px 6px)}
+#ovArmoury.hw #shopSignWrap:before{left:14px}
+#ovArmoury.hw #shopSignWrap:after{right:14px}
+
+/* -- SOFTWARE'S: a rack room -- */
+#ovArmoury.sw .ovBox{
+  background:
+    radial-gradient(110% 70% at 50% 0%,rgba(34,230,255,.09),transparent 62%),
+    linear-gradient(180deg,#050c14,#03070d);
+  border:1px solid rgba(34,230,255,.2);
+  box-shadow:0 40px 90px -30px #000,inset 0 0 140px -50px rgba(34,230,255,.3)}
+#shBezel{position:absolute;inset:0;border-radius:12px;
+  box-shadow:inset 0 0 0 8px #0a0f18,inset 0 0 0 9px rgba(34,230,255,.18),
+             inset 0 0 90px -20px rgba(0,0,0,.95)}
+#shBezel:after{content:'';position:absolute;inset:9px;border-radius:8px;
+  background:radial-gradient(130% 100% at 50% 50%,transparent 55%,rgba(0,0,0,.55))}
+.shRack{position:absolute;top:44px;bottom:78px;width:52px;border-radius:3px;
+  background:linear-gradient(90deg,#070d15,#0b131d);border:1px solid rgba(34,230,255,.14);
+  display:flex;flex-direction:column;justify-content:space-between;padding:6px 0}
+#shRackL{left:10px} #shRackR{right:10px}
+.shRack i{display:block;height:7px;margin:0 5px;border-radius:1px;position:relative;
+  background:linear-gradient(90deg,#0d1622,#101c2a);border-top:1px solid rgba(255,255,255,.04)}
+.shRack i:before{content:'';position:absolute;left:4px;top:2px;width:3px;height:3px;
+  border-radius:50%;background:#5cff9d;box-shadow:0 0 6px #5cff9d}
+.shRack i:nth-child(3n):before{background:#ffd633;box-shadow:0 0 6px #ffd633}
+.shRack i:nth-child(5n):before{background:#22e6ff;box-shadow:0 0 6px #22e6ff}
+.shRack i:nth-child(7n):before{background:#2a3546;box-shadow:none}
+#shCables{position:absolute;left:0;right:0;bottom:0;height:78px;
+  background:linear-gradient(180deg,transparent,rgba(3,8,14,.9))}
+#shCables svg{position:absolute;inset:0;width:100%;height:100%}
+#shLog{position:absolute;left:66px;right:66px;top:40px;bottom:80px;overflow:hidden;
+  font-family:var(--mono,monospace);font-size:10px;line-height:1.6;white-space:pre;
+  color:rgba(34,230,255,.045);letter-spacing:.02em}
+#shStatus{position:absolute;left:10px;right:10px;top:12px;height:20px;border-radius:3px;
+  background:rgba(34,230,255,.06);border:1px solid rgba(34,230,255,.16);
+  display:flex;align-items:center;gap:14px;padding:0 12px;overflow:hidden;
+  font-family:var(--mono,monospace);font-size:9px;color:rgba(34,230,255,.55)}
+#shStatus b{font-weight:400;color:#5cff9d}
+#shStatus span{margin-left:auto;white-space:nowrap}
+#ovArmoury.sw #shopStage{padding:46px 74px 22px}
+#ovArmoury.sw .ovBtns{padding:16px 74px 26px}
+
+/* A gutter that does not exist cannot hold a crate. Under 900 the furniture
+   goes and the room keeps its lighting, its counter and its bezel. */
+@media (max-width:900px){
+  #shopStage,#ovArmoury.sw #shopStage{padding:52px 16px 20px}
+  #ovArmoury .ovBtns,#ovArmoury.sw .ovBtns{padding:14px 16px 18px}
+  .shCrate,.shRack,#shHooks,#shLog{display:none}
+  #shLampGlow{height:180px}
+  #shStatus{font-size:8px;gap:8px}
+}
 #shopWrap{text-align:left}
 
 #shopHead{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
@@ -856,7 +956,28 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
 
 <!-- ══════════ ARMOURY ══════════ -->
 <div class="ov" id="ovArmoury">
-  <div class="ovBox" style="max-width:1020px">
+  <div class="ovBox" style="max-width:1136px">
+    <div id="shopRoom" aria-hidden="true">
+      <div class="hwOnly" id="shDuct"></div>
+      <div class="hwOnly" id="shLamp"></div>
+      <div class="hwOnly" id="shLampGlow"></div>
+      <div class="hwOnly" id="shHooks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="hwOnly shCrate" id="shCrate1"><span>NS-2</span></div>
+      <div class="hwOnly shCrate" id="shCrate2"><span>SPARES</span></div>
+      <div class="hwOnly shCrate" id="shCrate3"><span>FRAGILE</span></div>
+      <div class="hwOnly" id="shCounter"></div>
+      <div class="swOnly" id="shLog"></div>
+      <div class="swOnly" id="shStatus"></div>
+      <div class="swOnly shRack" id="shRackL"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="swOnly shRack" id="shRackR"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="swOnly" id="shCables"><svg viewBox="0 0 1000 78" preserveAspectRatio="none">
+        <path d="M0,64 C160,24 300,74 460,50 C620,26 760,70 1000,40" fill="none" stroke="rgba(34,230,255,.20)" stroke-width="3"/>
+        <path d="M0,72 C200,44 340,84 520,60 C700,36 840,78 1000,54" fill="none" stroke="rgba(92,255,157,.14)" stroke-width="2.5"/>
+        <path d="M0,56 C140,18 320,66 500,42 C680,18 820,62 1000,30" fill="none" stroke="rgba(255,214,51,.10)" stroke-width="2"/>
+      </svg></div>
+      <div class="swOnly" id="shBezel"></div>
+    </div>
+    <div id="shopStage">
     <div id="shopWrap">
 
       <div id="shopCol">
@@ -882,6 +1003,7 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
       <div id="abilGrid"></div>
     </div>
       </div>
+    </div>
     </div>
     <div class="ovBtns"><button class="btn pri" id="btnCloseArm">DONE</button></div>
   </div>
@@ -7691,8 +7813,31 @@ function buildAbilPane() {
     grid.appendChild(el);
   }
 }
+// The rack room's status line. Written from the same numbers the shop is
+// already showing, because a prop that states something untrue is worse than
+// no prop at all.
+function shopRoomStatus() {
+  const st = document.getElementById('shStatus'); if (!st) return;
+  const owned = META.owned.length, all = TKEYS.length + ABILITIES.length;
+  st.innerHTML = 'SOFTWARE\u2019S // package manager <b>online</b>' +
+    '<span>repo ' + all + ' pkg \u00b7 owned <b>' + owned + '</b> \u00b7 carried <b>' +
+    META.abils.length + '/' + ASLOTS + '</b> \u00b7 ' +
+    restockLabel().toLowerCase() + '</span>';
+  const lg = document.getElementById('shLog');
+  if (lg && !lg.textContent) {
+    const lines = ['[ ok ] mounting /dev/flux', '[ ok ] loading repo index',
+      '[ ok ] verifying signatures', '[ ok ] cooldown table rebuilt',
+      '[ ok ] dock bound to ' + ASLOTS + ' slots', '[ ok ] deal cache valid',
+      '[ ok ] ready'];
+    let out = '';
+    for (let i = 0; i < 9; i++) out += lines[i % lines.length] + '\n';
+    lg.textContent = out;
+  }
+}
+
 function buildArmoury() {
   updateFluxLabels();
+  shopRoomStatus();
   buildAbilPane();
   $('slotMax').textContent = SLOTS;
   // loadout row
