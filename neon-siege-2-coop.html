@@ -6713,7 +6713,10 @@ function refreshInspector() {
       el.className = 'upg' + (own ? ' own' : '') + (!own && !next ? ' dis' : '') + (locked ? ' dis' : '') + (poor ? ' poor' : '');
       el.innerHTML = `<div class="un"><span style="color:${own ? '#5cff9d' : next && !locked ? p.color : 'var(--txm)'}">${own ? '✓ ' : ''}${u.n}</span>
         <span class="uc">${own ? 'OWNED' : locked ? 'LOCKED' : upCost(u)}</span></div><div class="ud">${u.d}</div>`;
-      if (next && !locked) el.onclick = () => buyUpgrade(t, pi, ti);
+      if (next && !locked) {
+        el.dataset.pi = pi; el.dataset.ti = ti;   // so the live pass can re-price it
+        el.onclick = () => buyUpgrade(t, pi, ti);
+      }
       wrap.appendChild(el);
     });
     box.appendChild(wrap);
@@ -6755,6 +6758,20 @@ function refreshInspectorLive() {
   $('iRate').className = 'v' + (t.buff.rate > 0 || G.overclock > 0 ? ' up' : '');
   $('iRng').className = 'v' + (t.buff.range > 0 ? ' up' : '');
   $('sellBtn').textContent = 'SELL · ' + Math.floor(t.spent * .7);
+  // Affordability moves with every kill, but the panel is only rebuilt when
+  // you click something -- so a price went red and stayed red until you
+  // clicked off the tower and back on. The rows carry their own path and tier
+  // so the price is recomputed rather than remembered, which keeps finale
+  // pricing honest too. This is the same job refreshDockAfford does below.
+  const box = $('iPaths');
+  if (box) for (const el of box.querySelectorAll('.upg[data-pi]')) {
+    const up = t.def.paths[+el.dataset.pi].ups[+el.dataset.ti];
+    if (!up) continue;
+    const c = upCost(up);
+    el.classList.toggle('poor', G.cash < c);
+    const uc = el.querySelector('.uc');
+    if (uc && uc.textContent !== String(c)) uc.textContent = c;
+  }
 }
 
 // ── wave preview ──
