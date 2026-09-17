@@ -2245,6 +2245,7 @@ function makeTower(x, y, type) {
     strikeEvery:0, strikeDmg:0, strikeR:0, strikeT:0,
     accCharge:d.accCharge || 0, accCool:d.accCool || 0, accBudget:d.accBudget || 0,
     accPhase:0, accT:d.accCharge || 0, accSpent:0, accLock:null, accShot:0, accIdle:0,
+    accVent:0,
     tarR:d.tarR || 0, tarLife:d.tarLife || 0, tarSlow:d.tarSlow || 0, tarPull:0,
     doubleTap:0, drones:d.drones || 0, droneSpd:d.droneSpd || 0, live:0,
     mark:d.mark || 0, markCorrode:d.markCorrode || 0, markSlow:0,
@@ -2293,10 +2294,15 @@ const RIG_FEED_CAP = .92;
 // Banking a full wind-up forever made it a tower you loaded once.
 const ACCEL_DECAY = .5;
 // How long a burst waits for something new to walk in before it gives up and
-// dumps what is left. A gap between two runners should not cost the charge;
-// an empty lane should. Two and a half seconds is long enough to cover the
-// former and short enough that it cannot be parked loaded between waves.
-const ACCEL_HOLD = 150;
+// vents what is left. A gap between two runners should not cost the charge;
+// an empty lane should. Three seconds is long enough to cover the former and
+// short enough that it cannot be parked loaded between waves.
+const ACCEL_HOLD = 180;
+// And how long the venting takes. The charge is forfeit the moment this
+// starts, so these ten seconds buy nothing and cost nothing -- they are the
+// tower letting go of a burst somewhere you can see it rather than between
+// two frames. Which is also why it abandons the vent for a target instantly.
+const ACCEL_SPIN = 600;
 const UPGRADE_PRICE = .5;              // fallback for anything untagged
 function upTierMul(up) {
   const m = UPGRADE_TIER[up.tier];
@@ -2369,6 +2375,21 @@ function curSpeed(e) {
 // than by a timer, which is what makes this tower different from everything
 // else on the board. Nothing here touches t.cool: the cycle IS the cooldown.
 function tickAccel(t) {
+  if (t.accPhase === 3) {                       // venting
+    t.firing = 0;
+    // Ten seconds must never cost a shot, so anything in reach ends it here
+    // and now. Nothing is saved by that -- the charge went when the vent
+    // began -- but the wind-up starts again immediately instead of in nine
+    // seconds, which is the difference between a flourish and a penalty.
+    if (getTarget(t)) { t.accPhase = 0; t.accT = t.accCharge; t.heat = 0; t.accVent = 0; return; }
+    t.accT--;
+    t.heat = t.accVent * Math.max(0, t.accT / ACCEL_SPIN);
+    // sparks off the barrel the whole way down
+    if (t.accT % 24 === 0)
+      burst(t.x + Math.cos(t.ang) * 26, t.y + Math.sin(t.ang) * 26, t.color, 3, 2.2);
+    if (t.accT <= 0) { t.accPhase = 0; t.accT = t.accCharge; t.heat = 0; t.accVent = 0; }
+    return;
+  }
   if (t.accPhase === 2) {                       // cooling
     t.firing = 0;
     if (--t.accT <= 0) { t.accPhase = 0; t.accT = t.accCharge; }
@@ -2397,6 +2418,7 @@ function tickAccel(t) {
   // bursting. It holds the lock until the target dies, walks out of reach, or
   // the charge runs out; a kill mid-burst just moves it to the next thing.
   t.firing = 1;
+  t.heat = t.accBudget ? clamp(1 - t.accSpent / t.accBudget, 0, 1) : 1;
   const R = eRange(t);
   let e = t.accLock;
   if (!e || e.dead || !canHit(t, e) || dist2(t.x, t.y, e.x, e.y) > R * R)
@@ -2407,9 +2429,14 @@ function tickAccel(t) {
     // whole wind-up has to be done again. Without this it could be parked
     // loaded through a whole breather and emptied into the next wave free.
     if (++t.accIdle >= ACCEL_HOLD) {
-      t.accPhase = 0; t.accT = t.accCharge;
+      // Vent it. What is left of the charge is gone at this line, not at the
+      // end of the wind-down -- the wind-down is only how it looks going.
+      t.accVent = t.accBudget ? clamp(1 - t.accSpent / t.accBudget, 0, 1) : 1;
+      t.accPhase = 3; t.accT = ACCEL_SPIN;
       t.accSpent = 0; t.accIdle = 0; t.accLock = null;
-      t.firing = 0; t.heat = 0;
+      t.firing = 0; t.heat = t.accVent;
+      sfxT('winddown');
+      ring(t.x, t.y, 38, 6, t.color, 26);       // the charge collapsing back in
     }
     return;
   }
@@ -4689,18 +4716,21 @@ function drawTower(t, ghost) {
     }
     case 'accel': {
       ctx.rotate(-t.ang);
-      const ch = t.accCharge ? clamp(1 - t.accT / t.accCharge, 0, 1) : 0;
-      const winding = t.accPhase === 0, firing = t.accPhase === 1;
-      const left = t.accBudget ? clamp(1 - t.accSpent / t.accBudget, 0, 1) : 1;
+      // One number drives all of this. t.heat is the meter: it climbs as the
+      // tower winds up, drains as the burst spends its charge, and drains all
+      // the way down over the vent. Reading that instead of the phase fields
+      // is also what makes the tower animate at all for a co-op guest, who is
+      // sent heat and firing and nothing else about it.
+      const amt = clamp(t.heat || 0, 0, 1);
+      const firing = !!t.firing;
       // the mount
       ctx.fillStyle = '#081420'; ctx.strokeStyle = rgba(c, .8); ctx.lineWidth = 1.8;
       ctx.beginPath(); ctx.roundRect(-14, -13, 28, 26, 5); ctx.fill(); ctx.stroke();
       // charge meter around it: fills winding up, drains while it burns
-      const amt = firing ? left : winding ? ch : 0;
       ctx.strokeStyle = rgba(c, .16); ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(0, 0, 18, 0, TAU); ctx.stroke();
       if (amt > 0) {
-        ctx.strokeStyle = rgba(firing ? '#ffffff' : c, firing ? .9 : .55 + ch * .4);
+        ctx.strokeStyle = rgba(firing ? '#ffffff' : c, firing ? .9 : .55 + amt * .4);
         ctx.lineWidth = 3;
         ctx.beginPath(); ctx.arc(0, 0, 18, -Math.PI / 2, -Math.PI / 2 + TAU * amt); ctx.stroke();
       }
@@ -4708,23 +4738,25 @@ function drawTower(t, ghost) {
       // the barrel, pointing at whatever it is holding
       ctx.fillStyle = '#05101a'; ctx.strokeStyle = rgba(c, .75); ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.roundRect(4, -5.5, 22, 11, 3); ctx.fill(); ctx.stroke();
-      // three coils along it, brightening as the charge builds
+      // Three coils. They light from the breech outwards as the charge
+      // builds, so the same formula run backwards puts them out from the
+      // muzzle inwards -- which is the wind-down, without having to know it.
       for (let i = 0; i < 3; i++) {
-        const lit = winding ? clamp(ch * 3 - i, 0, 1) : firing ? 1 : 0;
+        const lit = firing ? 1 : clamp(amt * 3 - i, 0, 1);
         ctx.fillStyle = rgba(lit > 0 ? '#ffffff' : c, .16 + lit * .7);
         ctx.beginPath(); ctx.roundRect(7 + i * 6, -7.5, 3.4, 15, 1.4); ctx.fill();
       }
       // the muzzle: dead while cooling, a hot point while firing
-      if (firing || ch > .55) {
+      if (firing || amt > .55) {
         ctx.globalCompositeOperation = 'lighter';
-        ctx.fillStyle = rgba(firing ? '#ffffff' : c, firing ? .55 : ch * .3);
+        ctx.fillStyle = rgba(firing ? '#ffffff' : c, firing ? .55 : amt * .3);
         ctx.beginPath(); ctx.arc(28, 0, firing ? 6 + Math.sin(T * .9) * 1.6 : 3.5, 0, TAU);
         ctx.fill();
         ctx.globalCompositeOperation = 'source-over';
       }
       ctx.rotate(-t.ang);
       // core
-      ctx.fillStyle = rgba(firing ? '#ffffff' : c, firing ? .85 : .2 + ch * .5);
+      ctx.fillStyle = rgba(firing ? '#ffffff' : c, firing ? .85 : .2 + amt * .5);
       ctx.beginPath(); ctx.arc(0, 0, 5, 0, TAU); ctx.fill();
       ctx.rotate(t.ang);
       break;
@@ -8102,6 +8134,11 @@ const SFXT = {
   // straight over to the burst, so the burst has an audible beginning
   charge: () => (tone({f:180, f2:1500, type:'sawtooth', dur:.3, v:.09}),
                  noise({f:2600, q:3, dur:.12, v:.04, type:'bandpass'})),
+  // the other end of the charge cue: a burst given up rather than spent
+  winddown: () => (tone({f:1150, f2:70, type:'sawtooth', dur:2.4, v:.07}),
+                   tone({f:575, f2:36, type:'triangle', dur:2.6, v:.045, d:.04}),
+                   noise({f:1400, q:1.1, dur:1.9, v:.035, type:'bandpass'}),
+                   tone({f:120, f2:40, type:'sine', dur:.5, v:.05, d:2.3})),
   accel:  () => throttled('q', 34) && (tone({f:1150 + rnd(180), f2:520, type:'square', dur:.05, v:.05}),
                                        noise({f:3800, q:2.2, dur:.04, v:.03, type:'highpass'})),
 };
