@@ -1373,7 +1373,7 @@ rotor: {
   draw:10,
   dmg:24, cd:8, range:320, shots:1, air:true, ground:true,
   heliMax:1, heliAmmo:30, heliSpd:2.6, heliRearm:110, heliGun:145,
-  desc:'A pad, not a gun. Gunships lift off and chase what they are shooting, over walls and over water, then break off to rearm. Left alone they work the pad\u2019s own circle; PURSUIT sends them down the lane after it. Damage shown is per bird.',
+  desc:'A pad, not a gun. Gunships lift off and chase what they are shooting, over walls and over water, then break off to rearm. Left alone they work the pad\u2019s own circle; PURSUIT sends them down the lane, and the pad\u2019s target mode becomes their flight pattern. Damage shown is per bird.',
   paths:[
     {name:'ORDNANCE', color:'#ff2d9b', ups:[
       {n:'Autocannon',     c:250, d:'+65% chaingun damage.',              f:t=>t.dmg*=1.65},
@@ -1385,10 +1385,10 @@ rotor: {
     // pad's radius -- the tower never reaches further than it can see -- but
     // from then on it stays with it, which is the whole path.
     {name:'PURSUIT', color:'#22e6ff', ups:[
-      {n:'Forward Sweep',  c:310, d:'+25% patrol radius, and a bird chases a target 120 past the edge of it instead of turning for home.',f:t=>{t.range*=1.25;t.heliLeash=120}},
-      {n:'Second Bird',    c:580, d:'A second gunship, and the leash runs 90 longer.',f:t=>{t.heliMax+=1;t.heliLeash+=90}},
-      {n:'Long Loiter',    c:1250,d:'+80% ammunition, half the rearm time, +25% flight speed, +120 leash \u2014 fuel enough to stay with a wave.',f:t=>{t.heliAmmo*=1.8;t.heliRearm*=.5;t.heliSpd*=1.25;t.heliLeash+=120}},
-      {n:'ESCORT',        c:3400,d:'Two more gunships, +35% ammunition, they rearm on station, and the leash runs 280 further \u2014 each bird rides its target down the lane until the magazine is dry.',f:t=>{t.heliMax+=2;t.heliAmmo*=1.35;t.heliHover=1;t.heliLeash+=280}},
+      {n:'Forward Sweep',  c:310, d:'+25% patrol radius, and the wing works 240 beyond it \u2014 birds now fly out to meet a wave instead of waiting for it.',f:t=>{t.range*=1.25;t.heliLeash=240}},
+      {n:'Second Bird',    c:580, d:'A second gunship, and the wing ranges 200 further out.',f:t=>{t.heliMax+=1;t.heliLeash+=200}},
+      {n:'Long Loiter',    c:1250,d:'+80% ammunition, half the rearm time, +25% flight speed, and 260 further out \u2014 fuel enough to stay with a wave down the lane.',f:t=>{t.heliAmmo*=1.8;t.heliRearm*=.5;t.heliSpd*=1.25;t.heliLeash+=260}},
+      {n:'ESCORT',        c:3400,d:'Two more gunships, +45% ammunition \u2014 and the wing comes off the leash entirely. It works the whole lane, and the only thing that brings a bird home is an empty magazine.',f:t=>{t.heliMax+=2;t.heliAmmo*=1.45;t.heliLeash=9999}},
     ]},
   ]},
 
@@ -2791,16 +2791,22 @@ function tickHelis() {
       }
       continue;
     }
-    // Acquisition is still the pad's job and still happens inside its radius.
-    // What the leash changes is what happens AFTER: the bird keeps the target
-    // it found, out past the edge, until the target dies or the leash ends.
+    // The leash is the operating area, not just how far a chase may run. A
+    // pursuit wing goes looking anywhere inside radius + leash, and picks by
+    // the pad's target mode rather than by whatever is nearest the nose --
+    // so on FIRST the birds fly out to meet a wave at its head and work back,
+    // and on CLOSE they stay over the pad for anyone who wants that. Without
+    // a leash none of this applies and the wing works its circle as before.
     let e = null;
     const leash = t.heliLeash || 0;
-    if (leash > 0 && h.lock && !h.lock.dead && canHit(t, h.lock)) {
+    if (leash > 0) {
       const far = R + leash;
-      if (dist2(t.x, t.y, h.lock.x, h.lock.y) <= far * far) e = h.lock;
+      if (h.lock && !h.lock.dead && canHit(t, h.lock) &&
+          dist2(t.x, t.y, h.lock.x, h.lock.y) <= far * far) e = h.lock;
+      if (!e) e = h.lock = getTarget(t, far / Math.max(1, R));
+    } else {
+      e = heliTarget(t, h, R);
     }
-    if (!e) e = h.lock = heliTarget(t, h, R);
     if (!e) {                                     // nothing in the sector: circle the pad
       h.orb += .022;
       heliMoveTo(h, t.x + Math.cos(h.orb) * 52, t.y + Math.sin(h.orb) * 52, t.heliSpd * .7);
