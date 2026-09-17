@@ -1372,7 +1372,7 @@ rotor: {
   name:'ROTOR', role:'Air Wing', color:'#ffb03d', cost:270, kind:'heli',
   draw:10,
   dmg:24, cd:8, range:320, shots:1, air:true, ground:true,
-  heliMax:1, heliAmmo:30, heliSpd:2.6, heliRearm:110, heliGun:145,
+  heliMax:1, heliAmmo:80, heliSpd:2.6, heliRearm:330, heliGun:145,
   desc:'A pad, not a gun. Gunships lift off and chase what they are shooting, over walls and over water, then break off to rearm. Left alone they work the pad\u2019s own circle; PURSUIT sends them down the lane, and the pad\u2019s target mode becomes their flight pattern. Damage shown is per bird.',
   paths:[
     {name:'ORDNANCE', color:'#ff2d9b', ups:[
@@ -1388,7 +1388,7 @@ rotor: {
     {name:'PURSUIT', color:'#22e6ff', ups:[
       {n:'Second Bird',    c:310, d:'A second gunship flies off the pad.',f:t=>{t.heliMax+=1}},
       {n:'Fuel Cell',      c:580, d:'+25% patrol radius and +80% ammunition. The wing still works the circle — it just works it harder.',f:t=>{t.range*=1.25;t.heliAmmo*=1.8}},
-      {n:'Forward Sweep',  c:1250,d:'Half the rearm time, +25% flight speed, and the wing comes off the pad: it works 700 beyond the circle, flying the pattern the pad’s target mode is set to.',f:t=>{t.heliRearm*=.5;t.heliSpd*=1.25;t.heliLeash=700}},
+      {n:'Forward Sweep',  c:1250,d:'Half the rearm time, +25% flight speed, and the wing comes off the pad: it works 700 beyond the circle, flying the pattern the pad’s target mode is set to. Spread down a lane it hits for 20% less than it would over one circle.',f:t=>{t.heliRearm*=.5;t.heliSpd*=1.25;t.heliLeash=700;t.dmg*=.8}},
       {n:'ESCORT',        c:3400,d:'Two more gunships, +45% ammunition \u2014 and the wing comes off the leash entirely. It works the whole lane, and the only thing that brings a bird home is an empty magazine.',f:t=>{t.heliMax+=2;t.heliAmmo*=1.45;t.heliLeash=9999}},
     ]},
   ]},
@@ -2736,6 +2736,30 @@ function heliMoveTo(h, x, y, spd, stand) {
 }
 // A bird hunts whatever is nearest to ITSELF, but only inside the pad's patrol
 // radius -- the range ring on the pad is the area the wing covers, not a gun.
+// The pad's target mode, applied over the wing's whole operating area and
+// able to skip what another bird has already claimed this frame. It mirrors
+// getTarget's modes on purpose: the point of the path is that the control you
+// already use to aim towers is also what flies the helicopters.
+const _heliClaim = new Set();
+function heliPick(t, R, skip) {
+  nearby(t.x, t.y, R, _q3);
+  let best = null, bv = -Infinity;
+  for (let i = 0; i < _q3.length; i++) {
+    const e = _q3[i];
+    if (!canHit(t, e)) continue;
+    if (skip && skip.has(e)) continue;
+    let v;
+    switch (t.targetMode) {
+      case 1: v = -(e.d / e.route.len); break;
+      case 2: v = e.hp; break;
+      case 3: v = -dist2(t.x, t.y, e.x, e.y); break;
+      default: v = e.d / e.route.len;
+    }
+    if (v > bv) { bv = v; best = e; }
+  }
+  return best;
+}
+
 function heliTarget(t, h, R) {
   nearby(t.x, t.y, R, _q2);
   let best = null, bd = 1e9;
@@ -2762,6 +2786,7 @@ function heliFire(h, t, e, free) {
   } else sfxT('vulcan');
 }
 function tickHelis() {
+  _heliClaim.clear();          // one claim list per frame, shared by every wing
   for (let i = G.helis.length - 1; i >= 0; i--) {
     const h = G.helis[i], t = h.src;
     if (!t || G.towers.indexOf(t) < 0) {          // the pad was sold out from under it
@@ -2801,10 +2826,14 @@ function tickHelis() {
     let e = null;
     const leash = t.heliLeash || 0;
     if (leash > 0) {
-      const far = R + leash;
-      if (h.lock && !h.lock.dead && canHit(t, h.lock) &&
-          dist2(t.x, t.y, h.lock.x, h.lock.y) <= far * far) e = h.lock;
-      if (!e) e = h.lock = getTarget(t, far / Math.max(1, R));
+      // Re-read every frame rather than holding what was acquired: on FIRST
+      // the leader changes as the wave does, and a bird that keeps an old
+      // target is a bird watching the new one walk past. Claim it so the next
+      // bird takes the one behind it instead of piling onto the same enemy.
+      e = heliPick(t, R + leash, _heliClaim);
+      if (!e) e = heliPick(t, R + leash);      // fewer targets than birds
+      h.lock = e;
+      if (e) _heliClaim.add(e);
     } else {
       e = heliTarget(t, h, R);
     }
@@ -2813,7 +2842,19 @@ function tickHelis() {
       heliMoveTo(h, t.x + Math.cos(h.orb) * 52, t.y + Math.sin(h.orb) * 52, t.heliSpd * .7);
       continue;
     }
-    heliMoveTo(h, e.x, e.y, t.heliSpd, t.heliGun * .72);
+    // Fly at where it will be. Ordering a bird to where the target IS loses
+    // every chase against anything faster than it -- a SKIMMER runs 3.5 to a
+    // maxed wing's 3.25 -- and it loses them all the way to the core, never
+    // once in range. Leading turns the tail chase into a cut-off, which is
+    // also how the guns already aim. Fire still checks the real position.
+    let ax = e.x, ay = e.y;
+    if (leash > 0 && e.route) {
+      const gap = Math.hypot(e.x - h.x, e.y - h.y);
+      const p = routeAt(e.route, Math.min(e.route.len,
+                        e.d + curSpeed(e) * (gap / Math.max(.1, t.heliSpd))));
+      ax = p.x; ay = p.y;
+    }
+    heliMoveTo(h, ax, ay, t.heliSpd, t.heliGun * .72);
     if (dist2(h.x, h.y, e.x, e.y) < t.heliGun * t.heliGun) heliFire(h, t, e);
   }
 }
