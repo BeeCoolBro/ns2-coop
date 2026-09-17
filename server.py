@@ -211,12 +211,29 @@ class Handler(SimpleHTTPRequestHandler):
     def log_message(self, *a):
         pass
 
+    # Set while serving a file off disk, so the cache header lands on the game
+    # and not on the websocket handshake or the health endpoint.
+    revalidate = False
+
     def translate_path(self, path):
         if path in ('/', '/index.html'):
             path = '/' + GAME
         return SimpleHTTPRequestHandler.translate_path(self, path)
 
+    def end_headers(self):
+        # The game is a single HTML file and it changes every deploy. Without a
+        # directive the browser caches it heuristically off Last-Modified and
+        # can serve a days-old copy, which is how one player ends up reporting
+        # prices and bugs from a build that no longer exists. no-cache means
+        # "revalidate", not "do not store": an unchanged file still answers 304.
+        if self.revalidate:
+            self.send_header('Cache-Control', 'no-cache, must-revalidate')
+        SimpleHTTPRequestHandler.end_headers(self)
+
     def do_GET(self):
+        # Reset per request: a keep-alive connection reuses this instance, and
+        # the flag belongs to the file being served, not to the socket.
+        self.revalidate = False
         route = self.path.split('?')[0]
         if route == '/ws':
             return self.websocket()
@@ -231,6 +248,7 @@ class Handler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
+        self.revalidate = True
         return SimpleHTTPRequestHandler.do_GET(self)
 
     def websocket(self):

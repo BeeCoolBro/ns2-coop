@@ -2245,7 +2245,7 @@ function makeTower(x, y, type) {
     strikeEvery:0, strikeDmg:0, strikeR:0, strikeT:0,
     accCharge:d.accCharge || 0, accCool:d.accCool || 0, accBudget:d.accBudget || 0,
     accPhase:0, accT:d.accCharge || 0, accSpent:0, accLock:null, accShot:0, accIdle:0,
-    accVent:0,
+    accVent:0, accVentT:0,
     tarR:d.tarR || 0, tarLife:d.tarLife || 0, tarSlow:d.tarSlow || 0, tarPull:0,
     doubleTap:0, drones:d.drones || 0, droneSpd:d.droneSpd || 0, live:0,
     mark:d.mark || 0, markCorrode:d.markCorrode || 0, markSlow:0,
@@ -2375,42 +2375,41 @@ function curSpeed(e) {
 // than by a timer, which is what makes this tower different from everything
 // else on the board. Nothing here touches t.cool: the cycle IS the cooldown.
 function tickAccel(t) {
-  if (t.accPhase === 3) {                       // venting
-    t.firing = 0;
-    // Ten seconds must never cost a shot, so anything in reach ends it here
-    // and now. Nothing is saved by that -- the charge went when the vent
-    // began -- but the wind-up starts again immediately instead of in nine
-    // seconds, which is the difference between a flourish and a penalty.
-    if (getTarget(t)) { t.accPhase = 0; t.accT = t.accCharge; t.heat = 0; t.accVent = 0; return; }
-    t.accT--;
-    t.heat = t.accVent * Math.max(0, t.accT / ACCEL_SPIN);
-    // sparks off the barrel the whole way down
-    if (t.accT % 24 === 0)
-      burst(t.x + Math.cos(t.ang) * 26, t.y + Math.sin(t.ang) * 26, t.color, 3, 2.2);
-    if (t.accT <= 0) { t.accPhase = 0; t.accT = t.accCharge; t.heat = 0; t.accVent = 0; }
-    return;
-  }
   if (t.accPhase === 2) {                       // cooling
     t.firing = 0;
     if (--t.accT <= 0) { t.accPhase = 0; t.accT = t.accCharge; }
     return;
   }
-  if (t.accPhase === 0) {                       // winding up
+  if (t.accPhase === 0) {                       // winding up, and winding down
     t.firing = 0;
     const tg = getTarget(t);
     // The wind-up only advances while something is in reach, and bleeds back
     // down when nothing is. accT counts DOWN to zero as it winds, so losing
     // progress means letting it climb again -- never past a standing start.
-    if (!tg) {
-      t.accT = Math.min(t.accCharge, t.accT + ACCEL_DECAY);
-      t.heat = 1 - t.accT / Math.max(1, t.accCharge);
-      return;
+    if (!tg) t.accT = Math.min(t.accCharge, t.accT + ACCEL_DECAY);
+    else { t.tAng = Math.atan2(tg.y - t.y, tg.x - t.x); t.accT--; }
+    const wind = 1 - t.accT / Math.max(1, t.accCharge);
+
+    // What is left of a burst that ran out of things to shoot, draining away.
+    // This is presentation and nothing else: the charge went the frame the
+    // hold expired and the full wind-up above is owed from that same frame, so
+    // the vent can run on its own clock and let nothing interrupt it. It used
+    // to be a phase that anything in range cancelled, which meant it was never
+    // on screen long enough to be an animation at all.
+    let vent = 0;
+    if (t.accVentT > 0) {
+      t.accVentT--;
+      vent = t.accVent * (t.accVentT / ACCEL_SPIN);
+      if (t.accVentT % 24 === 0)
+        burst(t.x + Math.cos(t.ang) * 26, t.y + Math.sin(t.ang) * 26, t.color, 3, 2.2);
     }
-    t.tAng = Math.atan2(tg.y - t.y, tg.x - t.x);
-    t.heat = 1 - t.accT / Math.max(1, t.accCharge);   // drives the art
-    if (--t.accT <= 0) {
+    // Whichever is higher: the needle falls with the vent until the wind-up
+    // climbing underneath catches it, and never jumps in either direction.
+    t.heat = Math.max(wind, vent);
+
+    if (tg && t.accT <= 0) {
       t.accPhase = 1; t.accSpent = 0; t.accLock = null; t.accShot = 0; t.accIdle = 0;
-      t.heat = 1; sfxT('charge');
+      t.accVentT = 0; t.heat = 1; sfxT('charge');
     }
     return;
   }
@@ -2429,10 +2428,12 @@ function tickAccel(t) {
     // whole wind-up has to be done again. Without this it could be parked
     // loaded through a whole breather and emptied into the next wave free.
     if (++t.accIdle >= ACCEL_HOLD) {
-      // Vent it. What is left of the charge is gone at this line, not at the
-      // end of the wind-down -- the wind-down is only how it looks going.
+      // The charge is gone at this line and a full wind-up is owed from this
+      // line -- exactly the cost it carried before there was any animation.
+      // Everything below is the ten seconds it takes to look like it.
       t.accVent = t.accBudget ? clamp(1 - t.accSpent / t.accBudget, 0, 1) : 1;
-      t.accPhase = 3; t.accT = ACCEL_SPIN;
+      t.accVentT = ACCEL_SPIN;
+      t.accPhase = 0; t.accT = t.accCharge;
       t.accSpent = 0; t.accIdle = 0; t.accLock = null;
       t.firing = 0; t.heat = t.accVent;
       sfxT('winddown');
