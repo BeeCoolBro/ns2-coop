@@ -2416,6 +2416,8 @@ function tickAccel(t) {
   t.accIdle = 0;
 
   t.tAng = Math.atan2(e.y - t.y, e.x - t.x);
+  // the beam itself: every frame, so it is continuous and follows the target
+  G.fx.push({k:'rail', x:t.x, y:t.y, x2:e.x, y2:e.y, life:2, max:2, c:t.color, w:1.9});
   if (--t.accShot > 0) return;
   t.accShot = Math.max(1, Math.round(eCd(t)));
 
@@ -2424,8 +2426,9 @@ function tickAccel(t) {
   damage(e, dm, {src:t, pierceArmor:t.pierceArmor, crit, critMul:t.critMul, shatter:t.shatter});
   statusHit(e, t);
   if (t.splash > 0) splashAt(e.x, e.y, t.splash, dm * .5, t);
-  G.fx.push({k:'rail', x:t.x, y:t.y, x2:e.x, y2:e.y, life:7, max:7,
-             c:crit ? '#ffffff' : t.color, w:crit ? 5 : 3});
+  G.fx.push({k:'rail', x:t.x, y:t.y, x2:e.x, y2:e.y, life:9, max:9,
+             c:crit ? '#ffffff' : t.color, w:crit ? 6 : 4.2});
+  ring(e.x, e.y, 2, 16, t.color, 7);          // the beam biting, at the far end
   burst(e.x, e.y, t.color, 5, 4);
   t.flash = 7; t.recoil = 1.6;
   sfxT(crit ? 'crit' : 'accel');
