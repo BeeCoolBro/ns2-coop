@@ -1389,7 +1389,7 @@ rotor: {
       {n:'Second Bird',    c:310, d:'A second gunship flies off the pad.',f:t=>{t.heliMax+=1}},
       {n:'Fuel Cell',      c:580, d:'+25% patrol radius and +80% ammunition. The wing still works the circle — it just works it harder.',f:t=>{t.range*=1.25;t.heliAmmo*=1.8}},
       {n:'Forward Sweep',  c:1250,d:'Half the rearm time, +25% flight speed, and the wing comes off the pad: it works 700 beyond the circle, flying the pattern the pad’s target mode is set to. Spread down a lane it hits for 20% less than it would over one circle.',f:t=>{t.heliRearm*=.5;t.heliSpd*=1.25;t.heliLeash=700;t.dmg*=.8}},
-      {n:'ESCORT',        c:3400,d:'Two more gunships, +45% ammunition, but three times as long to turn a bird around \u2014 and the wing comes off the leash entirely. It works the whole lane, and the only thing that brings a bird home is an empty magazine.',f:t=>{t.heliMax+=2;t.heliAmmo*=1.45;t.heliRearm*=3;t.heliLeash=9999}},
+      {n:'ESCORT',        c:3400,d:'Two more gunships, +45% ammunition, but five times as long to turn a bird around \u2014 and the wing comes off the leash entirely. It works the whole lane, and the only thing that brings a bird home is an empty magazine.',f:t=>{t.heliMax+=2;t.heliAmmo*=1.45;t.heliRearm*=5;t.heliLeash=9999}},
     ]},
   ]},
 
