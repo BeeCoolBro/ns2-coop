@@ -2244,7 +2244,7 @@ function makeTower(x, y, type) {
     rigFeed:d.rigFeed || 0, rigCap:d.rigCap || 2.5, rigNova:0, rigNovaR:0,
     strikeEvery:0, strikeDmg:0, strikeR:0, strikeT:0,
     accCharge:d.accCharge || 0, accCool:d.accCool || 0, accBudget:d.accBudget || 0,
-    accPhase:0, accT:d.accCharge || 0, accSpent:0, accLock:null, accShot:0,
+    accPhase:0, accT:d.accCharge || 0, accSpent:0, accLock:null, accShot:0, accIdle:0,
     tarR:d.tarR || 0, tarLife:d.tarLife || 0, tarSlow:d.tarSlow || 0, tarPull:0,
     doubleTap:0, drones:d.drones || 0, droneSpd:d.droneSpd || 0, live:0,
     mark:d.mark || 0, markCorrode:d.markCorrode || 0, markSlow:0,
@@ -2292,6 +2292,11 @@ const RIG_FEED_CAP = .92;
 // a gap between two walkers costs a little, an empty lane costs all of it.
 // Banking a full wind-up forever made it a tower you loaded once.
 const ACCEL_DECAY = .5;
+// How long a burst waits for something new to walk in before it gives up and
+// dumps what is left. A gap between two runners should not cost the charge;
+// an empty lane should. Two and a half seconds is long enough to cover the
+// former and short enough that it cannot be parked loaded between waves.
+const ACCEL_HOLD = 150;
 const UPGRADE_PRICE = .5;              // fallback for anything untagged
 function upTierMul(up) {
   const m = UPGRADE_TIER[up.tier];
@@ -2383,7 +2388,7 @@ function tickAccel(t) {
     t.tAng = Math.atan2(tg.y - t.y, tg.x - t.x);
     t.heat = 1 - t.accT / Math.max(1, t.accCharge);   // drives the art
     if (--t.accT <= 0) {
-      t.accPhase = 1; t.accSpent = 0; t.accLock = null; t.accShot = 0;
+      t.accPhase = 1; t.accSpent = 0; t.accLock = null; t.accShot = 0; t.accIdle = 0;
       t.heat = 1; sfxT('charge');
     }
     return;
@@ -2396,7 +2401,19 @@ function tickAccel(t) {
   let e = t.accLock;
   if (!e || e.dead || !canHit(t, e) || dist2(t.x, t.y, e.x, e.y) > R * R)
     e = t.accLock = getTarget(t);
-  if (!e) return;                               // nothing in reach: hold the charge
+  if (!e) {
+    // Nothing in reach. The burst waits a couple of seconds for something new
+    // to walk in, then gives up: what is left of the charge is dumped and the
+    // whole wind-up has to be done again. Without this it could be parked
+    // loaded through a whole breather and emptied into the next wave free.
+    if (++t.accIdle >= ACCEL_HOLD) {
+      t.accPhase = 0; t.accT = t.accCharge;
+      t.accSpent = 0; t.accIdle = 0; t.accLock = null;
+      t.firing = 0; t.heat = 0;
+    }
+    return;
+  }
+  t.accIdle = 0;
 
   t.tAng = Math.atan2(e.y - t.y, e.x - t.x);
   if (--t.accShot > 0) return;
