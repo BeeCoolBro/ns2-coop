@@ -1650,7 +1650,12 @@ const ABIL = {}; for (const a of ABILITIES) ABIL[a.id] = a;
 // One key per upgrade path, shown on the path header in the inspector.
 const UP_KEYS = ['Q', 'E'];
 // the ability sitting in loadout slot i, or null
-function slotAbil(i) { const id = META.abils[i]; return id ? ABIL[id] : null; }
+// The run's abilities, not the armoury's -- same rule as the towers.
+function slotAbil(i) {
+  const kit = G.abils && G.abils.length ? G.abils : META.abils;
+  const id = kit[i];
+  return id ? ABIL[id] : null;
+}
 
 // ═══════════════════════════════════════════════════════════
 //  CANVAS · CAMERA · BLOOM
@@ -1791,6 +1796,9 @@ const G = {
   lanes:[], core:{x:W*.9, y:H*.5}, grid:null, blocks:[],
   best:0, bestWave:0, started:false,
   dmgType:{},                           // run-long damage by tower type
+  // What this run is locked to, taken from META at startGame and restored
+  // from the save on resume. META is the armoury; these two are the run.
+  loadout:[], abils:[],
 };
 const GC = 20;                          // build-grid cell size (world px)
 const GW = Math.ceil(W / GC), GH = Math.ceil(H / GC);
@@ -5764,6 +5772,9 @@ function startGame(mapIdx, diffIdx, endless) {
   G.cores = G.maxCores = Math.round(m.cores * d.cores);
   G.wave = 0; G.score = 0; G.kills = 0; G.leaked = 0; G.spent = 0;
   G.dmgType = {};
+  // Locked here and nowhere else. resumeRun overwrites both straight after,
+  // with the kit the run was originally started on.
+  G.loadout = META.loadout.slice(); G.abils = META.abils.slice();
   G.towers = []; G.enemies = []; G.projs = []; G.parts = []; G.fx = []; G.floats = []; G.pools = []; G.drones = [];
   G.rigs = []; G.helis = [];
   G.groups = [];
@@ -5953,7 +5964,7 @@ function snapRun() {
     score:G.score, kills:G.kills, leaked:G.leaked, spent:G.spent,
     combo:G.combo, comboT:G.comboT, comboKills:G.comboKills,
     auto:!!G.auto, speed:G.speed, dmgType:G.dmgType,
-    abils:META.abils.slice(), abilCd:G.abilCd.slice(),
+    kit:G.loadout.slice(), abils:G.abils.slice(), abilCd:G.abilCd.slice(),
     towers:G.towers.map(t => ({
       k:t.type, x:Math.round(t.x), y:Math.round(t.y),
       o:t.ord.slice(), m:t.targetMode || 0,
@@ -6027,8 +6038,15 @@ function resumeRun() {
   G.combo = r.combo || 1; G.comboT = r.comboT | 0; G.comboKills = r.comboKills | 0;
   G.auto = !!r.auto; G.speed = r.speed || 1;
   G.dmgType = (r.dmgType && typeof r.dmgType === 'object') ? r.dmgType : {};
-  // cooldowns are per slot, so they only mean anything if the loadout still is
-  if (Array.isArray(r.abilCd) && String(r.abils) === String(META.abils))
+  // The kit the run began on, overriding what startGame took from META. Runs
+  // saved before this carry no kit and keep the current one -- the old
+  // behaviour once more, which beats refusing to load somebody's game.
+  const kit = (r.kit || []).filter(k => TOWERS[k]);
+  if (kit.length) G.loadout = kit;
+  const ab = (r.abils || []).filter(k => ABIL[k]);
+  if (ab.length) G.abils = ab;
+  // cooldowns are per slot, so they only mean anything against the same kit
+  if (Array.isArray(r.abilCd) && String(r.abils) === String(G.abils))
     G.abilCd = r.abilCd.slice(0, ASLOTS);
   for (const d of r.towers) {
     const t = towerFromSave(d);
@@ -6063,11 +6081,17 @@ function refreshResumeCard() {
   if (!r) return;
   const m = MAPS[r.map], n = r.towers.length;
   $('resumeN').textContent = m.name;
+  // Worth spelling out only when it differs from what is equipped, which is
+  // exactly when a player would otherwise resume and wonder where their
+  // towers went.
+  const kit = (r.kit || []).filter(k => TOWERS[k]);
+  const locked = kit.length && String(kit) !== String(META.loadout)
+    ? ' \u00b7 locked to ' + kit.map(k => TOWERS[k].name).join(', ') : '';
   $('resumeZ').textContent =
     (r.sandbox ? 'Sandbox' : r.endless ? 'Endless' : DIFFS[r.diff].name) +
     ' \u00b7 wave ' + ((r.wave | 0) + 1) +
     ' \u00b7 ' + n + ' tower' + (n === 1 ? '' : 's') +
-    ' \u00b7 ' + r.cores + ' core' + (r.cores === 1 ? '' : 's');
+    ' \u00b7 ' + r.cores + ' core' + (r.cores === 1 ? '' : 's') + locked;
 }
 
 function quitToMenu() {
@@ -6501,10 +6525,18 @@ function enemyIcon(type, size) {
   ctx = real;
   return c;
 }
+// What this run is holding, which is not the same question as what the armoury
+// has equipped. Falls back to META before a run exists, for the menus.
+function runKit() {
+  if (G.sandbox) return TKEYS;
+  return G.loadout && G.loadout.length ? G.loadout : META.loadout;
+}
+function inKit(k) { return runKit().includes(k); }
+
 function buildDock() {
   const d = $('buildDock'); d.innerHTML = '';
   // a sandbox shows the whole roster, not the six you happen to have equipped
-  const kit = G.sandbox ? TKEYS.slice() : META.loadout;
+  const kit = G.sandbox ? TKEYS.slice() : runKit();
   kit.forEach((k, i) => {
     const def = TOWERS[k];
     const el = document.createElement('div');
@@ -6542,7 +6574,7 @@ function refreshDockAfford() {
 function selectType(k) {
   // a sandbox offers the whole roster, so the loadout cannot gate it -- this
   // is the check that actually blocks a click, not anything in placeTower
-  if (!equipped(k) && !G.sandbox) { toast('🛠', 'NOT EQUIPPED', `${TOWERS[k].name} is not in your loadout. Change it in the Armoury.`, '#b46bff'); sfx('deny'); return; }
+  if (!inKit(k)) { toast('🛠', 'NOT EQUIPPED', `${TOWERS[k].name} is not in this run's loadout. A run keeps the kit it started with.`, '#b46bff'); sfx('deny'); return; }
   if (G.selType !== k) {
     const b = placeBlock(k);
     if (b === 'cap') { toast('✕', 'TYPE LIMIT REACHED', `You already have ${TYPE_CAP} ${TOWERS[k].name} towers.`, '#ff2d9b'); sfx('deny'); return; }
@@ -6570,7 +6602,7 @@ function hideTip() {
 // ── abilities ──
 function buildAbilityDock() {
   const d = $('abilDock'); d.innerHTML = '';
-  META.abils.forEach((id, i) => {
+  (G.abils && G.abils.length ? G.abils : META.abils).forEach((id, i) => {
     const a = ABIL[id]; if (!a) return;
     const el = document.createElement('div');
     el.className = 'ab'; el.style.setProperty('--ac', a.color);
@@ -7815,7 +7847,7 @@ addEventListener('keydown', ev => {
   if (G.mode !== 'play' || ov) return;   // an open overlay owns the keyboard
   if (ev.repeat) return;
   if (k >= '1' && k <= '9') {
-    const i = +k - 1, kit = G.sandbox ? TKEYS : META.loadout;
+    const i = +k - 1, kit = runKit();
     if (kit[i]) selectType(kit[i]);
     ev.preventDefault(); return;
   }
