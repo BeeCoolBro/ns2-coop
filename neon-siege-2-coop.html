@@ -2245,7 +2245,7 @@ function makeTower(x, y, type) {
     strikeEvery:0, strikeDmg:0, strikeR:0, strikeT:0,
     accCharge:d.accCharge || 0, accCool:d.accCool || 0, accBudget:d.accBudget || 0,
     accPhase:0, accT:d.accCharge || 0, accSpent:0, accLock:null, accShot:0, accIdle:0,
-    accVent:0, accVentT:0,
+    accVent:0, accVentT:0, accGlow:0,
     tarR:d.tarR || 0, tarLife:d.tarLife || 0, tarSlow:d.tarSlow || 0, tarPull:0,
     doubleTap:0, drones:d.drones || 0, droneSpd:d.droneSpd || 0, live:0,
     mark:d.mark || 0, markCorrode:d.markCorrode || 0, markSlow:0,
@@ -2375,8 +2375,26 @@ function curSpeed(e) {
 // than by a timer, which is what makes this tower different from everything
 // else on the board. Nothing here touches t.cool: the cycle IS the cooldown.
 function tickAccel(t) {
+  // The wind-down sits above the phases rather than inside one, because the
+  // two ways of losing a charge leave the tower in different places: given up
+  // goes straight back to winding, spent goes to cooling first. It has its own
+  // clock, nothing cuts it short, and it only ever holds the needle ABOVE what
+  // the tower itself is showing -- so it can never hide the real state.
+  let vent = 0;
+  if (t.accVentT > 0) {
+    t.accVentT--;
+    vent = t.accVent * (t.accVentT / ACCEL_SPIN);
+    if (t.accVentT % 24 === 0)
+      burst(t.x + Math.cos(t.ang) * 26, t.y + Math.sin(t.ang) * 26, t.color, 3, 2.2);
+  }
+  // The rotor, coasting: what the coils and the core show, as opposed to the
+  // ring, which shows charge. They come apart exactly once -- a burst spent to
+  // the last shot ends with no charge and a machine still turning -- and that
+  // is the case this exists for. Art only; nothing reads it back.
+  t.accGlow = t.accVentT / ACCEL_SPIN;
   if (t.accPhase === 2) {                       // cooling
     t.firing = 0;
+    t.heat = vent;
     if (--t.accT <= 0) { t.accPhase = 0; t.accT = t.accCharge; }
     return;
   }
@@ -2389,22 +2407,8 @@ function tickAccel(t) {
     if (!tg) t.accT = Math.min(t.accCharge, t.accT + ACCEL_DECAY);
     else { t.tAng = Math.atan2(tg.y - t.y, tg.x - t.x); t.accT--; }
     const wind = 1 - t.accT / Math.max(1, t.accCharge);
-
-    // What is left of a burst that ran out of things to shoot, draining away.
-    // This is presentation and nothing else: the charge went the frame the
-    // hold expired and the full wind-up above is owed from that same frame, so
-    // the vent can run on its own clock and let nothing interrupt it. It used
-    // to be a phase that anything in range cancelled, which meant it was never
-    // on screen long enough to be an animation at all.
-    let vent = 0;
-    if (t.accVentT > 0) {
-      t.accVentT--;
-      vent = t.accVent * (t.accVentT / ACCEL_SPIN);
-      if (t.accVentT % 24 === 0)
-        burst(t.x + Math.cos(t.ang) * 26, t.y + Math.sin(t.ang) * 26, t.color, 3, 2.2);
-    }
-    // Whichever is higher: the needle falls with the vent until the wind-up
-    // climbing underneath catches it, and never jumps in either direction.
+    // Whichever is higher: the needle falls with the wind-down until the
+    // wind-up climbing underneath catches it, and never jumps either way.
     t.heat = Math.max(wind, vent);
 
     if (tg && t.accT <= 0) {
@@ -2432,7 +2436,7 @@ function tickAccel(t) {
       // line -- exactly the cost it carried before there was any animation.
       // Everything below is the ten seconds it takes to look like it.
       t.accVent = t.accBudget ? clamp(1 - t.accSpent / t.accBudget, 0, 1) : 1;
-      t.accVentT = ACCEL_SPIN;
+      t.accVentT = ACCEL_SPIN; t.accGlow = 1;
       t.accPhase = 0; t.accT = t.accCharge;
       t.accSpent = 0; t.accIdle = 0; t.accLock = null;
       t.firing = 0; t.heat = t.accVent;
@@ -2467,8 +2471,18 @@ function tickAccel(t) {
   // a burst may overshoot its threshold, it is never cut short mid-shot.
   t.accSpent += dm;
   if (t.accSpent >= t.accBudget) {
+    // Spent to the last shot, which is the other way a charge ends. Same wind
+    // -down -- the rotor does not know the difference -- but it runs from a
+    // full spin rather than from what is left of the charge, because through a
+    // burst the needle IS the charge and a spent burst ends it at zero. There
+    // is nothing left to drain; what is still turning is the machine.
+    // accVent 0, not 1: there is no charge left to drain and pretending
+    // otherwise would throw the ring from empty to full in a frame. The rotor
+    // above carries the wind-down instead, which is the honest half.
+    t.accVent = 0; t.accVentT = ACCEL_SPIN; t.accGlow = 1;
     t.accPhase = 2; t.accT = t.accCool; t.accLock = null;
     t.heat = 0; t.firing = 0;
+    sfxT('drained');
     ring(t.x, t.y, 8, 54, t.color, 16);
   }
 }
@@ -4722,7 +4736,10 @@ function drawTower(t, ghost) {
       // the way down over the vent. Reading that instead of the phase fields
       // is also what makes the tower animate at all for a co-op guest, who is
       // sent heat and firing and nothing else about it.
-      const amt = clamp(t.heat || 0, 0, 1);
+      const amt = clamp(t.heat || 0, 0, 1);               // charge: the ring
+      // The rotor: coils, core, muzzle. Never below the charge, because a
+      // tower holding a charge is by definition still spinning.
+      const spin = Math.max(amt, clamp(t.accGlow || 0, 0, 1));
       const firing = !!t.firing;
       // the mount
       ctx.fillStyle = '#081420'; ctx.strokeStyle = rgba(c, .8); ctx.lineWidth = 1.8;
@@ -4743,21 +4760,21 @@ function drawTower(t, ghost) {
       // builds, so the same formula run backwards puts them out from the
       // muzzle inwards -- which is the wind-down, without having to know it.
       for (let i = 0; i < 3; i++) {
-        const lit = firing ? 1 : clamp(amt * 3 - i, 0, 1);
+        const lit = firing ? 1 : clamp(spin * 3 - i, 0, 1);
         ctx.fillStyle = rgba(lit > 0 ? '#ffffff' : c, .16 + lit * .7);
         ctx.beginPath(); ctx.roundRect(7 + i * 6, -7.5, 3.4, 15, 1.4); ctx.fill();
       }
       // the muzzle: dead while cooling, a hot point while firing
-      if (firing || amt > .55) {
+      if (firing || spin > .55) {
         ctx.globalCompositeOperation = 'lighter';
-        ctx.fillStyle = rgba(firing ? '#ffffff' : c, firing ? .55 : amt * .3);
+        ctx.fillStyle = rgba(firing ? '#ffffff' : c, firing ? .55 : spin * .3);
         ctx.beginPath(); ctx.arc(28, 0, firing ? 6 + Math.sin(T * .9) * 1.6 : 3.5, 0, TAU);
         ctx.fill();
         ctx.globalCompositeOperation = 'source-over';
       }
       ctx.rotate(-t.ang);
       // core
-      ctx.fillStyle = rgba(firing ? '#ffffff' : c, firing ? .85 : .2 + amt * .5);
+      ctx.fillStyle = rgba(firing ? '#ffffff' : c, firing ? .85 : .2 + spin * .5);
       ctx.beginPath(); ctx.arc(0, 0, 5, 0, TAU); ctx.fill();
       ctx.rotate(t.ang);
       break;
@@ -8140,6 +8157,13 @@ const SFXT = {
                    tone({f:575, f2:36, type:'triangle', dur:2.6, v:.045, d:.04}),
                    noise({f:1400, q:1.1, dur:1.9, v:.035, type:'bandpass'}),
                    tone({f:120, f2:40, type:'sine', dur:.5, v:.05, d:2.3})),
+  // The same wind-down heard from the other end: not a charge let go of, but
+  // one used up, so it opens on the gun coming up empty mid-scream and falls
+  // away from there.
+  drained: () => (noise({f:820, q:.6, dur:.18, v:.13, type:'lowpass'}),
+                  tone({f:340, f2:62, type:'square', dur:.26, v:.1}),
+                  tone({f:960, f2:58, type:'sawtooth', dur:2.1, v:.055, d:.12}),
+                  noise({f:1150, q:1.3, dur:1.6, v:.03, type:'bandpass', d:.14})),
   accel:  () => throttled('q', 34) && (tone({f:1150 + rnd(180), f2:520, type:'square', dur:.05, v:.05}),
                                        noise({f:3800, q:2.2, dur:.04, v:.03, type:'highpass'})),
 };
@@ -8619,7 +8643,8 @@ function snapshot() {
   for (const t of G.towers)
     T.push(t.id, TIDX[t.type], Math.round(t.x), Math.round(t.y), Math.round(t.ang * 100),
            t.tiers[0], t.tiers[1], t.flash | 0, t.targetMode | 0, t.firing ? 1 : 0,
-           Math.round((t.heat || 0) * 100), Math.round(t.spent));
+           Math.round((t.heat || 0) * 100), Math.round(t.spent),
+           Math.round((t.accGlow || 0) * 100));
   const E = [];
   // hp and shield travel as 0-1000 ratios: the guest only ever draws them as
   // bars, and two ratios are a lot fewer bytes than four absolute values
@@ -8672,7 +8697,11 @@ function snapshot() {
         G.kills, G.leaked, Math.round(G.combo * 100), G.finale ? 1 : 0, G.stasis, G.overclock,
         G.aegis, Math.round(G.prepT), G.mode === 'play' ? 1 : 0, G.paused ? 1 : 0],
     a: G.abilCd.slice(),
-    T, E, P, L, W: Wl, N: Mn, D: Dr, G: Rg, H: Hl, X,
+    // How many numbers each tower occupies in T. Sent so a guest reading a host
+    // older than itself still lines up. A guest OLDER than the host cannot be
+    // helped after the fact, which is exactly why this goes in before the next
+    // field is added rather than after.
+    T, TS: 13, E, P, L, W: Wl, N: Mn, D: Dr, G: Rg, H: Hl, X,
     f: NET.fxq.splice(0, NET.fxq.length),
     c: G.hover ? [Math.round(G.hover.x), Math.round(G.hover.y)] : null,
   };
@@ -8722,7 +8751,8 @@ function applySnap(s) {
 
   // towers — rebuilt through makeTower so the inspector has real stats
   const seen = new Set();
-  for (let i = 0; i < s.T.length; i += 12) {
+  const TS = s.TS || 12;
+  for (let i = 0; i < s.T.length; i += TS) {
     const id = s.T[i], type = TKEYS[s.T[i + 1]];
     let t = _cTow.get(id);
     if (!t || t.type !== type) {
@@ -8742,6 +8772,7 @@ function applySnap(s) {
     }
     t.flash = s.T[i + 7]; t.targetMode = s.T[i + 8]; t.firing = s.T[i + 9];
     t.heat = s.T[i + 10] / 100; t.spent = s.T[i + 11];
+    t.accGlow = TS > 12 ? s.T[i + 12] / 100 : 0;
     seen.add(id);
   }
   for (const id of [..._cTow.keys()]) if (!seen.has(id)) _cTow.delete(id);
