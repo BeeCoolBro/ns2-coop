@@ -6001,6 +6001,20 @@ function readRun() {
   if (!Array.isArray(r.towers)) return null;
   return r;
 }
+// A save from before the kit was recorded still has to be locked to something.
+// The only honest candidate is the loadout as it stands the last moment before
+// it can be changed, so this runs on the way into the armoury and on the way
+// out of a run -- both of which happen before a swap is possible. Once stamped
+// a save is locked like any other, and this never touches it again.
+function stampRunKit() {
+  const r = readRun();
+  if (!r || (Array.isArray(r.kit) && r.kit.length)) return;
+  const live = G.started && G.loadout && G.loadout.length;   // exact, not inferred
+  r.kit = (live ? G.loadout : META.loadout).slice();
+  r.abils = (live && G.abils.length ? G.abils : META.abils).slice();
+  try { HOST.set(RUN_KEY, JSON.stringify(r)); } catch (e) {}
+}
+
 function clearRun() {
   if (runT) { clearTimeout(runT); runT = 0; }   // do not let a queued write undo this
   runPending = null;
@@ -6095,6 +6109,7 @@ function refreshResumeCard() {
 }
 
 function quitToMenu() {
+  stampRunKit();          // the run is still in memory here, so this is exact
   G.mode = 'menu'; stopMusic();
   closeAll();
   document.getElementById('hud').classList.add('hide');
@@ -7081,6 +7096,7 @@ function buildDiffRow() {
 
 // ── armoury ──
 function openArmoury(mode) {
+  stampRunKit();          // whatever is equipped right now is what the run kept
   armTab(typeof mode === 'string' ? mode : 'towers');
   buildArmoury();
   $('ovArmoury').classList.add('on');
