@@ -1373,7 +1373,7 @@ rotor: {
   draw:10,
   dmg:24, cd:8, range:320, shots:1, air:true, ground:true,
   heliMax:1, heliAmmo:30, heliSpd:2.6, heliRearm:110, heliGun:145,
-  desc:'A pad, not a gun. Gunships lift off and chase what they are shooting, over walls and over water, then break off to rearm. Damage shown is per bird.',
+  desc:'A pad, not a gun. Gunships lift off and chase what they are shooting, over walls and over water, then break off to rearm. Left alone they work the pad\u2019s own circle; PURSUIT sends them down the lane after it. Damage shown is per bird.',
   paths:[
     {name:'ORDNANCE', color:'#ff2d9b', ups:[
       {n:'Autocannon',     c:250, d:'+65% chaingun damage.',              f:t=>t.dmg*=1.65},
@@ -1381,11 +1381,14 @@ rotor: {
       {n:'Depleted Slugs', c:1300,d:'Ignores 60% of armour, +30% damage.',f:t=>{t.pierceArmor=.6;t.dmg*=1.3}},
       {n:'GUNSHIP',       c:3300,d:'+120% damage, far heavier rockets, and it keeps firing on the way home.',f:t=>{t.dmg*=2.2;t.heliRocket*=1.9;t.heliRocketR*=1.35;t.heliHot=1}},
     ]},
-    {name:'AIRFIELD', color:'#22e6ff', ups:[
-      {n:'Second Bird',    c:310, d:'A second gunship flies off the pad.',f:t=>t.heliMax+=1},
-      {n:'Fuel Cell',      c:580, d:'+70% ammunition, +25% patrol radius.',f:t=>{t.heliAmmo*=1.7;t.range*=1.25}},
-      {n:'Ground Crew',    c:1250,d:'Rearms in half the time, +30% flight speed.',f:t=>{t.heliRearm*=.5;t.heliSpd*=1.3}},
-      {n:'CARRIER',       c:3400,d:'Two more gunships, and the wing rearms on station instead of flying home.',f:t=>{t.heliMax+=2;t.heliAmmo*=1.4;t.heliHover=1}},
+    // Every tier here buys leash. A gunship still finds its target inside the
+    // pad's radius -- the tower never reaches further than it can see -- but
+    // from then on it stays with it, which is the whole path.
+    {name:'PURSUIT', color:'#22e6ff', ups:[
+      {n:'Forward Sweep',  c:310, d:'+25% patrol radius, and a bird chases a target 120 past the edge of it instead of turning for home.',f:t=>{t.range*=1.25;t.heliLeash=120}},
+      {n:'Second Bird',    c:580, d:'A second gunship, and the leash runs 90 longer.',f:t=>{t.heliMax+=1;t.heliLeash+=90}},
+      {n:'Long Loiter',    c:1250,d:'+80% ammunition, half the rearm time, +25% flight speed, +120 leash \u2014 fuel enough to stay with a wave.',f:t=>{t.heliAmmo*=1.8;t.heliRearm*=.5;t.heliSpd*=1.25;t.heliLeash+=120}},
+      {n:'ESCORT',        c:3400,d:'Two more gunships, +35% ammunition, they rearm on station, and the leash runs 280 further \u2014 each bird rides its target down the lane until the magazine is dry.',f:t=>{t.heliMax+=2;t.heliAmmo*=1.35;t.heliHover=1;t.heliLeash+=280}},
     ]},
   ]},
 
@@ -2246,6 +2249,7 @@ function makeTower(x, y, type) {
     heliMax:d.heliMax || 0, heliAmmo:d.heliAmmo || 0, heliSpd:d.heliSpd || 2.6,
     heliRearm:d.heliRearm || 110, heliGun:d.heliGun || 145,
     heliRocket:0, heliRocketR:0, heliHot:0, heliHover:0, heliLive:0, heliT:0,
+    heliLeash:0,
     rigEvery:d.rigEvery || 0, rigHp:d.rigHp || 0, rigRamMul:d.rigRamMul || 1,
     rigSpd:d.rigSpd || 1.4, rigMax:d.rigMax || 0, rigLive:0, rigT:0,
     rigGun:0, rigGunRange:0, rigDetect:0, rigCannon:0, rigSplash:0,
@@ -2715,7 +2719,8 @@ function tickHeliPad(t) {
   t.heliT = 45;
   const a = rnd(TAU);
   G.helis.push({src:t, x:t.x + Math.cos(a) * 7, y:t.y + Math.sin(a) * 7, ang:a,
-                ammo:t.heliAmmo, cd:0, rearm:0, rot:rnd(TAU), burst:0, fire:0, orb:a});
+                ammo:t.heliAmmo, cd:0, rearm:0, rot:rnd(TAU), burst:0, fire:0, orb:a,
+                lock:null});
   t.heliLive++;
   t.flash = 6;
   ring(t.x, t.y, 6, 44, t.color, 14);
@@ -2772,9 +2777,11 @@ function tickHelis() {
       if (t.heliHover) h.orb += .014;
       else heliMoveTo(h, t.x, t.y, t.heliSpd, 5);
       if (--h.rearm <= 0) { h.ammo = t.heliAmmo; ring(t.x, t.y, 4, 32, t.color, 12); }
+      h.lock = null;
       continue;
     }
     if (h.ammo <= 0) {
+      h.lock = null;
       if (t.heliHover) { h.rearm = Math.round(t.heliRearm * 1.5); continue; }
       const d = heliMoveTo(h, t.x, t.y, t.heliSpd * 1.3);
       if (d < 14) h.rearm = Math.round(t.heliRearm);
@@ -2784,7 +2791,16 @@ function tickHelis() {
       }
       continue;
     }
-    const e = heliTarget(t, h, R);
+    // Acquisition is still the pad's job and still happens inside its radius.
+    // What the leash changes is what happens AFTER: the bird keeps the target
+    // it found, out past the edge, until the target dies or the leash ends.
+    let e = null;
+    const leash = t.heliLeash || 0;
+    if (leash > 0 && h.lock && !h.lock.dead && canHit(t, h.lock)) {
+      const far = R + leash;
+      if (dist2(t.x, t.y, h.lock.x, h.lock.y) <= far * far) e = h.lock;
+    }
+    if (!e) e = h.lock = heliTarget(t, h, R);
     if (!e) {                                     // nothing in the sector: circle the pad
       h.orb += .022;
       heliMoveTo(h, t.x + Math.cos(h.orb) * 52, t.y + Math.sin(h.orb) * 52, t.heliSpd * .7);
