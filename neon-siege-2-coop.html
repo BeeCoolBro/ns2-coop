@@ -1337,13 +1337,15 @@ lance: {
 accel: {
   name:'CYCLOTRON', role:'Overcharge', color:'#4de0ff', cost:300, kind:'accel',
   draw:12,
-  dmg:15, cd:3, range:250, ps:30, shots:1, air:true, ground:true,
+  dmg:36, cd:8, range:250, ps:30, shots:1, air:true, ground:true,
   detect:true, pierceArmor:.35,
   // Burst length is charge over in-burst damage rate, so these are one number
-  // in three parts: 20 shots a second at 15 is 300/s, and a 4,700 charge takes
-  // about sixteen seconds to spend. Change one and the other two must follow.
-  accCharge:240, accCool:120, accBudget:4700,
-  desc:'Spends four seconds winding a plasma gun up \u2014 and only while something is in range, losing the spin again when the lane empties \u2014 then holds the trigger down for sixteen. It picks one target and stays on it until that target is dead or gone, then takes the next. The burst ends when the charge is spent, not when the lane is clear. Sees through cloaks.',
+  // in three parts: 7.5 heavy shots a second at 36 is 270/s, and an 8,650 charge
+  // takes about thirty-two seconds to spend. Change one and the other two must
+  // follow, or the burst moves and the tower's output moves with it. The
+  // charge is sized to the whole cycle: six up, thirty-two firing, two down.
+  accCharge:360, accCool:120, accBudget:8650,
+  desc:'Spends six seconds winding a plasma gun up \u2014 and only while something is in range, losing the spin again when the lane empties \u2014 then holds the trigger down for half a minute. It picks one target and stays on it until that target is dead or gone, then takes the next. The burst ends when the charge is spent, not when the lane is clear. Sees through cloaks.',
   paths:[
     // Every tier that adds charge adds damage with it. Charge alone would only
     // make the burst longer and the tower slower, which is the trap this whole
@@ -1358,7 +1360,11 @@ accel: {
       {n:'Quick Spool',    c:280, d:'Winds up 40% faster.',               f:t=>t.accCharge*=.6},
       {n:'Heat Sinks',     c:560, d:'Cools 40% faster, +40% charge and damage.',f:t=>{t.accCool*=.6;t.accBudget*=1.4;t.dmg*=1.4}},
       {n:'Feed Lines',     c:1300,d:'30% more shots a second, with the charge to keep the burst going as long.',f:t=>{t.cd*=.7;t.accBudget*=1.43;t.accCharge*=.75}},
-      {n:'PERPETUAL',      c:3400,d:'Barely stops: half the wind-up, half the cooldown, and doubles charge and damage.',f:t=>{t.accCharge*=.5;t.accCool*=.5;t.accBudget*=2.1;t.dmg*=2.1}},
+      // CYCLE earns its keep by shortening the gaps, and a thirty-second burst
+      // makes the gaps a small share of the cycle -- eight seconds in forty,
+      // where it used to be six in twenty-two. Cutting them is worth much less
+      // than it was, so the capstone takes the difference in charge and damage.
+      {n:'PERPETUAL',      c:3400,d:'Barely stops: half the wind-up, half the cooldown, and nearly triples charge and damage.',f:t=>{t.accCharge*=.5;t.accCool*=.5;t.accBudget*=2.85;t.dmg*=2.85}},
     ]},
   ]},
 
