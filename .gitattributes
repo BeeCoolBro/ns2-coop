@@ -3,3 +3,9 @@
 *.html text eol=lf
 *.py   text eol=lf
 *.yaml text eol=lf
+
+# Audio is binary and must never be touched by eol normalisation. The rule above
+# is a wildcard, and a WAV that git decides is text comes back corrupted with no
+# error anywhere.
+*.wav  binary
+*.mp3  binary
