@@ -951,13 +951,16 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
 /* Its own screen, not #ovEnd wearing a class. Nothing here is shared with the
    sector-clear screen, which is the point: there is no next sector to offer
    and no three stars to award for finishing a story. */
-#ovGrailEnd{position:fixed;inset:0;z-index:120;display:flex;align-items:center;
+#ovGrailEnd{position:fixed;inset:0;z-index:120;display:flex;align-items:flex-start;
   justify-content:center;padding:24px;overflow:auto;
   background:radial-gradient(120% 90% at 50% 0%,#120a22,#05030b 62%,#020106);
   animation:geIn .8s ease-out both}
 @keyframes geIn{from{opacity:0}to{opacity:1}}
 /* a field drifting behind it, made of two offset dot grids */
-#ovGrailEnd .geSky{position:absolute;inset:-50%;pointer-events:none;opacity:.5;
+/* fixed, not absolute: the overlay scrolls, and an absolute child hanging half
+   a viewport past its bottom edge counts as scrollable overflow -- 446px of
+   empty starfield under the box, on every screen. */
+#ovGrailEnd .geSky{position:fixed;inset:-50%;pointer-events:none;opacity:.5;
   background:
     radial-gradient(1.4px 1.4px at 20% 30%,rgba(180,107,255,.85),transparent),
     radial-gradient(1.2px 1.2px at 70% 60%,rgba(34,230,255,.7),transparent),
@@ -966,7 +969,7 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
   background-size:260px 260px,190px 190px,150px 150px,320px 320px;
   animation:geDrift 70s linear infinite}
 @keyframes geDrift{to{transform:translate(-160px,-120px)}}
-#ovGrailEnd .geBox{position:relative;width:100%;max-width:620px;
+#ovGrailEnd .geBox{position:relative;width:100%;max-width:700px;margin:auto;
   background:linear-gradient(180deg,rgba(14,9,26,.94),rgba(5,3,11,.97));
   border:1px solid rgba(180,107,255,.42);border-radius:14px;padding:30px 30px 24px;
   box-shadow:0 50px 130px -40px #000,inset 0 0 120px -50px rgba(180,107,255,.55);
@@ -1002,6 +1005,74 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
   letter-spacing:.3em;color:#b46bff;margin-bottom:5px}
 #ovGrailEnd .geBtns{display:flex;gap:10px;justify-content:center;margin-top:22px;flex-wrap:wrap;
   animation:geRow .5s 1.75s both}
+
+/* the verdict, before any of the numbers */
+#ovGrailEnd .geVerd{display:flex;justify-content:center;align-items:center;gap:14px;
+  margin-top:12px;font-family:var(--f1);font-size:10px;font-weight:900;letter-spacing:.22em;
+  animation:geRow .5s .4s both}
+#ovGrailEnd .geVerd span{color:#5cff9d}
+#ovGrailEnd .geVerd span.o{color:#ff2d9b}
+#ovGrailEnd .geVerd i{color:rgba(180,107,255,.45);font-style:normal}
+/* a heading with a rule running off it, and room for a legend on the right */
+#ovGrailEnd .geSec{display:flex;align-items:center;gap:10px;margin:22px 0 3px;
+  font-family:var(--f1);font-size:9px;font-weight:900;letter-spacing:.3em;
+  color:rgba(180,107,255,.82);animation:geRow .45s both}
+#ovGrailEnd .geSec:after{content:'';flex:1;height:1px;
+  background:linear-gradient(90deg,rgba(180,107,255,.34),transparent)}
+#ovGrailEnd .geSec em{font-style:normal;letter-spacing:.1em;font-size:8px;
+  color:var(--txd);white-space:nowrap;order:3}
+#ovGrailEnd .geSec em i{display:inline-block;width:13px;height:3px;border-radius:2px;
+  background:#ff2d9b;box-shadow:0 0 8px -1px #ff2d9b;vertical-align:middle;margin:0 4px 0 7px}
+/* twelve rows in one column is a receipt; in two it is a readout */
+#ovGrailEnd .geGrid{display:grid;grid-template-columns:1fr 1fr;gap:0 26px}
+#ovGrailEnd .geV.bad{color:#ff2d9b}
+/* what did the work: the gun as it actually looks, then the bar */
+#ovGrailEnd .geW{display:grid;grid-template-columns:24px 124px 1fr 36px 58px;
+  align-items:center;gap:9px;padding:4px 2px;animation:geRow .45s both}
+#ovGrailEnd .geWi{width:24px;height:24px;display:block;opacity:.95}
+#ovGrailEnd .geWi canvas{display:block}
+#ovGrailEnd .geWn{font-family:var(--f1);font-size:9.5px;font-weight:900;letter-spacing:.1em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#ovGrailEnd .geWn b{display:inline-block;margin-left:5px;padding:1px 4px;border-radius:3px;
+  font-size:7px;letter-spacing:.14em;color:#120a22;background:#b46bff;vertical-align:middle}
+#ovGrailEnd .geWb{position:relative;height:9px;border-radius:5px;overflow:hidden;
+  background:rgba(180,107,255,.09);box-shadow:inset 0 0 0 1px rgba(180,107,255,.16)}
+/* the fill is everything that gun did all run; the stripe under it is the part
+   that went into ORIGIN, which is the only number this sector is really about */
+#ovGrailEnd .geWb i,#ovGrailEnd .geWb u{position:absolute;left:0;transform-origin:left;
+  animation:geBar .95s cubic-bezier(.16,.9,.3,1) both}
+#ovGrailEnd .geWb i{top:0;bottom:0;border-radius:5px}
+#ovGrailEnd .geWb u{bottom:0;height:3px;border-radius:2px;background:#ff2d9b;
+  box-shadow:0 0 10px -1px #ff2d9b}
+@keyframes geBar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+#ovGrailEnd .geWp{font-family:var(--mono,monospace);font-size:11px;font-weight:700;text-align:right}
+#ovGrailEnd .geWv{font-family:var(--mono,monospace);font-size:11.5px;font-weight:700;
+  color:#cfd6e6;text-align:right}
+#ovGrailEnd .geCall{margin-top:9px;padding:9px 12px;border-radius:8px;font-size:11.5px;
+  line-height:1.6;color:#f2d8e8;background:rgba(255,45,155,.08);
+  border:1px solid rgba(255,45,155,.28);animation:geRow .45s both}
+#ovGrailEnd .geCall b{color:#ff2d9b;font-weight:800}
+/* one bar for the whole board: your half in your colour, his in his */
+#ovGrailEnd .geSplit{animation:geRow .45s both}
+#ovGrailEnd .geSpBar{position:relative;height:13px;border-radius:7px;overflow:hidden;
+  background:#b46bff;box-shadow:0 0 20px -7px #b46bff}
+#ovGrailEnd .geSpBar i{position:absolute;left:0;top:0;bottom:0;background:#22e6ff;
+  transform-origin:left;animation:geBar 1s cubic-bezier(.16,.9,.3,1) both}
+#ovGrailEnd .geSpL{display:flex;justify-content:space-between;gap:12px;margin-top:7px;
+  font-family:var(--mono,monospace);font-size:10.5px;color:var(--txd)}
+#ovGrailEnd .geSpL b{font-family:var(--f1);font-size:9px;font-weight:900;letter-spacing:.2em}
+#ovGrailEnd .geSpY b{color:#22e6ff;margin-right:7px}
+#ovGrailEnd .geSpH{text-align:right}
+#ovGrailEnd .geSpH b{color:#b46bff;margin-left:7px}
+@media (max-width:620px){
+  #ovGrailEnd .geGrid{grid-template-columns:1fr}
+  #ovGrailEnd .geW{grid-template-columns:22px 1fr 34px 54px}
+  /* the bar goes, and so does the key explaining it */
+  #ovGrailEnd .geWb,#ovGrailEnd .geSec em{display:none}}
+@media (prefers-reduced-motion:reduce){
+  #ovGrailEnd .geSec,#ovGrailEnd .geW,#ovGrailEnd .geWb i,#ovGrailEnd .geWb u,
+  #ovGrailEnd .geCall,#ovGrailEnd .geSplit,#ovGrailEnd .geSpBar i,
+  #ovGrailEnd .geVerd{animation:none}}
 
 /* ── ORIGIN dies and the set goes with it ──────── */
 #originOut{position:fixed;inset:0;z-index:9998;background:transparent}
@@ -2329,17 +2400,23 @@ hive: {
 // nothing to overkill. At a quarter of these figures it walked the entire route
 // and reached the core with half its health left.
 const HW_SPEC = {
-  hwbulwark: {src:'pulse',   name:'BULWARK',  cost:4,   dmg:96,  cd:.16, range:2.6, splash:170, add:{pierce:3}},
-  hwsentinel:{src:'rail',    name:'SENTINEL', cost:3.4, dmg:80,  cd:.18, range:2.4, splash:170},
-  hwdeluge:  {src:'tempest', name:'DELUGE',   cost:3.6, dmg:88,  cd:.18, range:2.5, splash:200, add:{missiles:3}},
-  hwswarm:   {src:'hive',    name:'SWARM',    cost:3.6, dmg:88,  cd:.2,  range:2.4, splash:170, add:{drones:3}},
-  hwarclight:{src:'tesla',   name:'ARCLIGHT', cost:3.4, dmg:88,  cd:.18, range:2.5, splash:170, add:{chains:4}},
-  hwwarden:  {src:'prism',   name:'WARDEN',   cost:3.8, dmg:104, cd:.35, range:2.5, splash:170, add:{beams:2}},
+  hwbulwark: {src:'pulse',   name:'BULWARK',  col:'#ff8a3d', cost:4,   dmg:96,  cd:.16, range:2.6, splash:170, add:{pierce:3}},
+  hwsentinel:{src:'rail',    name:'SENTINEL', col:'#3dd6ff', cost:3.4, dmg:80,  cd:.18, range:2.4, splash:170},
+  hwdeluge:  {src:'tempest', name:'DELUGE',   col:'#ff5ce0', cost:3.6, dmg:88,  cd:.18, range:2.5, splash:200, add:{missiles:3}},
+  hwswarm:   {src:'hive',    name:'SWARM',    col:'#5cff9d', cost:3.6, dmg:88,  cd:.2,  range:2.4, splash:170, add:{drones:3}},
+  hwarclight:{src:'tesla',   name:'ARCLIGHT', col:'#ffd633', cost:3.4, dmg:88,  cd:.18, range:2.5, splash:170, add:{chains:4}},
+  hwwarden:  {src:'prism',   name:'WARDEN',   col:'#b46bff', cost:3.8, dmg:104, cd:.35, range:2.5, splash:170, add:{beams:2}},
 };
 for (const k in HW_SPEC) {
   const q = HW_SPEC[k], b = TOWERS[q.src];
   const d = Object.assign({}, b, {
-    name:q.name, role:"HARDWARE'S", color:'#b46bff', hw:1,
+    // Six colours, not one. Painting the whole line violet made his half of the
+    // board a single mass you could not read -- which gun is which matters most
+    // exactly when there are twenty two of them and something is going wrong.
+    // Whose they are is still obvious: the violet ring drawTower puts around
+    // every ally tower says that, and the chassis underneath the paint is the
+    // same dark violet on all six.
+    name:q.name, role:"HARDWARE'S", color:q.col, hw:1,
     cost:Math.round(b.cost * q.cost),
     dmg:b.dmg * q.dmg,
     cd:Math.max(1, Math.round(b.cd * q.cd)),
@@ -2424,7 +2501,7 @@ const ENEMIES = {
   // See tickDecay for the half of it that is not in this table.
   origin:  {name:'ORIGIN',     hp:330000,spd:.46, r:54, bounty:2400,leak:45,armor:.62,
             color:'#ff2d9b', shape:'origin', boss:1, decay:1, summons:'wraith',
-            ccImmuneAlways:1, pctRes:.1,
+            ccImmuneAlways:1, pctRes:.1, mireRes:.7,
             desc:'It is what got into the sector. Strongest the moment it arrives, and never that strong again.'},
   shard:   {name:'SHARD',      hp:2600, spd:.82, r:24, bounty:90, leak:8, armor:.34, color:'#ff7bd2', shape:'split', desc:'Architect fragment. While one lives the Architect rebuilds itself.'},
   nemesis: {name:'NEMESIS',    hp:15000,spd:.55, r:44, bounty:700,leak:22,armor:.3,  color:'#d8ff6b', shape:'bossA',  boss:1, adapts:1, summons:'wraith', desc:'BOSS — hardens against whichever damage school hurts it most. One school will not kill it.'},
@@ -2818,6 +2895,10 @@ const G = {
   lanes:[], core:{x:W*.9, y:H*.5}, grid:null, blocks:[],
   best:0, bestWave:0, started:false,
   dmgType:{},                           // run-long damage by tower type
+  dmgOrigin:{},                         // and how much of it went into ORIGIN
+  dmgOwn:0, dmgAlly:0,                  // whose gun delivered it: yours, or his
+  built:0,                              // guns YOU put down over the whole run
+  bestCombo:1, lowCore:0,               // the best streak, and the closest call
   // What this run is locked to, taken from META at startGame and restored
   // from the save on resume. META is the armoury; these two are the run.
   loadout:[], abils:[],
@@ -3217,6 +3298,9 @@ function damage(e, amt, o) {
   if (e.refuse > 0) return;               // nothing touches it while it is failing
   o = o || {};
   let dm = amt;
+  // Whatever a MIRE sends -- its own shot or the tick from the pool it laid --
+  // arrives here with the mire as the source, so scaling once here covers both.
+  if (e.def.mireRes && o.src && o.src.type === 'mire') dm *= 1 - e.def.mireRes;
   if (e.frail > 1) dm *= e.frail;        // ORIGIN, coming apart
   if (e.amp > 0) dm *= 1 + e.ampV;
   if (e.freeze > 0 && o.shatter) dm *= o.shatter;
@@ -3252,6 +3336,11 @@ function damage(e, amt, o) {
     o.src.dmgDone += dm;
     // by type as well as by tower: a tower sold in wave 12 still did its work
     if (TOWERS[o.src.type]) G.dmgType[o.src.type] = (G.dmgType[o.src.type] || 0) + dm;
+    // and two things the ending screen cannot work out afterwards: whose gun it
+    // was, and whether it landed on ORIGIN or on the escort it brought.
+    if (o.src.ally) G.dmgAlly += dm; else G.dmgOwn += dm;
+    if (e.def.decay && TOWERS[o.src.type])
+      G.dmgOrigin[o.src.type] = (G.dmgOrigin[o.src.type] || 0) + dm;
   }
   if (o.crit) float(e.x, e.y - e.r - 10, Math.round(dm), '#ffffff', 20);
   // The floor has to be held HERE, not in the tick. damage() kills the moment
@@ -3328,6 +3417,7 @@ function killEnemy(e, src) {
   G.kills++;
   G.comboKills++; G.comboT = 160;
   G.combo = clamp(1 + Math.floor(G.comboKills / 6) * .25, 1, COMBO_MAX);
+  if (G.combo > G.bestCombo) G.bestCombo = G.combo;   // the streak is gone; the record is not
   let bounty = e.bounty * G.combo * (G.bounty > 0 ? 3 : 1);
   if (src && src.bounty) bounty *= 1 + src.bounty;
   bounty = Math.round(bounty);
@@ -4172,10 +4262,28 @@ function allyDecide() {
   al.focus = focus || null;
   if (!focus) return null;                      // every tower he owns is finished
   const nx = allyNextUp(focus);
-  // Short of the price, he waits for it. Spending the difference on something
-  // cheaper somewhere else is exactly the behaviour being removed.
-  if (!nx || nx.c > al.cash) return null;
-  return {kind:'upg', tower:focus, pi:nx.pi, x:focus.x, y:focus.y};
+  if (nx && nx.c <= al.cash) return {kind:'upg', tower:focus, pi:nx.pi, x:focus.x, y:focus.y};
+
+  // He cannot afford this one yet. He used to simply wait, and measuring that
+  // was damning: 346 of 410 decisions produced nothing at all -- 84% of his
+  // time stood still on a single tower with thirteen affordable upgrades in
+  // front of him. From the outside that reads exactly as "he only ever upgrades
+  // one tower", because for most of the run he does.
+  //
+  // So the focus moves to the most advanced tower he CAN push forward. That is
+  // still finishing things one at a time rather than sprinkling tier ones over
+  // the whole grid -- it just never freezes to do it.
+  let alt = null, altTier = -1;
+  for (const t of G.towers) {
+    if (!t.ally || t === focus) continue;
+    const u = allyNextUp(t);
+    if (!u || u.c > al.cash) continue;
+    const tier = t.tiers[0] + t.tiers[1];
+    if (tier > altTier) { alt = {t, u}; altTier = tier; }
+  }
+  if (!alt) return null;                        // genuinely nothing affordable
+  al.focus = alt.t;
+  return {kind:'upg', tower:alt.t, pi:alt.u.pi, x:alt.t.x, y:alt.t.y};
 }
 
 // The next upgrade buyable on a tower, cheaper path first, or null once it is
@@ -5002,10 +5110,17 @@ function tick() {
       nearby(pl.x, pl.y, pl.r, _q2);
       for (const e of _q2) {
         if (e.air || e.dead) continue;
+        // Some things barely notice a tar pool. Note this is separate from
+        // ccImmuneAlways on purpose -- the tar slow below was never gated on
+        // ccProof the way chill and dilation are, so a unit described as immune
+        // to all control was still wading. The damage side is handled in
+        // damage() instead, so it is only ever scaled once.
+        const mr = 1 - (e.def.mireRes || 0);
+        if (mr <= 0) continue;
         e.tar = 8;                                    // refreshed every tick while standing in it
-        e.tarF = Math.max(e.tarF, pl.slow);
-        if (pl.corrode) { e.corrode = Math.max(e.corrode, 120); e.corrodeV = Math.max(e.corrodeV, pl.corrode); }
-        if (pl.pull) e.tarF = Math.max(e.tarF, Math.min(.92, pl.slow + pl.pull * .06));
+        e.tarF = Math.max(e.tarF, pl.slow * mr);
+        if (pl.corrode) { e.corrode = Math.max(e.corrode, 120); e.corrodeV = Math.max(e.corrodeV, pl.corrode * mr); }
+        if (pl.pull) e.tarF = Math.max(e.tarF, Math.min(.92, (pl.slow + pl.pull * .06) * mr));
         if (G.time % 12 === 0 && pl.dps) damage(e, pl.dps, {src:pl.src});
       }
       if (Math.random() < .35) G.parts.push({x:pl.x + rnd(pl.r, -pl.r) * .8, y:pl.y + rnd(pl.r, -pl.r) * .8,
@@ -5204,6 +5319,7 @@ function leakCore(e) {
     e = Object.assign({}, e, {leak:e.leak - soak});
   }
   G.cores -= e.leak;
+  if (G.cores < G.lowCore) G.lowCore = G.cores;   // how close it actually got
   G.leaked++;
   G.combo = 1; G.comboKills = 0;
   burst(e.x, e.y, '#ff2d9b', 26, 6);
@@ -7635,7 +7751,9 @@ function startGame(mapIdx, diffIdx, endless) {
   G.cash = Math.round(m.cash * d.cash * OPENING_GRANT * (1 + (G.lanes.length - 1) * .22));
   G.cores = G.maxCores = Math.round(m.cores * d.cores);
   G.wave = 0; G.score = 0; G.kills = 0; G.leaked = 0; G.spent = 0;
-  G.dmgType = {};
+  G.dmgType = {}; G.dmgOrigin = {};
+  G.dmgOwn = 0; G.dmgAlly = 0; G.built = 0;
+  G.bestCombo = 1; G.lowCore = G.cores;
   // Locked here and nowhere else. resumeRun overwrites both straight after,
   // with the kit the run was originally started on.
   G.loadout = META.loadout.slice(); G.abils = META.abils.slice();
@@ -7982,20 +8100,109 @@ function tickRefuse(e) {
 
 // Built here rather than sitting in the document, so it does not exist until
 // the one run that earns it and nothing else can leave it behind.
-function showGrailEnding(fr) {
+function showGrailEnding(fr, hr) {
   const old = document.getElementById('ovGrailEnd');
   if (old) old.remove();
   const clean = G.leaked === 0, full = G.cores >= G.maxCores;
+  const al = G.ally || {spent:0, placed:0};
+
+  // Sim frames, so it is time the sector took rather than time you sat there --
+  // fast-forward should not make the run look shorter than it was.
+  const secs = Math.round(G.time / 60);
+  const clock = Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0');
+
+  const dTot = G.dmgOwn + G.dmgAlly;
+  const mine = dTot > 0 ? G.dmgOwn / dTot : 1;
+  const combo = (G.bestCombo || 1).toFixed(2).replace(/\.?0+$/, '');
+  const near = G.lowCore <= G.maxCores * .34;
+
   const rows = [
-    ['ORIGIN', 'DOWN', 'hot'],
-    ['SECTOR 13', 'QUIET', 'good'],
+    ['TIME ON THE CLOCK', clock, ''],
     ['WAVES HELD', String(G.wave), ''],
-    ['LEAKED', String(G.leaked), clean ? 'good' : ''],
-    ['CORE', Math.max(0, G.cores) + ' / ' + G.maxCores, full ? 'good' : ''],
     ['KILLS', fmt(G.kills), ''],
+    ['LEAKED', String(G.leaked), clean ? 'good' : 'bad'],
+    ['CORE LEFT', Math.max(0, G.cores) + ' / ' + G.maxCores, full ? 'good' : ''],
+    ['CLOSEST CALL', Math.max(0, G.lowCore) + ' / ' + G.maxCores, near ? 'bad' : ''],
+    ['BEST COMBO', '\u00d7' + combo, ''],
+    ['GUNS YOU BUILT', String(G.built || 0), ''],
+    ['FLUX SPENT', fmt(G.spent), ''],
+    ['DAMAGE DEALT', fmt(dTot), ''],
     ['SCORE', fmt(G.score), ''],
-    ['FLUX', '+' + fmt(fr && fr.total ? fr.total : 0), 'hot'],
+    ['FLUX EARNED', '+' + fmt(fr && fr.total ? fr.total : 0), 'hot'],
   ];
+  if (HOST.on && hr && hr.total > 0) rows.push(['HONEY BANKED', '+' + fmt(hr.total), 'hot']);
+
+  // Everything cascades in off one counter, so adding or dropping a row never
+  // leaves a gap in the middle of the sequence.
+  let dn = 0;
+  const dly = () => 'animation-delay:' + (.55 + (dn++) * .06).toFixed(2) + 's';
+
+  // By type rather than by surviving tower: selling something in wave 12 does
+  // not delete what it did, and half this board was sold to pay for the rest.
+  const keys = Object.keys(G.dmgType)
+    .filter(k => TOWERS[k] && G.dmgType[k] > 0)
+    .sort((a, b) => G.dmgType[b] - G.dmgType[a]);
+  const wTot = keys.reduce((n, k) => n + G.dmgType[k], 0);
+  const top = wTot > 0 ? G.dmgType[keys[0]] : 1;
+  const oKeys = Object.keys(G.dmgOrigin)
+    .filter(k => TOWERS[k] && G.dmgOrigin[k] > 0)
+    .sort((a, b) => G.dmgOrigin[b] - G.dmgOrigin[a]);
+  const oTot = oKeys.reduce((n, k) => n + G.dmgOrigin[k], 0);
+
+  let work = '';
+  if (wTot > 0) {
+    work =
+      '<div class="geSec" style="' + dly() + '">WHAT DID THE WORK' +
+        (oTot > 0 ? '<em>bar: whole run<i></i>into ORIGIN</em>' : '') + '</div>' +
+      keys.slice(0, 8).map(k => {
+        const d = TOWERS[k], v = G.dmgType[k], od = G.dmgOrigin[k] || 0;
+        // the same delay on the row and on its bars: inherit walks one level to
+        // the track, not to the row, so the fill would finish growing before
+        // the row it belongs to had faded in
+        const del = dly() + ';';
+        return '<div class="geW" data-t="' + k + '" style="' + del + '">' +
+          '<span class="geWi"></span>' +
+          '<span class="geWn" style="color:' + d.color + '">' + d.name +
+            (d.hw ? '<b>HW</b>' : '') + '</span>' +
+          '<span class="geWb">' +
+            '<i style="' + del + 'width:' + (v / top * 100).toFixed(1) + '%;background:' + d.color +
+              ';box-shadow:0 0 14px -4px ' + d.color + '"></i>' +
+            (od > 0 ? '<u style="' + del + 'width:' + (od / top * 100).toFixed(1) + '%"></u>' : '') +
+          '</span>' +
+          '<span class="geWp" style="color:' + d.color + '">' +
+            Math.round(v / wTot * 100) + '%</span>' +
+          '<span class="geWv">' + fmt(v) + '</span>' +
+        '</div>';
+      }).join('');
+    if (oTot > 0) {
+      const t0 = TOWERS[oKeys[0]];
+      work += '<div class="geCall" style="' + dly() + '">ORIGIN absorbed <b>' + fmt(oTot) +
+        '</b> before it stopped rewriting itself \u2014 more of it from <b style="color:' +
+        t0.color + '">' + t0.name + '</b> than from anything else on the board.</div>';
+    }
+  }
+
+  // He turned up at the break and built his own half. Saying so with a bar is
+  // the whole point of the sector having an ally in it.
+  const spDel = dly() + ';';
+  const split =
+    '<div class="geSec" style="' + spDel + '">WHO HELD THE LINE</div>' +
+    '<div class="geSplit" style="' + spDel + '">' +
+      '<div class="geSpBar"><i style="' + spDel + 'width:' + (mine * 100).toFixed(1) + '%"></i></div>' +
+      '<div class="geSpL">' +
+        '<span class="geSpY"><b>GRAIL</b>' + Math.round(mine * 100) + '% \u00b7 ' +
+          (G.built || 0) + ' guns \u00b7 ' + fmt(G.spent) + '\u00a2</span>' +
+        '<span class="geSpH">' + Math.round((1 - mine) * 100) + '% \u00b7 ' +
+          (al.placed || 0) + ' guns \u00b7 ' + fmt(al.spent || 0) + '\u00a2<b>HARDWARE</b></span>' +
+      '</div>' +
+    '</div>';
+
+  const sayText = clean
+    ? 'Not one of them got past us. Not one. Sector\u2019s yours, Grail \u2014 ' +
+      'Im going to go sit down for a while.'
+    : 'Thats it. Thats the whole thing. Core took a few, but it held. ' +
+      'Sector\u2019s yours, Grail \u2014 Im going to go sit down for a while.';
+
   const ov = document.createElement('div');
   ov.id = 'ovGrailEnd';
   ov.innerHTML =
@@ -8003,20 +8210,29 @@ function showGrailEnding(fr) {
     '<div class="geBox">' +
       '<div class="geTag">TRANSMISSION ENDS</div>' +
       '<div class="geT">THE FINAL STAND</div>' +
+      '<div class="geVerd"><span class="o">ORIGIN DOWN</span><i>\u25aa</i>' +
+        '<span>SECTOR 13 QUIET</span></div>' +
       '<div class="geRule"></div>' +
-      rows.map(([k, v, c], i) =>
-        '<div class="geRow" style="animation-delay:' + (.62 + i * .11).toFixed(2) + 's">' +
-        '<span class="geK">' + k + '</span><i></i>' +
-        '<span class="geV ' + c + '">' + v + '</span></div>').join('') +
-      '<div class="geSay"><b>HARDWARE</b>' +
-        'Thats it. Thats the whole thing. Sector\u2019s yours, Grail \u2014 ' +
-        'Im going to go sit down for a while.</div>' +
-      '<div class="geBtns">' +
+      '<div class="geSec" style="' + dly() + '">THE RUN</div>' +
+      '<div class="geGrid">' +
+        rows.map(([k, v, c]) =>
+          '<div class="geRow" style="' + dly() + '">' +
+          '<span class="geK">' + k + '</span><i></i>' +
+          '<span class="geV ' + c + '">' + v + '</span></div>').join('') +
+      '</div>' +
+      work + split +
+      '<div class="geSay" style="' + dly() + '"><b>HARDWARE</b>' + sayText + '</div>' +
+      '<div class="geBtns" style="' + dly() + '">' +
         '<button class="btn pri" id="geMenu">\u25c0 SECTORS</button>' +
         '<button class="btn" id="geAgain">\u21bb RUN IT AGAIN</button>' +
       '</div>' +
     '</div>';
   document.body.appendChild(ov);
+  // The real gun, drawn the way it looks on the board -- a coloured square would
+  // not tell you which of the twenty two things you built this row is about.
+  for (const r of ov.querySelectorAll('.geW')) {
+    try { r.firstChild.appendChild(towerIcon(r.dataset.t, 24)); } catch (err) {}
+  }
   document.getElementById('geMenu').onclick = () => { ov.remove(); sfx('click'); quitToMenu(); };
   document.getElementById('geAgain').onclick = () => { ov.remove(); sfx('click'); startGame(G.map, G.diff); };
 }
@@ -8142,7 +8358,7 @@ function endGame(won) {
   // anything here.
   if (grailEnding) {
     grailEnding = 0;
-    showGrailEnding(fr);
+    showGrailEnding(fr, hr);
     return;
   }
   ovEnd.classList.add('on');
@@ -8198,6 +8414,8 @@ function snapRun() {
     score:G.score, kills:G.kills, leaked:G.leaked, spent:G.spent,
     combo:G.combo, comboT:G.comboT, comboKills:G.comboKills,
     auto:!!G.auto, speed:G.speed, dmgType:G.dmgType,
+    dmgOrigin:G.dmgOrigin, dmgOwn:G.dmgOwn, dmgAlly:G.dmgAlly,
+    built:G.built, bestCombo:G.bestCombo, lowCore:G.lowCore,
     kit:G.loadout.slice(), abils:G.abils.slice(), abilCd:G.abilCd.slice(),
     towers:G.towers.map(t => ({
       k:t.type, x:Math.round(t.x), y:Math.round(t.y),
@@ -8309,6 +8527,12 @@ function resumeRun() {
   G.combo = r.combo || 1; G.comboT = r.comboT | 0; G.comboKills = r.comboKills | 0;
   G.auto = !!r.auto; G.speed = r.speed || 1;
   G.dmgType = (r.dmgType && typeof r.dmgType === 'object') ? r.dmgType : {};
+  G.dmgOrigin = (r.dmgOrigin && typeof r.dmgOrigin === 'object') ? r.dmgOrigin : {};
+  G.dmgOwn = r.dmgOwn || 0; G.dmgAlly = r.dmgAlly || 0;
+  G.built = r.built | 0; G.bestCombo = r.bestCombo || 1;
+  // a run saved before these existed has no record of how close it got, and
+  // guessing would be worse than saying "never below where you are now"
+  G.lowCore = (typeof r.lowCore === 'number') ? r.lowCore : G.cores;
   // The kit the run began on, overriding what startGame took from META. Runs
   // saved before this carry no kit and keep the current one -- the old
   // behaviour once more, which beats refusing to load somebody's game.
@@ -8428,6 +8652,7 @@ function placeTower(x, y, type) {
     float(x, y - 34, 'FREE BUILD', '#ffd633', 16);
     ring(x, y, 8, 74, '#ffd633', 22);
   } else { G.cash -= cost; G.spent += cost; }
+  G.built++;                                // his are counted separately, on al.placed
   burst(x, y, t.color, 18, 4); ring(x, y, 6, 60, t.color, 22);
   sfx('place'); syncHUD();
   if (!G.waveActive) saveRun();
@@ -10130,7 +10355,7 @@ const PV_FIELDS = ['time', 'wave', 'waveActive', 'prepT', 'cash', 'score', 'kill
                    'combo', 'comboT', 'comboKills', 'cores', 'maxCores', 'finale', 'stasis',
                    'overclock', 'aegis', 'rally', 'uplink', 'dilate', 'bounty', 'bulwark',
                    'freeBuild', 'sandbox', 'selTower', 'selType', 'hover', 'aiming', 'endless', 'auto',
-                   'dmgType'];
+                   'dmgType', 'dmgOrigin', 'dmgOwn', 'dmgAlly', 'bestCombo', 'lowCore'];
 let pvWorld = null, pvHeld = null, pvRaf = 0, pvType = null, pvCv = null;
 
 // hand the game's world to the preview, and the preview's world back
@@ -10171,6 +10396,8 @@ function pvBuild(type) {
   w.finale = false; w.waveActive = false; w.sandbox = false; w.endless = false; w.auto = false;
   w.abilCd = [0, 0, 0, 0];
   w.dmgType = {};                       // seeded, or damage() would write onto a 0
+  w.dmgOrigin = {};                     // same, and for the same reason
+  w.bestCombo = 1;
   const nx = Math.cos(ang + Math.PI / 2), ny = Math.sin(ang + Math.PI / 2);
   w.tx = a.x + nx * off;
   w.ty = a.y + ny * off;
