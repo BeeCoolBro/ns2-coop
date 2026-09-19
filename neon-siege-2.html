@@ -402,6 +402,33 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
 #endHoney .hnyB{font-size:11px;letter-spacing:.05em;font-weight:600;color:var(--txm);margin-top:4px}
 #endHoney .hnyB b{color:#ffb627}
 #loadoutRow{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+/* the anti-air card in the dock, marked as the one that is not on the grid */
+.tcard.aaCard{border-color:rgba(61,214,255,.42)}
+.tcard .aaFlag{position:absolute;top:3px;right:4px;font-family:var(--f1);font-size:6.5px;
+  font-weight:900;letter-spacing:.1em;padding:1px 3px;border-radius:3px;
+  color:#04121a;background:#3dd6ff}
+
+/* ── the seventh slot ──────────────────── */
+/* Set apart from the six on purpose: it is a different KIND of slot, and a row
+   that looks identical to the loadout row would say it is a seventh of the
+   same thing. */
+.aaNote{font-family:var(--f2);font-size:10.5px;letter-spacing:.02em;
+  color:var(--txd);font-weight:600;text-transform:none}
+#aaRow{display:flex;gap:9px;flex-wrap:wrap;margin-top:8px}
+#aaRow .aaPick{position:relative;width:86px;padding:9px 6px 8px;border-radius:10px;
+  cursor:pointer;text-align:center;background:rgba(61,214,255,.05);
+  border:1px solid rgba(61,214,255,.22);transition:transform .12s,border-color .12s,background .12s}
+#aaRow .aaPick:hover{transform:translateY(-2px);border-color:rgba(61,214,255,.5)}
+#aaRow .aaPick.on{background:rgba(61,214,255,.14);border-color:var(--ac);
+  box-shadow:0 0 22px -8px var(--ac),inset 0 0 26px -18px var(--ac)}
+#aaRow .aaPick.locked{opacity:.5;filter:saturate(.35)}
+#aaRow .aaPick .aan{font-family:var(--f1);font-size:8.5px;font-weight:900;
+  letter-spacing:.11em;margin-top:4px;color:var(--ac)}
+#aaRow .aaPick .aap{font-family:var(--f2);font-size:10px;font-weight:700;margin-top:2px;
+  color:var(--txd)}
+#aaRow .aaPick .aaOn{position:absolute;top:4px;right:5px;font-size:9px;color:var(--ac)}
+#loadoutRow .slot.aaSlot{border-style:dashed}
+
 .slot{width:104px;height:112px;border-radius:10px;border:1px dashed rgba(255,255,255,.16);
   background:rgba(255,255,255,.02);display:flex;flex-direction:column;align-items:center;
   justify-content:center;gap:5px;position:relative;transition:.14s}
@@ -830,6 +857,12 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
 
 
 
+/* Who is breaking up. ORIGIN's pink is the default because for most of the
+   sector ORIGIN is the only thing that ever does this; radioBad overrides all
+   three per line, so HARDWARE comes apart in his own colour instead of looking
+   like the thing he is warning you about. */
+#radio.bad,#walkie.bad,.badLine{--bc:255,45,155;--bch:#ff2d9b;--bcd:#2a0a1c}
+
 /* ── a voice that is breaking up but still saying words ── */
 /* The legible layer is the element's own text and it never moves far. The two
    copies underneath it are what break -- clipped into slices, thrown sideways,
@@ -837,7 +870,7 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
    "arguing". */
 .badLine{position:relative;display:inline-block;--g:.4;
   color:#fff;
-  text-shadow:calc(var(--g) * 2.2px) 0 rgba(255,45,155,.85),
+  text-shadow:calc(var(--g) * 2.2px) 0 rgba(var(--bc),.85),
               calc(var(--g) * -2.2px) 0 rgba(34,230,255,.7);
   animation:badJit .18s steps(2,end) infinite}
 /* Written against #radioLine because that element already owns ::after for its
@@ -846,7 +879,7 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
 #radioLine.badLine:before,#radioLine.badLine:after{content:attr(data-t);
   position:absolute;left:0;top:0;width:100%;white-space:pre;pointer-events:none;
   opacity:.9;background:none}
-#radioLine.badLine:before{color:#ff2d9b;animation:badSliceA 1.7s steps(1,end) infinite}
+#radioLine.badLine:before{color:var(--bch);animation:badSliceA 1.7s steps(1,end) infinite}
 #radioLine.badLine:after{color:#22e6ff;animation:badSliceB 2.3s steps(1,end) infinite}
 /* clip-path inset(… 100% …) hides the copy entirely, so most of the time there
    is nothing there and the line simply reads */
@@ -881,29 +914,29 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
    #radio slides in on its own transform, and a second animation touching
    transform would replace the one already doing that. Everything that moves
    happens on a pseudo-element instead. */
-#radio.bad{filter:drop-shadow(calc(var(--g) * 2px) 0 rgba(255,45,155,.55))
+#radio.bad{filter:drop-shadow(calc(var(--g) * 2px) 0 rgba(var(--bc),.55))
                  drop-shadow(calc(var(--g) * -2px) 0 rgba(34,230,255,.4));
   animation:rdFring .21s steps(2,end) infinite}
 @keyframes rdFring{
-  0%{filter:drop-shadow(calc(var(--g) * 2px) 0 rgba(255,45,155,.55))
+  0%{filter:drop-shadow(calc(var(--g) * 2px) 0 rgba(var(--bc),.55))
             drop-shadow(calc(var(--g) * -2px) 0 rgba(34,230,255,.4))}
-  50%{filter:drop-shadow(calc(var(--g) * -3px) 0 rgba(255,45,155,.6))
+  50%{filter:drop-shadow(calc(var(--g) * -3px) 0 rgba(var(--bc),.6))
              drop-shadow(calc(var(--g) * 3px) 0 rgba(34,230,255,.45)) brightness(1.15)}
-  100%{filter:drop-shadow(calc(var(--g) * 1px) 0 rgba(255,45,155,.4))
+  100%{filter:drop-shadow(calc(var(--g) * 1px) 0 rgba(var(--bc),.4))
               drop-shadow(calc(var(--g) * -1px) 0 rgba(34,230,255,.3))}}
 /* the accent bar down the left, losing its grip */
 #radio.bad:before{animation:rdBar .6s steps(1,end) infinite}
 @keyframes rdBar{
-  0%,38%{opacity:1;background:#ff2d9b;box-shadow:0 0 14px -2px #ff2d9b}
+  0%,38%{opacity:1;background:var(--bch);box-shadow:0 0 14px -2px var(--bch)}
   42%{opacity:.15;background:#22e6ff;box-shadow:none}
-  48%{opacity:1;background:#ff2d9b}
+  48%{opacity:1;background:var(--bch)}
   61%{opacity:.4;background:#22e6ff;box-shadow:0 0 18px -2px #22e6ff}
-  66%,100%{opacity:1;background:#ff2d9b;box-shadow:0 0 14px -2px #ff2d9b}}
+  66%,100%{opacity:1;background:var(--bch);box-shadow:0 0 14px -2px var(--bch)}}
 /* slices of the panel thrown sideways and gone again. ::before is the accent
    bar, so the tear lives on ::after, which was free. */
 #radio.bad:after{content:'';position:absolute;inset:0;pointer-events:none;
   border-radius:inherit;mix-blend-mode:screen;
-  background:linear-gradient(180deg,rgba(255,45,155,.2),rgba(34,230,255,.12));
+  background:linear-gradient(180deg,rgba(var(--bc),.2),rgba(34,230,255,.12));
   animation:rdTear 1.9s steps(1,end) infinite}
 @keyframes rdTear{
   0%,12%{clip-path:inset(0 0 100% 0);transform:none}
@@ -914,23 +947,23 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
   79%{clip-path:inset(34% 0 42% 0);transform:translateX(calc(var(--g) * 7px))}
   83%,100%{clip-path:inset(0 0 100% 0);transform:none}}
 /* the handset. Same rule: filter here, movement on the parts. */
-#walkie.bad{filter:drop-shadow(calc(var(--g) * 2px) 0 rgba(255,45,155,.6))
+#walkie.bad{filter:drop-shadow(calc(var(--g) * 2px) 0 rgba(var(--bc),.6))
                    drop-shadow(calc(var(--g) * -2px) 0 rgba(34,230,255,.4));
-  border-color:#ff2d9b;animation:wkFring .17s steps(2,end) infinite}
+  border-color:var(--bch);animation:wkFring .17s steps(2,end) infinite}
 @keyframes wkFring{
-  0%{filter:drop-shadow(calc(var(--g) * 2px) 0 rgba(255,45,155,.6))
+  0%{filter:drop-shadow(calc(var(--g) * 2px) 0 rgba(var(--bc),.6))
             drop-shadow(calc(var(--g) * -2px) 0 rgba(34,230,255,.4))}
-  50%{filter:drop-shadow(calc(var(--g) * -3px) 1px rgba(255,45,155,.65))
+  50%{filter:drop-shadow(calc(var(--g) * -3px) 1px rgba(var(--bc),.65))
              drop-shadow(calc(var(--g) * 3px) -1px rgba(34,230,255,.45))}
   100%{filter:none}}
 /* its little screen, stuttering in ORIGIN's colour rather than his */
 #walkie.bad:after{animation:wkScreen .48s steps(1,end) infinite}
 @keyframes wkScreen{
-  0%,26%{background:#2a0a1c;border-color:#ff2d9b;box-shadow:0 0 16px -2px #ff2d9b inset}
+  0%,26%{background:var(--bcd);border-color:var(--bch);box-shadow:0 0 16px -2px var(--bch) inset}
   30%{background:#06131a;border-color:#22e6ff;box-shadow:0 0 12px -2px #22e6ff inset}
-  36%{background:#2a0a1c;border-color:#ff2d9b}
+  36%{background:var(--bcd);border-color:var(--bch)}
   58%{background:#000;border-color:#3b2f52;box-shadow:none}
-  64%,100%{background:#2a0a1c;border-color:#ff2d9b;box-shadow:0 0 16px -2px #ff2d9b inset}}
+  64%,100%{background:var(--bcd);border-color:var(--bch);box-shadow:0 0 16px -2px var(--bch) inset}}
 /* the antenna losing signal with it */
 #walkie.bad:before{animation:wkAnt .6s steps(1,end) infinite}
 @keyframes wkAnt{0%,54%{opacity:1}58%{opacity:.25}62%,100%{opacity:1}}
@@ -1346,6 +1379,219 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
   background:linear-gradient(#f2f6ff,#c9d6e8);color:#0a0f1c;
   font-family:var(--f1);font-size:clamp(20px,3.3vw,31px);font-weight:900;letter-spacing:.13em;
   box-shadow:0 5px 0 rgba(0,0,0,.45),0 0 34px -6px var(--ac,#b46bff);line-height:1.12}
+
+
+
+/* ── two ladders, one book ────────────── */
+#campSwitch{display:flex;gap:8px;justify-content:center;margin:2px 0 10px}
+.campTab{font-family:var(--f1);font-size:10px;font-weight:900;letter-spacing:.2em;
+  padding:8px 18px;border-radius:8px;cursor:pointer;transition:.15s;
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);color:var(--txd)}
+.campTab:hover:not(.lock){border-color:var(--ac);color:var(--ac)}
+.campTab.on{background:color-mix(in srgb,var(--ac) 14%,transparent);
+  border-color:var(--ac);color:var(--ac);box-shadow:0 0 22px -8px var(--ac)}
+.campTab.lock{opacity:.4;cursor:not-allowed;letter-spacing:.08em}
+/* the corruption's half of the screen does not look like the campaign's */
+#campSwitch.corrupt ~ #bookSpine .sTab{border-color:rgba(255,45,155,.2)}
+#campSwitch.corrupt ~ #bookSpine .sTab.on{box-shadow:0 0 18px -4px #ff2d9b}
+#campSwitch.corrupt ~ #bookWrap .bkT,
+#campSwitch.corrupt ~ #bookWrap .bkN{font-family:var(--f1)}
+
+/* ── the scarcer pocket's louder cousin ─────────── */
+#bloodChip{display:flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;
+  font-family:var(--f1);font-weight:900;background:rgba(255,45,155,.09);
+  border:1px solid rgba(255,45,155,.34)}
+#bloodChip .bhex{font-size:13px;color:#ff5ce0}
+#bloodChip .bx{font-size:20px;color:#ff5ce0;text-shadow:0 0 18px rgba(255,45,155,.6)}
+#bloodChip .bxl{font-size:9px;letter-spacing:.2em;color:var(--txd)}
+
+/* ══════════ THE BLACK MARKET ══════════ */
+/* Its own room. The armoury's props are hidden wholesale rather than restyled,
+   because a workshop with the lights turned down is still a workshop. */
+.blkOnly{display:none}
+#ovArmoury.blk .hwOnly,#ovArmoury.blk .swOnly,#ovArmoury.blk #dealStrip{display:none}
+#ovArmoury.blk .blkOnly{display:block}
+#ovArmoury.blk .ovBox{background:linear-gradient(180deg,#0a0508,#060305 60%,#040203);
+  border-color:rgba(255,45,155,.3);
+  box-shadow:0 60px 160px -40px #000,inset 0 0 200px -60px rgba(255,45,155,.35)}
+#ovArmoury.blk #shopSignTop{color:rgba(255,92,224,.5);letter-spacing:.3em}
+#ovArmoury.blk #shopSign{color:#ff5ce0;text-shadow:0 0 30px rgba(255,45,155,.55)}
+
+/* corrugated wall, lit from one side */
+#bkWall{position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(90deg,
+    rgba(255,255,255,.028) 0 3px,rgba(0,0,0,.34) 3px 13px),
+    linear-gradient(180deg,#0b0609,#050205);
+  opacity:.85}
+/* chain-link over the top third */
+#bkFence{position:absolute;left:0;right:0;top:0;height:38%;pointer-events:none;opacity:.3;
+  background:
+    repeating-linear-gradient(45deg,rgba(190,200,220,.3) 0 1px,transparent 1px 15px),
+    repeating-linear-gradient(-45deg,rgba(190,200,220,.3) 0 1px,transparent 1px 15px);
+  mask-image:linear-gradient(180deg,#000,transparent)}
+/* the wire, the bulb on the end of it, and the light it actually casts */
+#bkWire{position:absolute;left:50%;top:0;width:1px;height:96px;pointer-events:none;
+  background:linear-gradient(180deg,rgba(220,225,235,.5),rgba(220,225,235,.22));
+  transform-origin:top center;animation:bkSwing 5.2s ease-in-out infinite}
+#bkBulb{position:absolute;left:50%;top:92px;width:16px;height:16px;margin-left:-8px;
+  border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle at 40% 35%,#fff6df,#ffc76a 52%,#6b3a10);
+  box-shadow:0 0 26px 10px rgba(255,196,108,.5),0 0 90px 40px rgba(255,150,60,.16);
+  transform-origin:50% -92px;animation:bkSwing 5.2s ease-in-out infinite,bkFlick 7s steps(1,end) infinite}
+@keyframes bkSwing{0%,100%{transform:rotate(-2.6deg)}50%{transform:rotate(2.6deg)}}
+@keyframes bkFlick{0%,91%{opacity:1}92%{opacity:.35}93%{opacity:1}96%{opacity:.5}97%,100%{opacity:1}}
+/* the pool it throws on the floor, swinging on the same clock */
+#bkPool{position:absolute;left:50%;top:150px;width:520px;height:300px;margin-left:-260px;
+  pointer-events:none;border-radius:50%;
+  background:radial-gradient(ellipse at 50% 30%,rgba(255,186,110,.16),rgba(255,140,60,.05) 45%,transparent 70%);
+  transform-origin:50% -60px;animation:bkSwing 5.2s ease-in-out infinite}
+/* sprayed on the wall, not printed */
+#bkTag{position:absolute;right:5%;top:20%;pointer-events:none;
+  font-family:var(--f1);font-size:clamp(18px,3.4vw,42px);font-weight:900;letter-spacing:.1em;
+  color:rgba(255,45,155,.12);transform:rotate(-7deg);
+  text-shadow:0 0 30px rgba(255,45,155,.16)}
+/* the back of something he drove here */
+#bkVan{position:absolute;left:-6%;bottom:-4%;width:38%;height:46%;pointer-events:none;
+  background:linear-gradient(100deg,rgba(18,10,16,.96),rgba(10,5,10,.7));
+  border-right:1px solid rgba(255,92,224,.16);
+  border-radius:0 18px 0 0;
+  box-shadow:inset -30px 0 60px -40px rgba(255,92,224,.4)}
+
+/* ── the stock, on the ground ─────────────────────────── */
+#bkHead{margin-top:14px}
+#bkWhat{font-family:var(--f2);font-size:24px;font-weight:700;letter-spacing:.01em;
+  color:#f3d9e8;font-style:italic;text-transform:lowercase}
+#bkSub{font-family:var(--mono,monospace);font-size:11.5px;color:rgba(243,217,232,.5);margin-top:3px}
+/* a tarp, not a grid: rows, each one sitting a little crooked */
+#blackGrid{display:flex;flex-direction:column;gap:9px;margin-top:14px;
+  padding:14px 12px;border-radius:4px;
+  background:
+    repeating-linear-gradient(72deg,rgba(255,255,255,.012) 0 6px,transparent 6px 14px),
+    linear-gradient(180deg,rgba(26,14,22,.72),rgba(12,6,12,.72));
+  box-shadow:inset 0 0 70px -24px #000}
+.bkItem{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:14px;
+  padding:9px 13px;cursor:pointer;border-radius:3px;
+  background:linear-gradient(100deg,rgba(255,255,255,.028),rgba(255,255,255,.008));
+  border-left:2px solid var(--ac);
+  transform:rotate(var(--tilt));transition:transform .16s,background .16s;
+  animation:bkIn .4s ease-out both}
+@keyframes bkIn{from{opacity:0;transform:rotate(var(--tilt)) translateY(9px)}
+                to{opacity:1;transform:rotate(var(--tilt))}}
+.bkItem:hover{transform:rotate(0deg) translateX(3px);background:rgba(255,92,224,.07)}
+.bkItem.cant{opacity:.42;filter:grayscale(.5)}
+.bkItem.got{border-left-color:#5cff9d}
+.bkPit{width:62px;height:62px;display:flex;align-items:center;justify-content:center;
+  border-radius:50%;background:radial-gradient(circle,rgba(0,0,0,.55),transparent 70%)}
+.bkPit canvas{display:block}
+.bkName{font-family:var(--f1);font-size:13px;font-weight:900;letter-spacing:.14em;color:var(--ac)}
+.bkSay{font-family:var(--f2);font-size:12px;font-style:italic;color:rgba(243,217,232,.62);margin-top:2px}
+.bkNums{display:flex;flex-wrap:wrap;gap:12px;margin-top:5px;
+  font-family:var(--mono,monospace);font-size:10px;color:rgba(243,217,232,.34)}
+/* a paper tag on a string, hanging off the end of the row */
+.bkTagWrap{position:relative;text-align:center;padding:9px 13px 8px;min-width:104px;
+  background:linear-gradient(170deg,#e8dcc4,#cbbb9c);border-radius:3px;
+  transform:rotate(2.2deg);box-shadow:0 5px 14px -6px #000;
+  clip-path:polygon(0 0,100% 0,100% 100%,9px 100%,0 calc(100% - 9px))}
+.bkTagWrap:before{content:'';position:absolute;left:8px;top:7px;width:5px;height:5px;
+  border-radius:50%;background:#2a1a10;box-shadow:inset 0 0 0 1px rgba(0,0,0,.5)}
+.bkPrice{font-family:var(--mono,monospace);font-size:14px;font-weight:800;color:#5c1230;
+  letter-spacing:.02em}
+.bkHint{font-family:var(--f2);font-size:9.5px;font-style:italic;color:#7a5c46;margin-top:1px}
+.bkItem.got .bkPrice{color:#1d5c34}
+#blackNote{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+  margin-top:14px;padding:11px 14px;border-radius:3px;font-size:12.5px;line-height:1.6;
+  color:#e7c9dc;background:rgba(255,45,155,.06);border:1px solid rgba(255,45,155,.2);border-left-width:3px}
+#blackNote i{font-style:italic;opacity:.8}
+#blackNote span{font-family:var(--mono,monospace);font-size:13px;color:#ff5ce0;white-space:nowrap}
+
+/* the six, out the back: same slots, laid on the same tarp as the stock */
+#bkCarry{margin-top:14px;padding:11px 12px 13px;border-radius:4px;
+  background:linear-gradient(180deg,rgba(26,14,22,.6),rgba(12,6,12,.6));
+  box-shadow:inset 0 0 60px -26px #000}
+#bkCarryT{font-family:var(--f2);font-size:11.5px;font-style:italic;
+  color:rgba(243,217,232,.55);margin-bottom:9px}
+#bkCarryT b{font-style:normal;font-family:var(--mono,monospace);font-size:10px;
+  color:rgba(255,92,224,.65);font-weight:600}
+#bkLoadout{display:flex;gap:9px;flex-wrap:wrap}
+#bkLoadout .slot{transform:rotate(-.5deg)}
+#bkLoadout .slot:nth-child(even){transform:rotate(.6deg)}
+#bkLoadout .slot:hover{transform:rotate(0deg) translateY(-3px)}
+
+#bkOwnT{font-family:var(--f2);font-size:11px;font-style:italic;
+  color:rgba(243,217,232,.42);margin:12px 0 7px}
+#bkOwn{display:flex;gap:6px;flex-wrap:wrap}
+.bkOwnPick{display:flex;align-items:center;gap:6px;padding:4px 9px 4px 5px;border-radius:3px;
+  cursor:pointer;transition:.14s;background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.1)}
+.bkOwnPick span{font-family:var(--f1);font-size:8.5px;font-weight:900;letter-spacing:.1em;
+  color:var(--txd)}
+.bkOwnPick canvas{display:block}
+.bkOwnPick:hover{border-color:var(--ac)}
+.bkOwnPick:hover span{color:var(--ac)}
+.bkOwnPick.on{background:color-mix(in srgb,var(--ac) 15%,transparent);border-color:var(--ac)}
+.bkOwnPick.on span{color:var(--ac)}
+/* the tab that leads here does not look like the other two */
+.armTab.blk{border-color:rgba(255,45,155,.34);color:#ff8ad2}
+.armTab.blk.on{background:rgba(255,45,155,.16);border-color:#ff5ce0;color:#ff5ce0;
+  box-shadow:0 0 22px -8px #ff2d9b}
+@media (prefers-reduced-motion:reduce){
+  #bkWire,#bkBulb,#bkPool{animation:none}
+  .bkItem{animation:none}}
+
+/* ── the lights coming up ───────────────────────────── */
+/* The armoury rolls a shutter. Out here there is one bulb on a wire and it
+   takes two goes to catch, so the room arrives in stutters rather than in a
+   sweep. Everything is held back behind it and lands as it steadies. */
+#ovArmoury.blk.opening #bkBulb{animation:bkCatch 1.25s steps(1,end) both,
+  bkSwing 5.2s ease-in-out infinite}
+@keyframes bkCatch{
+  0%,14%{opacity:0}
+  16%{opacity:.85}
+  19%{opacity:0}
+  36%{opacity:0}
+  38%{opacity:1}
+  41%{opacity:.15}
+  44%{opacity:1}
+  49%{opacity:.4}
+  53%,100%{opacity:1}}
+#ovArmoury.blk.opening #bkPool{animation:bkPoolUp 1.5s ease-out both,
+  bkSwing 5.2s ease-in-out infinite}
+@keyframes bkPoolUp{0%,36%{opacity:0;transform:scale(.6)}
+  40%{opacity:.5;transform:scale(.9)}
+  44%{opacity:.1}
+  56%{opacity:1;transform:scale(1)}
+  100%{opacity:1;transform:scale(1)}}
+#ovArmoury.blk.opening #bkWall,
+#ovArmoury.blk.opening #bkFence,
+#ovArmoury.blk.opening #bkVan,
+#ovArmoury.blk.opening #bkTag{animation:bkLit 1.4s ease-out both}
+@keyframes bkLit{0%,34%{opacity:0}40%{opacity:.5}45%{opacity:.08}60%,100%{opacity:1}}
+/* the stock is already down by the time you can see it */
+#ovArmoury.blk.opening #blackGrid .bkItem{animation-delay:calc(.62s + var(--i,0) * .07s)}
+#ovArmoury.blk.opening #bkHead,
+#ovArmoury.blk.opening #blackNote{animation:bkFade .5s .8s ease-out both}
+@keyframes bkFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){
+  #ovArmoury.blk.opening #bkBulb,#ovArmoury.blk.opening #bkPool,
+  #ovArmoury.blk.opening #bkWall,#ovArmoury.blk.opening #bkFence,
+  #ovArmoury.blk.opening #bkVan,#ovArmoury.blk.opening #bkTag,
+  #ovArmoury.blk.opening #bkHead,#ovArmoury.blk.opening #blackNote{animation:none}}
+@media (max-width:620px){
+  .bkItem{grid-template-columns:48px 1fr;gap:10px}
+  .bkTagWrap{grid-column:1/-1;transform:none;min-width:0}}
+.bkTagWrap{cursor:pointer;transition:transform .14s,filter .14s}
+.bkTagWrap:hover{transform:rotate(0deg) scale(1.04);filter:brightness(1.08)}
+
+/* ── the scarcer pocket ───────────────── */
+/* Deliberately not a second violet chip: the two currencies buy different
+   shelves, and telling them apart at a glance is most of the value of having
+   two of them. */
+#aethChip{display:flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;
+  font-family:var(--f1);font-weight:900;background:rgba(61,214,255,.08);
+  border:1px solid rgba(61,214,255,.3)}
+#aethChip .ahex{font-size:13px;color:#3dd6ff}
+#aethChip .ax{font-size:20px;color:#3dd6ff;text-shadow:0 0 18px rgba(61,214,255,.55)}
+#aethChip .axl{font-size:9px;letter-spacing:.24em;color:var(--txd)}
 #fluxChip{display:flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;
   border:1px solid rgba(180,107,255,.4);background:rgba(180,107,255,.11);
   font-family:var(--f1);font-weight:900;letter-spacing:.1em}
@@ -1578,6 +1824,7 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
 
     <div id="titleStats">
       <div class="tStat"><div class="k">FLUX</div><div class="v" id="titleFlux" style="color:var(--v)">0</div></div>
+      <div class="tStat"><div class="k">AETHER</div><div class="v" id="titleAether" style="color:#3dd6ff">0</div></div>
       <div class="tStat"><div class="k">SECTORS</div><div class="v" id="titleSectors" style="color:var(--c)">0</div></div>
       <div class="tStat"><div class="k">TOWERS</div><div class="v" id="titleTowers" style="color:var(--g)">0</div></div>
       <div class="tStat"><div class="k">BEST ENDLESS</div><div class="v" id="titleBest" style="color:var(--y)">—</div></div>
@@ -1640,6 +1887,7 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4.6 16.4 12 9 19.4"/></svg>
       </button>
     </div>
+    <div id="campSwitch"></div>
     <div id="bookSpine"></div>
     <div class="sect">THREAT LEVEL</div>
     <div id="diffRow"></div>
@@ -1742,6 +1990,13 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
         <path d="M0,56 C140,18 320,66 500,42 C680,18 820,62 1000,30" fill="none" stroke="rgba(255,214,51,.10)" stroke-width="2"/>
       </svg></div>
       <div class="swOnly" id="shBezel"></div>
+      <div class="blkOnly" id="bkWall"></div>
+      <div class="blkOnly" id="bkFence"></div>
+      <div class="blkOnly" id="bkWire"></div>
+      <div class="blkOnly" id="bkBulb"></div>
+      <div class="blkOnly" id="bkPool"></div>
+      <div class="blkOnly" id="bkTag">NO RECEIPTS</div>
+      <div class="blkOnly" id="bkVan"></div>
     </div>
     <div id="shopStage">
     <div id="shopWrap">
@@ -1753,14 +2008,33 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
             <div id="shopSign">ARMOURY</div>
           </div>
           <div id="fluxChip"><span class="fhex">⬡</span><span class="fx" id="armFlux">0</span><span class="fxl">FLUX</span></div>
+          <div id="aethChip"><span class="ahex">✦</span><span class="ax" id="armAether">0</span><span class="axl">AETHER</span></div>
+          <div id="bloodChip"><span class="bhex">◈</span><span class="bx" id="armBlood">0</span><span class="bxl">BLOOD MONEY</span></div>
         </div>
         <div class="ovS" id="shopBlurb" style="margin-top:0"></div>
+    <div class="armTabs" id="shopTabs"></div>
     <div id="dealStrip"></div>
     <div id="paneTowers">
-      <div class="sect">LOADOUT — <b id="slotMax">6</b> SLOTS</div>
+      <div class="sect">CAMPAIGN LOADOUT — <b id="slotMax">6</b> SLOTS <span class="aaNote">the thirteen sectors · the black market keeps its own</span></div>
       <div id="loadoutRow"></div>
+      <div class="sect">ANTI-AIR — <b>OWN SLOT</b> <span class="aaNote">bought with ✦ aether · no loadout slot, no grid power</span></div>
+      <div id="aaRow"></div>
       <div class="sect">ALL TOWERS</div>
       <div id="armGrid"></div>
+    </div>
+    <div id="paneBlack" hidden>
+      <div id="bkHead">
+        <div id="bkWhat">what he kept</div>
+        <div id="bkSub">six guns, no paperwork · they go in your slots like anything else</div>
+      </div>
+      <div id="bkCarry">
+        <div id="bkCarryT">your CORRUPTION kit <b>— separate from your campaign six · tap one to drop it</b></div>
+        <div id="bkLoadout"></div>
+        <div id="bkOwnT">and your own, if you want them out here</div>
+        <div id="bkOwn"></div>
+      </div>
+      <div id="blackGrid"></div>
+      <div id="blackNote"></div>
     </div>
     <div id="paneAbils" hidden>
       <div class="sect">CARRIED — <b id="aslotMax">4</b> SLOTS</div>
@@ -2302,6 +2576,97 @@ hive: {
   ]},
 
 
+// ══════════════════ ANTI-AIR ══════════════════
+// None of these come out of the six, and none of them draw a watt off the grid.
+// That is the whole point: answering air should not cost you the ground you
+// were already holding. What it costs instead is that every one of them is
+// blind to anything on the ground -- they are an answer to one problem, not a
+// free tower. One is equipped at a time, in its own slot.
+
+flak: {
+  name:'FLAK', role:'Anti-Air', color:'#ffd633', cost:130, kind:'bullet', aa:1,
+  draw:0,
+  dmg:33, cd:24, range:330, ps:14, splash:88, pierce:0, shots:1,
+  air:true, ground:false, airMul:1.9, detect:true,
+  desc:'Proximity shells that burst in the air and catch a whole flight at once. Blind to anything on the ground.',
+  paths:[
+    {name:'BARRAGE', color:'#ff8a3d', ups:[
+      {n:'Twin Mount',     c:140, d:'Two shells a volley.',               f:t=>{t.shots=2;t.dmg*=.92}},
+      {n:'Belt Feed',      c:300, d:'+40% fire rate.',                    f:t=>t.cd*=.71},
+      {n:'Quad Mount',     c:720, d:'4 shells a volley, +20% damage.',    f:t=>{t.shots=4;t.dmg*=1.2}},
+      {n:'CURTAIN FIRE',   c:2100,d:'6 shells, +55% rate, +60% damage.',  f:t=>{t.shots=6;t.cd*=.66;t.dmg*=1.6}},
+    ]},
+    {name:'PROXIMITY', color:'#22e6ff', ups:[
+      {n:'Wider Fuse',     c:150, d:'+55% burst radius.',                 f:t=>t.splash*=1.55},
+      {n:'Shrapnel Load',  c:320, d:'+70% damage, shells punch through 2.',f:t=>{t.dmg*=1.7;t.pierce+=2}},
+      {n:'Flechette',      c:780, d:'Bursts corrode armour by 45%.',      f:t=>{t.corrode=.45;t.dmg*=1.25}},
+      {n:'AIRBURST',       c:2400,d:'+130% damage, huge bursts, and they stun.',f:t=>{t.dmg*=2.3;t.splash*=1.8;t.shock=26}},
+    ]},
+  ]},
+
+talon: {
+  name:'TALON', role:'Anti-Air', color:'#ff8a3d', cost:250, kind:'missile', aa:1,
+  draw:0,
+  dmg:130, cd:96, range:430, ps:7.4, missiles:3, turn:1, splash:60, shots:1,
+  air:true, ground:false, airMul:1.9, detect:true,
+  desc:'Locks on and lets a salvo go. The missiles steer, so they do not miss. For the one big thing in the sky.',
+  paths:[
+    {name:'SALVO', color:'#ffd633', ups:[
+      {n:'Second Rail',    c:270, d:'4 missiles a launch.',               f:t=>t.missiles=4},
+      {n:'Fast Burn',      c:560, d:'+40% rate, missiles fly faster.',    f:t=>{t.cd*=.71;t.ps*=1.4}},
+      {n:'Full Rack',      c:1300,d:'7 missiles, +25% damage.',           f:t=>{t.missiles=7;t.dmg*=1.25}},
+      {n:'SATURATION LOCK',c:3200,d:'10 missiles a launch, +70% damage.', f:t=>{t.missiles=10;t.dmg*=1.7}},
+    ]},
+    {name:'WARHEAD', color:'#ff2d9b', ups:[
+      {n:'Shaped Charge',  c:290, d:'+80% damage.',                       f:t=>t.dmg*=1.8},
+      {n:'Armour Piercing',c:620, d:'Ignores armour entirely.',           f:t=>{t.pierceArmor=1;t.dmg*=1.2}},
+      {n:'Thermobaric',    c:1400,d:'Much bigger blast, and it ignites.', f:t=>{t.splash*=2.2;t.burn=34;t.dmg*=1.3}},
+      {n:'SKYBREAKER',     c:3600,d:'+190% damage, and every hit stuns.', f:t=>{t.dmg*=2.9;t.shock=42;t.splash*=1.3}},
+    ]},
+  ]},
+
+zenith: {
+  name:'ZENITH', role:'Anti-Air', color:'#22e6ff', cost:230, kind:'beam', aa:1,
+  draw:0,
+  dmg:1.9, cd:2, range:400, beams:2, ramp:.035, rampMax:3, shots:1,
+  air:true, ground:false, airMul:2.2, detect:true,
+  desc:'Holds a lock and bites harder the longer it holds it. Anything that lingers overhead pays for it.',
+  paths:[
+    {name:'TRACKING', color:'#5cff9d', ups:[
+      {n:'Second Aperture',c:240, d:'Tracks a third target.',             f:t=>t.beams=3},
+      {n:'Wide Optics',    c:500, d:'4 targets, +25% range.',             f:t=>{t.beams=4;t.range*=1.25}},
+      {n:'Array Control',  c:1150,d:'6 targets, +35% damage.',            f:t=>{t.beams=6;t.dmg*=1.35}},
+      {n:'FULL COVERAGE',  c:3100,d:'9 targets at once, +100% damage.',   f:t=>{t.beams=9;t.dmg*=2}},
+    ]},
+    {name:'DWELL', color:'#b46bff', ups:[
+      {n:'Tighter Focus',  c:250, d:'Ramps up twice as fast.',            f:t=>t.ramp*=2},
+      {n:'Sustained Burn', c:520, d:'Ramp cap 4× → 9×.',                  f:t=>{t.rampMax=9;t.dmg*=1.15}},
+      {n:'Ablation',       c:1200,d:'Strips armour and sets the target alight.',f:t=>{t.corrode=.5;t.burn=24}},
+      {n:'SOLAR APEX',     c:3400,d:'Ramp cap 20×, and the beam pierces everything behind it.',f:t=>{t.rampMax=20;t.ramp*=1.6;t.pierceAll=1}},
+    ]},
+  ]},
+
+vigil: {
+  name:'VIGIL', role:'Anti-Air', color:'#b46bff', cost:210, kind:'pulse', aa:1,
+  draw:0,
+  dmg:62, cd:50, range:300, splash:300, shots:1, aura:1,
+  air:true, ground:false, airMul:2.6, detect:true,
+  desc:'Does not aim at anything. A pulse that fills the sky above it, so ground you are not watching is still covered.',
+  paths:[
+    {name:'SATURATION', color:'#ff2d9b', ups:[
+      {n:'Wider Envelope', c:220, d:'+35% radius.',                       f:t=>{t.splash*=1.35;t.range*=1.35}},
+      {n:'Denser Field',   c:480, d:'+75% damage.',                       f:t=>t.dmg*=1.75},
+      {n:'Rapid Cycle',    c:1100,d:'+55% pulse rate.',                   f:t=>t.cd*=.65},
+      {n:'NO FLY ZONE',    c:3000,d:'+160% damage and half again the radius.',f:t=>{t.dmg*=2.6;t.splash*=1.5;t.range*=1.5}},
+    ]},
+    {name:'INTERDICT', color:'#7fd4ff', ups:[
+      {n:'Drag Field',     c:230, d:'Pulses slow anything caught by 35%.',f:t=>{t.chill=.35;t.chillT=110}},
+      {n:'Corrosive Mist', c:500, d:'Strips 45% armour off everything in it.',f:t=>{t.corrode=.45;t.dmg*=1.2}},
+      {n:'Dead Air',       c:1150,d:'Slow 60%, and the field keeps burning them.',f:t=>{t.chill=.6;t.frostDot=18}},
+      {n:'GROUNDED',       c:3300,d:'Slow 80%, +110% damage, and it stuns on every pulse.',f:t=>{t.chill=.8;t.dmg*=2.1;t.shock=24}},
+    ]},
+  ]},
+
 
 };
 // ── HARDWARE's own guns ────────────────────────────────
@@ -2347,12 +2712,19 @@ hive: {
 // nothing to overkill. At a quarter of these figures it walked the entire route
 // and reached the core with half its health left.
 const HW_SPEC = {
-  hwbulwark: {src:'pulse',   name:'BULWARK',  col:'#ff8a3d', cost:4,   dmg:96,  cd:.16, range:2.6, splash:170, add:{pierce:3}},
-  hwsentinel:{src:'rail',    name:'SENTINEL', col:'#3dd6ff', cost:3.4, dmg:80,  cd:.18, range:2.4, splash:170},
-  hwdeluge:  {src:'tempest', name:'DELUGE',   col:'#ff5ce0', cost:3.6, dmg:88,  cd:.18, range:2.5, splash:200, add:{missiles:3}},
-  hwswarm:   {src:'hive',    name:'SWARM',    col:'#5cff9d', cost:3.6, dmg:88,  cd:.2,  range:2.4, splash:170, add:{drones:3}},
-  hwarclight:{src:'tesla',   name:'ARCLIGHT', col:'#ffd633', cost:3.4, dmg:88,  cd:.18, range:2.5, splash:170, add:{chains:4}},
-  hwwarden:  {src:'prism',   name:'WARDEN',   col:'#b46bff', cost:3.8, dmg:104, cd:.35, range:2.5, splash:170, add:{beams:2}},
+  hwbulwark: {src:'pulse',   name:'BULWARK',  col:'#ff8a3d', cost:4,   dmg:6.2,  cd:.16, range:2.6, splash:170, add:{pierce:3}},
+  // 2.4 on the longest base range in the game put it at 1344 on a 1920x1080
+  // board: one SENTINEL covered the full height of the map from anywhere and
+  // reached most of its width, which is not a sniper, it is the whole sector.
+  // 1.7 keeps it the longest gun he owns by a clear margin over DELUGE at 825
+  // and halves what a single one of them watches.
+  hwsentinel:{src:'rail',    name:'SENTINEL', col:'#3dd6ff', cost:3.4, dmg:14.3,  cd:.18, range:1.7, splash:170},
+  // fx: five missiles a volley at five volleys a second, each one trailing and
+  // each one bursting for 200 splash. It draws a tenth of that now.
+  hwdeluge:  {src:'tempest', name:'DELUGE',   col:'#ff5ce0', cost:3.6, dmg:7.3,  cd:.18, range:2.5, splash:200, fx:.4, add:{missiles:3}},
+  hwswarm:   {src:'hive',    name:'SWARM',    col:'#5cff9d', cost:3.6, dmg:34,  cd:.2,  range:2.4, splash:170, add:{drones:3}},
+  hwarclight:{src:'tesla',   name:'ARCLIGHT', col:'#ffd633', cost:3.4, dmg:7.5,  cd:.18, range:2.5, splash:170, add:{chains:4}},
+  hwwarden:  {src:'prism',   name:'WARDEN',   col:'#b46bff', cost:3.8, dmg:32.5, cd:.35, range:2.5, splash:170, add:{beams:2}},
 };
 for (const k in HW_SPEC) {
   const q = HW_SPEC[k], b = TOWERS[q.src];
@@ -2368,9 +2740,10 @@ for (const k in HW_SPEC) {
     dmg:b.dmg * q.dmg,
     cd:Math.max(1, Math.round(b.cd * q.cd)),
     range:Math.round(b.range * q.range),
-    desc:"HARDWARE brought this one himself. It is not for sale.",
+    desc:"HARDWARE fought sector thirteen with this one. He sells it out the back now.",
   });
   if (q.splash) d.splash = Math.max(b.splash || 0, q.splash);
+  if (q.fx) d.fx = q.fx;                // how much of its own show it draws
   // All of them see through cloak. ORIGIN's escort is WRAITH, which is cloaked,
   // and only three of the six inherited detection -- so half his line could not
   // see the thing that was killing you. A hundred and forty five of them walked
@@ -2385,8 +2758,13 @@ for (const k in HW_SPEC) {
 // His are deliberately absent here. TKEYS is what the armoury, the codex, the
 // sandbox roster and every ownership check are built from, so leaving them out
 // is what keeps them his rather than something you can buy.
-const TKEYS = Object.keys(TOWERS).filter(k => !TOWERS[k].hw);
+// The six-slot roster excludes his AND the anti-air, because neither is
+// something you equip out of those six. AAKEYS is the separate shelf.
+const TKEYS = Object.keys(TOWERS).filter(k => !TOWERS[k].hw && !TOWERS[k].aa);
+const AAKEYS = Object.keys(TOWERS).filter(k => TOWERS[k].aa);
 const HWKEYS = Object.keys(TOWERS).filter(k => TOWERS[k].hw);
+// What the black market stocks, cheapest first so the shelf reads as a ladder.
+const BLACKKEYS = HWKEYS.slice();
 // Each upgrade remembers which rung of the ladder it is, so upCost can charge
 // for depth. Done once here rather than threaded through three call sites.
 // every tower, his included -- upTierMul reads u.tier and his upgrades are
@@ -2416,6 +2794,45 @@ const TWIN_SPD = [1, 1.45, 2.05];
 //  ENEMY DEFINITIONS
 // ═══════════════════════════════════════════════════════════
 const ENEMIES = {
+  // ══════════ THE CORRUPTION ══════════
+  // Its own bestiary. Nothing here appears in the thirteen sectors and nothing
+  // from the thirteen sectors appears out here. Every one of them is written
+  // against HARDWARE's line rather than against a flux board -- see splashRes,
+  // which is the single most important number on this list, because splash is
+  // what all six of his guns do.
+  thrall:  {name:'THRALL',     hp:900,  spd:1.5, r:16, bounty:9,  leak:1, armor:.1,  color:'#ff2d9b', shape:'thrall', corr:1,
+            desc:'CORRUPTION — what it makes out of whatever it took.'},
+  filament:{name:'FILAMENT',   hp:420,  spd:4.4, r:11, bounty:8,  leak:1, armor:0,   color:'#ff5ce0', shape:'filament',corr:1,
+            desc:'CORRUPTION — fast enough that reach stops meaning coverage.'},
+  scab:    {name:'SCAB',       hp:5200, spd:.6,  r:25, bounty:26, leak:3, armor:.55, splashRes:.75, color:'#c46a3d', shape:'scab', corr:1,
+            desc:'CORRUPTION — scabbed over. Blasts barely mark it; shoot it directly.'},
+  husk:    {name:'HUSK',       hp:2600, spd:1.0, r:20, bounty:18, leak:2, armor:.3,  splashRes:.6,  color:'#9d7bff', shape:'husk', corr:1,
+            desc:'CORRUPTION — hollow. Splash washes over it.'},
+  carrier: {name:'CARRIER',    hp:3400, spd:.95, r:22, bounty:30, leak:2, armor:.22, carries:'thrall', color:'#ff8a3d', shape:'carrier',corr:1,
+            desc:'CORRUPTION — full of them. Killing it lets them out.'},
+  bloom:   {name:'BLOOM',      hp:2100, spd:.85, r:19, bounty:34, leak:2, armor:.2,  heals:1, color:'#5cff9d', shape:'bloom', corr:1,
+            desc:'CORRUPTION — puts hull back into everything near it. Kill it first.'},
+  vector:  {name:'VECTOR',     hp:3000, spd:1.9, r:18, bounty:28, leak:2, armor:.25, ccImmuneAlways:1, color:'#d8ff6b', shape:'vector',corr:1,
+            desc:'CORRUPTION — cannot be slowed, chilled, stunned or pulled.'},
+  weeper:  {name:'WEEPER',     hp:1500, spd:3.0, r:15, bounty:16, leak:2, armor:.1,  air:1, color:'#b4f0ff', shape:'weeper',corr:1,
+            desc:'CORRUPTION AIR — crosses the map before a slow gun finishes turning.'},
+  maw:     {name:'MAW',        hp:9000, spd:.85, r:27, bounty:52, leak:5, armor:.42, air:1, splashRes:.5, color:'#6bb8ff', shape:'maw', corr:1,
+            desc:'CORRUPTION AIR — armoured, heavy, and hard to blast.'},
+  graft:   {name:'GRAFT',      hp:4200, spd:1.1, r:21, bounty:30, leak:3, armor:.3,  regen:.011, color:'#7dff4d', shape:'graft', corr:1,
+            desc:'CORRUPTION — closes its own wounds. Burst it or do not bother.'},
+  // and what is underneath it all
+  // The four of them. hitCap is what makes a broad board beat a tall one: no
+  // single hit takes more than this share of the body, so a sniper landing
+  // sixty thousand and a repeater landing two thousand arrive at the same
+  // ceiling, and the repeater is firing twenty times as often.
+  mother:  {name:'SPORE MOTHER',hp:70000,spd:.5, r:42, bounty:420,leak:20,armor:.45, boss:1, carries:'husk', splashRes:.55, hitCap:.004, color:'#ff2d9b', shape:'mother',corr:1,
+            desc:'CORRUPTION BOSS — shrugs off any single big hit. Everything it was carrying comes out when it goes.'},
+  wound:   {name:'THE WOUND',  hp:120000,spd:.42,r:46, bounty:640,leak:26,armor:.5,  boss:1, heals:1, regen:.006, ccImmuneAlways:1, splashRes:.6, hitCap:.003, color:'#ff5ce0', shape:'wound', corr:1,
+            desc:'CORRUPTION BOSS — mends itself and everything near it, and no one shot hurts it much.'},
+  lattice: {name:'THE LATTICE',hp:200000,spd:.46,r:44, bounty:760,leak:28,armor:.52, boss:1, hitCap:.0018, splashRes:.7, ccImmuneAlways:1, shield:26000, maxShield:26000, color:'#22e6ff', shape:'lattice',corr:1,
+            desc:'CORRUPTION BOSS — spreads every hit across itself. Volume gets through it; one big gun does not.'},
+  zero:    {name:'PATIENT ZERO',hp:340000,spd:.4, r:50, bounty:1200,leak:34,armor:.55, boss:1, hitCap:.0012, splashRes:.65, ccImmuneAlways:1, heals:1, regen:.004, carries:'vector', color:'#ffffff', shape:'zero', corr:1,
+            desc:'CORRUPTION BOSS — the first one. Nothing you own hits it hard enough to matter; you have to out-volume it.'},
   drone:   {name:'DRONE',      hp:130,  spd:1.35,r:15, bounty:7,  leak:1, armor:0,   color:'#22e6ff', shape:'drone',  desc:'Standard infantry unit.'},
   runner:  {name:'RUNNER',     hp:80,   spd:3.3, r:12, bounty:9,  leak:1, armor:0,   color:'#ff2d9b', shape:'runner', desc:'Fragile but very fast.'},
   swarm:   {name:'SWARMLING',  hp:34,   spd:4.1, r:8,  bounty:3,  leak:1, armor:0,   color:'#d8ff6b', shape:'swarm',  desc:'Arrives in huge numbers.'},
@@ -2491,7 +2908,10 @@ const ORIGIN_KILL = .94;
 // handset takes 700ms to arrive, the sentence types for another 800, and then
 // holds. At the old three and a half seconds the whole beat was over while it
 // was still mid-word.
-const ORIGIN_REFUSE = 780, ORIGIN_GRABS = 6;
+const ORIGIN_REFUSE = 900, ORIGIN_GRABS = 6;
+// When ORIGIN takes the handset off him. Late enough that his line has closed
+// on its own rather than being cut off by the one that replaces it.
+const REFUSE_REPLY = 4000;
 const ORIGIN_BRINK = .74;
 const ORIGIN_SHATTER = 55;
 const ORIGIN_DECAY = 60 * 90;          // still the clock the cracks are drawn on
@@ -2618,7 +3038,109 @@ const MAPS = [
 // for no reason. It is written down per sector now so the order can change
 // without moving the tuning.
 
+// ══════════════════ THE CORRUPTION ══════════════════
+// Seven stages, opened by clearing sector thirteen. Tuned against HARDWARE'S
+// line rather than yours: `mul` runs two orders of magnitude above the campaign
+// because BULWARK hits for two thousand where PULSE hits for twenty-two. Stage
+// one is survivable on flux towers alone -- it has to be, it is where the blood
+// money starts -- and every stage after it assumes you have been spending.
+{ id:13, camp:'corr', stage:1, name:'FIRST CONTACT', diffTag:'STAGE I', waves:22, cash:900, cores:100, pathW:58, grid:210, mul:36,  pay:2.2,
+  desc:'Whatever ORIGIN was holding back is through. The floor still remembers being a sector.',
+  theme:{a:'#ff2d9b', b:'#2a0a1e', style:'grid', fog:'#12040c'},
+  lanes:[[[-.04,.5],[.12,.3],[.12,.7],[.3,.7],[.3,.3],[.5,.3],[.5,.7],[.7,.7],[.7,.3],[.88,.34],[.94,.5],[1.04,.5]]],
+  blocks:[{x:.5,y:.06,r:.05},{x:.5,y:.94,r:.05}] },
+
+{ id:14, camp:'corr', stage:2, name:'THE SPREAD', diffTag:'STAGE II', waves:25, cash:880, cores:95, pathW:52, grid:205, mul:52,  pay:5,
+  desc:'Two feeds where there was one. It is not building lanes, it is growing them.',
+  theme:{a:'#b46bff', b:'#1e0a2a', style:'circuit', fog:'#0c0414'},
+  lanes:[[[-.04,.16],[.2,.16],[.34,.4],[.52,.24],[.52,.72],[.74,.72],[.74,.3],[.9,.44],[1.04,.5]],
+         [[-.04,.84],[.2,.84],[.34,.6],[.52,.76],[.52,.28],[.74,.28],[.74,.7],[.9,.56],[1.04,.5]]],
+  blocks:[{x:.14,y:.5,r:.07},{x:.63,y:.5,r:.055}] },
+
+{ id:15, camp:'corr', stage:3, name:'ROTTEN CORE', diffTag:'STAGE III', waves:27, cash:860, cores:90, pathW:48, grid:200, mul:69,  pay:8,
+  desc:'A reactor that will not stop running. The aisles are short and there is no back line.',
+  theme:{a:'#ff6a3d', b:'#2a140a', style:'foundry', fog:'#140804'},
+  lanes:[[[-.04,.5],[.16,.28],[.16,.72],[.38,.72],[.38,.28],[.6,.28],[.6,.72],[.82,.72],[.82,.34],[.94,.46],[1.04,.46]]],
+  blocks:[{x:.06,y:.5,r:.06},{x:.27,y:.5,r:.07},{x:.49,y:.5,r:.07},{x:.71,y:.5,r:.06},{x:.38,y:.06,r:.05},{x:.6,y:.94,r:.05}] },
+
+{ id:16, camp:'corr', stage:4, name:'VEIN NETWORK', diffTag:'STAGE IV', waves:30, cash:840, cores:88, pathW:44, grid:200, mul:88,  pay:12,
+  desc:'Three ways in and they all converge late. Cover the trunk or cover nothing.',
+  theme:{a:'#7dff4d', b:'#0a2a14', style:'circuit', fog:'#04140a'},
+  lanes:[[[-.04,.12],[.22,.12],[.42,.34],[.62,.5],[.78,.32],[.9,.5],[1.04,.5]],
+         [[-.04,.5],[.18,.5],[.42,.5],[.62,.5],[.78,.68],[.9,.5],[1.04,.5]],
+         [[-.04,.88],[.22,.88],[.42,.66],[.62,.5],[.78,.32],[.9,.5],[1.04,.5]]],
+  blocks:[{x:.3,y:.5,r:.06},{x:.7,y:.12,r:.05},{x:.7,y:.88,r:.05}] },
+
+{ id:17, camp:'corr', stage:5, name:'THE SEAM', diffTag:'STAGE V', waves:32, cash:820, cores:85, pathW:42, grid:195, mul:108, pay:17,
+  desc:'The map has split down the middle and both halves are still running.',
+  theme:{a:'#22e6ff', b:'#0a1e2a', style:'abyss', fog:'#040c14'},
+  lanes:[[[-.04,.26],[.16,.26],[.16,.06],[.42,.06],[.42,.42],[.68,.42],[.68,.14],[.88,.3],[1.04,.46]],
+         [[-.04,.74],[.16,.74],[.16,.94],[.42,.94],[.42,.58],[.68,.58],[.68,.86],[.88,.7],[1.04,.54]]],
+  blocks:[{x:.3,y:.5,r:.09},{x:.56,y:.5,r:.07},{x:.82,y:.5,r:.05}] },
+
+{ id:18, camp:'corr', stage:6, name:'BLOOD TIDE', diffTag:'STAGE VI', waves:35, cash:800, cores:82, pathW:40, grid:195, mul:123, pay:23,
+  desc:'It comes in on four fronts and none of them are the one you fortified.',
+  theme:{a:'#ff2d9b', b:'#2a0a14', style:'vortex', fog:'#140408'},
+  lanes:[[[-.04,.08],[.3,.14],[.56,.3],[.78,.42],[1.04,.5]],
+         [[-.04,.36],[.3,.4],[.56,.44],[.8,.48],[1.04,.5]],
+         [[-.04,.64],[.3,.6],[.56,.56],[.8,.52],[1.04,.5]],
+         [[-.04,.92],[.3,.86],[.56,.7],[.78,.58],[1.04,.5]]],
+  blocks:[{x:.44,y:.5,r:.06},{x:.2,y:.5,r:.05},{x:.68,y:.2,r:.045},{x:.68,y:.8,r:.045}] },
+
+{ id:19, camp:'corr', stage:7, name:'PATIENT ZERO', diffTag:'FINAL STAGE', waves:40, cash:780, cores:80, pathW:44, grid:200, mul:137, pay:30,
+  desc:'The shape it started from. Short lanes, no cover, and it has stopped pretending.',
+  theme:{a:'#ffffff', b:'#2a0a0a', style:'void', fog:'#160404'},
+  lanes:[[[-.04,.5],[.14,.34],[.14,.66],[.36,.66],[.36,.34],[.58,.34],[.58,.66],[.8,.66],[.8,.4],[1.04,.5]],
+         [[-.04,.18],[.24,.18],[.24,.5],[.5,.5],[.5,.18],[.76,.18],[.76,.5],[1.04,.5]],
+         [[-.04,.82],[.24,.82],[.24,.5],[.5,.5],[.5,.82],[.76,.82],[.76,.5],[1.04,.5]]],
+  blocks:[{x:.66,y:.06,r:.05},{x:.66,y:.94,r:.05},{x:.9,y:.24,r:.045},{x:.9,y:.76,r:.045}] },
+
 ];
+
+// ── the two ladders ──────────────────────────────────────
+// Membership is a field on the map, not a range of indices, because prog[] is
+// keyed by index and always has been: appending to MAPS is safe, renumbering
+// would silently move every clear anyone has.
+const CAMPAIGNS = {
+  core: {id:'core', name:'THE CAMPAIGN', unit:'SECTOR', unitPl:'SECTORS',
+         verb:'secured', ac:'#22e6ff'},
+  corr: {id:'corr', name:'THE CORRUPTION', unit:'STAGE', unitPl:'STAGES',
+         verb:'purged', ac:'#ff2d9b'},
+};
+function campOf(i) { return (MAPS[i] && MAPS[i].camp) || 'core'; }
+// A kit per ladder. His guns are only legal in the corruption's.
+function kitFor(c) { return c === 'corr' ? META.corrLoadout : META.loadout; }
+function setKitFor(c, arr) { if (c === 'corr') META.corrLoadout = arr; else META.loadout = arr; }
+function kitAllows(c, k) { return c === 'corr' || !TOWERS[k] || !TOWERS[k].hw; }
+// Which ladder the sector screen is currently showing. Not part of the save:
+// it follows whatever map you last had open.
+let bookCamp = 'core';
+function campName(i) {
+  const c = CAMPAIGNS[campOf(i)];
+  const m = MAPS[i];
+  return c.unit + ' ' + (m.stage || (i + 1));
+}
+function campMaps(c) {
+  const out = [];
+  for (let i = 0; i < MAPS.length; i++) if (campOf(i) === c) out.push(i);
+  return out;
+}
+// The last sector of the campaign. Clearing it is what opens the other ladder.
+const CORR_GATE = 12;
+function corrOpen() { return !!(prog[CORR_GATE] && prog[CORR_GATE].won); }
+// The stake he fronts you. Enough for one gun off the black market, handed over
+// once, the moment the corruption opens -- so stage one can be tuned against
+// his line like every stage after it instead of against the towers you would
+// otherwise be stuck with.
+const BLOOD_STAKE = 400;
+function grantStake() {
+  if (!corrOpen() || META.bloodStake) return;
+  META.bloodStake = 1;
+  META.blood = (META.blood | 0) + BLOOD_STAKE;
+  saveMeta();
+  toast('◈', 'HE FRONTS YOU ONE',
+        fmt(BLOOD_STAKE) + ' blood money. Spend it out the back before you go in.', '#ff5ce0');
+}
 
 
 const DIFFS = [
@@ -2838,6 +3360,7 @@ const G = {
   // What this run is locked to, taken from META at startGame and restored
   // from the save on resume. META is the armoury; these two are the run.
   loadout:[], abils:[],
+  aa:null,                              // the anti-air in its own slot
   // Null on every sector that does not declare one, which is all of them but
   // the first. Every hook in the game checks this before doing anything.
   story:null,
@@ -2916,11 +3439,19 @@ function cellBlocked(x, y) {
   if (c < 0 || r < 0 || c >= GW || r >= GH) return true;
   return G.grid[r * GW + c] === 1;
 }
-function canPlace(x, y) {
-  if (x < 42 || x > W - 42 || y < 42 || y > H - 42) return false;
+// `type` is optional and only widens the clearance: with it left out every
+// tower is treated as standard size, which is exactly what the rule was before
+// anything was bigger than that.
+function canPlace(x, y, type) {
+  const mine = 22 * towerScale(type && TOWERS[type]);
+  const edge = 42 + (mine - 22);
+  if (x < edge || x > W - edge || y < edge || y > H - edge) return false;
   if (cellBlocked(x, y) || cellBlocked(x - 17, y) || cellBlocked(x + 17, y) ||
       cellBlocked(x, y - 17) || cellBlocked(x, y + 17)) return false;
-  for (const t of G.towers) if (dist2(x, y, t.x, t.y) < 44 * 44) return false;
+  for (const t of G.towers) {
+    const gap = mine + 22 * towerScale(t.def);
+    if (dist2(x, y, t.x, t.y) < gap * gap) return false;
+  }
   return true;
 }
 
@@ -3022,7 +3553,74 @@ function hpScale(n) {
   return base * (1 + over * .06);          // endless overtime, on top of the normal curve
 }
 const SECTOR_BOSS = {4:'nemesis', 7:'gemini', 8:'tyrant'};
+
+// ── the corruption sends its own ─────────────────────────
+// Never touches UNLOCK or the campaign's composition: there are no drones out
+// here and no sector bosses. The ramp is written against a board of HARDWARE's
+// guns, which is to say against splash, reach and one big hit at a time.
+const CORR_UNLOCK = [
+  [1,'thrall'], [1,'husk'], [2,'filament'], [3,'scab'], [4,'weeper'],
+  [5,'carrier'], [6,'vector'], [7,'graft'], [8,'bloom'], [10,'maw'],
+];
+function buildCorrWave(n) {
+  const gs = [], nl = G.lanes.length, hs = hpScale(n);
+  let delay = 0;
+  const add = (type, count, gap, lane, elite, mul) => {
+    if (count <= 0) return;
+    gs.push({type, count, gap, t:delay, lane:lane === undefined ? rint(nl) : lane,
+             elite:elite || null, hs:hs * (mul || 1), left:count});
+  };
+  const has = t => CORR_UNLOCK.some(u => u[0] <= n && u[1] === t);
+  const since = w => Math.max(0, n - w);
+  const eliteChance = clamp((n - 4) * .05, 0, .5);
+  const roll = () => Math.random() < eliteChance ? pick(AFFIXES) : null;
+  const last = MAPS[G.map].waves;
+
+  // the stage's own last wave: what is underneath it, alone
+  // Each stage closes on its own, so the last fight is not the same body you
+  // already learned three stages ago.
+  const STAGE_BOSS = [null, 'mother', 'mother', 'wound', 'wound', 'lattice', 'lattice', 'zero'];
+  if (!G.endless && n >= last) {
+    add('scab', 4, 40, undefined, null, 1.1); delay += 120;
+    add('maw', 3, 60, undefined, null, 1);    delay += 140;
+    add(STAGE_BOSS[MAPS[G.map].stage] || 'mother', 1, 0, 0, null, 1);
+    delay += 90; add('graft', 4, 50);
+    delay += 60; add('filament', 14, 10);
+    return gs;
+  }
+  // every fifth wave is one of the two, early
+  if (n % 5 === 0) {
+    // the stage's own boss shows up mid-run too, so its trick is not sprung
+    // for the first time on the wave that decides the stage
+    const mid = n % 10 === 0 ? (STAGE_BOSS[MAPS[G.map].stage] || 'mother') : 'scab';
+    add(mid, n % 10 === 0 ? 1 : 3, 90, 0, null, .8);
+    delay += 110;
+    add('husk', 4 + ((n / 6) | 0), 40, undefined, roll());
+    delay += 70;
+    add('weeper', 3 + ((n / 7) | 0), 34);
+    delay += 50;
+    add('thrall', 8 + n, 12);
+    return gs;
+  }
+
+  // the regular shape of it
+  add('thrall', Math.round(6 + n * 1.3), Math.max(8, 26 - n), undefined, roll());
+  delay += 64;
+  if (has('husk')) { add('husk', Math.round(2 + since(1) * .5), 30, undefined, roll()); delay += 52; }
+  if (has('filament') && n % 2 === 1) { add('filament', Math.round(5 + since(2) * 1.5), 6); delay += 46; }
+  if (has('scab')) { add('scab', Math.round(1 + since(3) * .3), 52, undefined, roll()); delay += 58; }
+  if (has('weeper') && n % 2 === 0) { add('weeper', Math.round(2 + since(4) * .5), 26, undefined, roll()); delay += 46; }
+  if (has('carrier') && n % 3 === 0) { add('carrier', Math.round(1 + since(5) * .22), 64, undefined, roll()); delay += 56; }
+  if (has('vector')) { add('vector', Math.round(1 + since(6) * .34), 40, undefined, roll()); delay += 50; }
+  if (has('graft') && n % 2 === 1) { add('graft', Math.round(1 + since(7) * .28), 46, undefined, roll()); delay += 50; }
+  if (has('bloom') && n % 3 !== 1) { add('bloom', Math.round(1 + since(8) * .16), 70); delay += 44; }
+  if (has('maw') && n % 4 === 0) { add('maw', Math.round(1 + since(10) * .2), 70, undefined, roll()); delay += 60; }
+  return gs;
+}
+
 function buildWave(n) {
+  // a different campaign, a different bestiary
+  if (campOf(G.map) === 'corr') return buildCorrWave(n);
   const gs = [], total = G.endless ? Infinity : MAPS[G.map].waves, nl = G.lanes.length;
   const avail = UNLOCK.filter(u => u[0] <= n).map(u => u[1]);
   const hs = hpScale(n);
@@ -3204,7 +3802,8 @@ function spawnEnemy(type, hs, laneIdx, affix) {
     route, d:0, seg:0, x:route.pts[0].x, y:route.pts[0].y, px:0, py:0, ang:0,
     hp, maxHp:hp,
     spd:d.spd * dif.spd * (air ? 1 : 1), baseSpd:d.spd * dif.spd,
-    r:d.r, armor:d.armor, bounty:Math.max(1, Math.round(d.bounty * dif.bounty * (1 + G.wave * .09))),
+    r:d.r, armor:d.armor,
+    bounty:Math.max(1, Math.round(d.bounty * dif.bounty * (1 + G.wave * .09) * (MAPS[G.map].pay || 1))),
     leak:d.leak, air, cloak:!!d.cloak, boss:!!d.boss, revealed:!d.cloak,
     burn:0, burnDps:0, chill:0, chillF:0, freeze:0, shock:0,
     corrode:0, corrodeV:0, amp:0, ampV:0, empRevealed:0,
@@ -3222,7 +3821,9 @@ function spawnEnemy(type, hs, laneIdx, affix) {
   if (affix) { e.affix = affix; affix.f(e); }
   if (d.wards) e.wardCd = 60;
   G.enemies.push(e);
-  if (e.type === 'origin' && G.mode === 'play') originEntrance(e);
+  // Not `G.mode === 'play'`: the codex is opened from the pause menu, where the
+  // mode still is play, and drawing its portrait would play its arrival.
+  if (e.type === 'origin' && G.mode === 'play' && !ICON_ONLY) originEntrance(e);
   return e;
 }
 
@@ -3237,6 +3838,11 @@ function damage(e, amt, o) {
   // Whatever a MIRE sends -- its own shot or the tick from the pool it laid --
   // arrives here with the mire as the source, so scaling once here covers both.
   if (e.def.mireRes && o.src && o.src.type === 'mire') dm *= 1 - e.def.mireRes;
+  // Nothing takes more than a share of its own hull from one hit. A gun that
+  // does sixty-six thousand a shot throws away everything above the cap; a gun
+  // that does two thousand twelve times a second loses nothing. It costs a
+  // rapid tower exactly zero and it stops one sniper being the whole board.
+  if (e.def.hitCap) dm = Math.min(dm, e.maxHp * e.def.hitCap);
   if (e.frail > 1) dm *= e.frail;        // ORIGIN, coming apart
   if (e.amp > 0) dm *= 1 + e.ampV;
   if (e.freeze > 0 && o.shatter) dm *= o.shatter;
@@ -3433,6 +4039,11 @@ function makeTower(x, y, type) {
 }
 let towerId = 0, hitstop = 0;
 const TYPE_CAP = 5;                    // no more than 5 of any one tower
+// Anti-air is capped harder than anything else. It is the only thing on the
+// board that draws no grid power, so the number of them is the only ceiling
+// there is -- and two positions is a decision in a way that five is not.
+const AA_CAP = 2;
+function capOf(k) { return TOWERS[k] && TOWERS[k].aa ? AA_CAP : TYPE_CAP; }
 // How much more of everything HARDWARE has than you do. It multiplies his
 // income, his grid and his copy limit rather than his damage, so he is better
 // resourced than you and not better at shooting -- which is the difference
@@ -3447,7 +4058,9 @@ const ALLY_MUL = 8;
 // from. It comes from HW_SPEC instead: his own guns, strong in their own stat
 // block. The dials stay because they are the cheapest way to tune him as a
 // whole, but the default is no multiplier at all.
-const ALLY_POWER = 1;                  // damage
+// His own copies are multiplied back up, so cutting the player-facing numbers
+// does not quietly re-tune the sector he defends by himself.
+const ALLY_POWER = 6;                  // damage
 const ALLY_RATE = 1;                   // shots
 // He stops adding guns here and starts making the ones he has good. Seventeen
 // base towers lost a wave; the money is better spent deepening than widening.
@@ -3499,9 +4112,20 @@ function towerCost(type) {
 }
 function powerUsed(ally) {
   let p = 0;
-  for (const t of G.towers) if (!!t.ally === !!ally) p += t.def.draw || 5;
+  // Anti-air is off the books entirely. It is the one thing on the board that
+  // costs credits and nothing else, which is what makes the seventh slot worth
+  // having rather than a seventh thing competing for the same wattage.
+  for (const t of G.towers) if (!!t.ally === !!ally && !t.def.aa) p += t.def.draw || 5;
   return p;
 }
+// Draw for anything that reads it: zero for anti-air, whatever it declares
+// otherwise, five for anything that forgot to say.
+function towerDraw(k) { return TOWERS[k].aa ? 0 : (TOWERS[k].draw || 5); }
+// Anti-air is built at twice the scale of everything else. It is the only thing
+// on the board that costs no grid, and being able to see that across a full
+// sector without reading a label is worth the pixels.
+const AA_SCALE = 2;
+function towerScale(d) { return d && d.aa ? AA_SCALE : 1; }
 // The sector's wave total, and whether it has an end. Both change the moment
 // he repairs the counter, which is the only thing that overrides neverWins.
 function waveTotal() {
@@ -3551,8 +4175,8 @@ function upTierMul(up) {
 function finaleMul() { return G.finale ? FINALE_PRICE : 1; }
 function upCost(up) { return Math.round(up.c * upTierMul(up) * finaleMul()); }
 function placeBlock(type) {
-  if (countOf(type) >= TYPE_CAP) return 'cap';
-  if (powerUsed() + (TOWERS[type].draw || 5) > powerMax()) return 'grid';
+  if (countOf(type) >= capOf(type)) return 'cap';
+  if (powerUsed() + towerDraw(type) > powerMax()) return 'grid';
   if (G.cash < towerCost(type)) return 'cash';
   return null;
 }
@@ -3806,7 +4430,7 @@ function fireTower(t) {
         damage(e, eDmg(t) * (e.air ? t.airMul : t.groundMul), {src:t, pierceArmor:t.pierceArmor, crit, critMul:t.critMul, shatter:t.shatter});
         statusHit(e, t);
         if (t.splash > 0) splashAt(e.x, e.y, t.splash, eDmg(t) * .6, t);
-        burst(e.x, e.y, t.color, 8, 4);
+        burst(e.x, e.y, t.color, Math.max(2, Math.round(8 * fxMul(t))), 4);
       }
       G.fx.push({k:'rail', x:t.x, y:t.y, x2:t.x + dx * len, y2:t.y + dy * len, life:16, max:16, c:crit ? '#ffffff' : t.color, w:crit ? 7 : 4});
       t.recoil = 2; t.flash = 10; shake(crit ? 6 : 3.4, crit ? .2 : 0); sfxT(crit ? 'crit' : 'rail'); return true;
@@ -3843,7 +4467,11 @@ function fireTower(t) {
       for (const e of _q2) {
         if (!canHit(t, e)) continue;
         any = true;
-        damage(e, eDmg(t), {src:t, shatter:t.shatter});
+        // Every other firing kind scales by what it is shooting at; this one
+        // never did, so a pulse tower's airMul was dead weight it declared and
+        // could not use. A no-op for CRYO and SEISMIC, which declare neither
+        // and default both to 1 -- makeTower has always guaranteed that.
+        damage(e, eDmg(t) * (e.air ? t.airMul : t.groundMul), {src:t, shatter:t.shatter});
         statusHit(e, t);
         if (t.frostDot) { e.burn = Math.max(e.burn, 70); e.burnDps = Math.max(e.burnDps, t.frostDot); }
       }
@@ -4021,9 +4649,8 @@ function heliFire(h, t, e, free) {
 // the player is held to. Finishing a tower beats starting one: a board that
 // has already fallen over needs depth before it needs breadth.
 function allyBlock(type) {
-  const def = TOWERS[type];
-  if (countOf(type, 1) >= TYPE_CAP * ALLY_MUL) return 'cap';
-  if (powerUsed(1) + (def.draw || 5) > powerMax(1)) return 'grid';
+  if (countOf(type, 1) >= capOf(type) * ALLY_MUL) return 'cap';
+  if (powerUsed(1) + towerDraw(type) > powerMax(1)) return 'grid';
   return null;
 }
 function allyCost(type) {
@@ -4041,7 +4668,7 @@ function allySpot(type) {
       const an = Math.atan2(b.y - a.y, b.x - a.x) + Math.PI / 2;
       for (const off of [64, 88, 112, 136]) for (const sd of [1, -1]) {
         const x = a.x + Math.cos(an) * off * sd, y = a.y + Math.sin(an) * off * sd;
-        if (canPlace(x, y)) return {x, y};
+        if (canPlace(x, y, type)) return {x, y};
       }
     }
   }
@@ -4134,7 +4761,7 @@ function allyTowerCount() {
 function allyCommit(j) {
   const al = G.ally; if (!al) return;
   if (j.kind === 'place') {
-    if (allyBlock(j.type) || !canPlace(j.x, j.y)) return;
+    if (allyBlock(j.type) || !canPlace(j.x, j.y, j.type)) return;
     const c = allyCost(j.type);
     if (c > al.cash) return;
     const t = makeTower(j.x, j.y, j.type);
@@ -4518,11 +5145,24 @@ function splashAt(x, y, rad, dmg, t) {
   for (const e of _q2) {
     if (!canHit(t, e)) continue;
     const f = 1 - clamp(dist(e, {x, y}) / rad, 0, 1) * .45;
-    damage(e, dmg * f * (e.air ? t.airMul : t.groundMul), {src:t, pierceArmor:t.pierceArmor, shatter:t.shatter});
+    // Splash is the whole of HARDWARE's kit -- all six of his guns carry a
+    // blast radius. This is the one number that makes a corruption unit have to
+    // be shot at rather than stood near.
+    const sr = 1 - (e.def.splashRes || 0);
+    damage(e, dmg * f * sr * (e.air ? t.airMul : t.groundMul), {src:t, pierceArmor:t.pierceArmor, shatter:t.shatter});
     statusHit(e, t);
   }
-  ring(x, y, 6, rad, t.color, 24);
-  burst(x, y, t.color, 16, 5);
+  // The ring is one fx and cheap; the burst is sixteen particles, and his line
+  // lands thousands of these. The ring stays so the hit still reads.
+  const fm = fxMul(t);
+  // The burst already scales. The ring did not, and at five volleys a second
+  // that is 372 of them in fifteen seconds from one tower. Only the guns dimmed
+  // below the ally baseline skip any, so nothing else on the board changes.
+  if (fm >= .2 || Math.random() < fm / .2) ring(x, y, 6, rad, t.color, 24);
+  // The floor was masking the dial: 16 * .25 and 16 * .10 both round up into a
+  // minimum of four, so dimming DELUGE below the ally baseline changed nothing
+  // about the thing it produces most of. The floor drops with it.
+  burst(x, y, t.color, Math.max(fm < .2 ? 2 : 4, Math.round(16 * fm)), 5);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -4962,7 +5602,7 @@ function tick() {
       const dx = p.tx - p.x, dy = p.ty - p.y, dd = Math.hypot(dx, dy) || 1;
       if (dd < p.spd + 4) { hitProj(p, p.tx, p.ty); G.projs.splice(i, 1); continue; }
       p.x += dx / dd * p.spd; p.y += dy / dd * p.spd;
-      if (Math.random() < .5) trail(p.x, p.y, p.color, p.r * .7);
+      if (Math.random() < .5 * fxMul(p.src)) trail(p.x, p.y, p.color, p.r * .7);
     } else if (p.kind === 'pellet') {
       p.x += p.vx; p.y += p.vy;
       nearby(p.x, p.y, p.r + 22, _q2);
@@ -4973,7 +5613,7 @@ function tick() {
         if (dd < (e.r + p.r) * (e.r + p.r) && dd < bd) { bd = dd; hitOne = e; }
       }
       if (hitOne) { hitProj(p, p.x, p.y, hitOne); G.projs.splice(i, 1); continue; }
-      if (Math.random() < .3) trail(p.x, p.y, p.color, p.r * .6);
+      if (Math.random() < .3 * fxMul(p.src)) trail(p.x, p.y, p.color, p.r * .6);
     } else if (p.kind === 'missile') {
       if (p.target && !p.target.dead) { p.tx = p.target.x; p.ty = p.target.y; }
       else { const nt = getTarget(p.src); if (nt) { p.target = nt; p.tx = nt.x; p.ty = nt.y; } }
@@ -4983,7 +5623,7 @@ function tick() {
       const sp = Math.min(p.spd, Math.hypot(p.vx, p.vy) + .55);
       p.vx = Math.cos(na) * sp; p.vy = Math.sin(na) * sp;
       p.x += p.vx; p.y += p.vy;
-      trail(p.x, p.y, p.color, p.r * .8);
+      if (Math.random() < fxMul(p.src)) trail(p.x, p.y, p.color, p.r * .8);
       nearby(p.x, p.y, p.r + 26, _q2);
       for (const e of _q2) {
         if (!canHit(p.src, e)) continue;
@@ -5029,7 +5669,7 @@ function tick() {
     dr.x += dr.vx + Math.cos(dr.wob) * .7;
     dr.y += dr.vy + Math.sin(dr.wob) * .7;
     dr.ang = Math.atan2(dr.vy, dr.vx);
-    if (Math.random() < .4) trail(dr.x, dr.y, t.color, 2);
+    if (Math.random() < .4 * fxMul(t)) trail(dr.x, dr.y, t.color, 2);
   }
 
   // ── ground fields: napalm (burns), mire tar (slows), spore clouds (haste) ──
@@ -5175,7 +5815,7 @@ function tickBeam(t) {
         }
       }
     }
-    if (Math.random() < .5) spark(e.x + rnd(8, -8), e.y + rnd(8, -8), t.color);
+    if (Math.random() < .5 * fxMul(t)) spark(e.x + rnd(8, -8), e.y + rnd(8, -8), t.color);
   }
   if (G.time % 10 === 0) sfxT('prism');
 }
@@ -5513,6 +6153,15 @@ function originEntrance(e) {
   setTimeout(() => radioBad('ORIGIN', 'IM HERE TO END THIS', .3, 5400, 'arrive'), 1500);
 }
 
+// How much of his own show HARDWARE's line actually draws. His towers are
+// twenty two guns with splash on all six types and extra projectiles on four
+// of them; at full volume that measured 258,000 particles across one ORIGIN
+// fight, and a particle is a fill per frame for as long as it lives. This
+// changes nothing about what his guns do -- only how much of it is rendered.
+const ALLY_FX = .25;
+const fxMul = src => ((src && src.ally) ? ALLY_FX : 1) *
+                     ((src && src.def && src.def.fx) || 1);
+
 function burst(x, y, c, n, sp) {
   sp = sp || 4;
   for (let i = 0; i < n; i++) {
@@ -5827,7 +6476,7 @@ function drawCore(T) {
 // ═══════════════════════════════════════════════════════════
 function drawBuildOverlay() {
   if (!G.selType || !G.hover) return;
-  const {x, y} = G.hover, ok = canPlace(x, y);
+  const {x, y} = G.hover, ok = canPlace(x, y, G.selType);
   const d = TOWERS[G.selType];
   const r = d.range;
   ctx.globalCompositeOperation = 'lighter';
@@ -5927,10 +6576,86 @@ function poly(n, r, rot) {
   }
   ctx.closePath();
 }
+
+// ── the anti-air family's shared furniture ───────────────────────────
+// Drawn under every one of the four, in tower-local space, before the turret.
+// One copy rather than four: they are a family and the deck, the rail and the
+// hazard band are what says so at a glance.
+function aaDeck(t, c) {
+  const T = G.time;
+  // service deck: a wider skirt than a ground tower stands on
+  ctx.fillStyle = 'rgba(8,14,24,.92)';
+  ctx.beginPath(); ctx.arc(0, 2, 20.5, 0, TAU); ctx.fill();
+  ctx.strokeStyle = rgba(c, .3); ctx.lineWidth = 1.1;
+  ctx.beginPath(); ctx.arc(0, 2, 20.5, 0, TAU); ctx.stroke();
+  // hazard band around the rear arc, the way a real mount is painted
+  ctx.save();
+  ctx.beginPath(); ctx.arc(0, 2, 20.5, 0, TAU); ctx.clip();
+  ctx.strokeStyle = rgba(c, .5); ctx.lineWidth = 3.4;
+  for (let i = 0; i < 9; i++) {
+    const a = i * TAU / 9 + .18;
+    ctx.beginPath();
+    ctx.arc(0, 2, 18.6, a, a + .2); ctx.stroke();
+  }
+  ctx.restore();
+  // handrail stanchions
+  ctx.strokeStyle = rgba(c, .42); ctx.lineWidth = 1;
+  for (let i = 0; i < 8; i++) {
+    const a = i * TAU / 8 + .39;
+    const x = Math.cos(a) * 19.4, y = 2 + Math.sin(a) * 19.4;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x * 1.06, y - 3.2); ctx.stroke();
+  }
+  // plate seams and rivets on the deck itself
+  ctx.strokeStyle = rgba(c, .16); ctx.lineWidth = .9;
+  for (let i = 0; i < 3; i++) {
+    const a = i * Math.PI / 3 + .5;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * 6, 2 + Math.sin(a) * 6);
+    ctx.lineTo(Math.cos(a) * 19, 2 + Math.sin(a) * 19); ctx.stroke();
+  }
+  ctx.fillStyle = rgba(c, .3);
+  for (let i = 0; i < 6; i++) {
+    const a = i * TAU / 6 + .26;
+    ctx.beginPath(); ctx.arc(Math.cos(a) * 14.6, 2 + Math.sin(a) * 14.6, .9, 0, TAU); ctx.fill();
+  }
+  // the search sweep: it runs while the tower has something to shoot at, so
+  // which of them is actually tracking is visible from across the sector
+  const live = t.firing || (t.cool !== undefined && t.cool > 0) || t.flash > 0;
+  if (live) {
+    const a0 = T * .07 % TAU;
+    const g = ctx.createLinearGradient(0, 0, Math.cos(a0) * 20, Math.sin(a0) * 20);
+    g.addColorStop(0, rgba(c, .34)); g.addColorStop(1, rgba(c, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.moveTo(0, 2);
+    ctx.arc(0, 2, 20, a0 - .5, a0); ctx.closePath(); ctx.fill();
+  }
+}
+// the elevation readout every one of them carries on its left cheek
+function aaGauge(t, c, fl) {
+  ctx.save(); ctx.rotate(-t.ang);            // stays level however the gun turns
+  ctx.strokeStyle = rgba(c, .55); ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(-14, -13, 5.4, -Math.PI * .95, -Math.PI * .05); ctx.stroke();
+  ctx.strokeStyle = rgba(c, .25); ctx.lineWidth = .8;
+  for (let i = 0; i <= 4; i++) {
+    const a = -Math.PI * .95 + i * (Math.PI * .9 / 4);
+    ctx.beginPath();
+    ctx.moveTo(-14 + Math.cos(a) * 4.2, -13 + Math.sin(a) * 4.2);
+    ctx.lineTo(-14 + Math.cos(a) * 5.4, -13 + Math.sin(a) * 5.4); ctx.stroke();
+  }
+  const na = -Math.PI * .95 + (Math.PI * .9) * (.2 + fl * .7);
+  ctx.strokeStyle = rgba('#ffffff', .5 + fl * .5); ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.moveTo(-14, -13);
+  ctx.lineTo(-14 + Math.cos(na) * 5, -13 + Math.sin(na) * 5); ctx.stroke();
+  ctx.restore();
+}
+
 function drawTower(t, ghost) {
   const T = G.time, c = t.color;
   const tier = t.tiers[0] + t.tiers[1];
   ctx.save(); ctx.translate(t.x, t.y);
+  // everything below this -- pad, platform, bolts, pips, turret, muzzle flash
+  const sc = towerScale(t.def);
+  if (sc !== 1) ctx.scale(sc, sc);
   if (t.ally) {                          // whose gun this is, at a glance
     ctx.strokeStyle = rgba('#b46bff', .55); ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(0, 4, 27, 0, TAU); ctx.stroke();
@@ -5978,7 +6703,248 @@ function drawTower(t, ghost) {
   const rec = t.recoil * 5;
   ctx.save(); ctx.rotate(t.ang); ctx.translate(-rec, 0);
   const fl = t.flash > 0 ? t.flash / 6 : 0;
+  if (t.def.aa) aaDeck(t, c);            // the family's shared mount
   switch (t.type) {
+
+    // ── anti-air ─────────────────────────────────────────
+    // Their own visual language, so the ones that point up are obvious without
+    // reading anything: open frames instead of armour, and a raised mount.
+    case 'flak': {                         // stubby quad barrels on a ring mount
+      ctx.strokeStyle = rgba(c, .5); ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(0, 0, 13, 0, TAU); ctx.stroke();
+      ctx.fillStyle = '#16120a'; ctx.strokeStyle = c; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.roundRect(-9, -8, 17, 16, 3); ctx.fill(); ctx.stroke();
+      // plate seam and rivets across the receiver
+      ctx.strokeStyle = rgba(c, .22); ctx.lineWidth = .8;
+      ctx.beginPath(); ctx.moveTo(-4, -8); ctx.lineTo(-4, 8); ctx.stroke();
+      ctx.fillStyle = rgba(c, .35);
+      for (const ry of [-6, 6]) for (const rx of [-6.6, 1, 5.4])
+        { ctx.beginPath(); ctx.arc(rx, ry, .75, 0, TAU); ctx.fill(); }
+      for (const sy of [-4.4, 4.4]) {      // two pairs, slightly splayed
+        for (const len of [17, 14]) {
+          ctx.fillStyle = '#0b0906';
+          ctx.beginPath(); ctx.roundRect(7, sy - 1.9, len, 3.8, 1.6); ctx.fill();
+          ctx.strokeStyle = rgba(c, .8); ctx.lineWidth = 1.2; ctx.stroke();
+        }
+        // cooling jacket rings down each barrel
+        ctx.strokeStyle = rgba(c, .3); ctx.lineWidth = .8;
+        for (let i = 0; i < 4; i++) {
+          const bx = 10 + i * 3.2;
+          ctx.beginPath(); ctx.moveTo(bx, sy - 2.4); ctx.lineTo(bx, sy + 2.4); ctx.stroke();
+        }
+      }
+      // the hoist, with shells visibly in it
+      ctx.fillStyle = rgba(c, .18);
+      ctx.beginPath(); ctx.roundRect(-7, -4.5, 8, 9, 2); ctx.fill();
+      ctx.strokeStyle = rgba(c, .4); ctx.lineWidth = .9; ctx.stroke();
+      ctx.fillStyle = rgba(c, .55);
+      for (let i = 0; i < 3; i++)
+        { ctx.beginPath(); ctx.roundRect(-5.6, -3.4 + i * 2.5, 5, 1.6, .7); ctx.fill(); }
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = rgba(c, .4 + fl * .6);
+      for (const sy of [-4.4, 4.4]) { ctx.beginPath(); ctx.arc(24, sy, 1.8 + fl * 3.2, 0, TAU); ctx.fill(); }
+      // spent brass venting from the side after a shot
+      if (fl > .25) {
+        ctx.fillStyle = rgba('#ffd9a0', fl * .8);
+        for (let i = 0; i < 3; i++)
+          { ctx.beginPath(); ctx.arc(-2 + i * 2.4, 10 + i * 2.6 + fl * 4, .9, 0, TAU); ctx.fill(); }
+      }
+      ctx.globalCompositeOperation = 'source-over';
+      aaGauge(t, c, fl);
+      break;
+    }
+    case 'talon': {                        // a cell battery, seen from above
+      const T2 = G.time;
+      // trunnions: the two arms the block pivots on. aaDeck already draws a ring
+      // under every one of these, and a second concentric ring here read as
+      // clutter rather than as machinery.
+      ctx.strokeStyle = rgba(c, .45); ctx.lineWidth = 2.8;
+      for (const sy of [-1, 1]) {
+        ctx.beginPath(); ctx.moveTo(-1, sy * 8.4); ctx.lineTo(5, sy * 7.2); ctx.stroke();
+      }
+      ctx.fillStyle = rgba(c, .3);
+      for (const sy of [-1, 1]) { ctx.beginPath(); ctx.arc(5, sy * 7.2, 1.7, 0, TAU); ctx.fill(); }
+      // the machinery deck the block is bolted to
+      ctx.fillStyle = '#1a1008'; ctx.strokeStyle = c; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.roundRect(-12, -8, 16, 16, 3); ctx.fill(); ctx.stroke();
+      // blast deflector across the back, angled away from the cells
+      ctx.fillStyle = '#0d0804';
+      ctx.beginPath();
+      ctx.moveTo(-12, -9.5); ctx.lineTo(-16.5, -6.5);
+      ctx.lineTo(-16.5, 6.5); ctx.lineTo(-12, 9.5); ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = rgba(c, .5); ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.strokeStyle = rgba(c, .22); ctx.lineWidth = .9;
+      for (const dy of [-3.5, 0, 3.5]) {
+        ctx.beginPath(); ctx.moveTo(-13, dy); ctx.lineTo(-15.8, dy); ctx.stroke();
+      }
+
+      // ── the cell block ──
+      // Two cells wide, as many ranks deep as it carries. The battery is the
+      // stat: three cells at base, ten once SALVO is finished.
+      const cells = Math.max(2, Math.min(10, t.missiles || 2));
+      const ranks = Math.ceil(cells / 2);
+      const pitch = 4.3, x0 = 5.4;
+      const blockLen = ranks * pitch + 1.6;
+      const bx0 = x0 - 2.6, bx1 = bx0 + blockLen;
+      // tapered, and narrower than the deck: the deck reads as a base rather
+      // than as the bottom of one tall stack
+      ctx.fillStyle = '#100a05';
+      ctx.beginPath();
+      ctx.moveTo(bx0, -5.6); ctx.lineTo(bx1 - 2, -4.4);
+      ctx.lineTo(bx1, -2.4); ctx.lineTo(bx1, 2.4);
+      ctx.lineTo(bx1 - 2, 4.4); ctx.lineTo(bx0, 5.6);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = rgba(c, .8); ctx.lineWidth = 1.4; ctx.stroke();
+      // the blast lip at the muzzle end, so the front is unmistakable
+      ctx.strokeStyle = rgba(c, .95); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(bx1 - 2, -4.4); ctx.lineTo(bx1, -2.4);
+      ctx.lineTo(bx1, 2.4); ctx.lineTo(bx1 - 2, 4.4); ctx.stroke();
+      // rank dividers
+      ctx.strokeStyle = rgba(c, .2); ctx.lineWidth = .8;
+      for (let r = 1; r < ranks; r++) {
+        const rx = bx0 + r * pitch;
+        const half = 5.6 - (r / ranks) * 1.6;
+        ctx.beginPath(); ctx.moveTo(rx, -half); ctx.lineTo(rx, half); ctx.stroke();
+      }
+      // How much of the magazine is currently up: full when cool, emptying
+      // front rank first the moment it fires, filling back as it reloads.
+      const cd = Math.max(1, eCd(t));
+      const loaded = t.cool > 0 ? 1 - clamp(t.cool / cd, 0, 1) : 1;
+      for (let i = 0; i < cells; i++) {
+        const rank = (i / 2) | 0, col = i % 2;
+        const cx = x0 + rank * pitch;
+        const cy = (col ? 1 : -1) * (2.3 + (rank / Math.max(1, ranks - 1)) * .9);
+        const up = (i / cells) < loaded;         // this tube still has one in it
+        ctx.fillStyle = '#07040a';
+        ctx.beginPath(); ctx.arc(cx, cy, 1.9, 0, TAU); ctx.fill();
+        ctx.strokeStyle = rgba(c, up ? .75 : .3); ctx.lineWidth = .9; ctx.stroke();
+        if (up) {                                 // the round sitting in it
+          ctx.fillStyle = rgba(c, .5 + fl * .45);
+          ctx.beginPath(); ctx.arc(cx, cy, 1.1, 0, TAU); ctx.fill();
+          ctx.fillStyle = rgba('#ffffff', .35);
+          ctx.beginPath(); ctx.arc(cx - .35, cy - .35, .42, 0, TAU); ctx.fill();
+        }
+      }
+      // muzzle glow across the front rank as it launches
+      if (fl > .05) {
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = rgba(c, fl * .5);
+        ctx.beginPath();
+        ctx.ellipse(bx1 + 3.5 * fl, 0, 4.5 * fl, 2.6 * fl, 0, 0, TAU); ctx.fill();
+        ctx.fillStyle = rgba('#ffffff', fl * .35);
+        ctx.beginPath(); ctx.ellipse(bx1 + 1.5, 0, 2.2 * fl, 1.3 * fl, 0, 0, TAU); ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
+      }
+
+      // ── the seeker ──
+      // On its own clock, not the launcher's: this is the half of the tower
+      // that is looking, and it keeps looking while the rest reloads.
+      ctx.save();
+      ctx.translate(-5.5, 0);
+      ctx.rotate(Math.sin(T2 * .018) * .9);
+      ctx.fillStyle = '#0d0804';
+      ctx.beginPath(); ctx.roundRect(-1.4, -5.2, 2.8, 10.4, 1.2); ctx.fill();
+      ctx.strokeStyle = rgba(c, .75); ctx.lineWidth = 1; ctx.stroke();
+      ctx.strokeStyle = rgba(c, .3); ctx.lineWidth = .7;
+      for (const sy of [-3.2, 0, 3.2]) {
+        ctx.beginPath(); ctx.moveTo(-1.4, sy); ctx.lineTo(1.4, sy); ctx.stroke();
+      }
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = rgba(c, .3 + fl * .5);
+      ctx.beginPath(); ctx.roundRect(-.6, -4.6, 1.2, 9.2, .6); ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.restore();
+
+      // cable run from the deck to the block, and the loading davit
+      ctx.strokeStyle = rgba(c, .3); ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(-2, 7.4); ctx.lineTo(4, 6.4); ctx.stroke();
+      ctx.strokeStyle = rgba(c, .45); ctx.lineWidth = 1.1;
+      ctx.beginPath(); ctx.moveTo(-9, -8.4); ctx.lineTo(-9, -12.4);
+      ctx.lineTo(-2.5, -12.4); ctx.stroke();
+      ctx.fillStyle = rgba(c, .4);
+      ctx.beginPath(); ctx.arc(-2.5, -12.4, 1.2, 0, TAU); ctx.fill();
+
+      aaGauge(t, c, fl);
+      break;
+    }
+    case 'zenith': {                       // a dish on a yoke, aperture forward
+      ctx.fillStyle = '#0a1620'; ctx.strokeStyle = c; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.roundRect(-10, -7, 15, 14, 3); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = rgba(c, .65); ctx.lineWidth = 2.2;   // the yoke
+      ctx.beginPath(); ctx.arc(8, 0, 9.5, -2.3, 2.3); ctx.stroke();
+      // the dish, drawn as an arc with ribs so it reads concave
+      ctx.fillStyle = rgba(c, .14);
+      ctx.beginPath(); ctx.arc(9, 0, 8.6, -1.9, 1.9); ctx.lineTo(9, 0); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = rgba(c, .55); ctx.lineWidth = 1;
+      for (const a of [-1.1, 0, 1.1]) {
+        ctx.beginPath(); ctx.moveTo(9, 0);
+        ctx.lineTo(9 + Math.cos(a) * 8.6, Math.sin(a) * 8.6); ctx.stroke();
+      }
+      ctx.fillStyle = '#05101a';           // the emitter at the focus
+      ctx.beginPath(); ctx.arc(15.5, 0, 3.1, 0, TAU); ctx.fill();
+      ctx.strokeStyle = rgba(c, .9); ctx.lineWidth = 1.3; ctx.stroke();
+      // the feed spine and its cooling fins, behind the yoke
+      ctx.fillStyle = '#071119';
+      ctx.beginPath(); ctx.roundRect(-9, -3.4, 9, 6.8, 1.6); ctx.fill();
+      ctx.strokeStyle = rgba(c, .4); ctx.lineWidth = .9; ctx.stroke();
+      ctx.strokeStyle = rgba(c, .26); ctx.lineWidth = 1.4;
+      for (let i = 0; i < 4; i++) {
+        const fx = -8.2 + i * 2.3;
+        ctx.beginPath(); ctx.moveTo(fx, -6.6); ctx.lineTo(fx, -3.6);
+        ctx.moveTo(fx, 3.6); ctx.lineTo(fx, 6.6); ctx.stroke();
+      }
+      // charge creeping up the spine toward the emitter as it holds a lock
+      const ch = Math.min(1, (t.rampV && t.rampV[0] ? (t.rampV[0] - 1) / Math.max(.001, t.rampMax - 1) : 0));
+      ctx.globalCompositeOperation = 'lighter';
+      if (ch > 0) {
+        ctx.fillStyle = rgba(c, .25 + ch * .6);
+        ctx.beginPath(); ctx.roundRect(-8.4, -1.5, 8.4 * ch + 1, 3, 1.4); ctx.fill();
+      }
+      ctx.fillStyle = rgba(c, .35 + fl * .65);
+      ctx.beginPath(); ctx.arc(15.5, 0, 1.6 + fl * 4 + ch * 2.4, 0, TAU); ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+      aaGauge(t, c, fl);
+      break;
+    }
+    case 'vigil': {                        // no barrel at all: a mast and a ring
+      ctx.fillStyle = '#140d22'; ctx.strokeStyle = c; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.roundRect(-9, -9, 18, 18, 4); ctx.fill(); ctx.stroke();
+      const pt = t.pulseT ? t.pulseT / 20 : 0;              // its own beat
+      ctx.strokeStyle = rgba(c, .3 + pt * .6); ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(0, 0, 13 + pt * 4, 0, TAU); ctx.stroke();
+      ctx.strokeStyle = rgba(c, .18 + pt * .4); ctx.lineWidth = 1.1;
+      ctx.beginPath(); ctx.arc(0, 0, 18 + pt * 7, 0, TAU); ctx.stroke();
+      // the mast, standing straight up out of the housing
+      ctx.fillStyle = '#0b0714';
+      ctx.beginPath(); ctx.roundRect(-2.4, -20, 4.8, 15, 2); ctx.fill();
+      ctx.strokeStyle = rgba(c, .8); ctx.lineWidth = 1.2; ctx.stroke();
+      for (let i = 0; i < 3; i++) {        // the coils up it
+        ctx.strokeStyle = rgba(c, .3 + i * .16 + pt * .4); ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.moveTo(-4.6, -8 - i * 4.4); ctx.lineTo(4.6, -8 - i * 4.4); ctx.stroke();
+      }
+      // the three emitter arms that hold the ring up, and the cable runs
+      ctx.strokeStyle = rgba(c, .5); ctx.lineWidth = 1.5;
+      for (let i = 0; i < 3; i++) {
+        const a = i * TAU / 3 + T * .004;
+        ctx.beginPath(); ctx.moveTo(0, -6);
+        ctx.lineTo(Math.cos(a) * 11, -3 + Math.sin(a) * 11); ctx.stroke();
+        ctx.fillStyle = rgba(c, .3 + pt * .5);
+        ctx.beginPath(); ctx.arc(Math.cos(a) * 11, -3 + Math.sin(a) * 11, 2, 0, TAU); ctx.fill();
+      }
+      ctx.strokeStyle = rgba(c, .2); ctx.lineWidth = .9;
+      ctx.beginPath(); ctx.moveTo(-6.6, 6); ctx.lineTo(-3, -2); ctx.stroke();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = rgba(c, .45 + pt * .55 + fl * .4);
+      ctx.beginPath(); ctx.arc(0, -21, 2.6 + pt * 3.4, 0, TAU); ctx.fill();
+      // the field itself, visible as a dome when it fires
+      if (pt > 0) {
+        ctx.strokeStyle = rgba(c, pt * .45); ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.arc(0, 0, 9 + pt * 11, Math.PI, TAU); ctx.stroke();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+      break;
+    }
     // ── HARDWARE's own ───────────────────────────────────
     // This switch is keyed on the TYPE, not on def.draw, and there is no
     // default -- so cloning a stat block gives a tower no turret whatsoever.
@@ -6697,6 +7663,266 @@ function drawEnemy(e, alpha) {
   const fill = hit ? 'rgba(255,255,255,.85)' : 'rgba(6,10,20,.9)';
 
   switch (e.shape) {
+    // ── the corruption ──────────────────────────────────
+    // One language: an unlit hull with something alive inside it, nothing
+    // symmetrical, and a pulse that is out of step between individuals.
+    case 'thrall': {
+      const p = .5 + Math.sin(T * .06 + e.wob) * .5;
+      ctx.fillStyle = fill; ctx.strokeStyle = bodyC; ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(r, r * .18); ctx.lineTo(r * .3, -r);
+      ctx.lineTo(-r * .8, -r * .55); ctx.lineTo(-r * .55, r * .7);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = rgba(bodyC, .3); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(-r * .5, 0); ctx.lineTo(r * .5, -r * .2); ctx.stroke();
+      glowDot(r * .1, -r * .1, r * .3, bodyC, .35 + p * .45);
+      break;
+    }
+    case 'filament': {
+      ctx.strokeStyle = bodyC; ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.moveTo(r * 1.7, 0);
+      ctx.quadraticCurveTo(0, Math.sin(T * .3 + e.wob) * r * .8, -r * 1.5, 0);
+      ctx.stroke();
+      ctx.fillStyle = fill; ctx.strokeStyle = bodyC; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.ellipse(r * .5, 0, r * .6, r * .42, 0, 0, TAU);
+      ctx.fill(); ctx.stroke();
+      glowDot(r * .6, 0, r * .26, bodyC, .7);
+      break;
+    }
+    case 'scab': {
+      const p = .5 + Math.sin(T * .04 + e.wob) * .5;
+      ctx.fillStyle = fill; ctx.strokeStyle = bodyC; ctx.lineWidth = 2.6;
+      ctx.beginPath();
+      for (let i = 0; i < 7; i++) {
+        const a = i * TAU / 7, rr = r * (i % 2 ? .78 : 1.08);
+        const fx = Math.cos(a) * rr, fy = Math.sin(a) * rr;
+        i ? ctx.lineTo(fx, fy) : ctx.moveTo(fx, fy);
+      }
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // the plates over it
+      ctx.fillStyle = rgba(bodyC, .26);
+      for (let i = 0; i < 4; i++) {
+        const a = i * TAU / 4 + .5;
+        ctx.beginPath();
+        ctx.ellipse(Math.cos(a) * r * .5, Math.sin(a) * r * .5, r * .34, r * .2, a, 0, TAU);
+        ctx.fill();
+      }
+      glowDot(0, 0, r * .22, bodyC, .25 + p * .3);
+      break;
+    }
+    case 'husk': {
+      ctx.strokeStyle = bodyC; ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.arc(0, 0, r, .5, TAU - .5); ctx.stroke();
+      ctx.fillStyle = 'rgba(4,6,14,.85)';
+      ctx.beginPath(); ctx.arc(0, 0, r * .92, 0, TAU); ctx.fill();
+      // hollow: a ring of light on the inside of the shell, not the outside
+      ctx.strokeStyle = rgba(bodyC, .4 + Math.sin(T * .07 + e.wob) * .25);
+      ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.arc(0, 0, r * .55, .8, TAU - .3); ctx.stroke();
+      break;
+    }
+    case 'carrier': {
+      const p = .5 + Math.sin(T * .09 + e.wob) * .5;
+      ctx.fillStyle = fill; ctx.strokeStyle = bodyC; ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.ellipse(0, 0, r * 1.05, r * .86, 0, 0, TAU);
+      ctx.fill(); ctx.stroke();
+      // what is inside, visible through it
+      ctx.fillStyle = rgba(bodyC, .3 + p * .35);
+      for (let i = 0; i < 5; i++) {
+        const a = i * TAU / 5 + T * .012;
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * r * .46, Math.sin(a) * r * .36, r * .19, 0, TAU);
+        ctx.fill();
+      }
+      break;
+    }
+    case 'bloom': {
+      const p = .5 + Math.sin(T * .1 + e.wob) * .5;
+      ctx.strokeStyle = rgba(bodyC, .4 + p * .4); ctx.lineWidth = 1.6;
+      for (let i = 0; i < 6; i++) {
+        const a = i * TAU / 6 + T * .01;
+        ctx.beginPath(); ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(Math.cos(a) * r, Math.sin(a) * r,
+                             Math.cos(a + .5) * r * 1.35, Math.sin(a + .5) * r * 1.35);
+        ctx.stroke();
+      }
+      ctx.fillStyle = fill; ctx.strokeStyle = bodyC; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0, 0, r * .6, 0, TAU); ctx.fill(); ctx.stroke();
+      glowDot(0, 0, r * .4, bodyC, .5 + p * .5);
+      break;
+    }
+    case 'vector': {
+      ctx.fillStyle = fill; ctx.strokeStyle = bodyC; ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(r * 1.35, 0); ctx.lineTo(r * .1, -r * .95);
+      ctx.lineTo(-r * .95, -r * .4); ctx.lineTo(-r * .55, 0);
+      ctx.lineTo(-r * .95, r * .4); ctx.lineTo(r * .1, r * .95);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // the bars that say nothing holds it
+      ctx.strokeStyle = rgba('#ffffff', .5); ctx.lineWidth = 1.3;
+      for (const sy of [-.35, .35]) {
+        ctx.beginPath(); ctx.moveTo(-r * .2, sy * r); ctx.lineTo(r * .55, sy * r); ctx.stroke();
+      }
+      glowDot(r * .55, 0, r * .24, bodyC, .8);
+      break;
+    }
+    case 'weeper': {
+      const p = Math.sin(T * .18 + e.wob);
+      ctx.fillStyle = fill; ctx.strokeStyle = bodyC; ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.moveTo(r * 1.2, 0);
+      ctx.quadraticCurveTo(0, -r * .9, -r * 1.1, -r * .3);
+      ctx.quadraticCurveTo(-r * .4, 0, -r * 1.1, r * .3);
+      ctx.quadraticCurveTo(0, r * .9, r * 1.2, 0);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = rgba(bodyC, .45); ctx.lineWidth = 1.2;
+      for (const sy of [-1, 1]) {
+        ctx.beginPath(); ctx.moveTo(-r * .2, sy * r * .3);
+        ctx.lineTo(-r * .9, sy * (r * .55 + p * 3)); ctx.stroke();
+      }
+      glowDot(r * .35, 0, r * .3, bodyC, .55 + Math.abs(p) * .3);
+      break;
+    }
+    case 'maw': {
+      const p = .5 + Math.sin(T * .05 + e.wob) * .5;
+      ctx.fillStyle = fill; ctx.strokeStyle = bodyC; ctx.lineWidth = 2.6;
+      ctx.beginPath(); ctx.ellipse(0, 0, r * 1.15, r * .8, 0, 0, TAU);
+      ctx.fill(); ctx.stroke();
+      // the opening at the front
+      ctx.fillStyle = 'rgba(2,4,10,.95)';
+      ctx.beginPath(); ctx.ellipse(r * .45, 0, r * .5, r * .48, 0, 0, TAU); ctx.fill();
+      ctx.strokeStyle = rgba(bodyC, .7); ctx.lineWidth = 1.4;
+      for (let i = 0; i < 8; i++) {
+        const a = i * TAU / 8;
+        ctx.beginPath();
+        ctx.moveTo(r * .45 + Math.cos(a) * r * .5, Math.sin(a) * r * .48);
+        ctx.lineTo(r * .45 + Math.cos(a) * r * .28, Math.sin(a) * r * .27); ctx.stroke();
+      }
+      glowDot(r * .45, 0, r * .2, bodyC, .3 + p * .55);
+      break;
+    }
+    case 'graft': {
+      const p = .5 + Math.sin(T * .13 + e.wob) * .5;
+      ctx.fillStyle = fill; ctx.strokeStyle = bodyC; ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < 9; i++) {
+        const a = i * TAU / 9, rr = r * (.8 + ((i * 7) % 5) * .09);
+        const fx = Math.cos(a) * rr, fy = Math.sin(a) * rr;
+        i ? ctx.lineTo(fx, fy) : ctx.moveTo(fx, fy);
+      }
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // the seams closing
+      ctx.strokeStyle = rgba('#ffffff', .2 + p * .5); ctx.lineWidth = 1.6;
+      for (let i = 0; i < 3; i++) {
+        const a = i * TAU / 3 + T * .008;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * r * .3, Math.sin(a) * r * .3);
+        ctx.lineTo(Math.cos(a) * r * .85, Math.sin(a) * r * .85); ctx.stroke();
+      }
+      break;
+    }
+
+    case 'lattice': {
+      // a body made of cells, so a hit lands on one of them and not on it
+      const p = .5 + Math.sin(T * .04 + e.wob) * .5;
+      ctx.strokeStyle = rgba(bodyC, .3 + p * .25); ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.arc(0, 0, r * 1.25 + p * 4, 0, TAU); ctx.stroke();
+      ctx.fillStyle = 'rgba(4,10,18,.92)'; ctx.strokeStyle = bodyC; ctx.lineWidth = 2.8;
+      poly(6, r, T * .004); ctx.fill(); ctx.stroke();
+      // the cells, lighting in sequence
+      ctx.lineWidth = 1.2;
+      for (let ring = 1; ring <= 2; ring++) {
+        for (let i = 0; i < 6; i++) {
+          const a = i * TAU / 6 + ring * .5 + T * .004;
+          const cx = Math.cos(a) * r * ring * .38, cy = Math.sin(a) * r * ring * .38;
+          const lit = (Math.sin(T * .05 + i + ring * 2 + e.wob) + 1) * .5;
+          ctx.strokeStyle = rgba(bodyC, .2 + lit * .6);
+          ctx.beginPath();
+          for (let k = 0; k < 6; k++) {
+            const aa = k * TAU / 6, rr = r * .2;
+            const fx = cx + Math.cos(aa) * rr, fy = cy + Math.sin(aa) * rr;
+            k ? ctx.lineTo(fx, fy) : ctx.moveTo(fx, fy);
+          }
+          ctx.closePath(); ctx.stroke();
+        }
+      }
+      glowDot(0, 0, r * .26, '#ffffff', .2 + p * .4);
+      break;
+    }
+    case 'zero': {
+      // the first one: a still centre with everything it made orbiting it
+      const p = .5 + Math.sin(T * .025 + e.wob) * .5;
+      for (let k = 0; k < 4; k++) {
+        ctx.strokeStyle = rgba(bodyC, (.22 - k * .045) + p * .1);
+        ctx.lineWidth = 2.2 - k * .4;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, r * (1.15 + k * .2) + p * 4, r * (.8 + k * .16) + p * 3,
+                    T * .003 * (k % 2 ? 1 : -1), 0, TAU);
+        ctx.stroke();
+      }
+      ctx.fillStyle = 'rgba(2,3,8,.96)'; ctx.strokeStyle = bodyC; ctx.lineWidth = 3.2;
+      ctx.beginPath(); ctx.arc(0, 0, r * .92, 0, TAU); ctx.fill(); ctx.stroke();
+      // the ring of them it is still making
+      ctx.fillStyle = rgba(bodyC, .3 + p * .4);
+      for (let i = 0; i < 10; i++) {
+        const a = i * TAU / 10 + T * .006;
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * r * .58, Math.sin(a) * r * .58, r * .13, 0, TAU); ctx.fill();
+      }
+      ctx.strokeStyle = rgba('#ffffff', .25 + p * .4); ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(0, 0, r * .34, T * .02, T * .02 + 4.2); ctx.stroke();
+      glowDot(0, 0, r * .2, '#ffffff', .4 + p * .5);
+      break;
+    }
+    case 'mother': {
+      const p = .5 + Math.sin(T * .035 + e.wob) * .5;
+      ctx.strokeStyle = rgba(bodyC, .22 + p * .2); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0, 0, r * 1.3 + p * 4, 0, TAU); ctx.stroke();
+      ctx.fillStyle = fill; ctx.strokeStyle = bodyC; ctx.lineWidth = 3;
+      ctx.beginPath();
+      for (let i = 0; i < 11; i++) {
+        const a = i * TAU / 11, rr = r * (i % 2 ? .82 : 1.12);
+        const fx = Math.cos(a) * rr, fy = Math.sin(a) * rr;
+        i ? ctx.lineTo(fx, fy) : ctx.moveTo(fx, fy);
+      }
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // the brood, turning inside it
+      ctx.fillStyle = rgba(bodyC, .35 + p * .35);
+      for (let i = 0; i < 8; i++) {
+        const a = i * TAU / 8 + T * .009;
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * r * .52, Math.sin(a) * r * .52, r * .17, 0, TAU); ctx.fill();
+      }
+      glowDot(0, 0, r * .3, '#ffffff', .3 + p * .4);
+      break;
+    }
+    case 'wound': {
+      const p = .5 + Math.sin(T * .03 + e.wob) * .5;
+      for (let k = 0; k < 3; k++) {
+        ctx.strokeStyle = rgba(bodyC, (.2 - k * .05) + p * .14);
+        ctx.lineWidth = 2.4 - k * .6;
+        ctx.beginPath(); ctx.arc(0, 0, r * (1.2 + k * .22) + p * 5, 0, TAU); ctx.stroke();
+      }
+      ctx.fillStyle = 'rgba(3,2,8,.95)'; ctx.strokeStyle = bodyC; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.ellipse(0, 0, r * 1.1, r * .9, 0, 0, TAU);
+      ctx.fill(); ctx.stroke();
+      // it does not close
+      ctx.strokeStyle = rgba('#ffffff', .35 + p * .45); ctx.lineWidth = 2.6;
+      ctx.beginPath();
+      ctx.moveTo(-r * .7, -r * .3);
+      ctx.quadraticCurveTo(0, r * .2, r * .75, -r * .15);
+      ctx.stroke();
+      ctx.strokeStyle = rgba(bodyC, .5); ctx.lineWidth = 1.2;
+      for (let i = 0; i < 6; i++) {
+        const a = -.6 + i * .24;
+        ctx.beginPath();
+        ctx.moveTo(-r * .6 + i * r * .26, -r * .3 + Math.sin(a) * r * .2);
+        ctx.lineTo(-r * .6 + i * r * .26, -r * .3 + Math.sin(a) * r * .2 + r * .4);
+        ctx.stroke();
+      }
+      glowDot(0, 0, r * .34, '#ffffff', .25 + p * .45);
+      break;
+    }
     case 'drone':
       ctx.fillStyle = fill; ctx.strokeStyle = bodyC; ctx.lineWidth = 2;
       poly(6, r, e.phase * .04); ctx.fill(); ctx.stroke();
@@ -7635,7 +8861,8 @@ function startGame(mapIdx, diffIdx, endless) {
   G.bestCombo = 1; G.lowCore = G.cores;
   // Locked here and nowhere else. resumeRun overwrites both straight after,
   // with the kit the run was originally started on.
-  G.loadout = META.loadout.slice(); G.abils = META.abils.slice();
+  G.loadout = kitFor(campOf(mapIdx)).slice(); G.abils = META.abils.slice();
+  G.aa = META.aa;                       // locked here with the rest of the kit
   const sty = MAPS[mapIdx].story;
   G.story = sty ? {id:sty, beats:{}, glitch:0, radioOn:0, breakWave:0} : null;
   const wvChip = document.querySelector('.stat.wv');
@@ -7935,16 +9162,30 @@ function originRefuse(e) {
   G.groups.length = 0;
   G.waveActive = false;
   G.originOut = 1;                        // and endWave stays out of it
+  // He calls it before it speaks. He is watching the same bar you are, and the
+  // clean channel saying it plainly is what makes the broken one answering
+  // land -- so his line runs to its own end before ORIGIN takes the handset.
+  // A third of what ORIGIN gets, and in violet: the channel is struggling, not
+  // taken over. --g scales nearly all of it, so the strength IS the difference.
+  radioBad('HARDWARE', "It's Trying To Heal Itself!!", .18, 2300, null, '#b46bff');
   // worse than the first line, because this one is not an announcement
   // The wording follows the recording rather than the other way round -- a
   // caption that does not match the voice reading it is worse than no caption.
-  radioBad('ORIGIN', 'THIS CANT BE HAPPENING', .58, 9000, 'refuse');
+  setTimeout(() => radioBad('ORIGIN', 'THIS CANT BE HAPPENING', .58, 9000, 'refuse'),
+             REFUSE_REPLY);
 }
 
 // A sawtooth: each grab claws back less than the one before and drains straight
 // out again, so the bar climbs five times and means less every time.
 function tickRefuse(e) {
-  e.refuse--;
+  // The beat is counted in ticks; the two lines on the handset are counted in
+  // milliseconds, and G.speed multiplies only one of those. At 4x the whole
+  // thing was over in 3.75s while ORIGIN's line needs 14.45s, so the screen
+  // died on top of it mid-sentence. Same trick tickAlly uses for his cursor:
+  // divide the step by the speed. Still tick-driven, so pause and hitstop hold
+  // it, but the beat is fifteen seconds of real time at any speed.
+  const sp = Math.max(1, G.speed || 1);
+  e.refuse -= 1 / sp;
   e.spd = 0;
   e.hitFlash = 6;
   const k = 1 - e.refuse / ORIGIN_REFUSE;
@@ -8169,12 +9410,19 @@ function endGame(won) {
   const fr = G.sandbox ? {total:0, base:0, win:0, first:0, firstLabel:'', key:''}
                        : fluxReward(won, G.wave, G.map, G.diff);
   const hr = honeyReward(won, G.wave, G.map, G.diff);
+  const ar = aetherReward(won, G.wave, G.map, G.diff);
+  const br = bloodReward(won, G.wave, G.map, G.diff);
   if (HOST.on && !G.sandbox) {
     if (hr.total > 0) { HOST.pay(Object.assign({map:G.map, diff:G.diff, won:!!won, wave:G.wave}, hr)); HOST.bal += hr.total; }
     if (won && !G.endless) HOST.paid[hr.key] = true;   // keep the panel honest on an immediate retry
   }
   if (!G.sandbox) {
     META.flux += fr.total;
+    META.aether += ar.total;
+    if (br.total > 0) {
+      META.blood += br.total;
+      if (br.first) META.bloodFirst[G.map] = 1;   // the clear bonus is once each
+    }
     if (!G.endless && won) META.cleared[fr.key] = true;
     if (G.endless && G.wave > endlessBest(G.map)) META.endless[G.map] = G.wave;
     saveMeta();
@@ -8223,7 +9471,11 @@ function endGame(won) {
     ['TOWERS', G.towers.length, 'var(--v)'],
   ].map(([k, v, c]) => `<div class="resCell"><div class="k">${k}</div><div class="v" style="color:${c}">${v}</div></div>`).join('');
   renderWorkBreakdown();
-  const nextUnlocked = won && G.map + 1 < MAPS.length;
+  const _cl = campMaps(campOf(G.map)), _at = _cl.indexOf(G.map);
+  const nextMap = (_at >= 0 && _at + 1 < _cl.length) ? _cl[_at + 1] : -1;
+  const nextUnlocked = won && nextMap >= 0;
+  document.getElementById('btnNextMap').textContent =
+    '▶ NEXT ' + CAMPAIGNS[campOf(G.map)].unit;
   document.getElementById('btnNextMap').style.display = nextUnlocked ? '' : 'none';
   const ovEnd = document.getElementById('ovEnd');
   ovEnd.classList.remove('broke');
@@ -8291,7 +9543,7 @@ function snapRun() {
     auto:!!G.auto, speed:G.speed, dmgType:G.dmgType,
     dmgOrigin:G.dmgOrigin, dmgOwn:G.dmgOwn, dmgAlly:G.dmgAlly,
     built:G.built, bestCombo:G.bestCombo, lowCore:G.lowCore,
-    kit:G.loadout.slice(), abils:G.abils.slice(), abilCd:G.abilCd.slice(),
+    kit:G.loadout.slice(), aa:G.aa, abils:G.abils.slice(), abilCd:G.abilCd.slice(),
     towers:G.towers.map(t => ({
       k:t.type, x:Math.round(t.x), y:Math.round(t.y),
       o:t.ord.slice(), m:t.targetMode || 0,
@@ -8350,7 +9602,7 @@ function stampRunKit() {
   const r = readRun();
   if (!r || (Array.isArray(r.kit) && r.kit.length)) return;
   const live = G.started && G.loadout && G.loadout.length;   // exact, not inferred
-  r.kit = (live ? G.loadout : META.loadout).slice();
+  r.kit = (live ? G.loadout : kitFor(campOf(G.map))).slice();
   r.abils = (live && G.abils.length ? G.abils : META.abils).slice();
   try { HOST.set(RUN_KEY, JSON.stringify(r)); } catch (e) {}
 }
@@ -8413,6 +9665,9 @@ function resumeRun() {
   // behaviour once more, which beats refusing to load somebody's game.
   const kit = (r.kit || []).filter(k => TOWERS[k]);
   if (kit.length) G.loadout = kit;
+  // A save from before the slot existed has no anti-air in it; it gets the
+  // armoury's current one rather than an empty slot it can never fill.
+  G.aa = (r.aa && TOWERS[r.aa] && TOWERS[r.aa].aa) ? r.aa : META.aa;
   const ab = (r.abils || []).filter(k => ABIL[k]);
   if (ab.length) G.abils = ab;
   // cooldowns are per slot, so they only mean anything against the same kit
@@ -8478,7 +9733,7 @@ function refreshResumeCard() {
   // exactly when a player would otherwise resume and wonder where their
   // towers went.
   const kit = (r.kit || []).filter(k => TOWERS[k]);
-  const locked = kit.length && String(kit) !== String(META.loadout)
+  const locked = kit.length && String(kit) !== String(kitFor(campOf(G.map)))
     ? ' \u00b7 locked to ' + kit.map(k => TOWERS[k].name).join(', ') : '';
   $('resumeZ').textContent =
     (r.sandbox ? 'Sandbox' : r.endless ? 'Endless' : DIFFS[r.diff].name) +
@@ -8509,15 +9764,15 @@ function placeTower(x, y, type) {
   const cost = towerCost(type);
   const block = placeBlock(type);
   if (block === 'cap') {
-    toast('✕', 'TYPE LIMIT REACHED', `Maximum ${TYPE_CAP} ${TOWERS[type].name} towers. Mix your defence.`, '#ff2d9b');
+    toast('✕', 'TYPE LIMIT REACHED', `Maximum ${capOf(type)} ${TOWERS[type].name} towers. Mix your defence.`, '#ff2d9b');
     sfx('deny'); return false;
   }
   if (block === 'grid') {
-    toast('⚡', 'GRID AT CAPACITY', `Not enough power for ${TOWERS[type].name} (${TOWERS[type].draw} GW). Sell something first.`, '#ffd633');
+    toast('⚡', 'GRID AT CAPACITY', `Not enough power for ${TOWERS[type].name} (${towerDraw(type)} GW). Sell something first.`, '#ffd633');
     sfx('deny'); return false;
   }
   if (block === 'cash' && G.freeBuild <= 0) { toast('✕', 'INSUFFICIENT CREDITS', `${TOWERS[type].name} costs ${cost}.`, '#ff2d9b'); sfx('deny'); return false; }
-  if (!canPlace(x, y)) { sfx('deny'); return false; }
+  if (!canPlace(x, y, type)) { sfx('deny'); return false; }
   const t = makeTower(x, y, type);
   G.towers.push(t);
   if (G.freeBuild > 0) {                    // FIELD FORGE picks up the bill
@@ -8965,7 +10220,7 @@ function towerIcon(type, size) {
   ctx = g;
   const t = makeTower(0, 0, type);
   t.ang = -Math.PI / 2; t.tAng = -Math.PI / 2; t.cool = 0;
-  const sc = size / 74;
+  const sc = size / 74 / towerScale(TOWERS[type]);
   g.setTransform(sc, 0, 0, sc, size / 2, size / 2 + size * .03);
   drawTower(t, true);
   ctx = real;
@@ -8976,12 +10231,16 @@ function towerIcon(type, size) {
 // way towerIcon does: borrow the global ctx, render into a small canvas, put it
 // back. spawnEnemy is used so every field drawEnemy touches actually exists,
 // and the unit is pulled straight back out of the world.
+// Set while the codex is borrowing the spawner to draw a portrait. Anything in
+// spawnEnemy that changes the game rather than the enemy checks this.
+let ICON_ONLY = 0;
 function enemyIcon(type, size) {
   const c = document.createElement('canvas');
   c.width = c.height = size; c.className = 'ic';
   const g = c.getContext('2d');
   const real = ctx;
   ctx = g;
+  ICON_ONLY++;
   try {
     const e = spawnEnemy(type, 1, 0, null);
     G.enemies.pop();                       // it was never meant to be in the game
@@ -8993,14 +10252,19 @@ function enemyIcon(type, size) {
     g.setTransform(sc, 0, 0, sc, size / 2, size / 2);
     drawEnemy(e, 1);
   } catch (err) { /* an icon is never worth breaking the codex over */ }
+  finally { ICON_ONLY--; }                 // even if drawing threw
   ctx = real;
   return c;
 }
 // What this run is holding, which is not the same question as what the armoury
 // has equipped. Falls back to META before a run exists, for the menus.
 function runKit() {
-  if (G.sandbox) return TKEYS;
-  return G.loadout && G.loadout.length ? G.loadout : META.loadout;
+  if (G.sandbox) return TKEYS.concat(AAKEYS);
+  const six = G.loadout && G.loadout.length ? G.loadout : kitFor(campOf(G.map));
+  // The seventh rides along. It is not IN the loadout -- nothing that counts
+  // slots should ever see it -- it is appended at the point of use.
+  const aa = G.started ? G.aa : META.aa;
+  return aa ? six.concat(aa) : six;
 }
 function inKit(k) { return runKit().includes(k); }
 
@@ -9014,9 +10278,11 @@ function buildDock() {
     el.className = 'tcard'; el.style.setProperty('--ac', def.color);
     el.dataset.t = k;
     el.innerHTML = `<div class="kb">${i + 1}</div>`;
+    if (def.aa) el.classList.add('aaCard');
     el.appendChild(towerIcon(k, 34));
     el.insertAdjacentHTML('beforeend',
-      `<div class="nm${def.name.length > 8 ? ' long' : ''}">${def.name}</div><div class="cs">${def.cost}</div><div class="own"></div>`);
+      `<div class="nm${def.name.length > 8 ? ' long' : ''}">${def.name}</div><div class="cs">${def.cost}</div><div class="own"></div>` +
+      (def.aa ? '<div class="aaFlag">AA</div>' : ''));
     el.onclick = () => selectType(k);
     el.onpointerenter = () => showTip(def);
     el.onpointerleave = hideTip;
@@ -9032,14 +10298,14 @@ function refreshDockAfford() {
   document.querySelectorAll('.tcard').forEach(el => {
     const k = el.dataset.t, def = TOWERS[k];
     const n = countOf(k), cost = towerCost(k);
-    const capped = n >= TYPE_CAP;
-    const noPower = powerUsed() + (def.draw || 5) > powerMax();
+    const cap = capOf(k), capped = n >= cap;
+    const noPower = powerUsed() + towerDraw(k) > powerMax();
     el.classList.toggle('maxed', capped || noPower);
     el.classList.toggle('poor', !capped && !noPower && G.cash < cost);
     const cs = el.querySelector('.cs'), own = el.querySelector('.own');
     if (cs) cs.textContent = capped ? 'MAX' : noPower ? '⚡' : cost;
-    if (own) own.textContent = n ? n + '/' + TYPE_CAP : '';
-    el.title = `${def.name} · ${def.draw} GW · ${n}/${TYPE_CAP} built`;
+    if (own) own.textContent = n ? n + '/' + cap : '';
+    el.title = `${def.name} · ${def.aa ? 'no grid draw' : def.draw + ' GW'} · ${n}/${cap} built`;
   });
 }
 function selectType(k) {
@@ -9048,15 +10314,17 @@ function selectType(k) {
   if (!inKit(k)) { toast('🛠', 'NOT EQUIPPED', `${TOWERS[k].name} is not in this run's loadout. A run keeps the kit it started with.`, '#b46bff'); sfx('deny'); return; }
   if (G.selType !== k) {
     const b = placeBlock(k);
-    if (b === 'cap') { toast('✕', 'TYPE LIMIT REACHED', `You already have ${TYPE_CAP} ${TOWERS[k].name} towers.`, '#ff2d9b'); sfx('deny'); return; }
-    if (b === 'grid') { toast('⚡', 'GRID AT CAPACITY', `${TOWERS[k].name} needs ${TOWERS[k].draw} GW. Sell a tower to free capacity.`, '#ffd633'); sfx('deny'); return; }
+    if (b === 'cap') { toast('✕', 'TYPE LIMIT REACHED', `You already have ${capOf(k)} ${TOWERS[k].name} towers.`, '#ff2d9b'); sfx('deny'); return; }
+    if (b === 'grid') { toast('⚡', 'GRID AT CAPACITY', `${TOWERS[k].name} needs ${towerDraw(k)} GW. Sell a tower to free capacity.`, '#ffd633'); sfx('deny'); return; }
   }
   G.selType = G.selType === k ? null : k;
   G.selTower = null; G.aiming = -1;
   closeInspector();
   $('hint').classList.toggle('on', !!G.selType);
   if (G.selType) $('hint').textContent =
-    `PLACING ${TOWERS[k].name} · ${towerCost(k)}¢ · ${TOWERS[k].draw} GW · ${countOf(k)}/${TYPE_CAP} — RIGHT-CLICK TO CANCEL`;
+    `PLACING ${TOWERS[k].name} · ${towerCost(k)}¢ · ` +
+    (TOWERS[k].aa ? 'ANTI-AIR · NO GRID DRAW' : TOWERS[k].draw + ' GW') +
+    ` · ${countOf(k)}/${capOf(k)} — RIGHT-CLICK TO CANCEL`;
   refreshDock(); refreshAbilities();
   sfx('click');
 }
@@ -9066,7 +10334,9 @@ function showTip(def) {
 }
 function hideTip() {
   if (G.selType) { $('hint').textContent =
-    `PLACING ${TOWERS[G.selType].name} · ${towerCost(G.selType)}¢ · ${TOWERS[G.selType].draw} GW · ${countOf(G.selType)}/${TYPE_CAP} — RIGHT-CLICK TO CANCEL`; }
+    `PLACING ${TOWERS[G.selType].name} · ${towerCost(G.selType)}¢ · ` +
+    (TOWERS[G.selType].aa ? 'ANTI-AIR · NO GRID DRAW' : TOWERS[G.selType].draw + ' GW') +
+    ` · ${countOf(G.selType)}/${capOf(G.selType)} — RIGHT-CLICK TO CANCEL`; }
   else $('hint').classList.remove('on');
 }
 
@@ -9126,7 +10396,7 @@ function refreshInspector() {
   $('iName').textContent = t.name;
   $('iName').style.color = t.color;
   $('iRole').textContent =
-    `${t.def.role} · Tier ${tier} · ${t.def.draw} GW · ${t.kills} kills · ${fmt(Math.round(t.dmgDone || 0))} dealt`;
+    `${t.def.role} · Tier ${tier} · ${t.def.aa ? 'off-grid' : t.def.draw + ' GW'} · ${t.kills} kills · ${fmt(Math.round(t.dmgDone || 0))} dealt`;
   refreshInspectorLive();
   const box = $('iPaths'); box.innerHTML = '';
   t.def.paths.forEach((p, pi) => {
@@ -9185,8 +10455,10 @@ function refreshInspectorLive() {
     $('iDmg').textContent = fmt(Math.round(eDmg(t) * 10) / 10);
     $('iRate').textContent = fmt(Math.round(perSec)) + '/s';
     $('iRng').textContent = (t.range > 2000 ? '∞' : Math.round(eRange(t))) + (t.minRange ? ' ▸' + Math.round(t.minRange) : '');
-    // the grid is the scarce thing, so rate the tower against a slot of it
-    $('iEff').textContent = fmt(Math.round(perSec / (t.def.draw || 5)));
+    // The grid is the scarce thing, so rate the tower against a slot of it --
+    // except for the one kind that is not on the grid at all, where the ratio
+    // has no denominator and the honest answer is to show the DPS itself.
+    $('iEff').textContent = t.def.aa ? '—' : fmt(Math.round(perSec / (t.def.draw || 5)));
     $('iStats').children[0].querySelector('.k').textContent = 'DAMAGE';
     $('iStats').children[1].querySelector('.k').textContent = 'DPS';
   }
@@ -9234,9 +10506,11 @@ let radioOpen = 0;
 function badClear() {
   const l = document.getElementById('radioLine');
   if (l) { l.classList.remove('badLine'); l.removeAttribute('data-t'); }
-  for (const id of ['radio', 'walkie']) {
+  for (const id of ['radioLine', 'radio', 'walkie']) {
     const el = document.getElementById(id);
-    if (el) { el.classList.remove('bad'); el.style.removeProperty('--g'); }
+    if (!el) continue;
+    el.classList.remove('bad');
+    for (const p of ['--g', '--bc', '--bch', '--bcd']) el.style.removeProperty(p);
   }
 }
 
@@ -9299,11 +10573,14 @@ function glitchText(t, amt) {
 // ORIGIN on the handset. It comes through the same radio HARDWARE uses, which
 // is most of the point of doing it this way -- it is ON the channel.
 let badScramble = 0;
-function radioBad(who, text, amt, hold, voice) {
+function radioBad(who, text, amt, hold, voice, col) {
   // Only about a tenth of the characters the old version ate. The look comes
   // from the rendering now, so the spelling does not have to carry it.
   const drop = amt * .1;
-  radio(glitchText(who, amt * .3), text, '#ff2d9b', hold);
+  // ORIGIN unless told otherwise, which is every call but HARDWARE's one line
+  const hex = col || '#ff2d9b';
+  const [cr, cg, cb] = hexToRgb(hex);
+  radio(glitchText(who, amt * .3), text, hex, hold);
   // the voice lands when the line opens, not when the handset is thrown
   if (voice) setTimeout(() => playVoice(voice), RADIO_ARRIVE);
   // the words, the panel and the handset all break together, off one number
@@ -9312,6 +10589,10 @@ function radioBad(who, text, amt, hold, voice) {
     if (!el) continue;
     el.classList.add(cls);
     el.style.setProperty('--g', amt.toFixed(2));
+    el.style.setProperty('--bc', cr + ',' + cg + ',' + cb);
+    el.style.setProperty('--bch', hex);
+    // the handset's little screen, backed in a dark tint of the same colour
+    el.style.setProperty('--bcd', 'rgba(' + [cr, cg, cb].map(v => (v * .17) | 0).join(',') + ',1)');
   }
   clearInterval(badScramble);
   // radio() waits RADIO_ARRIVE before it opens the line, so "not open" is the
@@ -9396,7 +10677,18 @@ function toast(icon, title, desc, color) {
 // ═══════════════════════════════════════════════════════════
 // ── meta progression: FLUX earned per match buys towers for your loadout ──
 const SLOTS = 6;
-const STARTERS = ['pulse', 'scatter', 'cryo'];
+// FLAK comes with the slot. A seventh slot you have to go and unlock before it
+// does anything is a seventh slot that is empty the first time air turns up.
+// Roughly a twelfth of the flux the same run pays. Anti-air is priced to match,
+// so the TIME to unlock one is about what a flux tower costs -- what changes is
+// that the money cannot be moved between the two shelves, which is the point.
+const AETHER_RATE = 1 / 12;
+// Blood money. The corruption pays it properly; endless pays a trickle, and
+// only after sector thirteen, so it is a floor for someone who has run out of
+// stages rather than a way around them.
+const BLOOD_ENDLESS = 1 / 90;
+const STARTERS = ['pulse', 'scatter', 'cryo', 'flak'];
+const AA_DEFAULT = 'flak';
 const ASTARTERS = ['strike', 'freeze', 'over', 'repair'];
 const TOWER_PRICE = {
   accel:4500,
@@ -9464,11 +10756,31 @@ function loadMeta() {
   m.owned = renameTowers(m.owned);
   m.loadout = renameTowers(m.loadout);
   m.flux = Math.max(0, m.flux | 0);
+  m.aether = Math.max(0, m.aether | 0);   // absent on every save before this
+  m.blood = Math.max(0, m.blood | 0);
+  // The corruption's own six. Absent on every save before this, and seeded from
+  // the campaign kit so a returning player is not dropped into stage one with
+  // an empty board.
+  m.corrLoadout = Array.isArray(m.corrLoadout)
+    ? m.corrLoadout.filter(k => TOWERS[k] && !TOWERS[k].aa && m.owned.includes(k)) : [];
+  m.corrLoadout = m.corrLoadout.slice(0, SLOTS);
+  m.bloodFirst = (m.bloodFirst && typeof m.bloodFirst === 'object') ? m.bloodFirst : {};
+  m.bloodStake = m.bloodStake ? 1 : 0;    // the one-off stake, once
   m.owned = Array.isArray(m.owned) ? m.owned.filter(k => TOWERS[k]) : [];
   for (const k of STARTERS) if (!m.owned.includes(k)) m.owned.push(k);
-  m.loadout = Array.isArray(m.loadout) ? m.loadout.filter(k => TOWERS[k] && m.owned.includes(k)) : [];
+  // The six never contain anti-air, however old the save is: before this
+  // existed nothing could have put one there, and after it the slot is the
+  // only route in. Filtering here is what keeps that true through a migration.
+  // what they had before the split, so the corruption kit can inherit it
+  const _wasKit = Array.isArray(m.loadout)
+    ? m.loadout.filter(k => TOWERS[k] && !TOWERS[k].aa && m.owned.includes(k)) : [];
+  m.loadout = _wasKit.filter(k => !TOWERS[k].hw);
   m.loadout = m.loadout.slice(0, SLOTS);
-  if (!m.loadout.length) m.loadout = STARTERS.slice(0, SLOTS);
+  if (!m.loadout.length) m.loadout = STARTERS.filter(k => !TOWERS[k].aa).slice(0, SLOTS);
+  // and the seventh, which is never empty
+  if (!m.corrLoadout.length) m.corrLoadout = _wasKit.slice(0, SLOTS);
+  if (!m.corrLoadout.length) m.corrLoadout = m.loadout.slice();
+  if (!(m.aa && TOWERS[m.aa] && TOWERS[m.aa].aa && m.owned.includes(m.aa))) m.aa = AA_DEFAULT;
   m.ownedAbil = Array.isArray(m.ownedAbil) ? m.ownedAbil.filter(k => ABIL[k]) : [];
   m.abilBought = Array.isArray(m.abilBought) ? m.abilBought.filter(k => ABIL[k]) : [];
   if (m.abilV !== 2) {
@@ -9546,7 +10858,12 @@ function importSave(code) {
   return null;
 }
 function owns(k) { return META.owned.includes(k); }
-function equipped(k) { return META.loadout.includes(k); }
+function equipped(k, c) { return kitFor(c || 'core').includes(k) || META.aa === k; }
+// One at a time, and never none -- there is no unequip, only a different one.
+function equipAA(k) {
+  if (!TOWERS[k] || !TOWERS[k].aa || !owns(k)) return;
+  META.aa = k; saveMeta(); sfx('click'); buildArmoury();
+}
 function ownsA(k) { return META.ownedAbil.includes(k); }
 function equippedA(k) { return META.abils.includes(k); }
 function sectorCleared(map) { return [0,1,2,3].some(d => META.cleared[map + '_' + d]); }
@@ -9581,6 +10898,33 @@ function fluxReward(won, wave, map, diff) {
   return {base, win, first, firstLabel:'first clear', total:base + win + first, key};
 }
 
+// What a stage pays, and what endless pays for the same effort. A cleared
+// stage is worth roughly ten endless waves; the gap is the point.
+function bloodReward(won, wave, map, diff) {
+  const dm = [.7, 1, 1.6, 2.4][diff];
+  if (campOf(map) === 'corr') {
+    const base = Math.round((18 + wave * 2.2 + (MAPS[map].stage || 1) * 14) * dm);
+    const win = won ? Math.round((60 + (MAPS[map].stage || 1) * 30) * dm) : 0;
+    const first = won && !META.bloodFirst[map] ? Math.round(120 * dm) : 0;
+    return {total:base + win + first, base, win, first, src:'stage'};
+  }
+  // endless, and only once the campaign is actually finished
+  if (G.endless && corrOpen()) {
+    const base = Math.max(1, Math.round(wave * wave * BLOOD_ENDLESS * dm));
+    return {total:base, base, win:0, first:0, src:'endless'};
+  }
+  return {total:0, base:0, win:0, first:0, src:'none'};
+}
+
+// Same shape as the flux reward so the two never drift apart, scaled down and
+// rounded up: a cleared sector always pays at least something, or the shelf
+// would be unreachable on the early maps where flux itself is thin.
+function aetherReward(won, wave, map, diff) {
+  const fr = fluxReward(won, wave, map, diff);
+  const total = Math.max(won ? 8 : 1, Math.round(fr.total * AETHER_RATE));
+  return {total, key:fr.key};
+}
+
 let prog = loadProgress();
 function loadProgress() {
   try { return JSON.parse(HOST.get('ns2_prog') || '{}') || {}; } catch (e) { return {}; }
@@ -9595,7 +10939,17 @@ function saveProgress(map, won, stars, score, wave) {
   };
   try { HOST.set('ns2_prog', JSON.stringify(prog)); } catch (e) {}
 }
-function isUnlocked(i) { return i === 0 || !!(prog[i - 1] && prog[i - 1].won); }
+// Unlock runs along a campaign, not along the raw index: stage one does not
+// want sector thirteen's neighbour, it wants sector thirteen itself cleared.
+function isUnlocked(i) {
+  const c = campOf(i);
+  if (c === 'corr') {
+    if (!corrOpen()) return false;
+    const list = campMaps('corr'), at = list.indexOf(i);
+    return at <= 0 || !!(prog[list[at - 1]] && prog[list[at - 1]].won);
+  }
+  return i === 0 || !!(prog[i - 1] && prog[i - 1].won);
+}
 
 function drawThumb(c, m, cw, ch) {
   const g = c.getContext('2d');
@@ -9704,21 +11058,30 @@ function buildMapGrid() {
        <span style="color:${tagCol}">${m.diffTag}</span>
        <span style="color:${p.won ? 'var(--g)' : 'var(--txd)'}">${p.won ? 'SECURED' : un ? 'UNCLEARED' : 'LOCKED'}</span></div>`;
 
+  bookCamp = campOf(i);
+  const list = campMaps(bookCamp);
   const sp = $('bookSpine'); sp.innerHTML = '';
-  MAPS.forEach((mm, k) => {
+  list.forEach(k => {
+    const mm = MAPS[k];
     const b = document.createElement('button');
     const kun = isUnlocked(k), kwon = prog[k] && prog[k].won;
     b.className = 'sTab' + (k === i ? ' on' : '') + (kwon ? ' done' : '') + (kun ? '' : ' lock');
     b.style.setProperty('--ac', mm.theme.a);
-    b.textContent = k + 1;
+    b.textContent = mm.stage || (k + 1);
     b.title = kun ? mm.name : 'Locked';
     b.onclick = () => bookTo(k);
     sp.appendChild(b);
   });
+  buildCampSwitch(i);
 
-  $('bookPrev').disabled = i === 0;
-  $('bookNext').disabled = i === MAPS.length - 1;
-  $('progTxt').textContent = `${done} / ${MAPS.length} sectors secured`;
+  const at = list.indexOf(i);
+  $('bookPrev').disabled = at <= 0;
+  $('bookNext').disabled = at >= list.length - 1;
+  const cd = CAMPAIGNS[bookCamp];
+  let cDone = 0;
+  for (const k of list) if (prog[k] && prog[k].won) cDone++;
+  $('progTxt').textContent =
+    `${cDone} / ${list.length} ${cd.unitPl.toLowerCase()} ${cd.verb}`;
   refreshSectorLock();
 }
 function buildDiffRow() {
@@ -9759,6 +11122,15 @@ function closeArmoury() {
 function updateFluxLabels() {
   $('armFlux').textContent = fmt(META.flux);
   $('titleFlux').textContent = fmt(META.flux);
+  for (const id of ['armAether', 'titleAether']) {
+    const el = $(id); if (el) el.textContent = fmt(META.aether);
+  }
+  for (const id of ['armBlood', 'titleBlood']) {
+    const el = $(id); if (el) el.textContent = fmt(META.blood);
+  }
+  // the counter, and the doors to it, only exist once he has something to sell
+  const bc = $('bloodChip'); if (bc) bc.style.display = corrOpen() ? '' : 'none';
+  try { refreshBlackDoor(); } catch (e) {}
   let done = 0, best = 0;
   for (let i = 0; i < MAPS.length; i++) {
     if (prog[i] && prog[i].won) done++;
@@ -9773,38 +11145,85 @@ function updateFluxLabels() {
 function updateLoadoutPeek() {
   if (typeof refreshEndlessBtn === 'function') refreshEndlessBtn();
   const el = $('loadoutPeek');
-  if (el) el.textContent = META.loadout.map(k => TOWERS[k].name).join(' · ') +
+  if (el) el.textContent = kitFor(bookCamp).map(k => TOWERS[k].name).join(' · ') +
     '   ✦ ' + META.abils.map(k => ABIL[k].name).join(' · ');
 }
-function equipTower(k) {
+// The six slots, drawn into whichever pane asked for them. Both copies are
+// live: removing one from the strip in the black market is the same act as
+// removing it from the armoury, because it is the same loadout.
+function renderLoadoutRow(row, c) {
+  if (!row) return;
+  c = c || 'core';
+  const kit = kitFor(c);
+  row.innerHTML = '';
+  for (let i = 0; i < SLOTS; i++) {
+    const k = kit[i];
+    const el = document.createElement('div');
+    el.className = 'slot' + (k ? ' filled' : '');
+    if (k) {
+      const d = TOWERS[k];
+      el.style.setProperty('--ac', d.color);
+      el.innerHTML = `<div class="sk">${i + 1}</div><div class="sx">✕</div>`;
+      el.appendChild(towerIcon(k, 38));
+      el.insertAdjacentHTML('beforeend', `<div class="sn">${d.name}</div>`);
+      el.title = 'Click to unequip ' + d.name;
+      el.onclick = () => unequipTower(k, c);
+    } else {
+      el.innerHTML = `<div class="sk">${i + 1}</div><div class="empty">EMPTY</div>`;
+    }
+    row.appendChild(el);
+  }
+}
+
+function equipTower(k, c) {
+  c = c || 'core';
   if (!owns(k)) return;
-  if (equipped(k)) { unequipTower(k); return; }
-  if (META.loadout.length >= SLOTS) {
+  if (!kitAllows(c, k)) {
+    toast('◈', 'NOT FOR THE CAMPAIGN',
+          `${TOWERS[k].name} is his. It only goes in your CORRUPTION kit.`, '#ff2d9b');
+    sfx('deny'); return;
+  }
+  if (equipped(k, c)) { unequipTower(k, c); return; }
+  const kit = kitFor(c);
+  if (kit.length >= SLOTS) {
     toast('🛠', 'LOADOUT FULL', `Remove a tower first — only ${SLOTS} slots.`, '#ff2d9b');
     sfx('deny'); return;
   }
-  META.loadout.push(k); saveMeta(); sfx('click'); buildArmoury();
+  kit.push(k); saveMeta(); sfx('click'); buildArmoury();
 }
-function unequipTower(k) {
-  if (META.loadout.length <= 1) {
+function unequipTower(k, c) {
+  c = c || 'core';
+  if (kitFor(c).length <= 1) {
     toast('🛠', 'AT LEAST ONE', 'You must take at least one tower into a match.', '#ff2d9b');
     sfx('deny'); return;
   }
-  META.loadout = META.loadout.filter(x => x !== k);
+  setKitFor(c, kitFor(c).filter(x => x !== k));
   saveMeta(); sfx('click'); buildArmoury();
 }
 function buyTower(k) {
-  const price = towerFlux(k);
   if (owns(k)) return;
-  if (META.flux < price) {
-    toast('⬡', 'NOT ENOUGH FLUX', `${TOWERS[k].name} costs ${fmt(price)} flux. Clear more sectors to earn it.`, '#ff2d9b');
+  const aa = !!TOWERS[k].aa, hw = !!TOWERS[k].hw, price = priceOf(k);
+  if (purseOf(k) < price) {
+    toast(hw ? '◈' : aa ? '✦' : '⬡', 'NOT ENOUGH ' + currencyOf(k),
+          `${TOWERS[k].name} costs ${fmt(price)} ${currencyOf(k).toLowerCase()}. ` +
+          (hw ? 'Blood money comes out of THE CORRUPTION.'
+              : aa ? 'Aether comes in slowly — it is the scarce one.'
+                   : 'Clear more sectors to earn it.'),
+          '#ff2d9b');
     sfx('deny'); return;
   }
-  META.flux -= price;
+  if (TOWERS[k].hw) META.blood -= price;
+  else if (aa) META.aether -= price;
+  else META.flux -= price;
   META.owned.push(k);
-  if (META.loadout.length < SLOTS) META.loadout.push(k);
+  // Anti-air never goes into the six. It goes into its own slot, and only if
+  // that slot is still on the tower it came with.
+  if (aa) { if (META.aa === AA_DEFAULT) META.aa = k; }
+  else if (TOWERS[k].hw) { if (META.corrLoadout.length < SLOTS) META.corrLoadout.push(k); }
+  else if (META.loadout.length < SLOTS) META.loadout.push(k);
   saveMeta(); sfx('upgrade');
-  toast('🛠', 'TOWER UNLOCKED', `${TOWERS[k].name} added to your armoury.`, TOWERS[k].color);
+  toast(aa ? '✈' : '🛠', 'TOWER UNLOCKED',
+        `${TOWERS[k].name} added to your armoury.`, TOWERS[k].color);
   buildArmoury();
 }
 // Two shops through one overlay. Everything inside them but the sign, the
@@ -9814,6 +11233,9 @@ const SHOPS = {
            blurb:'Guns you bolt to the grid. Equip up to <b>%s</b> \u2014 only what you equip comes with you.'},
   abils:  {top:"SOFTWARE'S", name:'POWERUPS', ac:'#22e6ff',
            blurb:'Code you fire once. Carry up to <b>%s</b> into a match, fired from the dock.'},
+  black:  {top:"HARDWARE'S", name:'BLACK MARKET', ac:'#ff2d9b',
+           blurb:'The six he fought sector thirteen with. Paid for in <b>blood money</b>, ' +
+                 'and they go in the same <b>%s</b> slots as anything else.'},
 };
 let shopMode = 'towers';
 // ── the stock room ────────────────────────────────────────
@@ -10060,16 +11482,19 @@ function shopEntrance(opening) {
   // bottom and the stock comes down from the top, so they pass each other and
   // the room is already settling as it is revealed.
   shOpenT = opening ? (shopMode === 'towers' ? 90 : 380) : 0;
+  const hold = shopMode === 'towers' ? 1900 : shopMode === 'black' ? 1500 : 900;
   clearTimeout(shOpenTimer);
   ov.classList.remove('opening');
   if (opening) {
     void ov.offsetWidth;                  // restart it, do not resume it
     ov.classList.add('opening');
     // long enough for the whole strike, not just the shutter
-    shOpenTimer = setTimeout(() => ov.classList.remove('opening'),
-                             shopMode === 'towers' ? 1900 : 900);
+    shOpenTimer = setTimeout(() => ov.classList.remove('opening'), hold);
   }
-  if (shopMode === 'towers') {
+  if (shopMode === 'black') {
+    // No shutter and no crates: one bulb, and it takes a couple of goes.
+    if (opening) { sfx('shutter'); setTimeout(() => sfx('crtOn'), 520); }
+  } else if (shopMode === 'towers') {
     if (opening) { sfx('shutter'); sfx('strike'); }
     dropCrates(buildCrates());
   } else {
@@ -10080,6 +11505,7 @@ function shopEntrance(opening) {
 }
 
 function armTab(p, opening) {
+  if (p === 'black' && !corrOpen()) p = 'towers';   // not his to sell yet
   const sh = SHOPS[p] || SHOPS.towers;
   shopMode = SHOPS[p] ? p : 'towers';
   $('shopSignTop').textContent = sh.top;
@@ -10087,9 +11513,12 @@ function armTab(p, opening) {
   $('ovArmoury').style.setProperty('--ac', sh.ac);
   $('ovArmoury').classList.toggle('sw', shopMode === 'abils');
   $('ovArmoury').classList.toggle('hw', shopMode === 'towers');
-  $('shopBlurb').innerHTML = sh.blurb.replace('%s', shopMode === 'towers' ? SLOTS : ASLOTS);
+  $('ovArmoury').classList.toggle('blk', shopMode === 'black');
+  $('shopBlurb').innerHTML = sh.blurb.replace('%s', shopMode === 'abils' ? ASLOTS : SLOTS);
   $('paneTowers').hidden = shopMode !== 'towers';
   $('paneAbils').hidden = shopMode !== 'abils';
+  $('paneBlack').hidden = shopMode !== 'black';
+  buildShopTabs();
   shopEntrance(opening);
 }
 
@@ -10123,6 +11552,26 @@ function dealFor(mode) {
 function towerFlux(k) {
   const base = TOWER_PRICE[k] || 0, d = dealFor('towers');
   return d && d.key === k ? Math.round(base * (100 - d.pct) / 100) : base;
+}
+// The anti-air shelf, priced in aether. FLAK comes with the slot.
+const AA_PRICE = {flak:0, vigil:140, zenith:200, talon:260};
+// The black market: HARDWARE's own six, in blood money. Priced off what they
+// cost him to run rather than off the flux ladder, which they are nowhere near.
+const BLACK_PRICE = {
+  hwsentinel:340, hwarclight:380, hwbulwark:440,
+  hwswarm:480, hwdeluge:520, hwwarden:600,
+};
+function towerBlood(k) { return BLACK_PRICE[k] || 0; }
+function towerAether(k) { return AA_PRICE[k] || 0; }
+// Which pocket a tower is bought out of, and what that pocket holds.
+function priceOf(k) {
+  return TOWERS[k].hw ? towerBlood(k) : TOWERS[k].aa ? towerAether(k) : towerFlux(k);
+}
+function purseOf(k) {
+  return TOWERS[k].hw ? META.blood : TOWERS[k].aa ? META.aether : META.flux;
+}
+function currencyOf(k) {
+  return TOWERS[k].hw ? 'BLOOD MONEY' : TOWERS[k].aa ? 'AETHER' : 'FLUX';
 }
 function abilFlux(k) {
   const a = ABIL[k]; if (!a) return 0;
@@ -10202,9 +11651,13 @@ function buyAbil(k) {
   buildArmoury();
 }
 // one badge for both grids, so a tower and a power-up read the same way
-function armBadge(eq, own, afford, price, color) {
+function armBadge(eq, own, afford, price, color, aa, blk) {
   if (eq) return {text:'✓', col:color, bg:rgba(color, .18)};
   if (own) return {text:'OWNED', col:'#5cff9d', bg:'rgba(92,255,157,.14)'};
+  if (blk) return {text:'◈ ' + fmt(price), col:afford ? '#ff5ce0' : '#ff2d9b',
+                   bg:afford ? 'rgba(255,92,224,.16)' : 'rgba(255,45,155,.12)'};
+  if (aa) return {text:'✦ ' + fmt(price), col:afford ? '#3dd6ff' : '#ff2d9b',
+                  bg:afford ? 'rgba(61,214,255,.16)' : 'rgba(255,45,155,.12)'};
   return {text:'⬡ ' + fmt(price), col:afford ? '#b46bff' : '#ff2d9b',
           bg:afford ? 'rgba(180,107,255,.16)' : 'rgba(255,45,155,.12)'};
 }
@@ -10424,10 +11877,15 @@ function renderArmDetail() {
   const isT = adKind === 't';
   const d = isT ? TOWERS[adKey] : ABIL[adKey];
   if (!d) { closeArmDetail(); return; }
-  const price = isT ? towerFlux(adKey) : abilFlux(adKey);
+  // Not everything is bought with flux any more. Ask the tower.
+  const price = isT ? priceOf(adKey) : abilFlux(adKey);
+  const cur = isT ? currencyOf(adKey) : 'FLUX';
+  const sym = cur === 'BLOOD MONEY' ? '\u25c8' : cur === 'AETHER' ? '\u2726' : '\u2b21';
+  const purse = isT ? purseOf(adKey) : META.flux;
   const own = isT ? owns(adKey) : ownsA(adKey);
-  const eq = isT ? equipped(adKey) : equippedA(adKey);
-  const afford = META.flux >= price;
+  const adCamp = shopMode === 'black' ? 'corr' : 'core';
+  const eq = isT ? equipped(adKey, adCamp) : equippedA(adKey);
+  const afford = purse >= price;
   const box = $('armDetailBox');
   box.innerHTML = '';
   box.style.setProperty('--ac', d.color);
@@ -10438,7 +11896,7 @@ function renderArmDetail() {
   head.appendChild(ic);
   head.insertAdjacentHTML('beforeend', `<div style="min-width:0">
     <div class="adN">${d.name}</div>
-    <div class="adR">${isT ? d.role + ' · ' + d.draw + ' GW · ' + fmt(d.cost) + '¢ TO PLACE'
+    <div class="adR">${isT ? d.role + ' · ' + (d.aa ? 'NO GRID DRAW' : d.draw + ' GW') + ' · ' + fmt(d.cost) + '¢ TO PLACE'
                            : (d.cd / 60).toFixed(0) + 'S COOLDOWN · ' + (d.aim ? 'AIMED' : 'INSTANT')}</div>
   </div>`);
   box.appendChild(head);
@@ -10468,12 +11926,13 @@ function renderArmDetail() {
 
   const state = eq ? 'EQUIPPED · IN YOUR LOADOUT'
     : own ? 'OWNED · NOT EQUIPPED'
-    : afford ? 'LOCKED · ' + fmt(price) + ' FLUX · YOU HAVE ' + fmt(META.flux)
-             : 'LOCKED · ' + fmt(price) + ' FLUX · YOU HAVE ONLY ' + fmt(META.flux);
+    : afford ? 'LOCKED · ' + fmt(price) + ' ' + cur + ' · YOU HAVE ' + fmt(purse)
+             : 'LOCKED · ' + fmt(price) + ' ' + cur + ' · YOU HAVE ONLY ' + fmt(purse);
   box.insertAdjacentHTML('beforeend',
     `<div class="adState" style="color:${eq ? d.color : own ? '#5cff9d' : afford ? '#b46bff' : '#ff2d9b'}">${state}</div>`);
 
-  const act = eq ? 'UNEQUIP' : own ? 'EQUIP' : afford ? 'BUY · ⬡ ' + fmt(price) : 'NOT ENOUGH FLUX';
+  const act = eq ? 'UNEQUIP' : own ? 'EQUIP'
+    : afford ? 'BUY · ' + sym + ' ' + fmt(price) : 'NOT ENOUGH ' + cur;
   const cls = eq ? 'btn' : own ? 'btn go' : 'btn pri';
   box.insertAdjacentHTML('beforeend', `<div class="adBtns">
     <button class="btn" id="adCancel">CANCEL</button>
@@ -10485,8 +11944,8 @@ function renderArmDetail() {
     // A purchase auto-equips when there is room, so leaving the card open would
     // put UNEQUIP under the cursor that just pressed BUY. The toast confirms it.
     if (!own) { isT ? buyTower(adKey) : buyAbil(adKey); closeArmDetail(); return; }
-    if (eq) { isT ? unequipTower(adKey) : unequipAbil(adKey); }
-    else { isT ? equipTower(adKey) : equipAbil(adKey); }
+    if (eq) { isT ? unequipTower(adKey, adCamp) : unequipAbil(adKey); }
+    else { isT ? equipTower(adKey, adCamp) : equipAbil(adKey); }
     closeArmDetail();
   };
 }
@@ -10551,24 +12010,103 @@ function buildArmoury() {
   shopRoomStatus();
   buildAbilPane();
   $('slotMax').textContent = SLOTS;
-  // loadout row
-  const row = $('loadoutRow'); row.innerHTML = '';
-  for (let i = 0; i < SLOTS; i++) {
-    const k = META.loadout[i];
-    const el = document.createElement('div');
-    el.className = 'slot' + (k ? ' filled' : '');
-    if (k) {
-      const d = TOWERS[k];
+  renderLoadoutRow($('loadoutRow'), 'core');
+  renderLoadoutRow($('bkLoadout'), 'corr');   // a different six, out the back
+  // the black market shelf
+  const bg = $('blackGrid');
+  if (bg) {
+    bg.innerHTML = '';
+    const keys = BLACKKEYS.slice().sort((a, b) => towerBlood(a) - towerBlood(b));
+    // One listing per gun, laid out rather than racked: the thing itself, what
+    // it does in his handwriting, and a paper tag on a string.
+    const SCRAWL = {
+      hwsentinel:'reaches further than anything you own',
+      hwarclight:'jumps. keep them bunched up',
+      hwbulwark:'hits like a dropped engine',
+      hwswarm:'it finds them. you do nothing',
+      hwdeluge:'five at a time. loud',
+      hwwarden:'cuts through a line of them',
+    };
+    keys.forEach((k, i) => {
+      const d = TOWERS[k], price = towerBlood(k), own = owns(k), eq = equipped(k, 'corr');
+      const afford = META.blood >= price;
+      const el = document.createElement('div');
+      el.className = 'bkItem' + (own ? ' got' : afford ? '' : ' cant');
       el.style.setProperty('--ac', d.color);
-      el.innerHTML = `<div class="sk">${i + 1}</div><div class="sx">✕</div>`;
-      el.appendChild(towerIcon(k, 38));
-      el.insertAdjacentHTML('beforeend', `<div class="sn">${d.name}</div>`);
-      el.title = 'Click to unequip ' + d.name;
-      el.onclick = () => unequipTower(k);
-    } else {
-      el.innerHTML = `<div class="sk">${i + 1}</div><div class="empty">EMPTY</div>`;
+      el.style.setProperty('--tilt', ((i % 2 ? 1 : -1) * (0.4 + (i % 3) * 0.25)).toFixed(2) + 'deg');
+      el.style.animationDelay = (.05 + i * .06).toFixed(2) + 's';
+      el.style.setProperty('--i', i);
+      const pit = document.createElement('div');
+      pit.className = 'bkPit';
+      pit.appendChild(towerIcon(k, 54));
+      el.appendChild(pit);
+      const dps = Math.round(d.dmg * 60 / Math.max(1, d.cd));
+      el.insertAdjacentHTML('beforeend',
+        `<div class="bkBody">
+           <div class="bkName">${d.name}</div>
+           <div class="bkSay">${SCRAWL[k] || ''}</div>
+           <div class="bkNums"><span>DMG ${fmt(d.dmg)}</span><span>RNG ${d.range}</span>` +
+           `<span>${d.draw} GW</span><span>~${fmt(dps)}/s</span></div>
+         </div>
+         <div class="bkTagWrap">
+           <div class="bkPrice">${eq ? 'IN YOUR KIT' : own ? 'EQUIP IT' : '\u25c8 ' + fmt(price)}</div>
+           <div class="bkHint">${eq ? 'tap to take it out' : own ? 'tap to put it in a slot'
+                                   : afford ? 'tap to take it' : 'not enough'}</div>
+         </div>`);
+      el.title = d.desc;
+      // The tag is the action; the row is the details. Buying one and then
+      // having nowhere to equip it was the whole shelf dead-ending.
+      el.querySelector('.bkTagWrap').onclick = ev => {
+        ev.stopPropagation();
+        if (!owns(k)) { buyTower(k); return; }
+        equipTower(k, 'corr');               // toggles, and toasts if the six are full
+        buildArmoury();
+      };
+      el.onclick = () => openArmDetail('t', k);
+      bg.appendChild(el);
+    });
+    // your own towers, addable to the corruption kit from in here
+    const own = $('bkOwn');
+    if (own) {
+      own.innerHTML = '';
+      for (const k of TKEYS) {
+        if (!owns(k)) continue;
+        const d = TOWERS[k], inKit = equipped(k, 'corr');
+        const b = document.createElement('button');
+        b.className = 'bkOwnPick' + (inKit ? ' on' : '');
+        b.style.setProperty('--ac', d.color);
+        b.appendChild(towerIcon(k, 24));
+        b.insertAdjacentHTML('beforeend', `<span>${d.name}</span>`);
+        b.title = inKit ? 'Drop ' + d.name + ' from the corruption kit'
+                        : 'Carry ' + d.name + ' into the corruption';
+        b.onclick = () => { equipTower(k, 'corr'); buildArmoury(); };
+        own.appendChild(b);
+      }
     }
-    row.appendChild(el);
+    const note = $('blackNote');
+    if (note) note.innerHTML = corrOpen()
+      ? `<i>\u201cStages pay. Endless pays a bit. Don\u2019t ask where the rest comes from.\u201d</i>` +
+        `<span>\u25c8 ${fmt(META.blood)} on you</span>`
+      : 'Nothing here until sector thirteen is behind you.';
+  }
+  // the seventh slot: one of four, always one, never none
+  const aaRow = $('aaRow');
+  if (aaRow) {
+    aaRow.innerHTML = '';
+    for (const k of AAKEYS) {
+      const d = TOWERS[k], price = towerAether(k), own = owns(k), on = META.aa === k;
+      const el = document.createElement('div');
+      el.className = 'aaPick' + (on ? ' on' : '') + (own ? '' : ' locked');
+      el.style.setProperty('--ac', d.color);
+      el.appendChild(towerIcon(k, 32));
+      el.insertAdjacentHTML('beforeend',
+        `<div class="aan">${d.name}</div>` +
+        `<div class="aap">${own ? (on ? 'EQUIPPED' : 'TAP TO EQUIP') : '\u2726 ' + fmt(price)}</div>` +
+        (on ? '<div class="aaOn">\u25cf</div>' : ''));
+      el.title = d.name + ' \u2014 ' + d.desc;
+      el.onclick = () => own ? equipAA(k) : openArmDetail('t', k);
+      aaRow.appendChild(el);
+    }
   }
   // all towers
   const grid = $('armGrid'); grid.innerHTML = '';
@@ -10590,6 +12128,52 @@ function buildArmoury() {
   });
 }
 
+// The two ladders, as a pair of switches over the spine. The corruption one
+// says nothing about itself until it is open -- naming seven stages you cannot
+// reach is a spoiler with a lock on it.
+// The tab row inside the shop. The black market's tab does not exist until he
+// has something to sell across it.
+function buildShopTabs() {
+  const row = document.getElementById('shopTabs');
+  if (!row) return;
+  row.innerHTML = '';
+  const tabs = [['towers', 'ARMOURY'], ['abils', 'POWER-UPS']];
+  if (corrOpen()) tabs.push(['black', '\u25c8 BLACK MARKET']);
+  for (const [id, label] of tabs) {
+    const b = document.createElement('button');
+    b.className = 'armTab' + (shopMode === id ? ' on' : '') + (id === 'black' ? ' blk' : '');
+    b.textContent = label;
+    b.onclick = () => { if (shopMode !== id) { armTab(id, true); sfx('click'); } };
+    row.appendChild(b);
+  }
+}
+function refreshBlackDoor() { try { grantStake(); } catch (e) {} buildShopTabs(); }
+function buildCampSwitch(cur) {
+  refreshBlackDoor();
+  const row = document.getElementById('campSwitch');
+  if (!row) return;
+  row.innerHTML = '';
+  for (const id of ['core', 'corr']) {
+    const c = CAMPAIGNS[id];
+    const open = id === 'core' || corrOpen();
+    const b = document.createElement('button');
+    b.className = 'campTab' + (bookCamp === id ? ' on' : '') + (open ? '' : ' lock');
+    b.style.setProperty('--ac', c.ac);
+    b.textContent = open ? c.name : '███ LOCKED ███';
+    b.title = open ? c.name : 'Clear sector 13 to open this.';
+    b.onclick = () => {
+      if (!open) { toast('◈', 'SEALED', 'Sector 13 first.', '#ff2d9b'); sfx('deny'); return; }
+      const list = campMaps(id);
+      // land on the furthest one actually reachable, not always the first
+      let go = list[0];
+      for (const k of list) if (isUnlocked(k)) go = k;
+      bookTo(go); sfx('click');
+    };
+    row.appendChild(b);
+  }
+  row.classList.toggle('corrupt', bookCamp === 'corr');
+}
+
 // ── codex ──
 let cxTab = 'towers';
 function buildCodex() {
@@ -10603,7 +12187,7 @@ function buildCodex() {
   });
   const body = $('codexBody'); body.innerHTML = '';
   if (cxTab === 'towers') {
-    TKEYS.forEach(k => {
+    TKEYS.concat(AAKEYS).forEach(k => {
       const d = TOWERS[k];
       const row = document.createElement('div'); row.className = 'cxRow';
       const ic = document.createElement('div'); ic.className = 'cxIc';
@@ -10618,7 +12202,8 @@ function buildCodex() {
         ${d.detect ? `<span class="cxTag" style="background:rgba(180,107,255,.16);color:#b46bff">DETECTOR</span>` : ''}
         ${d.pierceArmor ? `<span class="cxTag" style="background:rgba(216,255,107,.14);color:#d8ff6b">ARMOUR-PIERCING</span>` : ''}
         ${d.minRange ? `<span class="cxTag" style="background:rgba(255,45,155,.14);color:#ff2d9b">DEAD ZONE ${d.minRange}</span>` : ''}
-        <span class="cxTag" style="background:rgba(180,107,255,.14);color:#b46bff">${d.draw} GW</span>
+        ${d.aa ? `<span class="cxTag" style="background:rgba(92,255,157,.16);color:#5cff9d">OWN SLOT · NO GRID DRAW</span>`
+                : `<span class="cxTag" style="background:rgba(180,107,255,.14);color:#b46bff">${d.draw} GW</span>`}
         <span class="cxTag" style="background:${rgba(d.paths[0].color, .14)};color:${d.paths[0].color}">${d.paths[0].name}</span>
         <span class="cxTag" style="background:${rgba(d.paths[1].color, .14)};color:${d.paths[1].color}">${d.paths[1].name}</span></div></div>`);
       body.appendChild(row);
@@ -10648,8 +12233,9 @@ function buildCodex() {
     const sys = [
       ['🛠', 'ARMOURY & LOADOUT', `Finishing a sector pays FLUX — more for higher threat levels, winning, and first clears. Spend it in the Armoury to unlock towers, then equip up to ${SLOTS} of them. Only equipped towers can be built, so pick a loadout that covers ground, air and armour.`, '#b46bff'],
       ['✦', 'POWER-UPS', `${ASLOTS} power-ups ride with you, fired from the dock. Four are issued free; the other ${ABILITIES.length - 4} are bought with flux in the Armoury. Swap them per run — EMP answers shields and cloaks, GRAVITY WELL buys time, MINEFIELD front-loads damage, AEGIS forgives a leak, PURGE clears a wave that got away from you.`, '#b46bff'],
-      ['⚡', 'POWER GRID', 'Every sector has a fixed grid capacity and every tower draws power from it. You cannot blanket the map — you have to decide what is worth the wattage.', '#b46bff'],
-      ['🔢', 'TOWER LIMITS', `You may build at most ${TYPE_CAP} of any single tower type, and each extra copy of a type costs 10% more than the last. Stacking one tower is deliberately expensive; mixed defences are cheaper and stronger.`, '#ff2d9b'],
+      ['⚡', 'POWER GRID', 'Every sector has a fixed grid capacity and every tower draws power from it. You cannot blanket the map — you have to decide what is worth the wattage. Anti-air is the one exception: it draws nothing.', '#b46bff'],
+      ['✈', 'ANTI-AIR', `Air is its own problem and it gets its own slot. One anti-air tower rides with you on top of the ${SLOTS}, it costs you no loadout space and no grid power, and you may build ${AA_CAP} of it, no more. The trade is that all four are blind to anything on the ground: FLAK bursts over a whole flight, TALON locks onto one big thing and cannot miss, ZENITH ramps up the longer it holds a target, and VIGIL does not aim at all.`, '#3dd6ff'],
+      ['🔢', 'TOWER LIMITS', `You may build at most ${TYPE_CAP} of any single tower type, and each extra copy of a type costs 10% more than the last. Stacking one tower is deliberately expensive; mixed defences are cheaper and stronger. Anti-air is capped at ${AA_CAP}, because it costs no grid power and the count is the only limit it has.`, '#ff2d9b'],
       ['🎯', 'DEAD ZONES', 'Long-range towers like RAIL cannot fire into the circle right around them. Put snipers at the back and short-range guns on the chokepoints.', '#d8ff6b'],
       ['🌿', 'BRANCHING UPGRADES', 'Every tower has two upgrade paths. You may take ONE path all the way to tier 4, but the other is capped at tier 2. Commit early — you cannot refund a path.', '#5cff9d'],
       ['✈', 'AIR THREATS', 'Air units ignore the lane entirely and fly straight at your core. Only towers tagged ANTI-AIR can touch them. TEMPEST is purpose-built for it.', '#3dd6ff'],
@@ -10705,8 +12291,12 @@ cv.addEventListener('pointerdown', ev => {
     return;
   }
   // select a tower
-  let best = null, bd = 40 * 40;
-  for (const t of G.towers) { const d = dist2(p.x, p.y, t.x, t.y); if (d < bd) { bd = d; best = t; } }
+  // radius scales with the tower, or half of a double-size one is not clickable
+  let best = null, bd = Infinity;
+  for (const t of G.towers) {
+    const r = 40 * towerScale(t.def), d = dist2(p.x, p.y, t.x, t.y);
+    if (d < r * r && d < bd) { bd = d; best = t; }
+  }
   if (best) { openInspector(best); sfx('click'); }
   else if (G.selTower) { closeInspector(); }
 });
@@ -10751,11 +12341,27 @@ addEventListener('keydown', e => {
 }, true);
 
 const FLUX_CODE = 50000;
+// The same code tops up both pockets, because a flux injection that leaves the
+// anti-air shelf locked is a cheat that only opens half the armoury. Kept at
+// the honest 12:1 the game actually pays, so the code is generous rather than
+// a different economy -- fifty thousand flux is about four thousand aether.
+const AETHER_CODE = Math.round(FLUX_CODE * AETHER_RATE);
+// And the third pocket. Sized against what it buys rather than against the flux
+// number: his whole line is 2,760, so this is the black market cleared out
+// twice over. It is handed over whether or not the corruption is open yet --
+// it is a cheat, and it will be spendable the moment the tab appears.
+const BLOOD_CODE = 6000;
 addCode('BEEZAP247?!', () => {
   META.flux = (META.flux | 0) + FLUX_CODE;
+  META.aether = (META.aether | 0) + AETHER_CODE;
+  META.blood = (META.blood | 0) + BLOOD_CODE;
   saveMeta();
   try { updateFluxLabels(); } catch (e) {}
-  toast('⚡', 'FLUX INJECTED', fmt(FLUX_CODE) + ' flux added to the account.', '#b46bff');
+  try { buildArmoury(); } catch (e) {}      // so the shelves repaint if it is open
+  toast('⚡', 'CURRENCY INJECTED',
+        fmt(FLUX_CODE) + ' flux, ' + fmt(AETHER_CODE) + ' aether and ' +
+        fmt(BLOOD_CODE) + ' blood money added to the account.',
+        '#b46bff');
   sfx('upgrade');
 });
 
@@ -10905,6 +12511,7 @@ $('btnCloseCodex').onclick = () => closeCodex();
 $('btnCodex2').onclick = () => { buildCodex(); $('ovCodex').classList.add('on'); };
 $('btnArmoury2').onclick = () => { initAudio(); openArmoury(); };
 $('btnArmoury3').onclick = () => openArmoury();
+
 $('btnArmoury4').onclick = () => openArmoury();
 $('btnCloseArm').onclick = () => closeArmoury();
 $('armDetail').onclick = ev => { if (ev.target === $('armDetail')) closeArmDetail(); };
@@ -10969,8 +12576,15 @@ function openSectors(m) {
   setLaunchMode(m);
   $('ovMaps').classList.add('on'); sfx('click');
 }
-$('bookPrev').onclick = () => bookTo(pickedMap - 1);
-$('bookNext').onclick = () => bookTo(pickedMap + 1);
+// Along the campaign, not along the index: sector 13's NEXT must not fall
+// through into stage one, and stage one's PREV must not fall back into 13.
+function bookStep(d) {
+  const list = campMaps(campOf(pickedMap));
+  const at = list.indexOf(pickedMap) + d;
+  if (at >= 0 && at < list.length) bookTo(list[at]);
+}
+$('bookPrev').onclick = () => bookStep(-1);
+$('bookNext').onclick = () => bookStep(1);
 $('resumeCard').onclick = () => {
   if (!resumeRun()) toast('\u2715', 'NOTHING TO RESUME', 'That saved run could not be read.', '#ff2d9b');
 };
@@ -11121,7 +12735,12 @@ $('btnRestart').onclick = () => { $('ovPause').classList.remove('on'); startGame
 $('btnQuit').onclick = () => quitToMenu();
 $('btnRetry').onclick = () => startGame(G.map, G.diff);
 $('btnMenu').onclick = () => quitToMenu();
-$('btnNextMap').onclick = () => { pickedMap = Math.min(MAPS.length - 1, G.map + 1); startGame(pickedMap, G.diff, false); };
+$('btnNextMap').onclick = () => {
+  const list = campMaps(campOf(G.map)), at = list.indexOf(G.map);
+  if (at < 0 || at + 1 >= list.length) return;
+  pickedMap = list[at + 1];
+  startGame(pickedMap, G.diff, false);
+};
 // ── save transfer UI ──
 let savePasting = false;
 function openTransfer() {
