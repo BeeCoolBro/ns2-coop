@@ -1846,6 +1846,7 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
       <div class="tStat"><div class="k">FLUX</div><div class="v" id="titleFlux" style="color:var(--v)">0</div></div>
       <div class="tStat"><div class="k">AETHER</div><div class="v" id="titleAether" style="color:#3dd6ff">0</div></div>
       <div class="tStat"><div class="k">SECTORS</div><div class="v" id="titleSectors" style="color:var(--c)">0</div></div>
+      <div class="tStat" id="titleStageStat" style="display:none"><div class="k">STAGES</div><div class="v" id="titleStages" style="color:#ff5ce0">0</div></div>
       <div class="tStat"><div class="k">TOWERS</div><div class="v" id="titleTowers" style="color:var(--g)">0</div></div>
       <div class="tStat"><div class="k">BEST ENDLESS</div><div class="v" id="titleBest" style="color:var(--y)">—</div></div>
     </div>
@@ -11452,14 +11453,15 @@ function updateFluxLabels() {
   let done = 0, best = 0;
   for (const i of core) if (prog[i] && prog[i].won) done++;
   for (let i = 0; i < MAPS.length; i++) if (endlessBest(i) > best) best = endlessBest(i);
-  let secTxt = done + ' / ' + core.length;
-  if (corrOpen()) {
-    const cl = campMaps('corr');
-    let cd = 0;
-    for (const i of cl) if (prog[i] && prog[i].won) cd++;
-    secTxt += '  ·  ' + cd + ' / ' + cl.length + ' STAGES';
-  }
-  $('titleSectors').textContent = secTxt;
+  $('titleSectors').textContent = done + ' / ' + core.length;
+  // the corruption keeps its own chip, and only once it exists
+  const cl = campMaps('corr');
+  let cd = 0;
+  for (const i of cl) if (prog[i] && prog[i].won) cd++;
+  const stStat = $('titleStageStat');
+  if (stStat) stStat.style.display = corrOpen() ? '' : 'none';
+  const stVal = $('titleStages');
+  if (stVal) stVal.textContent = cd + ' / ' + cl.length;
   $('titleTowers').textContent = ownedCount() + ' / ' + ownableKeys().length;
   $('titleBest').textContent = best ? 'WAVE ' + best : '—';
   refreshSandboxCard();
