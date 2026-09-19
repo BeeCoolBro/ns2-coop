@@ -3212,29 +3212,39 @@ const MAPS = [
 { id:13, camp:'corr', stage:1, name:'FIRST CONTACT', diffTag:'STAGE I', waves:22, cash:900, cores:100, pathW:58, grid:210, mul:43,  pay:2.2,
   desc:'Whatever ORIGIN was holding back is through. The floor still remembers being a sector.',
   theme:{a:'#ff2d9b', b:'#2a0a1e', style:'grid', fog:'#12040c'},
-  lanes:[[[-.04,.5],[.12,.3],[.12,.7],[.3,.7],[.3,.3],[.5,.3],[.5,.7],[.7,.7],[.7,.3],[.88,.34],[.94,.5],[1.04,.5]]],
-  blocks:[{x:.5,y:.06,r:.05},{x:.5,y:.94,r:.05}] },
+  // SPIRAL. It comes in at the bottom, runs the rim once and winds inward, so
+  // one gun placed on the turn covers three passes at three radii.
+  lanes:[[[-.04,.84],[.18,.9],[.48,.92],[.72,.84],[.86,.66],[.86,.44],[.74,.26],[.5,.16],
+          [.28,.2],[.15,.36],[.16,.55],[.3,.66],[.5,.68],[.64,.6],[.68,.5],[.9,.5],[1.04,.5]]],
+  blocks:[{x:.5,y:.46,r:.05},{x:.03,y:.5,r:.045}] },
 
 { id:14, camp:'corr', stage:2, name:'THE SPREAD', diffTag:'STAGE II', waves:25, cash:880, cores:95, pathW:52, grid:205, mul:62,  pay:5,
   desc:'Two feeds where there was one. It is not building lanes, it is growing them.',
   theme:{a:'#b46bff', b:'#1e0a2a', style:'circuit', fog:'#0c0414'},
-  lanes:[[[-.04,.16],[.2,.16],[.34,.4],[.52,.24],[.52,.72],[.74,.72],[.74,.3],[.9,.44],[1.04,.5]],
-         [[-.04,.84],[.2,.84],[.34,.6],[.52,.76],[.52,.28],[.74,.28],[.74,.7],[.9,.56],[1.04,.5]]],
-  blocks:[{x:.14,y:.5,r:.07},{x:.63,y:.5,r:.055}] },
+  // CROSSOVER. The two do not merge, they SWAP: each ends up on the side the
+  // other came in on. The middle is contested twice and the edges never are.
+  lanes:[[[-.04,.16],[.22,.16],[.38,.26],[.56,.74],[.72,.84],[.88,.7],[1.04,.5]],
+         [[-.04,.84],[.22,.84],[.38,.74],[.56,.26],[.72,.16],[.88,.3],[1.04,.5]]],
+  blocks:[{x:.47,y:.5,r:.06},{x:.14,y:.5,r:.05},{x:.8,y:.5,r:.045}] },
 
 { id:15, camp:'corr', stage:3, name:'ROTTEN CORE', diffTag:'STAGE III', waves:27, cash:860, cores:90, pathW:48, grid:200, mul:83,  pay:8,
   desc:'A reactor that will not stop running. The aisles are short and there is no back line.',
   theme:{a:'#ff6a3d', b:'#2a140a', style:'foundry', fog:'#140804'},
-  lanes:[[[-.04,.5],[.16,.28],[.16,.72],[.38,.72],[.38,.28],[.6,.28],[.6,.72],[.82,.72],[.82,.34],[.94,.46],[1.04,.46]]],
-  blocks:[{x:.06,y:.5,r:.06},{x:.27,y:.5,r:.07},{x:.49,y:.5,r:.07},{x:.71,y:.5,r:.06},{x:.38,y:.06,r:.05},{x:.6,y:.94,r:.05}] },
+  // KNOT. One lane that crosses itself twice. A gun on either crossing is
+  // being paid for three times, which is the only way this floor is holdable.
+  lanes:[[[-.04,.26],[.2,.24],[.44,.34],[.64,.74],[.8,.82],[.88,.66],[.76,.5],
+          [.5,.44],[.3,.56],[.34,.76],[.56,.86],[.78,.78],[.9,.6],[.94,.5],[1.04,.5]]],
+  blocks:[{x:.12,y:.62,r:.06},{x:.6,y:.16,r:.07},{x:.86,y:.24,r:.05},{x:.2,y:.9,r:.05}] },
 
 { id:16, camp:'corr', stage:4, name:'VEIN NETWORK', diffTag:'STAGE IV', waves:30, cash:840, cores:88, pathW:44, grid:200, mul:106, pay:12,
   desc:'Three ways in and they all converge late. Cover the trunk or cover nothing.',
   theme:{a:'#7dff4d', b:'#0a2a14', style:'circuit', fog:'#04140a'},
-  lanes:[[[-.04,.12],[.22,.12],[.42,.34],[.62,.5],[.78,.32],[.9,.5],[1.04,.5]],
-         [[-.04,.5],[.18,.5],[.42,.5],[.62,.5],[.78,.68],[.9,.5],[1.04,.5]],
-         [[-.04,.88],[.22,.88],[.42,.66],[.62,.5],[.78,.32],[.9,.5],[1.04,.5]]],
-  blocks:[{x:.3,y:.5,r:.06},{x:.7,y:.12,r:.05},{x:.7,y:.88,r:.05}] },
+  // PINCH. All three are squeezed through one point at a third of the way in,
+  // then thrown apart and hauled back. Hold the pinch or hold three fronts.
+  lanes:[[[-.04,.1],[.2,.2],[.36,.5],[.52,.8],[.72,.88],[.88,.7],[1.04,.5]],
+         [[-.04,.5],[.18,.44],[.36,.5],[.5,.62],[.66,.5],[.82,.38],[1.04,.5]],
+         [[-.04,.9],[.2,.8],[.36,.5],[.52,.2],[.72,.12],[.88,.3],[1.04,.5]]],
+  blocks:[{x:.36,y:.22,r:.05},{x:.36,y:.78,r:.05},{x:.66,y:.5,r:.055}] },
 
 { id:17, camp:'corr', stage:5, name:'THE SEAM', diffTag:'STAGE V', waves:32, cash:820, cores:85, pathW:42, grid:195, mul:130, pay:17,
   desc:'The map has split down the middle and both halves are still running.',
@@ -3246,19 +3256,23 @@ const MAPS = [
 { id:18, camp:'corr', stage:6, name:'BLOOD TIDE', diffTag:'STAGE VI', waves:35, cash:800, cores:82, pathW:40, grid:195, mul:148, pay:23,
   desc:'It comes in on four fronts and none of them are the one you fortified.',
   theme:{a:'#ff2d9b', b:'#2a0a14', style:'vortex', fog:'#140408'},
-  lanes:[[[-.04,.08],[.3,.14],[.56,.3],[.78,.42],[1.04,.5]],
-         [[-.04,.36],[.3,.4],[.56,.44],[.8,.48],[1.04,.5]],
-         [[-.04,.64],[.3,.6],[.56,.56],[.8,.52],[1.04,.5]],
-         [[-.04,.92],[.3,.86],[.56,.7],[.78,.58],[1.04,.5]]],
-  blocks:[{x:.44,y:.5,r:.06},{x:.2,y:.5,r:.05},{x:.68,y:.2,r:.045},{x:.68,y:.8,r:.045}] },
+  // UNDERTOW. Two curl inward and come at the core from behind the middle;
+  // two ride the rim and arrive late. Nothing covers both pairs at once.
+  lanes:[[[-.04,.42],[.22,.3],[.46,.22],[.62,.34],[.6,.5],[.76,.56],[1.04,.5]],
+         [[-.04,.58],[.22,.7],[.46,.78],[.62,.66],[.6,.5],[.76,.44],[1.04,.5]],
+         [[-.04,.06],[.34,.04],[.66,.1],[.84,.26],[.9,.42],[1.04,.5]],
+         [[-.04,.94],[.34,.96],[.66,.9],[.84,.74],[.9,.58],[1.04,.5]]],
+  blocks:[{x:.3,y:.5,r:.06},{x:.5,y:.5,r:.045},{x:.1,y:.18,r:.04},{x:.1,y:.82,r:.04}] },
 
 { id:19, camp:'corr', stage:7, name:'PATIENT ZERO', diffTag:'FINAL STAGE', waves:40, cash:780, cores:80, pathW:44, grid:200, mul:164, pay:30,
   desc:'The shape it started from. Short lanes, no cover, and it has stopped pretending.',
   theme:{a:'#ffffff', b:'#2a0a0a', style:'void', fog:'#160404'},
-  lanes:[[[-.04,.5],[.14,.34],[.14,.66],[.36,.66],[.36,.34],[.58,.34],[.58,.66],[.8,.66],[.8,.4],[1.04,.5]],
-         [[-.04,.18],[.24,.18],[.24,.5],[.5,.5],[.5,.18],[.76,.18],[.76,.5],[1.04,.5]],
-         [[-.04,.82],[.24,.82],[.24,.5],[.5,.5],[.5,.82],[.76,.82],[.76,.5],[1.04,.5]]],
-  blocks:[{x:.66,y:.06,r:.05},{x:.66,y:.94,r:.05},{x:.9,y:.24,r:.045},{x:.9,y:.76,r:.045}] },
+  // ORBIT. Nothing comes straight at it. All three go AROUND the core first,
+  // two of them the long way, and only turn in once they are behind it.
+  lanes:[[[-.04,.5],[.26,.46],[.5,.34],[.72,.26],[.88,.34],[.94,.5],[.82,.62],[.68,.56],[.78,.5],[1.04,.5]],
+         [[-.04,.2],[.24,.14],[.52,.12],[.76,.2],[.9,.36],[.86,.56],[.7,.66],[.6,.56],[.74,.5],[1.04,.5]],
+         [[-.04,.8],[.24,.86],[.52,.88],[.76,.8],[.9,.64],[.86,.44],[.7,.34],[.6,.44],[.74,.5],[1.04,.5]]],
+  blocks:[{x:.36,y:.66,r:.06},{x:.18,y:.5,r:.05},{x:.5,y:.78,r:.045},{x:.5,y:.22,r:.045}] },
 
 ];
 
@@ -9745,7 +9759,10 @@ function endGame(won) {
     ['KILLS', fmt(G.kills), 'var(--y)'],
     ['LEAKS', G.leaked, G.leaked ? 'var(--m)' : 'var(--g)'],
     ['CORE', Math.max(0, G.cores) + '/' + G.maxCores, 'var(--m)'],
-    ['TOWERS', G.towers.length, 'var(--v)'],
+    // Yours, not everything standing. On sector thirteen HARDWARE puts twenty
+    // of his own down beside you, and the results screen was reporting them as
+    // towers you built -- four became twenty-four.
+    ['TOWERS', G.towers.reduce((n, t) => n + (t.ally ? 0 : 1), 0), 'var(--v)'],
   ].map(([k, v, c]) => `<div class="resCell"><div class="k">${k}</div><div class="v" style="color:${c}">${v}</div></div>`).join('');
   renderWorkBreakdown();
   const _cl = campMaps(campOf(G.map)), _at = _cl.indexOf(G.map);
@@ -11147,6 +11164,14 @@ function importSave(code) {
   return null;
 }
 function owns(k) { return META.owned.includes(k); }
+function ownableKeys() {
+  return TKEYS.concat(AAKEYS, corrOpen() ? BLACKKEYS : []);
+}
+function ownedCount() {
+  const all = new Set(ownableKeys());
+  return META.owned.reduce((n, k) => n + (all.has(k) ? 1 : 0), 0);
+}
+
 function equipped(k, c) { return kitFor(c || 'core').includes(k) || META.aa === k; }
 // One at a time, and never none -- there is no unequip, only a different one.
 function equipAA(k) {
@@ -11420,13 +11445,22 @@ function updateFluxLabels() {
   // the counter, and the doors to it, only exist once he has something to sell
   const bc = $('bloodChip'); if (bc) bc.style.display = corrOpen() ? '' : 'none';
   try { refreshBlackDoor(); } catch (e) {}
+  // SECTORS means sectors. MAPS holds the corruption's seven stages as well
+  // now, so counting the whole array both mislabelled them and announced that
+  // seven more existed before anything had opened them.
+  const core = campMaps('core');
   let done = 0, best = 0;
-  for (let i = 0; i < MAPS.length; i++) {
-    if (prog[i] && prog[i].won) done++;
-    if (endlessBest(i) > best) best = endlessBest(i);
+  for (const i of core) if (prog[i] && prog[i].won) done++;
+  for (let i = 0; i < MAPS.length; i++) if (endlessBest(i) > best) best = endlessBest(i);
+  let secTxt = done + ' / ' + core.length;
+  if (corrOpen()) {
+    const cl = campMaps('corr');
+    let cd = 0;
+    for (const i of cl) if (prog[i] && prog[i].won) cd++;
+    secTxt += '  ·  ' + cd + ' / ' + cl.length + ' STAGES';
   }
-  $('titleSectors').textContent = done + ' / ' + MAPS.length;
-  $('titleTowers').textContent = META.owned.length + ' / ' + TKEYS.length;
+  $('titleSectors').textContent = secTxt;
+  $('titleTowers').textContent = ownedCount() + ' / ' + ownableKeys().length;
   $('titleBest').textContent = best ? 'WAVE ' + best : '—';
   refreshSandboxCard();
   refreshResumeCard();
@@ -12277,7 +12311,7 @@ function buildAbilPane() {
 // no prop at all.
 function shopRoomStatus() {
   const st = document.getElementById('shStatus'); if (!st) return;
-  const owned = META.owned.length, all = TKEYS.length + ABILITIES.length;
+  const owned = ownedCount(), all = ownableKeys().length + ABILITIES.length;
   st.innerHTML = 'SOFTWARE\u2019S // package manager <b>online</b>' +
     '<span>repo ' + all + ' pkg \u00b7 owned <b>' + owned + '</b> \u00b7 carried <b>' +
     META.abils.length + '/' + ASLOTS + '</b> \u00b7 ' +
