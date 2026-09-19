@@ -2711,6 +2711,99 @@ vigil: {
 // DAMAGE is for ORIGIN itself, which is one target with nine billion hull and
 // nothing to overkill. At a quarter of these figures it walked the entire route
 // and reached the core with half its health left.
+
+// ── his own trees ────────────────────────────────────────
+// Each of the six had the upgrade tree of whatever it was cloned from, because
+// Object.assign copies `paths` by reference: BULWARK's tree WAS pulse's, the
+// same array object. These are written for the guns they belong to, and priced
+// above the flux ladder because you buy these with blood money.
+const HW_PATHS = {
+  hwbulwark: [
+    {name:'DROP FORGE', color:'#ff8a3d', ups:[
+      {n:'Heavier Slug',   c:380, d:'+55% damage.',                        f:t=>t.dmg*=1.55},
+      {n:'Wider Plate',    c:800, d:'+45% blast, +15% damage.',            f:t=>{t.splash*=1.45;t.dmg*=1.15}},
+      {n:'Shaped Base',    c:1800,d:'Blasts strip 50% armour.',            f:t=>{t.corrode=.5;t.dmg*=1.25}},
+      {n:'DEAD WEIGHT',    c:4600,d:'+230% damage, half again the blast, and it staggers.',f:t=>{t.dmg*=3.3;t.splash*=1.5;t.shock=30}},
+    ]},
+    {name:'OVERFED', color:'#ffd633', ups:[
+      {n:'Second Feed',    c:400, d:'Two shells a volley.',                f:t=>{t.shots=2;t.dmg*=.94}},
+      {n:'Open Throttle',  c:830, d:'+40% fire rate.',                     f:t=>t.cd*=.71},
+      {n:'Belt Drive',     c:1850,d:'3 shells, +20% damage.',              f:t=>{t.shots=3;t.dmg*=1.2}},
+      {n:'RUNAWAY',        c:4700,d:'5 shells, +55% rate, +45% damage, punches through 3 more.',f:t=>{t.shots=5;t.cd*=.65;t.dmg*=1.45;t.pierce+=3}},
+    ]},
+  ],
+  hwsentinel: [
+    {name:'LONG LOOK', color:'#3dd6ff', ups:[
+      {n:'Longer Barrel',  c:390, d:'+20% range, +35% damage.',            f:t=>{t.range*=1.2;t.dmg*=1.35}},
+      {n:'Bore Sight',     c:820, d:'Punches through 2 more.',             f:t=>{t.pierce+=2;t.dmg*=1.1}},
+      {n:'Cold Chamber',   c:1850,d:'+35% fire rate.',                     f:t=>t.cd*=.74},
+      {n:'HORIZON',        c:4700,d:'+100% damage, and the shot pierces deep into the line.',f:t=>{t.dmg*=2;t.pierce+=4}},
+    ]},
+    {name:'HEAVY DRAW', color:'#ff2d9b', ups:[
+      {n:'Hot Load',       c:410, d:'+70% damage.',                        f:t=>t.dmg*=1.7},
+      {n:'Tungsten Core',  c:860, d:'Ignores armour entirely.',            f:t=>{t.pierceArmor=1;t.dmg*=1.15}},
+      {n:'Twin Coil',      c:1900,d:'+50% damage and a blast at the impact.',f:t=>{t.dmg*=1.5;t.splash=Math.max(t.splash||0,150)}},
+      {n:'OVERDRAW',       c:4800,d:'+240% damage and a heavy stun.',      f:t=>{t.dmg*=3.4;t.shock=44}},
+    ]},
+  ],
+  hwdeluge: [
+    {name:'MORE TUBES', color:'#ff5ce0', ups:[
+      {n:'Extra Rail',     c:390, d:'Two more missiles a launch.',         f:t=>t.missiles+=2},
+      {n:'Fast Light',     c:820, d:'+35% rate, missiles fly faster.',     f:t=>{t.cd*=.74;t.ps*=1.35}},
+      {n:'Full Bay',       c:1850,d:'Three more missiles, +20% damage.',   f:t=>{t.missiles+=3;t.dmg*=1.2}},
+      {n:'EVERYTHING AT ONCE',c:4700,d:'Six more missiles and +45% rate.', f:t=>{t.missiles+=6;t.cd*=.69}},
+    ]},
+    {name:'DIRTY WARHEADS', color:'#ff6a3d', ups:[
+      {n:'Packed Filler',  c:400, d:'+75% damage.',                        f:t=>t.dmg*=1.75},
+      {n:'Incendiary',     c:840, d:'Blasts set them alight.',             f:t=>{t.burn=40;t.dmg*=1.1}},
+      {n:'Salted',         c:1880,d:'Strips 55% armour.',                  f:t=>{t.corrode=.55;t.dmg*=1.2}},
+      {n:'SCORCHED SKY',   c:4750,d:'+300% damage, far bigger blasts, and they burn hard.',f:t=>{t.dmg*=4;t.splash*=1.8;t.burn=90}},
+    ]},
+  ],
+  hwswarm: [
+    {name:'MORE OF THEM', color:'#5cff9d', ups:[
+      {n:'Doors Off',      c:390, d:'Three more drones in the air.',       f:t=>t.drones+=3},
+      {n:'Quick Hatch',    c:820, d:'+40% launch rate, faster drones.',    f:t=>{t.cd*=.71;t.droneSpd*=1.3}},
+      {n:'Second Deck',    c:1850,d:'Four more drones, +25% damage.',      f:t=>{t.drones+=4;t.dmg*=1.25}},
+      {n:'NO END OF THEM', c:4700,d:'Eight more drones and +50% launch rate.',f:t=>{t.drones+=8;t.cd*=.67}},
+    ]},
+    {name:'SHARPER', color:'#22e6ff', ups:[
+      {n:'Heavier Charge', c:400, d:'+80% damage.',                        f:t=>t.dmg*=1.8},
+      {n:'Shaped Head',    c:840, d:'Bigger blast, and it ignores armour.',f:t=>{t.splash*=1.6;t.pierceArmor=1}},
+      {n:'Corrosive',      c:1880,d:'Strips 50% armour, +20% damage.',     f:t=>{t.corrode=.5;t.dmg*=1.2}},
+      {n:'FINISHING BLOW', c:4750,d:'+270% damage and a much bigger blast.',f:t=>{t.dmg*=3.7;t.splash*=1.9}},
+    ]},
+  ],
+  hwarclight: [
+    {name:'LONGER ARC', color:'#ffd633', ups:[
+      {n:'One More Hop',   c:380, d:'Three more jumps.',                   f:t=>t.chains+=3},
+      {n:'Dry Air',        c:810, d:'Jumps keep their full damage.',       f:t=>{t.chainFall=1;t.dmg*=1.1}},
+      {n:'Wider Reach',    c:1830,d:'Four more jumps, +30% range.',        f:t=>{t.chains+=4;t.range*=1.3}},
+      {n:'NOTHING GROUNDED',c:4650,d:'Eight more jumps, +45% range, +45% damage.',f:t=>{t.chains+=8;t.range*=1.45;t.dmg*=1.45}},
+    ]},
+    {name:'HARDER ARC', color:'#b46bff', ups:[
+      {n:'Bigger Bank',    c:400, d:'+105% damage.',                       f:t=>t.dmg*=2.05},
+      {n:'Clamp',          c:840, d:'Hits briefly stun.',                  f:t=>{t.shock=24;t.dmg*=1.1}},
+      {n:'Blown Fuse',     c:1880,d:'Strips shields, and the stun holds longer.',f:t=>{t.shock=40;t.emp=1;t.dmg*=1.25}},
+      {n:'DEAD SHORT',     c:4750,d:'+340% damage, ignores armour, heavy stun.',f:t=>{t.dmg*=4.4;t.pierceArmor=1;t.shock=58}},
+    ]},
+  ],
+  hwwarden: [
+    {name:'MORE LENSES', color:'#b46bff', ups:[
+      {n:'Split Lens',     c:390, d:'One more beam.',                      f:t=>t.beams+=1},
+      {n:'Ground Glass',   c:820, d:'Two more beams, +20% range.',         f:t=>{t.beams+=2;t.range*=1.2}},
+      {n:'Bank of Four',   c:1850,d:'Three more beams, +30% damage.',      f:t=>{t.beams+=3;t.dmg*=1.3}},
+      {n:'FULL APERTURE',  c:4700,d:'Five more beams and +95% damage.',    f:t=>{t.beams+=5;t.dmg*=1.95}},
+    ]},
+    {name:'HOTTER', color:'#ff2d9b', ups:[
+      {n:'Tight Focus',    c:400, d:'Ramps up twice as fast.',             f:t=>t.ramp*=2},
+      {n:'Longer Dwell',   c:840, d:'Ramp cap up by half, +15% damage.',   f:t=>{t.rampMax*=1.5;t.dmg*=1.15}},
+      {n:'Slag',           c:1880,d:'Strips 55% armour and sets them alight.',f:t=>{t.corrode=.55;t.burn=44}},
+      {n:'CUTTING TORCH',  c:4750,d:'Ramp cap doubled again, and the beam pierces everything behind it.',f:t=>{t.rampMax*=2.2;t.ramp*=1.5;t.pierceAll=1;t.dmg*=1.3}},
+    ]},
+  ],
+};
+
 const HW_SPEC = {
   hwbulwark: {src:'pulse',   name:'BULWARK',  col:'#ff8a3d', cost:4,   dmg:6.2,  cd:.16, range:2.6, splash:170, add:{pierce:3}},
   // 2.4 on the longest base range in the game put it at 1344 on a 1920x1080
@@ -2718,7 +2811,10 @@ const HW_SPEC = {
   // reached most of its width, which is not a sniper, it is the whole sector.
   // 1.7 keeps it the longest gun he owns by a clear margin over DELUGE at 825
   // and halves what a single one of them watches.
-  hwsentinel:{src:'rail',    name:'SENTINEL', col:'#3dd6ff', cost:3.4, dmg:14.3,  cd:.18, range:1.7, splash:170},
+  // airMul: it is a heavy round on a slow mount, built to put one shot into
+  // something standing still. Anything quick and overhead is the anti-air
+  // slot's job, and SENTINEL being good at that too made the slot pointless.
+  hwsentinel:{src:'rail',    name:'SENTINEL', col:'#3dd6ff', cost:3.4, dmg:14.3, cd:.18, range:1.7, splash:170, airMul:.3},
   // fx: five missiles a volley at five volleys a second, each one trailing and
   // each one bursting for 200 splash. It draws a tenth of that now.
   hwdeluge:  {src:'tempest', name:'DELUGE',   col:'#ff5ce0', cost:3.6, dmg:7.3,  cd:.18, range:2.5, splash:200, fx:.4, add:{missiles:3}},
@@ -2740,9 +2836,11 @@ for (const k in HW_SPEC) {
     dmg:b.dmg * q.dmg,
     cd:Math.max(1, Math.round(b.cd * q.cd)),
     range:Math.round(b.range * q.range),
-    desc:"HARDWARE fought sector thirteen with this one. He sells it out the back now.",
+    desc:"HARDWARE fought sector thirteen with this one. He sells it out the back now." +
+         (q.airMul !== undefined && q.airMul < 1 ? ' Poor against air.' : ''),
   });
   if (q.splash) d.splash = Math.max(b.splash || 0, q.splash);
+  if (q.airMul !== undefined) d.airMul = q.airMul;
   if (q.fx) d.fx = q.fx;                // how much of its own show it draws
   // All of them see through cloak. ORIGIN's escort is WRAITH, which is cloaked,
   // and only three of the six inherited detection -- so half his line could not
@@ -2752,8 +2850,10 @@ for (const k in HW_SPEC) {
   d.detect = true;
   // additive, not replacing: two more missiles than the source, not two total
   if (q.add) for (const p in q.add) d[p] = (b[p] || 0) + q.add[p];
-  TOWERS[k] = d;                      // paths are shared with the source on purpose:
-}                                     // the upgrade functions are pure and scale his higher base
+  // His own tree, not the one belonging to whatever he built it out of.
+  d.paths = HW_PATHS[k] || b.paths;
+  TOWERS[k] = d;
+}
 
 // His are deliberately absent here. TKEYS is what the armoury, the codex, the
 // sandbox roster and every ownership check are built from, so leaving them out
@@ -3921,17 +4021,27 @@ function applyVenom(e, t, stacks) {
   e.venom = 240;
   e.venomSrc = t;
 }
+// How much of a hold lands. Corruption bodies shrug off half of anything a
+// campaign tower does to slow, stun, freeze or shove them; HARDWARE's six and
+// the anti-air slot land in full.
+const CORR_CC_RES = .5;
+function ccScale(e, t) {
+  return (e && e.def && e.def.corr && t && t.def && !t.def.hw && !t.def.aa)
+    ? 1 - CORR_CC_RES : 1;
+}
+
 function statusHit(e, t) {
+  const cc = ccScale(e, t);
   if (t.venom) applyVenom(e, t);
   if (t.burn) { e.burn = Math.max(e.burn, 90 * (t.burnT || 1)); e.burnDps = Math.max(e.burnDps, t.burn); }
-  if (t.chill) { e.chill = Math.max(e.chill, t.chillT || 100); e.chillF = Math.max(e.chillF, t.chill); }
-  if (t.shock && e.freeze <= 0) applyCC(e, 'shock', t.shock);
+  if (t.chill) { e.chill = Math.max(e.chill, (t.chillT || 100) * cc); e.chillF = Math.max(e.chillF, t.chill * cc); }
+  if (t.shock && e.freeze <= 0) applyCC(e, 'shock', t.shock * cc);
   if (t.corrode) { e.corrode = 180; e.corrodeV = Math.max(e.corrodeV, t.corrode); }
   if (t.amp) { e.amp = 180; e.ampV = Math.max(e.ampV, t.amp); }
   if (t.emp && e.shield > 0) { e.shield = 0; burst(e.x, e.y, '#ffd633', 14, 3); }
-  if (t.freezeCh && !e.boss && Math.random() < t.freezeCh) applyCC(e, 'freeze', 90);
+  if (t.freezeCh && !e.boss && Math.random() < t.freezeCh * cc) applyCC(e, 'freeze', 90 * cc);
   if (t.knock && !e.boss) {
-    const eff = t.knock * Math.max(0, 1 - (e.knockRes || 0)) * (1 - (e.def.ccRes || 0));
+    const eff = t.knock * cc * Math.max(0, 1 - (e.knockRes || 0)) * (1 - (e.def.ccRes || 0));
     if (eff >= 1) {
       e.d = Math.max(4, e.d - eff);
       e.knockRes = Math.min(1, (e.knockRes || 0) + .34);
@@ -5691,7 +5801,9 @@ function tick() {
         // ccProof the way chill and dilation are, so a unit described as immune
         // to all control was still wading. The damage side is handled in
         // damage() instead, so it is only ever scaled once.
-        const mr = 1 - (e.def.mireRes || 0);
+        // The pool holds as well as hurts, so the corruption's resistance to a
+        // campaign tower's grip applies to it the same as to a chill.
+        const mr = (1 - (e.def.mireRes || 0)) * ccScale(e, pl.src);
         if (mr <= 0) continue;
         e.tar = 8;                                    // refreshed every tick while standing in it
         e.tarF = Math.max(e.tarF, pl.slow * mr);
