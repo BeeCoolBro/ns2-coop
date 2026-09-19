@@ -393,6 +393,17 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
   font-family:var(--f1);font-weight:900;letter-spacing:.1em}
 .fluxRow .fx{font-size:30px;color:var(--v);text-shadow:0 0 22px rgba(180,107,255,.55)}
 .fluxRow .fxl{font-size:11px;letter-spacing:.28em;color:var(--txd)}
+
+/* what the run paid into the other two pockets */
+#endEarned{display:flex;flex-direction:column;gap:7px;margin-top:11px}
+.earnRow{display:flex;align-items:baseline;justify-content:center;gap:9px;
+  padding:8px 14px;border-radius:11px;font-family:var(--f1);font-weight:900;
+  background:color-mix(in srgb,var(--ac) 9%,transparent);
+  border:1px solid color-mix(in srgb,var(--ac) 32%,transparent)}
+.earnRow .es{font-size:14px;color:var(--ac)}
+.earnRow .ev{font-size:24px;color:var(--ac);text-shadow:0 0 20px color-mix(in srgb,var(--ac) 55%,transparent)}
+.earnRow .el{font-size:10px;letter-spacing:.26em;color:var(--txd)}
+.earnNote{font-size:11px;letter-spacing:.04em;font-weight:600;color:var(--txd);text-align:center}
 #endHoney{margin-top:13px;padding:11px 14px 10px;border-radius:11px;
   border:1px solid rgba(255,182,39,.34);background:rgba(255,182,39,.07);
   display:flex;flex-direction:column;align-items:center;gap:2px;
@@ -1940,6 +1951,7 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
     <div class="fluxRow" id="endFlux"></div>
     <div id="endFluxBreak" style="font-size:11.5px;color:var(--txd);letter-spacing:.06em;font-weight:600;margin-top:4px"></div>
     <div id="endHoney" style="display:none"></div>
+    <div id="endEarned"></div>
     <div class="resGrid" id="endGrid"></div>
     <div id="endWork">
       <div class="ewT">WHAT DID THE WORK</div>
@@ -3461,6 +3473,7 @@ const G = {
   // from the save on resume. META is the armoury; these two are the run.
   loadout:[], abils:[],
   aa:null,                              // the anti-air in its own slot
+  corrRun:false,                        // this run is on the corruption's ladder
   // Null on every sector that does not declare one, which is all of them but
   // the first. Every hook in the game checks this before doing anything.
   story:null,
@@ -4290,8 +4303,15 @@ function placeBlock(type) {
   if (G.cash < towerCost(type)) return 'cash';
   return null;
 }
+// Anti-air hits harder out in the corruption. The sky there is WEEPERs and
+// MAWs at a stage multiplier, against a slot you are only allowed two of, and
+// the four of them were cut for a campaign where air is an occasional wave
+// rather than half of every one. Cached as a flag rather than read off the map
+// each time, because this runs once per shot per tower.
+const CORR_AA_POWER = 1.35;
 function eDmg(t) {
-  return t.dmg * (1 + t.buff.dmg) * (G.rally > 0 ? 1.7 : 1) * (t.ally ? ALLY_POWER : 1);
+  return t.dmg * (1 + t.buff.dmg) * (G.rally > 0 ? 1.7 : 1) * (t.ally ? ALLY_POWER : 1)
+              * (t.def.aa && G.corrRun ? CORR_AA_POWER : 1);
 }
 function eRange(t) { return t.range * (1 + t.buff.range) * (1 - (t.jammed || 0)) * (G.uplink > 0 ? 1.45 : 1); }
 function eCd(t) {
@@ -8973,6 +8993,7 @@ function startGame(mapIdx, diffIdx, endless) {
   G.bestCombo = 1; G.lowCore = G.cores;
   // Locked here and nowhere else. resumeRun overwrites both straight after,
   // with the kit the run was originally started on.
+  G.corrRun = campOf(mapIdx) === 'corr';   // resumeRun comes back through here too
   G.loadout = kitFor(campOf(mapIdx)).slice(); G.abils = META.abils.slice();
   G.aa = META.aa;                       // locked here with the rest of the kit
   const sty = MAPS[mapIdx].story;
@@ -9329,7 +9350,7 @@ function tickRefuse(e) {
 
 // Built here rather than sitting in the document, so it does not exist until
 // the one run that earns it and nothing else can leave it behind.
-function showGrailEnding(fr, hr) {
+function showGrailEnding(fr, hr, ar, br) {
   const old = document.getElementById('ovGrailEnd');
   if (old) old.remove();
   const clean = G.leaked === 0, full = G.cores >= G.maxCores;
@@ -9359,6 +9380,8 @@ function showGrailEnding(fr, hr) {
     ['SCORE', fmt(G.score), ''],
     ['FLUX EARNED', '+' + fmt(fr && fr.total ? fr.total : 0), 'hot'],
   ];
+  if (ar && ar.total > 0) rows.push(['AETHER EARNED', '+' + fmt(ar.total), 'hot']);
+  if (br && br.total > 0) rows.push(['BLOOD MONEY', '+' + fmt(br.total), 'hot']);
   if (HOST.on && hr && hr.total > 0) rows.push(['HONEY BANKED', '+' + fmt(hr.total), 'hot']);
 
   // Everything cascades in off one counter, so adding or dropping a row never
@@ -9551,7 +9574,10 @@ function endGame(won) {
     eS.textContent = `${m.name} · ${DIFFS[G.diff].name} · reached wave ${G.wave}` +
       (G.wave >= endlessBest(G.map) ? '  —  NEW RECORD' : `  —  best ${endlessBest(G.map)}`);
   } else {
-    eT.textContent = won ? 'SECTOR SECURED' : 'CORE BREACHED';
+    // The corruption calls its rungs STAGES everywhere else on the screen; the
+    // one line that announces you finished one should not call it a sector.
+    const _cd = CAMPAIGNS[campOf(G.map)];
+    eT.textContent = won ? _cd.unit + ' ' + _cd.verb.toUpperCase() : 'CORE BREACHED';
     eT.style.color = won ? 'var(--g)' : 'var(--m)';
     eS.textContent = won ? `${m.name} · ${DIFFS[G.diff].name}` : `Overrun on wave ${G.wave} of ${m.waves} · ${m.name}`;
   }
@@ -9561,6 +9587,20 @@ function endGame(won) {
   $('endFluxBreak').textContent =
     `${fr.base} from waves` + (fr.win ? ` · ${fr.win} for the win` : '') + (fr.first ? ` · ${fr.first} ${fr.firstLabel}` : '') +
     `  —  balance ${fmt(META.flux)}`;
+  // the other two pockets, each only when the run actually paid into it
+  const ee = $('endEarned');
+  if (ee) {
+    const got = [];
+    if (ar && ar.total > 0) got.push(['✦', fmt(ar.total), 'AETHER', '#3dd6ff']);
+    if (br && br.total > 0) got.push(['◈', fmt(br.total), 'BLOOD MONEY', '#ff5ce0']);
+    ee.style.display = got.length ? '' : 'none';
+    ee.innerHTML = got.map(([sym, n, label, col]) =>
+      `<div class="earnRow" style="--ac:${col}"><span class="es">${sym}</span>` +
+      `<span class="ev">+${n}</span><span class="el">${label}</span></div>`).join('') +
+      (br && br.total > 0 && br.src === 'endless'
+        ? '<div class="earnNote">endless pays a trickle — a STAGE pays properly</div>' : '') +
+      (br && br.first ? '<div class="earnNote">includes a first-clear bonus, paid once</div>' : '');
+  }
   const eh = $('endHoney');
   eh.style.display = HOST.on ? '' : 'none';
   if (HOST.on) {
@@ -9597,7 +9637,7 @@ function endGame(won) {
   // anything here.
   if (grailEnding) {
     grailEnding = 0;
-    showGrailEnding(fr, hr);
+    showGrailEnding(fr, hr, ar, br);
     return;
   }
   ovEnd.classList.add('on');
@@ -12346,7 +12386,7 @@ function buildCodex() {
       ['🛠', 'ARMOURY & LOADOUT', `Finishing a sector pays FLUX — more for higher threat levels, winning, and first clears. Spend it in the Armoury to unlock towers, then equip up to ${SLOTS} of them. Only equipped towers can be built, so pick a loadout that covers ground, air and armour.`, '#b46bff'],
       ['✦', 'POWER-UPS', `${ASLOTS} power-ups ride with you, fired from the dock. Four are issued free; the other ${ABILITIES.length - 4} are bought with flux in the Armoury. Swap them per run — EMP answers shields and cloaks, GRAVITY WELL buys time, MINEFIELD front-loads damage, AEGIS forgives a leak, PURGE clears a wave that got away from you.`, '#b46bff'],
       ['⚡', 'POWER GRID', 'Every sector has a fixed grid capacity and every tower draws power from it. You cannot blanket the map — you have to decide what is worth the wattage. Anti-air is the one exception: it draws nothing.', '#b46bff'],
-      ['✈', 'ANTI-AIR', `Air is its own problem and it gets its own slot. One anti-air tower rides with you on top of the ${SLOTS}, it costs you no loadout space and no grid power, and you may build ${AA_CAP} of it, no more. The trade is that all four are blind to anything on the ground: FLAK bursts over a whole flight, TALON locks onto one big thing and cannot miss, ZENITH ramps up the longer it holds a target, and VIGIL does not aim at all.`, '#3dd6ff'],
+      ['✈', 'ANTI-AIR', `Air is its own problem and it gets its own slot. One anti-air tower rides with you on top of the ${SLOTS}, it costs you no loadout space and no grid power, and you may build ${AA_CAP} of it, no more. All four hit ${Math.round((CORR_AA_POWER - 1) * 100)}% harder inside THE CORRUPTION, where the sky is most of the problem. The trade is that all four are blind to anything on the ground: FLAK bursts over a whole flight, TALON locks onto one big thing and cannot miss, ZENITH ramps up the longer it holds a target, and VIGIL does not aim at all.`, '#3dd6ff'],
       ['🔢', 'TOWER LIMITS', `You may build at most ${TYPE_CAP} of any single tower type, and each extra copy of a type costs 10% more than the last. Stacking one tower is deliberately expensive; mixed defences are cheaper and stronger. Anti-air is capped at ${AA_CAP}, because it costs no grid power and the count is the only limit it has.`, '#ff2d9b'],
       ['🎯', 'DEAD ZONES', 'Long-range towers like RAIL cannot fire into the circle right around them. Put snipers at the back and short-range guns on the chokepoints.', '#d8ff6b'],
       ['🌿', 'BRANCHING UPGRADES', 'Every tower has two upgrade paths. You may take ONE path all the way to tier 4, but the other is capped at tier 2. Commit early — you cannot refund a path.', '#5cff9d'],
