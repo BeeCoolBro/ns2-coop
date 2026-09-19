@@ -2593,14 +2593,14 @@ flak: {
     {name:'BARRAGE', color:'#ff8a3d', ups:[
       {n:'Twin Mount',     c:140, d:'Two shells a volley.',               f:t=>{t.shots=2;t.dmg*=.92}},
       {n:'Belt Feed',      c:300, d:'+40% fire rate.',                    f:t=>t.cd*=.71},
-      {n:'Quad Mount',     c:720, d:'4 shells a volley, +20% damage.',    f:t=>{t.shots=4;t.dmg*=1.2}},
-      {n:'CURTAIN FIRE',   c:2100,d:'6 shells, +55% rate, +60% damage.',  f:t=>{t.shots=6;t.cd*=.66;t.dmg*=1.6}},
+      {n:'Quad Mount',     c:1150,d:'5 shells a volley, +45% damage.',   f:t=>{t.shots=5;t.dmg*=1.45}},
+      {n:'CURTAIN FIRE',   c:3800,d:'9 shells, +72% rate, +110% damage. The sky closes.',f:t=>{t.shots=9;t.cd*=.58;t.dmg*=2.1}},
     ]},
     {name:'PROXIMITY', color:'#22e6ff', ups:[
       {n:'Wider Fuse',     c:150, d:'+55% burst radius.',                 f:t=>t.splash*=1.55},
       {n:'Shrapnel Load',  c:320, d:'+70% damage, shells punch through 2.',f:t=>{t.dmg*=1.7;t.pierce+=2}},
-      {n:'Flechette',      c:780, d:'Bursts corrode armour by 45%.',      f:t=>{t.corrode=.45;t.dmg*=1.25}},
-      {n:'AIRBURST',       c:2400,d:'+130% damage, huge bursts, and they stun.',f:t=>{t.dmg*=2.3;t.splash*=1.8;t.shock=26}},
+      {n:'Flechette',      c:1250,d:'+60% damage, corrodes 60% armour, punches through 2 more.',f:t=>{t.corrode=.6;t.dmg*=1.6;t.pierce+=2}},
+      {n:'AIRBURST',       c:4200,d:'+450% damage, +40% rate, enormous bursts, and a heavy stun.',f:t=>{t.dmg*=5.5;t.cd*=.72;t.splash*=2.2;t.shock=38}},
     ]},
   ]},
 
@@ -2614,14 +2614,14 @@ talon: {
     {name:'SALVO', color:'#ffd633', ups:[
       {n:'Second Rail',    c:270, d:'4 missiles a launch.',               f:t=>t.missiles=4},
       {n:'Fast Burn',      c:560, d:'+40% rate, missiles fly faster.',    f:t=>{t.cd*=.71;t.ps*=1.4}},
-      {n:'Full Rack',      c:1300,d:'7 missiles, +25% damage.',           f:t=>{t.missiles=7;t.dmg*=1.25}},
-      {n:'SATURATION LOCK',c:3200,d:'10 missiles a launch, +70% damage.', f:t=>{t.missiles=10;t.dmg*=1.7}},
+      {n:'Full Rack',      c:2050,d:'8 missiles, +50% damage.',           f:t=>{t.missiles=8;t.dmg*=1.5}},
+      {n:'SATURATION LOCK',c:5700,d:'12 missiles a launch, +160% damage.',f:t=>{t.missiles=12;t.dmg*=2.6}},
     ]},
     {name:'WARHEAD', color:'#ff2d9b', ups:[
       {n:'Shaped Charge',  c:290, d:'+80% damage.',                       f:t=>t.dmg*=1.8},
       {n:'Armour Piercing',c:620, d:'Ignores armour entirely.',           f:t=>{t.pierceArmor=1;t.dmg*=1.2}},
-      {n:'Thermobaric',    c:1400,d:'Much bigger blast, and it ignites.', f:t=>{t.splash*=2.2;t.burn=34;t.dmg*=1.3}},
-      {n:'SKYBREAKER',     c:3600,d:'+190% damage, and every hit stuns.', f:t=>{t.dmg*=2.9;t.shock=42;t.splash*=1.3}},
+      {n:'Thermobaric',    c:2250,d:'Far bigger blast, +70% damage, and it ignites hard.',f:t=>{t.splash*=2.6;t.burn=52;t.dmg*=1.7}},
+      {n:'SKYBREAKER',     c:6400,d:'+320% damage, ignores armour, and every hit stuns.',f:t=>{t.dmg*=4.2;t.shock=60;t.splash*=1.6;t.pierceArmor=1}},
     ]},
   ]},
 
@@ -2635,14 +2635,14 @@ zenith: {
     {name:'TRACKING', color:'#5cff9d', ups:[
       {n:'Second Aperture',c:240, d:'Tracks a third target.',             f:t=>t.beams=3},
       {n:'Wide Optics',    c:500, d:'4 targets, +25% range.',             f:t=>{t.beams=4;t.range*=1.25}},
-      {n:'Array Control',  c:1150,d:'6 targets, +35% damage.',            f:t=>{t.beams=6;t.dmg*=1.35}},
-      {n:'FULL COVERAGE',  c:3100,d:'9 targets at once, +100% damage.',   f:t=>{t.beams=9;t.dmg*=2}},
+      {n:'Array Control',  c:1850,d:'7 targets, +65% damage.',            f:t=>{t.beams=7;t.dmg*=1.65}},
+      {n:'FULL COVERAGE',  c:5500,d:'14 targets at once, +300% damage.',  f:t=>{t.beams=14;t.dmg*=4}},
     ]},
     {name:'DWELL', color:'#b46bff', ups:[
       {n:'Tighter Focus',  c:250, d:'Ramps up twice as fast.',            f:t=>t.ramp*=2},
       {n:'Sustained Burn', c:520, d:'Ramp cap 4× → 9×.',                  f:t=>{t.rampMax=9;t.dmg*=1.15}},
-      {n:'Ablation',       c:1200,d:'Strips armour and sets the target alight.',f:t=>{t.corrode=.5;t.burn=24}},
-      {n:'SOLAR APEX',     c:3400,d:'Ramp cap 20×, and the beam pierces everything behind it.',f:t=>{t.rampMax=20;t.ramp*=1.6;t.pierceAll=1}},
+      {n:'Ablation',       c:1900,d:'+35% damage, strips 65% armour and sets them alight.',f:t=>{t.corrode=.65;t.burn=40;t.dmg*=1.35}},
+      {n:'SOLAR APEX',     c:6000,d:'Ramp cap 34×, ramps twice as fast, and the beam pierces everything behind it.',f:t=>{t.rampMax=34;t.ramp*=2;t.pierceAll=1;t.dmg*=1.35}},
     ]},
   ]},
 
@@ -2656,14 +2656,14 @@ vigil: {
     {name:'SATURATION', color:'#ff2d9b', ups:[
       {n:'Wider Envelope', c:220, d:'+35% radius.',                       f:t=>{t.splash*=1.35;t.range*=1.35}},
       {n:'Denser Field',   c:480, d:'+75% damage.',                       f:t=>t.dmg*=1.75},
-      {n:'Rapid Cycle',    c:1100,d:'+55% pulse rate.',                   f:t=>t.cd*=.65},
-      {n:'NO FLY ZONE',    c:3000,d:'+160% damage and half again the radius.',f:t=>{t.dmg*=2.6;t.splash*=1.5;t.range*=1.5}},
+      {n:'Rapid Cycle',    c:1750,d:'+82% pulse rate, +25% damage.',       f:t=>{t.cd*=.55;t.dmg*=1.25}},
+      {n:'NO FLY ZONE',    c:5300,d:'+270% damage and three quarters again the radius.',f:t=>{t.dmg*=3.7;t.splash*=1.75;t.range*=1.75}},
     ]},
     {name:'INTERDICT', color:'#7fd4ff', ups:[
       {n:'Drag Field',     c:230, d:'Pulses slow anything caught by 35%.',f:t=>{t.chill=.35;t.chillT=110}},
       {n:'Corrosive Mist', c:500, d:'Strips 45% armour off everything in it.',f:t=>{t.corrode=.45;t.dmg*=1.2}},
-      {n:'Dead Air',       c:1150,d:'Slow 60%, and the field keeps burning them.',f:t=>{t.chill=.6;t.frostDot=18}},
-      {n:'GROUNDED',       c:3300,d:'Slow 80%, +110% damage, and it stuns on every pulse.',f:t=>{t.chill=.8;t.dmg*=2.1;t.shock=24}},
+      {n:'Dead Air',       c:1850,d:'Slow 70%, +25% damage, and the field burns them twice as hard.',f:t=>{t.chill=.7;t.frostDot=38;t.dmg*=1.25}},
+      {n:'GROUNDED',       c:5800,d:'Slow 88%, +420% damage, +30% rate, strips armour, and it stuns every pulse.',f:t=>{t.chill=.88;t.dmg*=5.2;t.cd*=.77;t.shock=38;t.corrode=.5}},
     ]},
   ]},
 
@@ -6782,7 +6782,7 @@ function drawTower(t, ghost) {
       // ── the cell block ──
       // Two cells wide, as many ranks deep as it carries. The battery is the
       // stat: three cells at base, ten once SALVO is finished.
-      const cells = Math.max(2, Math.min(10, t.missiles || 2));
+      const cells = Math.max(2, Math.min(12, t.missiles || 2));
       const ranks = Math.ceil(cells / 2);
       const pitch = 4.3, x0 = 5.4;
       const blockLen = ranks * pitch + 1.6;
