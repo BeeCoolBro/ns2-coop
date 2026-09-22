@@ -12607,8 +12607,24 @@ addCode('OPENSESAME', () => {
 // Bee's Vault, whole, carried in the page rather than linked to: a link would
 // only ever work on the one machine the file sits on, and this is served from
 // a repo. Same trick as ORIGIN's theme -- base64 in a type="text/plain" block,
-// rebuilt into a blob on demand. The vault's own self-blob guard stands down
-// as soon as it sees a blob: URL, so it boots straight into the app.
+// unpacked straight into the tab, or into the overlay's srcdoc. No blob: URL
+// is involved in either: both inherit this origin, so the vault's own saves
+// carry on working, and the address bar never shows a blob.
+let vaultHTML = null;
+function vaultDoc(el) {
+  if (vaultHTML === null) {
+    const bin = atob(el.textContent.trim());
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    vaultHTML = new TextDecoder('utf-8').decode(bytes);
+  }
+  // The vault re-blobs itself whenever this key says to, and the key lives on
+  // our origin, so it could already be set. Clearing it is exactly what the
+  // vault's own #noblob launcher does.
+  try { localStorage.setItem('blobMode', 'false'); } catch (e) {}
+  return vaultHTML;
+}
+
 function openVault() {
   const el = $('vaultData');
   if (!el || !el.textContent || el.textContent.length < 1024) {
@@ -12623,12 +12639,9 @@ function openVault() {
   // the popup blocker, and losing that bet is silent. A refusal is not an
   // error though -- it just means the vault opens here instead.
   const w = window.open('', '_blank');
-  let url = null;
+  let html = null;
   try {
-    const bin = atob(el.textContent.trim());
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    url = URL.createObjectURL(new Blob([bytes], {type: 'text/html'}));
+    html = vaultDoc(el);
   } catch (e) {
     try { if (w) w.close(); } catch (e2) {}
     sfx('deny');
@@ -12637,22 +12650,23 @@ function openVault() {
     return;
   }
   if (w) {
-    w.location.replace(url);
-    // The tab has the document long before this, but a slow machine may still
-    // be reading when the handler returns, so the handle is held a while.
-    setTimeout(() => { try { URL.revokeObjectURL(url); } catch (e) {} }, 120000);
+    // Written into the tab rather than pointed at one. An about:blank popup
+    // inherits this origin, so the vault keeps its saves, and the address bar
+    // shows no blob.
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
     sfx('upgrade');
     toast('🍯', 'BEE’S VAULT', 'The old door still opens.', '#ffd633');
     return;
   }
-  openVaultInPage(url);
+  openVaultInPage(html);
 }
 
 // Popups refused, so it opens here. The vault is a whole application, so it
 // gets the whole window rather than a panel -- everything except a way back.
-let vaultFrame = null, vaultURL = null;
-function openVaultInPage(url) {
-  vaultURL = url;
+let vaultFrame = null;
+function openVaultInPage(html) {
   // The board is about to be covered up, so the run stops here. It stays
   // stopped after the vault closes: coming back to a wave already walking is
   // how you lose the lives pausing just saved.
@@ -12687,7 +12701,9 @@ function openVaultInPage(url) {
     'allow-same-origin allow-scripts allow-forms allow-popups ' +
     'allow-popups-to-escape-sandbox allow-downloads');
   f.style.cssText = 'flex:1 1 auto;width:100%;border:0;background:#000';
-  f.src = url;
+  // srcdoc, not a blob src: a srcdoc document inherits this origin, so the
+  // vault's storage works and nothing anywhere is addressed as blob:.
+  f.srcdoc = html;
   wrap.append(bar, f);
   document.body.appendChild(wrap);
   vaultFrame = wrap;
@@ -12700,8 +12716,6 @@ function closeVault() {
   if (!vaultFrame) return;
   vaultFrame.remove();
   vaultFrame = null;
-  try { URL.revokeObjectURL(vaultURL); } catch (e) {}
-  vaultURL = null;
   sfx('click');
 }
 addCode('VAULT', openVault);
