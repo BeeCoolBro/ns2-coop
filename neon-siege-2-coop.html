@@ -923,9 +923,21 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
   0%{transform:translate(0,0)}
   50%{transform:translate(calc(var(--g) * .7px),calc(var(--g) * -.5px))}
   100%{transform:translate(calc(var(--g) * -.6px),calc(var(--g) * .4px))}}
+/* Yields to html.moOn: DISPLAY → MOTION → ALWAYS ON is somebody
+   saying they want these in spite of the system setting. */
 @media (prefers-reduced-motion:reduce){
-  .badLine,.badLine:before,.badLine:after{animation:none}
-  .badLine:before,.badLine:after{clip-path:inset(0 0 100% 0)}}
+  html:not(.moOn) .badLine,
+  html:not(.moOn) .badLine:before,
+  html:not(.moOn) .badLine:after{animation:none}
+  html:not(.moOn) .badLine:before,
+  html:not(.moOn) .badLine:after{clip-path:inset(0 0 100% 0)}}
+/* ...and the same, for asking on a system that never did. */
+html.moOff .badLine,
+  html.moOff .badLine:before,
+  html.moOff .badLine:after{animation:none}
+  html.moOff .badLine:before,
+  html.moOff .badLine:after{clip-path:inset(0 0 100% 0)}
+
 
 
 /* ── and the set it is coming through ────────────── */
@@ -986,10 +998,25 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
 /* the antenna losing signal with it */
 #walkie.bad:before{animation:wkAnt .6s steps(1,end) infinite}
 @keyframes wkAnt{0%,54%{opacity:1}58%{opacity:.25}62%,100%{opacity:1}}
+/* Yields to html.moOn: DISPLAY → MOTION → ALWAYS ON is somebody
+   saying they want these in spite of the system setting. */
 @media (prefers-reduced-motion:reduce){
-  #radio.bad,#radio.bad:before,#radio.bad:after,
-  #walkie.bad,#walkie.bad:before,#walkie.bad:after{animation:none}
-  #radio.bad:after{clip-path:inset(0 0 100% 0)}}
+  html:not(.moOn) #radio.bad,
+  html:not(.moOn) #radio.bad:before,
+  html:not(.moOn) #radio.bad:after,
+  html:not(.moOn) #walkie.bad,
+  html:not(.moOn) #walkie.bad:before,
+  html:not(.moOn) #walkie.bad:after{animation:none}
+  html:not(.moOn) #radio.bad:after{clip-path:inset(0 0 100% 0)}}
+/* ...and the same, for asking on a system that never did. */
+html.moOff #radio.bad,
+  html.moOff #radio.bad:before,
+  html.moOff #radio.bad:after,
+  html.moOff #walkie.bad,
+  html.moOff #walkie.bad:before,
+  html.moOff #walkie.bad:after{animation:none}
+  html.moOff #radio.bad:after{clip-path:inset(0 0 100% 0)}
+
 
 /* ── the story's own ending ────────────────────── */
 /* Its own screen, not #ovEnd wearing a class. Nothing here is shared with the
@@ -1113,10 +1140,27 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
   #ovGrailEnd .geW{grid-template-columns:22px 1fr 34px 54px}
   /* the bar goes, and so does the key explaining it */
   #ovGrailEnd .geWb,#ovGrailEnd .geSec em{display:none}}
+/* Yields to html.moOn: DISPLAY → MOTION → ALWAYS ON is somebody
+   saying they want these in spite of the system setting. */
 @media (prefers-reduced-motion:reduce){
-  #ovGrailEnd .geSec,#ovGrailEnd .geW,#ovGrailEnd .geWb i,#ovGrailEnd .geWb u,
-  #ovGrailEnd .geCall,#ovGrailEnd .geSplit,#ovGrailEnd .geSpBar i,
-  #ovGrailEnd .geVerd{animation:none}}
+  html:not(.moOn) #ovGrailEnd .geSec,
+  html:not(.moOn) #ovGrailEnd .geW,
+  html:not(.moOn) #ovGrailEnd .geWb i,
+  html:not(.moOn) #ovGrailEnd .geWb u,
+  html:not(.moOn) #ovGrailEnd .geCall,
+  html:not(.moOn) #ovGrailEnd .geSplit,
+  html:not(.moOn) #ovGrailEnd .geSpBar i,
+  html:not(.moOn) #ovGrailEnd .geVerd{animation:none}}
+/* ...and the same, for asking on a system that never did. */
+html.moOff #ovGrailEnd .geSec,
+  html.moOff #ovGrailEnd .geW,
+  html.moOff #ovGrailEnd .geWb i,
+  html.moOff #ovGrailEnd .geWb u,
+  html.moOff #ovGrailEnd .geCall,
+  html.moOff #ovGrailEnd .geSplit,
+  html.moOff #ovGrailEnd .geSpBar i,
+  html.moOff #ovGrailEnd .geVerd{animation:none}
+
 
 /* ── ORIGIN dies and the set goes with it ──────── */
 #originOut{position:fixed;inset:0;z-index:9998;background:transparent}
@@ -1553,9 +1597,19 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
 .armTab.blk{border-color:rgba(255,45,155,.34);color:#ff8ad2}
 .armTab.blk.on{background:rgba(255,45,155,.16);border-color:#ff5ce0;color:#ff5ce0;
   box-shadow:0 0 22px -8px #ff2d9b}
+/* Yields to html.moOn: DISPLAY → MOTION → ALWAYS ON is somebody
+   saying they want these in spite of the system setting. */
 @media (prefers-reduced-motion:reduce){
-  #bkWire,#bkBulb,#bkPool{animation:none}
-  .bkItem{animation:none}}
+  html:not(.moOn) #bkWire,
+  html:not(.moOn) #bkBulb,
+  html:not(.moOn) #bkPool{animation:none}
+  html:not(.moOn) .bkItem{animation:none}}
+/* ...and the same, for asking on a system that never did. */
+html.moOff #bkWire,
+  html.moOff #bkBulb,
+  html.moOff #bkPool{animation:none}
+  html.moOff .bkItem{animation:none}
+
 
 /* ── the lights coming up ───────────────────────────── */
 /* The armoury rolls a shutter. Out here there is one bulb on a wire and it
@@ -1590,12 +1644,50 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
 #ovArmoury.blk.opening #bkHead,
 #ovArmoury.blk.opening #blackNote{animation:bkFade .5s .8s ease-out both}
 @keyframes bkFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* Yields to html.moOn: DISPLAY → MOTION → ALWAYS ON is somebody
+   saying they want these in spite of the system setting. */
 @media (prefers-reduced-motion:reduce){
-  #ovArmoury.blk.opening #bkBulb,#ovArmoury.blk.opening #bkPool,
-  #ovArmoury.blk.opening #bkWall,#ovArmoury.blk.opening #bkFence,
-  #ovArmoury.blk.opening #bkVan,#ovArmoury.blk.opening #bkTag,
-  #ovArmoury.blk.opening #bkHead,#ovArmoury.blk.opening #blackNote{animation:none}}
+  html:not(.moOn) #ovArmoury.blk.opening #bkBulb,
+  html:not(.moOn) #ovArmoury.blk.opening #bkPool,
+  html:not(.moOn) #ovArmoury.blk.opening #bkWall,
+  html:not(.moOn) #ovArmoury.blk.opening #bkFence,
+  html:not(.moOn) #ovArmoury.blk.opening #bkVan,
+  html:not(.moOn) #ovArmoury.blk.opening #bkTag,
+  html:not(.moOn) #ovArmoury.blk.opening #bkHead,
+  html:not(.moOn) #ovArmoury.blk.opening #blackNote{animation:none}}
+/* ...and the same, for asking on a system that never did. */
+html.moOff #ovArmoury.blk.opening #bkBulb,
+  html.moOff #ovArmoury.blk.opening #bkPool,
+  html.moOff #ovArmoury.blk.opening #bkWall,
+  html.moOff #ovArmoury.blk.opening #bkFence,
+  html.moOff #ovArmoury.blk.opening #bkVan,
+  html.moOff #ovArmoury.blk.opening #bkTag,
+  html.moOff #ovArmoury.blk.opening #bkHead,
+  html.moOff #ovArmoury.blk.opening #blackNote{animation:none}
+
+/* ── the display panel ──────────────────────────────── */
+.dRow{display:flex;align-items:flex-start;gap:16px;padding:15px 0;border-top:1px solid var(--line)}
+.dRow:first-of-type{border-top:0}
+.dLab{flex:1 1 auto;min-width:0;text-align:left}
+.dLab b{display:block;font-family:var(--f1);font-size:12px;font-weight:700;
+  letter-spacing:.16em;color:var(--tx)}
+.dLab span{display:block;margin-top:5px;font-size:11.5px;line-height:1.5;color:var(--txm)}
+.dSeg{flex:0 0 auto;display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.dSeg button{cursor:pointer;border:0;border-left:1px solid var(--line);background:transparent;
+  color:var(--txm);padding:8px 12px;font-family:var(--f1);font-size:10px;font-weight:700;
+  letter-spacing:.12em;white-space:nowrap;min-width:0;
+  transition:background .12s,color .12s}
+.dSeg button:first-child{border-left:0}
+.dSeg button:hover{color:var(--tx);background:rgba(255,255,255,.05)}
+.dSeg button.on{background:var(--ac);color:#04060d}
+#dispNote{margin-top:15px;padding:11px 13px;border-radius:8px;text-align:left;
+  border:1px solid var(--line);background:rgba(0,0,0,.35);
+  font-size:11.5px;line-height:1.55;color:var(--txm)}
 @media (max-width:620px){
+  .dRow{flex-direction:column;gap:10px}
+  .dSeg{width:100%}
+  /* the width was going into tracking and padding, so that is what gives */
+  .dSeg button{flex:1 1 0;padding:9px 4px;letter-spacing:.04em;font-size:9.5px}
   .bkItem{grid-template-columns:48px 1fr;gap:10px}
   .bkTagWrap{grid-column:1/-1;transform:none;min-width:0}}
 .bkTagWrap{cursor:pointer;transition:transform .14s,filter .14s}
@@ -1882,6 +1974,7 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
       <button class="btn" id="btnArmoury2">ARMOURY</button>
       <button class="btn" id="btnPowerups2">POWER-UPS</button>
       <button class="btn" id="btnCodex2">CODEX</button>
+      <button class="btn sm" id="btnDisplay">DISPLAY</button>
       <button class="btn sm" id="btnTransfer">TRANSFER SAVE</button>
       <button class="btn sm dng" id="btnWipe">RESET PROGRESS</button>
     </div>
@@ -1891,6 +1984,35 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
       <b>Q E</b> upgrade paths · <b>C</b> codex ·
       <b>F</b> speed · <b>A</b> skip breather · <b>ESC</b> pause
     </div>
+  </div>
+</div>
+
+<!-- ══════════ DISPLAY ══════════ -->
+<div class="ov" id="ovDisp">
+  <div class="ovBox" style="max-width:600px">
+    <div class="ovT" style="font-size:clamp(20px,3.4vw,32px);color:var(--v)">DISPLAY</div>
+    <div class="ovS">For machines without much graphics power — and for systems that have
+      been told to cut animation down.</div>
+    <div class="dRow">
+      <div class="dLab"><b>MOTION</b><span>The set-pieces: the black market opening, the
+        endings, the glitch and the radio. Following the system means they switch off
+        wherever Windows animations are off.</span></div>
+      <div class="dSeg" id="segMotion">
+        <button data-v="auto">SYSTEM</button>
+        <button data-v="on">ALWAYS ON</button>
+        <button data-v="off">REDUCED</button>
+      </div>
+    </div>
+    <div class="dRow">
+      <div class="dLab"><b>PARTICLES</b><span>How much debris each hit throws. Fewer costs
+        nothing but the spectacle — the guns do exactly the same damage.</span></div>
+      <div class="dSeg" id="segFx">
+        <button data-v="full">FULL</button>
+        <button data-v="low">FEWER</button>
+      </div>
+    </div>
+    <div id="dispNote"></div>
+    <div class="ovBtns"><button class="btn" id="btnDispClose">CLOSE</button></div>
   </div>
 </div>
 
@@ -6373,20 +6495,30 @@ const ALLY_FX = .25;
 const fxMul = src => ((src && src.ally) ? ALLY_FX : 1) *
                      ((src && src.def && src.def.fx) || 1);
 
+// 1 is everything, below that is a thinner shower. burst() is the only place
+// worth dialling -- fifty call sites come through it -- and rnd() is plain
+// Math.random() with no stream anything else depends on, so taking particles
+// away cannot move a single thing the game decides.
+let FX_DENSITY = 1;
 let PARTMAX = 900;
 function burst(x, y, c, n, sp) {
   if (G.parts.length > PARTMAX) return;
   n = G.parts.length > PARTMAX * .7 ? Math.ceil(n * .5) : n;
   sp = sp || 4;
+  n = Math.max(1, Math.round(n * FX_DENSITY));
   for (let i = 0; i < n; i++) {
     const a = rnd(TAU), s = rnd(sp, sp * .2);
     G.parts.push({x, y, vx:Math.cos(a) * s, vy:Math.sin(a) * s - .6, life:(rnd(30, 14)) | 0, max:34, c, r:rnd(4.5, 1.4), g:.07, a:1});
   }
 }
+let _thin = 0;
+function thinned() { return FX_DENSITY < 1 && (++_thin % Math.round(1 / FX_DENSITY)) !== 0; }
 function spark(x, y, c) {
+  if (thinned()) return;
   G.parts.push({x, y, vx:rnd(1.4, -1.4), vy:-rnd(1.8, .2), life:18, max:18, c, r:rnd(2.6, .9), g:.03, a:.9});
 }
 function trail(x, y, c, r) {
+  if (thinned()) return;
   G.parts.push({x, y, vx:0, vy:0, life:9, max:9, c, r, g:0, a:.6});
 }
 function ring(x, y, r, R, c, life) { G.fx.push({k:'ring', x, y, r, R, life, max:life, c}); }
@@ -13219,6 +13351,65 @@ function openTransfer() {
   $('ovSave').classList.add('on');
   ta.focus(); ta.select();
 }
+// ── display settings ──────────────────────────────────
+// Their own key, deliberately not in META: a save carried to another browser
+// should not take the weak machine's display settings with it.
+const DISP_KEY = 'ns2_disp';
+const DISP = {motion: 'auto', fx: 'full'};
+try {
+  const d = JSON.parse(HOST.get(DISP_KEY) || '{}');
+  if (d && typeof d === 'object') {
+    if (['auto', 'on', 'off'].includes(d.motion)) DISP.motion = d.motion;
+    if (['full', 'low'].includes(d.fx)) DISP.fx = d.fx;
+  }
+} catch (e) {}
+
+function systemWantsCalm() {
+  try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; }
+}
+
+function applyDisplay() {
+  const r = document.documentElement;
+  r.classList.toggle('moOn', DISP.motion === 'on');
+  r.classList.toggle('moOff', DISP.motion === 'off');
+  FX_DENSITY = DISP.fx === 'low' ? .4 : 1;
+  for (const [id, key] of [['segMotion', 'motion'], ['segFx', 'fx']]) {
+    const seg = $(id);
+    if (seg) for (const b of seg.children) b.classList.toggle('on', b.dataset.v === DISP[key]);
+  }
+  const note = $('dispNote');
+  if (note) {
+    const calm = systemWantsCalm();
+    note.innerHTML = calm
+      ? 'This system is asking for reduced animation, so the set-pieces are off unless ' +
+        'MOTION is set to ALWAYS ON. In Windows that switch is ' +
+        '<b>Settings → Accessibility → Visual effects → Animation effects</b>, and ' +
+        '"Adjust for best performance" turns it off for you.'
+      : 'This system is not asking for reduced animation, so the set-pieces play either way. ' +
+        'If they are missing on another machine, check that setting there.';
+  }
+}
+
+function saveDisplay() { try { HOST.set(DISP_KEY, JSON.stringify(DISP)); } catch (e) {} }
+
+function setDisp(key, val) {
+  if (DISP[key] === val) return;
+  DISP[key] = val;
+  saveDisplay();
+  applyDisplay();
+  sfx('click');
+}
+
+for (const [id, key] of [['segMotion', 'motion'], ['segFx', 'fx']]) {
+  $(id).addEventListener('click', e => {
+    const b = e.target.closest('button[data-v]');
+    if (b) setDisp(key, b.dataset.v);
+  });
+}
+$('btnDisplay').onclick = () => { sfx('click'); applyDisplay(); $('ovDisp').classList.add('on'); };
+$('btnDispClose').onclick = () => { sfx('click'); $('ovDisp').classList.remove('on'); };
+applyDisplay();
+
 $('btnTransfer').onclick = () => { sfx('click'); openTransfer(); };
 $('btnSaveClose').onclick = () => { sfx('click'); $('ovSave').classList.remove('on'); };
 $('btnSaveCopy').onclick = () => {
