@@ -30,6 +30,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
 HERE = os.path.dirname(os.path.abspath(__file__))
 GAME = 'neon-siege-2-coop.html'
+VAULT = 'vault.html'
 
 QUEUE = []                      # peers waiting for a partner, longest wait first
 LOCK = threading.Lock()
@@ -218,6 +219,11 @@ class Handler(SimpleHTTPRequestHandler):
     def translate_path(self, path):
         if path in ('/', '/index.html'):
             path = '/' + GAME
+        # Bee's Vault rides along as its own page. It is nothing to do with the
+        # game and shares none of its state; it is here because this is the
+        # host that is already wired to the repo.
+        elif path in ('/vault', '/vault/'):
+            path = '/' + VAULT
         return SimpleHTTPRequestHandler.translate_path(self, path)
 
     def end_headers(self):
