@@ -25,6 +25,9 @@ import struct
 import sys
 import threading
 import time
+import urllib.error
+import urllib.parse
+import urllib.request
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -46,6 +49,29 @@ STATS = {'paired': 0, 'live': 0}
 # The passphrase typed into the page only opens the panel on that machine; it
 # proves nothing to the server, which checks this value and nothing else.
 DEV_KEY = os.environ.get('DEV_KEY', '')
+
+# ── vault links ───────────────────────────────────────────────────
+# The vault's Links tab. Anyone can read the list; changing it takes DEV_KEY,
+# checked here. BEESCANFLY opens the vault's dev mode, but it is written in the
+# public page source, so it proves nothing to this server.
+#
+# The list is kept in the GitHub repo, not on this disk: Render's free disk is
+# wiped whenever the service sleeps, which is every fifteen idle minutes.
+# links.json sits on its own branch so saving a link never redeploys the site.
+# Reading needs nothing -- the repo is public. Writing needs GITHUB_TOKEN: a
+# fine-grained token for this one repository, Contents: read and write.
+# Render: Environment -> Add Environment Variable -> GITHUB_TOKEN.
+GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN', '')
+GITHUB_API = os.environ.get('GITHUB_API', 'https://api.github.com').rstrip('/')
+LINKS_REPO = os.environ.get('LINKS_REPO', 'BeeCoolBro/ns2-coop')
+LINKS_BRANCH = os.environ.get('LINKS_BRANCH', 'vault-data')
+LINKS_PATH = 'links.json'
+LINKS_TTL = 300                 # seconds a read is trusted before asking GitHub again
+LINKS_MAX = 300
+LINKS_BODY_MAX = 16384
+LINKS = {'list': [], 'sha': None, 'at': 0.0, 'ok': False}
+LINKS_LOCK = threading.Lock()   # guards LINKS
+LINKS_WRITE = threading.Lock()  # one save at a time, across the whole GitHub round trip
 MATCHES = {}                    # id -> {'host', 'guest', 'spec': set, 'start': frame}
 NEXT_ID = [1]
 
@@ -206,6 +232,213 @@ def find_match(peer):
 
 
 # ── handler ───────────────────────────────────────────────────────
+def gh(method, path, body=None):
+    """One GitHub REST call. Returns (status, parsed body or None); 0 = no answer."""
+    data = json.dumps(body).encode('utf-8') if body is not None else None
+    req = urllib.request.Request(GITHUB_API + path, data=data, method=method)
+    req.add_header('Accept', 'application/vnd.github+json')
+    req.add_header('X-GitHub-Api-Version', '2022-11-28')
+    req.add_header('User-Agent', 'ns2-coop-vault-links')
+    if data is not None:
+        req.add_header('Content-Type', 'application/json')
+    if GITHUB_TOKEN:
+        req.add_header('Authorization', 'Bearer ' + GITHUB_TOKEN)
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            raw = r.read()
+            return r.status, (json.loads(raw) if raw else None)
+    except urllib.error.HTTPError as e:
+        try:
+            raw = e.read()
+            return e.code, (json.loads(raw) if raw else None)
+        except Exception:
+            return e.code, None
+    except Exception as e:
+        log('github %s %s failed: %s' % (method, path.split('?')[0], e))
+        return 0, None
+
+
+def tidy(v, n):
+    """Printable text, whitespace collapsed, at most n characters."""
+    t = ''.join(ch for ch in str(v or '') if ch.isprintable() or ch.isspace())
+    return ' '.join(t.split())[:n]
+
+
+def safe_url(u):
+    try:
+        p = urllib.parse.urlsplit(u)
+    except ValueError:
+        return False
+    return p.scheme in ('http', 'https') and bool(p.netloc) and len(u) <= 2048
+
+
+def clean_link(x):
+    """A link as stored, or None if it is not one. Applied to everything read
+    back as well as everything written, so a hand-edited file cannot slip a
+    javascript: address into the page."""
+    if not isinstance(x, dict):
+        return None
+    name = tidy(x.get('name'), 60)
+    url = str(x.get('url') or '').strip()
+    if not name or not safe_url(url):
+        return None
+    lid = ''.join(ch for ch in str(x.get('id') or '') if ch.isalnum() or ch in '-_')[:24]
+    try:
+        added = max(0, int(x.get('added') or 0))
+    except (TypeError, ValueError):
+        added = 0
+    return {'id': lid or new_link_id(), 'name': name, 'url': url,
+            'desc': tidy(x.get('desc'), 140), 'added': added}
+
+
+def new_link_id():
+    return base64.urlsafe_b64encode(os.urandom(6)).decode('ascii')
+
+
+def contents_path():
+    return '/repos/%s/contents/%s' % (LINKS_REPO, LINKS_PATH)
+
+
+def links_load(force=False):
+    """Refresh the cache from GitHub when it is stale. True when the cache is
+    now current; False when GitHub could not be read (the old cache stands)."""
+    with LINKS_LOCK:
+        if not force and LINKS['ok'] and time.time() - LINKS['at'] < LINKS_TTL:
+            return True
+    st, js = gh('GET', contents_path() + '?ref=' + urllib.parse.quote(LINKS_BRANCH, safe=''))
+    if st == 200 and isinstance(js, dict) and js.get('type') == 'file':
+        try:
+            doc = json.loads(base64.b64decode(js.get('content') or '').decode('utf-8'))
+        except Exception:
+            log('!! %s on %s is not valid JSON; keeping the cached list' % (LINKS_PATH, LINKS_BRANCH))
+            return False
+        raw = doc.get('links', []) if isinstance(doc, dict) else doc
+        items = [c for c in (clean_link(x) for x in (raw if isinstance(raw, list) else [])) if c]
+        with LINKS_LOCK:
+            LINKS.update(list=items, sha=js.get('sha'), at=time.time(), ok=True)
+        return True
+    if st == 404:
+        # no branch or no file yet: that is an empty list, not a failure
+        with LINKS_LOCK:
+            LINKS.update(list=[], sha=None, at=time.time(), ok=True)
+        return True
+    return False
+
+
+def make_branch():
+    """Create the links branch from the default branch's head. Only reached if
+    the branch was deleted; normally it already exists."""
+    st, repo = gh('GET', '/repos/%s' % LINKS_REPO)
+    if st != 200 or not isinstance(repo, dict):
+        return False
+    base = repo.get('default_branch') or 'main'
+    st, ref = gh('GET', '/repos/%s/git/ref/heads/%s' % (LINKS_REPO, urllib.parse.quote(base, safe='')))
+    if st != 200 or not isinstance(ref, dict):
+        return False
+    st, _ = gh('POST', '/repos/%s/git/refs' % LINKS_REPO,
+               {'ref': 'refs/heads/' + LINKS_BRANCH, 'sha': ref['object']['sha']})
+    return st in (201, 422)         # 422: it appeared in the meantime, which is fine
+
+
+def links_commit(items, sha, message):
+    """Write the list as one commit. ('ok'|'conflict'|'fail', message)."""
+    doc = json.dumps({'v': 1, 'links': items}, indent=2, ensure_ascii=False) + '\n'
+    body = {'message': message[:120], 'branch': LINKS_BRANCH,
+            'content': base64.b64encode(doc.encode('utf-8')).decode('ascii')}
+    if sha:
+        body['sha'] = sha
+    for first in (True, False):
+        st, js = gh('PUT', contents_path(), body)
+        said = str((js or {}).get('message', '')).lower() if isinstance(js, dict) else ''
+        if st in (200, 201):
+            new_sha = ((js or {}).get('content') or {}).get('sha')
+            with LINKS_LOCK:
+                LINKS.update(list=items, sha=new_sha, at=time.time(), ok=True)
+            return 'ok', ''
+        if st in (404, 422) and 'branch' in said and first:
+            if make_branch():
+                continue
+            return 'fail', "Couldn't create the %s branch on GitHub." % LINKS_BRANCH
+        if st == 409 or (st == 422 and 'sha' in said):
+            return 'conflict', ''
+        if st in (401, 403):
+            return 'fail', 'GitHub refused the token. It needs Contents: read and write on %s.' % LINKS_REPO
+        if st == 404:
+            return 'fail', "GitHub can't see %s with that token. Check which repository it was made for." % LINKS_REPO
+        return 'fail', "Couldn't reach GitHub (%s). Try again." % (st or 'no answer')
+    return 'fail', "Couldn't save to GitHub."
+
+
+def links_mutate(change):
+    """Apply change(items) -> (new_items, message) | None on top of the newest
+    list and commit it. Re-reads first, so a save made on another machine a
+    second ago is built on rather than overwritten."""
+    with LINKS_WRITE:
+        for _ in range(3):
+            if not links_load(force=True):
+                return 502, {'ok': False, 'error': "Couldn't read the current list from GitHub. Try again."}
+            with LINKS_LOCK:
+                items = [dict(x) for x in LINKS['list']]
+                sha = LINKS['sha']
+            try:
+                result = change(items)
+            except ValueError as e:
+                return 400, {'ok': False, 'error': str(e)}
+            if result is None:          # nothing to do: say so without a commit
+                return 200, {'ok': True, 'links': items}
+            new_items, message = result
+            st, err = links_commit(new_items, sha, message)
+            if st == 'ok':
+                return 200, {'ok': True, 'links': new_items}
+            if st == 'fail':
+                return 502, {'ok': False, 'error': err}
+        return 409, {'ok': False, 'error': 'The list kept changing underneath the save. Try again.'}
+
+
+def links_post(key, raw):
+    """One owner request. Returns (http status, reply)."""
+    # constant-time, and an unset DEV_KEY can never match
+    if not DEV_KEY:
+        return 403, {'ok': False, 'error': 'This server has no owner key. Set DEV_KEY in Render -> Environment.'}
+    if not hmac.compare_digest(key.encode('utf-8'), DEV_KEY.encode('utf-8')):
+        return 403, {'ok': False, 'error': 'That owner key was refused.'}
+    try:
+        msg = json.loads(raw.decode('utf-8'))
+    except Exception:
+        return 400, {'ok': False, 'error': 'That request was not JSON.'}
+    if not isinstance(msg, dict):
+        return 400, {'ok': False, 'error': 'That request was not an object.'}
+    if not GITHUB_TOKEN:
+        return 503, {'ok': False, 'error': 'Saving is not set up yet. Set GITHUB_TOKEN in Render -> Environment.'}
+    op = msg.get('op')
+
+    if op == 'add':
+        item = clean_link({'name': msg.get('name'), 'url': msg.get('url'),
+                           'desc': msg.get('desc'), 'added': int(time.time())})
+        if not item:
+            return 400, {'ok': False, 'error': 'A link needs a name and an http:// or https:// address.'}
+
+        def add(items):
+            if any(x['url'] == item['url'] for x in items):
+                raise ValueError('That address is already on the list.')
+            if len(items) >= LINKS_MAX:
+                raise ValueError('The list is full (%d links).' % LINKS_MAX)
+            return items + [item], 'vault links: add %s' % item['name']
+        return links_mutate(add)
+
+    if op == 'remove':
+        lid = str(msg.get('id') or '')
+
+        def remove(items):
+            gone = [x for x in items if x['id'] == lid]
+            if not gone:
+                return None             # already removed, maybe from another machine
+            return [x for x in items if x['id'] != lid], 'vault links: remove %s' % gone[0]['name']
+        return links_mutate(remove)
+
+    return 400, {'ok': False, 'error': 'Unknown request.'}
+
+
 class Handler(SimpleHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
 
@@ -243,6 +476,15 @@ class Handler(SimpleHTTPRequestHandler):
         route = self.path.split('?')[0]
         if route == '/ws':
             return self.websocket()
+        if route == '/api/links':
+            # a failed refresh with an older list in hand serves the older list;
+            # with nothing in hand it says so, rather than claiming there are none
+            fresh = links_load()
+            with LINKS_LOCK:
+                ok, items = LINKS['ok'], list(LINKS['list'])
+            if not fresh and not ok:
+                return self.send_json(502, {'links': [], 'error': "Couldn't read the links from GitHub."})
+            return self.send_json(200, {'links': items, 'writable': bool(DEV_KEY and GITHUB_TOKEN)})
         if route in ('/healthz', '/stats'):
             with LOCK:
                 body = json.dumps({'ok': True, 'waiting': len(QUEUE),
@@ -256,6 +498,54 @@ class Handler(SimpleHTTPRequestHandler):
             return
         self.revalidate = True
         return SimpleHTTPRequestHandler.do_GET(self)
+
+    # ── the links API ────────────────────────────────────────────
+    # Open to every origin: the vault can be opened from a copy on disk, and
+    # CORS is no defence for a write endpoint anyway -- the key is.
+    def cors(self):
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, X-Dev-Key')
+        self.send_header('Access-Control-Max-Age', '86400')
+
+    def send_json(self, code, obj):
+        body = json.dumps(obj, ensure_ascii=False).encode('utf-8')
+        self.send_response(code)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.send_header('Content-Length', str(len(body)))
+        self.send_header('Cache-Control', 'no-store')
+        self.cors()
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_OPTIONS(self):
+        self.revalidate = False
+        if self.path.split('?')[0] == '/api/links':
+            self.send_response(204)
+            self.cors()
+            self.send_header('Content-Length', '0')
+            self.end_headers()
+            return
+        self.send_response(405)
+        self.send_header('Content-Length', '0')
+        self.end_headers()
+
+    def do_POST(self):
+        self.revalidate = False
+        if self.path.split('?')[0] != '/api/links':
+            self.close_connection = True
+            return self.send_json(404, {'ok': False, 'error': 'Not found.'})
+        try:
+            n = int(self.headers.get('Content-Length') or 0)
+        except ValueError:
+            n = -1
+        if n <= 0 or n > LINKS_BODY_MAX:
+            # the body was not read, so this connection cannot be reused
+            self.close_connection = True
+            return self.send_json(413 if n > LINKS_BODY_MAX else 400,
+                                  {'ok': False, 'error': 'Bad request size.'})
+        code, reply = links_post(self.headers.get('X-Dev-Key') or '', self.rfile.read(n))
+        return self.send_json(code, reply)
 
     def websocket(self):
         key = self.headers.get('Sec-WebSocket-Key')
@@ -476,6 +766,11 @@ def main():
     srv = ThreadingHTTPServer((args.host, args.port), Handler)
     srv.daemon_threads = True
     log('NEON SIEGE 2 matchmaking on :%d' % args.port)
+    log('  vault links: %s@%s, saving %s' % (
+        LINKS_REPO, LINKS_BRANCH,
+        'on' if (DEV_KEY and GITHUB_TOKEN) else
+        'OFF (set %s)' % ' and '.join(k for k, v in (('DEV_KEY', DEV_KEY), ('GITHUB_TOKEN', GITHUB_TOKEN)) if not v)))
+    threading.Thread(target=links_load, daemon=True).start()
     if not os.environ.get('RENDER'):
         log('  you:        http://localhost:%d' % args.port)
         log('  same wifi:  http://%s:%d' % (lan_ip(), args.port))

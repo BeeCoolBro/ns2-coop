@@ -1228,6 +1228,52 @@ transform: translateX(4px);
 .allsongs-pl { font-size: 0.55rem; color: var(--accent3); letter-spacing: 0.15em; text-transform: uppercase; font-family: 'Orbitron', sans-serif; opacity: 0.8; }
 .allsongs-play { font-size: 0.7rem; color: var(--accent3); opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
 .allsongs-row:hover .allsongs-play { opacity: 1; }
+
+/* ===== LINKS TAB ===== */
+.tab-btn.links-tab.active { color: var(--accent3); border-bottom-color: var(--accent3); text-shadow: 0 0 10px color-mix(in srgb, var(--accent3) 80%, transparent), 0 0 20px color-mix(in srgb, var(--accent3) 40%, transparent); }
+#links-view { width: 100%; }
+.lnk-wrap { max-width: 760px; margin: 24px 24px 40px; }
+.lnk-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.lnk-label { font-family: 'Orbitron', sans-serif; font-size: 0.65rem; letter-spacing: 0.25em; color: var(--accent3); text-transform: uppercase; opacity: 0.85; }
+.lnk-status { font-size: 0.68rem; color: var(--muted); font-family: 'Share Tech Mono', monospace; }
+.lnk-status.bad { color: #ff5d73; }
+.lnk-refresh { margin-left: auto; background: none; border: 1px solid var(--border); color: var(--muted); font-family: 'Share Tech Mono', monospace; font-size: 0.68rem; padding: 5px 10px; cursor: pointer; transition: all 0.15s ease; }
+.lnk-refresh:hover { color: var(--accent3); border-color: var(--accent3); }
+.lnk-form { display: none; gap: 8px; margin-bottom: 18px; padding: 14px 16px; background: var(--card); border: 1px solid var(--border); border-left: 2px solid var(--accent3); }
+.lnk-form-title { font-family: 'Orbitron', sans-serif; font-size: 0.6rem; letter-spacing: 0.22em; color: var(--accent3); text-transform: uppercase; }
+.lnk-form-title span { color: var(--muted); letter-spacing: 0.12em; }
+.lnk-form-row { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; }
+.lnk-form input { width: 100%; box-sizing: border-box; background: var(--bg2); border: 1px solid var(--border); color: var(--text); padding: 9px 11px; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; border-radius: 2px; }
+.lnk-form input:focus { outline: none; border-color: var(--accent3); box-shadow: 0 0 10px color-mix(in srgb, var(--accent3) 25%, transparent); }
+.lnk-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.lnk-add { background: color-mix(in srgb, var(--accent3) 14%, transparent); border: 1px solid var(--accent3); color: var(--accent3); font-family: 'Orbitron', sans-serif; font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase; padding: 8px 14px; cursor: pointer; transition: all 0.15s ease; }
+.lnk-add:hover { background: color-mix(in srgb, var(--accent3) 26%, transparent); box-shadow: 0 0 14px color-mix(in srgb, var(--accent3) 35%, transparent); }
+.lnk-add:disabled { opacity: 0.5; cursor: wait; }
+.lnk-keynote { font-size: 0.68rem; color: var(--muted); }
+.lnk-forget { background: none; border: 0; padding: 0; color: var(--accent3); font: inherit; cursor: pointer; text-decoration: underline; }
+.lnk-setup { font-size: 0.7rem; line-height: 1.5; color: var(--muted); border-top: 1px dashed var(--border); padding-top: 8px; }
+.lnk-setup b { color: var(--text); }
+.lnk-msg { font-size: 0.72rem; min-height: 1em; color: var(--muted); font-family: 'Share Tech Mono', monospace; }
+.lnk-msg.bad { color: #ff5d73; }
+.lnk-msg.good { color: #00ff88; }
+.lnk-list { display: flex; flex-direction: column; gap: 6px; }
+.lnk-row { display: flex; align-items: stretch; background: var(--card); border: 1px solid var(--border); border-left: 2px solid transparent; border-radius: 2px; transition: all 0.15s ease; }
+.lnk-row:hover { border-color: var(--accent3); border-left-color: var(--accent3); background: color-mix(in srgb, var(--accent3) 8%, var(--card)); box-shadow: 0 0 14px color-mix(in srgb, var(--accent3) 25%, transparent); transform: translateX(4px); }
+.lnk-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; padding: 10px 16px; color: var(--text); text-decoration: none; font-family: 'Share Tech Mono', monospace; }
+.lnk-ico { width: 30px; height: 30px; flex-shrink: 0; display: grid; place-items: center; border: 1px solid color-mix(in srgb, var(--accent3) 45%, transparent); color: var(--accent3); font-family: 'Orbitron', sans-serif; font-size: 0.8rem; }
+.lnk-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.lnk-name { font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lnk-sub { font-size: 0.66rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lnk-go { font-size: 0.8rem; color: var(--accent3); opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
+.lnk-row:hover .lnk-go { opacity: 1; }
+.lnk-del { flex-shrink: 0; min-width: 44px; background: none; border: 0; border-left: 1px solid var(--border); color: var(--muted); padding: 0 12px; cursor: pointer; font-family: 'Share Tech Mono', monospace; font-size: 0.72rem; transition: color 0.15s; }
+.lnk-del:hover, .lnk-del.arm { color: #ff5d73; }
+.lnk-empty { padding: 40px 20px; text-align: center; color: var(--muted); font-size: 0.8rem; border: 1px dashed var(--border); font-family: 'Share Tech Mono', monospace; }
+.lnk-retry { margin-top: 12px; }
+@media (max-width: 640px) {
+  .lnk-wrap { margin: 16px 12px 32px; }
+  .lnk-form-row { grid-template-columns: 1fr; }
+}
 #dev-panel { flex-direction:column;align-items:center;padding:40px 32px;min-height:60vh; }
 .experimental-btn { width:100%;margin-top:14px;background:#1a0008;border:1px solid #ff2d78;color:#ff2d78;font-family:'Share Tech Mono',monospace;font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;padding:10px 14px;cursor:pointer;border-radius:2px;transition:all 0.15s; }
 .experimental-btn:hover { background:#ff2d7822;box-shadow:0 0 12px #ff2d7844; }
@@ -2742,6 +2788,10 @@ body.theme-ultrabasic .bee-song-yes { animation: none !important; }
 <line x1="5" y1="10.5" x2="11" y2="10.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
 <line x1="5" y1="13" x2="8.5" y2="13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
 </symbol>
+<symbol id="bv-link" viewBox="0 0 16 16">
+<path d="M6.6 9.4a2.8 2.8 0 0 0 4 0l2.3-2.3a2.8 2.8 0 0 0-4-4l-.9.9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M9.4 6.6a2.8 2.8 0 0 0-4 0L3.1 8.9a2.8 2.8 0 0 0 4 4l.9-.9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</symbol>
 <symbol id="bv-plus" viewBox="0 0 16 16">
 <line x1="8" y1="2" x2="8" y2="14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
 <line x1="2" y1="8" x2="14" y2="8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
@@ -3304,6 +3354,7 @@ animation: launch-flash-anim 0.4s ease-out;
 <div class="tabs">
 <button class="tab-btn active" data-tab="games"><svg class="bv-icon" aria-hidden="true"><use href="#bv-gamepad"/></svg> Games</button>
 <button class="tab-btn apps-tab" data-tab="apps"><svg class="bv-icon" aria-hidden="true"><use href="#bv-apps"/></svg> Apps</button>
+<button class="tab-btn links-tab" data-tab="links"><svg class="bv-icon" aria-hidden="true"><use href="#bv-link"/></svg> Links</button>
 <button class="tab-btn credits-tab" data-tab="credits" style="display:none"><svg class="bv-icon" aria-hidden="true"><use href="#bv-credits"/></svg> Credits</button>
 <button class="tab-btn dev-tab" data-tab="dev" id="dev-tab-btn"><svg class="bv-icon" aria-hidden="true"><use href="#bv-dev"/></svg> Dev</button>
 <button class="tab-btn allsongs-tab" data-tab="allsongs" id="allsongs-tab-btn"><svg class="bv-icon" aria-hidden="true"><use href="#bv-music"/></svg> All Songs</button>
@@ -3446,6 +3497,7 @@ animation: launch-flash-anim 0.4s ease-out;
 </div>
 <div id="app-grid" style="display:none"></div>
 <div id="allsongs-view" style="display:none"></div>
+<div id="links-view" style="display:none"></div>
 <div id="dev-panel" style="display:none"></div>
 </div>
 </div>
@@ -5656,9 +5708,20 @@ function render() {
   appGrid.style.display = 'none';
   devPanel.style.display = 'none';
   if (allSongsView) allSongsView.style.display = 'none';
+  const linksView = document.getElementById('links-view');
+  if (linksView) linksView.style.display = 'none';
 
   // Sidebar visibility
-  sidebar.style.display = (activeTab === 'dev' || activeTab === 'allsongs' || uiMode === 'old') ? 'none' : 'flex';
+  sidebar.style.display = (activeTab === 'dev' || activeTab === 'allsongs' || activeTab === 'links' || uiMode === 'old') ? 'none' : 'flex';
+
+  if (activeTab === 'links') {
+    linksView.style.display = 'block';
+    renderLinks();
+    // refetch on the way in, so a link added on another machine turns up --
+    // but not on every flick between tabs
+    if (Date.now() - linksFetchedAt > 20000) linksLoad();
+    return;
+  }
 
   if (activeTab === 'allsongs') {
     allSongsView.style.display = 'block';
@@ -5964,6 +6027,290 @@ window.unlockDevMode = function() {
 };
 // Dev mode stays on across reloads
 if (localStorage.getItem(DEV_UNLOCK_KEY) === '1') applyDevUnlockState();
+
+// ===== LINKS =====
+// Everyone sees the list; only the owner changes it. It lives on the server,
+// which keeps it in the GitHub repo, so every machine shows the same links --
+// not whatever one browser has saved.
+//
+// Dev mode shows the add form, but the server is what decides: saving needs
+// its owner key (DEV_KEY). BEESCANFLY is written in this page's source for
+// anyone to read, so it can open the form and nothing more.
+//
+// Names and addresses go on the page through textContent and a checked href,
+// never innerHTML, and only http/https addresses are ever linked.
+const LINKS_HOME = 'https://ns2-coop.onrender.com';
+const LINKS_KEY_STORE = 'linksOwnerKey';
+let linksData = null;          // null until the first answer arrives
+let linksWritable = false;
+let linksBase = null;          // whichever address answered first
+let linksBusy = false;
+let linksSaving = false;
+let linksError = '';
+let linksFetchedAt = 0;
+
+function linksIsDev() { return localStorage.getItem(DEV_UNLOCK_KEY) === '1'; }
+function linksKey() { try { return localStorage.getItem(LINKS_KEY_STORE) || ''; } catch (e) { return ''; } }
+
+// Only ever link http(s). The server refuses anything else too; this is the
+// second lock on the same door.
+function linksSafe(u) {
+  try {
+    const p = new URL(u);
+    return (p.protocol === 'http:' || p.protocol === 'https:') ? p.href : null;
+  } catch (e) { return null; }
+}
+
+function lnkEl(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+// Served by the server itself, the relative address is the one. Opened from a
+// copy on disk -- or from a blob, which has no address of its own to be
+// relative to -- only the full one can work.
+function linksCandidates() {
+  const web = location.protocol === 'http:' || location.protocol === 'https:';
+  const out = web ? [''] : [];
+  if (!web || location.origin !== LINKS_HOME) out.push(LINKS_HOME);
+  return out;
+}
+
+async function linksFetch(path, opts) {
+  const tries = linksBase !== null ? [linksBase] : linksCandidates();
+  let last = null;
+  for (const base of tries) {
+    // a sleeping free-tier server takes a while to wake, so be patient
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 60000);
+    try {
+      const r = await fetch(base + path, Object.assign({ cache: 'no-store', signal: ctl.signal }, opts || {}));
+      if (!(r.headers.get('content-type') || '').includes('application/json')) throw new Error('not the links server');
+      const body = await r.json();
+      linksBase = base;
+      return { status: r.status, body: body || {} };
+    } catch (e) {
+      last = e;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  throw last || new Error('unreachable');
+}
+
+async function linksLoad() {
+  if (linksBusy) return;
+  linksBusy = true;
+  linksError = '';
+  if (activeTab === 'links') renderLinks();
+  try {
+    const { status, body } = await linksFetch('/api/links');
+    if (status !== 200 || !Array.isArray(body.links)) throw new Error(body.error || 'bad reply');
+    linksData = body.links;
+    linksWritable = !!body.writable;
+    linksFetchedAt = Date.now();
+  } catch (e) {
+    linksError = 'Couldn\u2019t reach the links server \u2014 it may be waking up. Try again in a moment.';
+  }
+  linksBusy = false;
+  if (activeTab === 'links') renderLinks();
+}
+
+function linksSay(text, kind) {
+  const m = document.querySelector('#links-view .lnk-msg');
+  if (!m) return;
+  m.textContent = text || '';
+  m.className = 'lnk-msg' + (kind ? ' ' + kind : '');
+}
+
+async function linksWrite(payload, done) {
+  const view = document.getElementById('links-view');
+  const keyIn = view.querySelector('.lnk-key');
+  const typed = keyIn && keyIn.offsetParent !== null ? keyIn.value.trim() : '';
+  const key = typed || linksKey();
+  if (!key) { linksSay('Enter the owner key first.', 'bad'); if (keyIn) keyIn.focus(); return false; }
+  if (linksSaving) return false;
+  linksSaving = true;
+  const addBtn = view.querySelector('.lnk-add');
+  if (addBtn) addBtn.disabled = true;
+  linksSay('Saving\u2026');
+  let res = null;
+  try {
+    res = await linksFetch('/api/links', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Dev-Key': key },
+      body: JSON.stringify(payload)
+    });
+  } catch (e) { res = null; }
+  linksSaving = false;
+  if (addBtn) addBtn.disabled = false;
+  if (!res) { linksSay('Couldn\u2019t reach the links server.', 'bad'); playSound('warning'); return false; }
+  const b = res.body;
+  if (res.status === 200 && b.ok) {
+    try { localStorage.setItem(LINKS_KEY_STORE, key); } catch (e) {}
+    if (keyIn) keyIn.value = '';
+    if (Array.isArray(b.links)) linksData = b.links;
+    linksFetchedAt = Date.now();
+    renderLinks();
+    linksSay(done, 'good');
+    showToast('\u2713 ' + done);
+    playSound('success');
+    return true;
+  }
+  // a refused key is forgotten, so the next try asks for it again
+  if (res.status === 403) { try { localStorage.removeItem(LINKS_KEY_STORE); } catch (e) {} }
+  renderLinks();
+  linksSay(b.error || ('Save failed (' + res.status + ').'), 'bad');
+  playSound('warning');
+  return false;
+}
+
+// Two clicks to remove: the first arms it, the second does it. The vault has
+// no confirm dialogs anywhere, so this does not start one.
+function linksRemoveClick(e, btn, id) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (!btn.classList.contains('arm')) {
+    btn.classList.add('arm');
+    btn.textContent = 'Remove?';
+    clearTimeout(btn._disarm);
+    btn._disarm = setTimeout(() => { btn.classList.remove('arm'); btn.textContent = '\u2715'; }, 3000);
+    playSound('warning');
+    return;
+  }
+  clearTimeout(btn._disarm);
+  linksWrite({ op: 'remove', id: id }, 'Link removed.');
+}
+
+function buildLinksShell(view) {
+  // static markup only -- nothing from the list goes through innerHTML
+  view.innerHTML = `<div class="lnk-wrap">
+    <div class="lnk-head">
+      <span class="lnk-label">Links</span>
+      <span class="lnk-status"></span>
+      <button type="button" class="lnk-refresh" title="Fetch the list again">Refresh</button>
+    </div>
+    <form class="lnk-form" autocomplete="off" novalidate>
+      <div class="lnk-form-title">Add a link <span>\u00b7 owner only</span></div>
+      <div class="lnk-form-row">
+        <input class="lnk-in-name" maxlength="60" placeholder="Name" spellcheck="false">
+        <input class="lnk-in-url" maxlength="2048" placeholder="https://\u2026" spellcheck="false" inputmode="url">
+      </div>
+      <input class="lnk-in-desc" maxlength="140" placeholder="Short description (optional)" spellcheck="false">
+      <input class="lnk-key" type="password" placeholder="Owner key \u2014 the server\u2019s DEV_KEY" autocomplete="current-password">
+      <div class="lnk-actions">
+        <button type="submit" class="lnk-add">Add link</button>
+        <span class="lnk-keynote">Owner key remembered on this browser \u00b7 <button type="button" class="lnk-forget">Forget it</button></span>
+      </div>
+      <div class="lnk-setup">Saving isn\u2019t switched on yet. In Render \u2192 Environment, set <b>DEV_KEY</b> and <b>GITHUB_TOKEN</b>.</div>
+      <div class="lnk-msg"></div>
+    </form>
+    <div class="lnk-list"></div>
+  </div>`;
+
+  view.querySelector('.lnk-refresh').addEventListener('click', () => { playSound('tab'); linksLoad(); });
+  view.querySelector('.lnk-forget').addEventListener('click', () => {
+    try { localStorage.removeItem(LINKS_KEY_STORE); } catch (e) {}
+    renderLinks();
+    linksSay('Owner key forgotten on this browser.');
+    playSound('close');
+  });
+  const form = view.querySelector('.lnk-form');
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const nameIn = form.querySelector('.lnk-in-name');
+    const urlIn = form.querySelector('.lnk-in-url');
+    const descIn = form.querySelector('.lnk-in-desc');
+    const name = nameIn.value.trim();
+    let url = urlIn.value.trim();
+    // "example.com" means https://example.com
+    if (url && !/^[a-z][a-z0-9+.-]*:/i.test(url)) url = 'https://' + url;
+    const href = linksSafe(url);
+    if (!name) { linksSay('Give it a name.', 'bad'); nameIn.focus(); return; }
+    if (!href) { linksSay('That isn\u2019t a web address.', 'bad'); urlIn.focus(); return; }
+    const ok = await linksWrite({ op: 'add', name: name, url: href, desc: descIn.value.trim() }, 'Link added.');
+    if (ok) { nameIn.value = ''; urlIn.value = ''; descIn.value = ''; nameIn.focus(); }
+  });
+}
+
+function drawLinksList(view, dev) {
+  const list = view.querySelector('.lnk-list');
+  list.textContent = '';
+  if (linksData === null) {
+    const box = lnkEl('div', 'lnk-empty', linksError || 'Loading links\u2026');
+    if (linksError) {
+      const again = lnkEl('button', 'lnk-refresh lnk-retry', 'Try again');
+      again.type = 'button';
+      again.addEventListener('click', () => { playSound('tab'); linksLoad(); });
+      box.appendChild(document.createElement('br'));
+      box.appendChild(again);
+    }
+    list.appendChild(box);
+    return;
+  }
+  if (!linksData.length) {
+    list.appendChild(lnkEl('div', 'lnk-empty', dev ? 'No links yet \u2014 add the first one above.' : 'No links yet.'));
+    return;
+  }
+  for (const l of linksData) {
+    const href = linksSafe(l.url);
+    if (!href) continue;
+    let host = '';
+    try { host = new URL(href).hostname.replace(/^www\./, ''); } catch (e) {}
+    const row = lnkEl('div', 'lnk-row');
+    const a = lnkEl('a', 'lnk-main');
+    a.href = href;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.title = href;
+    const name = String(l.name || host || 'Link');
+    const info = lnkEl('span', 'lnk-info');
+    info.appendChild(lnkEl('span', 'lnk-name', name));
+    info.appendChild(lnkEl('span', 'lnk-sub', l.desc ? l.desc + ' \u00b7 ' + host : host));
+    a.append(lnkEl('span', 'lnk-ico', name.trim().charAt(0).toUpperCase() || '?'), info, lnkEl('span', 'lnk-go', '\u2197'));
+    a.addEventListener('click', () => playSound('open'));
+    row.appendChild(a);
+    if (dev) {
+      const del = lnkEl('button', 'lnk-del', '\u2715');
+      del.type = 'button';
+      del.title = 'Remove this link';
+      del.addEventListener('click', e => linksRemoveClick(e, del, l.id));
+      row.appendChild(del);
+    }
+    list.appendChild(row);
+  }
+}
+
+function renderLinks() {
+  const view = document.getElementById('links-view');
+  if (!view) return;
+  if (!view.dataset.built) { buildLinksShell(view); view.dataset.built = '1'; }
+  const dev = linksIsDev();
+  const haveKey = !!linksKey();
+  document.getElementById('header-label').textContent = 'Links';
+  document.getElementById('total-count').textContent = linksData ? linksData.length : '\u2014';
+  view.querySelector('.lnk-form').style.display = dev ? 'grid' : 'none';
+  view.querySelector('.lnk-key').style.display = haveKey ? 'none' : '';
+  view.querySelector('.lnk-keynote').style.display = haveKey ? '' : 'none';
+  view.querySelector('.lnk-setup').style.display = (dev && linksData !== null && !linksWritable) ? '' : 'none';
+  const st = view.querySelector('.lnk-status');
+  st.textContent = linksBusy ? 'Loading\u2026' : (linksError && linksData !== null ? 'Couldn\u2019t refresh \u2014 showing the last list.' : '');
+  st.className = 'lnk-status' + (linksError && linksData !== null ? ' bad' : '');
+  drawLinksList(view, dev);
+}
+
+// Turning dev mode on while the tab is open shows the form straight away.
+(function () {
+  const unlock = window.unlockDevMode;
+  if (typeof unlock !== 'function') return;
+  window.unlockDevMode = function () {
+    const r = unlock.apply(this, arguments);
+    if (activeTab === 'links') renderLinks();
+    return r;
+  };
+})();
 document.getElementById('enable-dev-btn').addEventListener('click', () => {
   document.getElementById('settings-modal').classList.remove('open');
   document.getElementById('dev-warn-password').value='';

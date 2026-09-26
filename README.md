@@ -315,6 +315,59 @@ key is refused; a spectator joining mid-match gets the cached start and then
 live frames while the guest keeps receiving its own; an injection reaches only
 the host; and a player leaving closes the match and releases its spectators.
 
+## Bee's Vault and its Links tab
+
+`vault.html` is served at `/vault`. It has nothing to do with the game and
+shares none of its state; it is here because this is the host already wired to
+the repo.
+
+Its **Links** tab shows the same list on every machine. Anyone can read it; in
+dev mode the tab grows an add form and a remove button on each row, and saving
+takes `DEV_KEY` -- the same key the co-op dev panel uses. `BEESCANFLY` opens the
+vault's dev mode, but it is written in the page source, so it only ever opens
+the form. The server decides who can change the list.
+
+**Where the list lives.** Not on this server: Render's free disk is wiped every
+time the service sleeps, which is every fifteen idle minutes. It is kept in this
+repo as `links.json` on its own branch, `vault-data`, so saving a link never
+redeploys the site -- and every add and remove is a commit, so there is a full
+history of the list for free.
+
+**To turn saving on**, the server needs a GitHub token as well as `DEV_KEY`:
+
+1. GitHub -> Settings -> Developer settings -> Fine-grained tokens -> Generate.
+2. Repository access: **Only select repositories** -> `ns2-coop`.
+3. Permissions -> Repository -> **Contents: Read and write**. Nothing else.
+4. Render -> your service -> Environment -> Add Environment Variable ->
+   `GITHUB_TOKEN`, paste the token. Render restarts the service.
+
+Reading needs no token at all -- the repo is public -- so the list shows for
+everyone even before this is done; the add form just says saving isn't on yet.
+The server's startup log prints which of the two keys is missing.
+
+The token can write to this repository's contents, which is why it should be
+scoped to this one repository and nothing more. The server only ever writes one
+path on one branch, fixed in the code; nothing a visitor sends chooses where.
+
+Details worth knowing:
+
+- **Edits made on GitHub are kept.** Every save re-reads the file first and
+  builds on it, and if something changes between the read and the write GitHub
+  refuses the stale write and the save is retried on top of the new version.
+- Reads are cached for five minutes, so a change made directly on GitHub shows
+  up within that; changes made through the vault show up at once.
+- Only `http://` and `https://` addresses are accepted, checked by the server
+  on the way in and by the page again on the way out, and every name is put on
+  the page as text, never as markup.
+- The owner key is remembered in that browser after the first successful save,
+  with a **Forget it** button beside the form. Worth pressing on a shared PC.
+
+Verified against a local stand-in for the GitHub API: missing branch created on
+first save, wrong or empty key refused, `DEV_KEY` unset refuses everything,
+`GITHUB_TOKEN` unset reads fine and refuses writes, an edit landing mid-save is
+retried and both survive, a restart reads the list back, a repeat remove makes
+no empty commit, oversized bodies are refused, and hostile names render inert.
+
 ## THE ABYSS, wave 30
 
 The TYRANT silenced **every tower on the board at once** there. Its pulse has a
