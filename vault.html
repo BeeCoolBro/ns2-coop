@@ -8815,7 +8815,7 @@ function stopRain() {
         ? 'I\u2019m Bee, and I\u2019ll show you around the vault. It only takes a minute \u2014 stick with me this first time.'
         : 'Welcome back! A few new things have landed in the vault. Here\u2019s a quick look round \u2014 skip whenever you like.',
       next: 'Let\u2019s go' },
-    { target: ['.sidebar', '.cat-section', '#main-content'],
+    { target: ['.sidebar', '.cat-section', '.game-card', '#main-content'],
       onEnter: () => { settingsOpen(false); goTab('games'); },
       title: 'Games',
       body: 'Hundreds of games, sorted into categories. Click a card to play, <strong>search</strong> or hit <strong>Random</strong>, and <strong>\u2605 star</strong> your favourites. In a game, the little bar in the corner ' + DOCK + ' invites a friend or closes it.' },
@@ -8938,7 +8938,19 @@ function stopRain() {
     return Math.round(r.left) + ',' + Math.round(r.top) + ',' + Math.round(r.width) + ',' + Math.round(r.height);
   }
   setInterval(() => {
-    if (!active || !target || busy) return;
+    if (!active || busy) return;
+    const step = STEPS[idx];
+    if (!target) {
+      // not there when the step began: keep looking, and settle onto it
+      const el = step && step.target ? find(step.target) : null;
+      if (el) {
+        target = el;
+        lastRect = rectKey(el);
+        place(el);
+        if (step.click && !guardFn) guard(step, el);
+      }
+      return;
+    }
     const k = rectKey(target);
     if (k !== lastRect) { lastRect = k; schedulePlace(); }
   }, 250);
