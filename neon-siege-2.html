@@ -258,6 +258,19 @@ svg.pi .f{fill:currentColor;stroke:currentColor;stroke-width:1.2}
   -webkit-text-fill-color:var(--m);margin-top:6px;filter:drop-shadow(0 0 14px rgba(255,45,155,.6))}
 #tagline{font-size:13px;color:var(--txm);letter-spacing:.34em;margin-top:12px;font-weight:600;text-transform:uppercase}
 #titleBox{max-width:740px}
+/* back to the BeeSide Studio's front page -- only on the title screen */
+#toBeeside{position:absolute;top:16px;left:16px;z-index:2;display:inline-flex;align-items:center;gap:8px;
+  padding:8px 14px 8px 11px;border-radius:999px;border:1px solid rgba(255,214,51,.34);
+  background:rgba(255,214,51,.06);color:var(--y);text-decoration:none;
+  font-family:var(--f1);font-size:10px;font-weight:700;letter-spacing:.18em;
+  box-shadow:0 0 16px rgba(255,214,51,.08);transition:.16s}
+#toBeeside[hidden]{display:none}
+#toBeeside svg{width:13px;height:13px;flex-shrink:0;transition:transform .16s}
+#toBeeside:hover,#toBeeside:focus-visible{background:rgba(255,214,51,.14);border-color:rgba(255,214,51,.7);
+  box-shadow:0 0 24px rgba(255,214,51,.24);transform:translateY(-1px)}
+#toBeeside:hover svg,#toBeeside:focus-visible svg{transform:translateX(-3px)}
+#toBeeside:focus-visible{outline:2px solid var(--y);outline-offset:3px}
+@media (max-width:640px){#ovTitle.hasHome #titleBox{padding-top:52px}}
 /* the account at a glance -- the title screen used to show flux and nothing else */
 #titleStats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:20px}
 .tStat{padding:10px 8px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.026)}
@@ -1921,6 +1934,7 @@ html.moOff #ovArmoury.blk.opening #bkBulb,
 
 <!-- ══════════ TITLE ══════════ -->
 <div class="ov on" id="ovTitle">
+  <a id="toBeeside" href="/" hidden title="Back to BeeSide Studio's, to switch to Bee's Vault"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H4M7.5 4 3.5 8l4 4"/></svg>BEESIDE</a>
   <div class="ovBox" id="titleBox">
     <div id="logo">NEON SIEGE<b>II</b></div>
     <div id="tagline">Defend the core · Hold the grid</div>
@@ -13151,6 +13165,15 @@ for (const [id, key] of [['segMotion', 'motion'], ['segFx', 'fx']]) {
   });
 }
 $('btnDisplay').onclick = () => { sfx('click'); applyDisplay(); $('ovDisp').classList.add('on'); };
+// Back to BeeSide Studio's. Only where the game is served at /neon-siege: the
+// front page is one step up from there, and nowhere else is it certain to be.
+(function () {
+  let home = false;
+  try { home = /^https?:$/.test(location.protocol) && location.pathname.replace(/\/+$/, '') === '/neon-siege'; } catch (e) {}
+  if (!home || HOST.on) return;
+  $('toBeeside').hidden = false;
+  $('ovTitle').classList.add('hasHome');
+})();
 $('btnDispClose').onclick = () => { sfx('click'); $('ovDisp').classList.remove('on'); };
 applyDisplay();
 

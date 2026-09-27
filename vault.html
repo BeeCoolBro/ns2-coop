@@ -899,6 +899,19 @@ animation: header-bee-spin 5s var(--ease-sine) infinite;
 100% { rotate: 720deg; scale: 1; }
 }
 .settings-btn:hover { border-color: var(--accent); color: var(--accent); box-shadow: var(--glow-strong); transform: rotate(45deg); }
+/* Back to the BeeSide Studio's front page, where the other site is */
+.beeside-btn {
+display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 12px 0 10px; flex-shrink: 0;
+background: var(--panel); border: 1px solid var(--border); border-radius: 2px;
+color: var(--muted); text-decoration: none;
+font-family: 'Orbitron', sans-serif; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+transition: color var(--dur-2) var(--ease-out), border-color var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-out);
+}
+.beeside-btn svg { width: 13px; height: 13px; flex-shrink: 0; transition: transform var(--dur-2) var(--ease-out); }
+.beeside-btn:hover, .beeside-btn:focus-visible { border-color: var(--accent); color: var(--accent); box-shadow: var(--glow-strong); transform: translateY(-1px); }
+.beeside-btn:hover svg, .beeside-btn:focus-visible svg { transform: translateX(-3px); }
+.beeside-btn:active { transform: translateY(0); }
+@media (max-width: 520px) { .beeside-btn span { display: none; } .beeside-btn { padding: 0 10px; } }
 .tabs {
 display: flex; gap: 0; border-bottom: 1px solid var(--border);
 background: var(--bg2); position: relative; z-index: 10; padding: 0 24px;
@@ -3726,6 +3739,7 @@ animation: launch-flash-anim 0.4s var(--ease-out);
 <strong id="total-count">0</strong>
 <span id="header-label">Games Available</span>
 </div>
+<a class="beeside-btn" id="beeside-home" href="/" title="Back to BeeSide Studio's, to switch to NEON SIEGE 2"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H4M7.5 4 3.5 8l4 4"/></svg><span>BeeSide</span></a>
 <img id="header-bee" alt="" aria-hidden="true" title="Q&A Room" draggable="false">
 <button class="settings-btn" id="settings-open-btn" title="Settings">
 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -8686,10 +8700,34 @@ function stopRain() {
 
 // ===== CLOSE TAB CONFIRMATION =====
 window.addEventListener('beforeunload', function(e) {
+  if (window.__bvLeaving) return;   // the BeeSide button: leaving on purpose
   e.preventDefault();
   e.returnValue = 'Are you sure you want to close this tab?';
   return e.returnValue;
 });
+
+// ===== BACK TO BEESIDE =====
+// The front page is the root of whatever server the vault came from. In blob
+// mode that is the address it had before it became a blob; opened from a file
+// on disk, it is the live site.
+(function () {
+  const a = document.getElementById('beeside-home');
+  if (!a) return;
+  let base = location.href;
+  if (location.protocol === 'blob:' && window.__ORIGINAL_URL__) base = window.__ORIGINAL_URL__;
+  let home = LINKS_HOME + '/';
+  try {
+    const u = new URL(base);
+    if (u.protocol === 'http:' || u.protocol === 'https:') home = u.origin + '/';
+  } catch (e) {}
+  a.href = home;
+  a.addEventListener('click', (e) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    window.__bvLeaving = true;
+  });
+  // coming back with Back restores this page as it was left
+  window.addEventListener('pageshow', () => { window.__bvLeaving = false; });
+})();
 
 // ===== COMPACT MODE =====
 let COMPACT_MODE = localStorage.getItem('compactMode') === 'true';

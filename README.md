@@ -654,7 +654,7 @@ priority, synergy, or how a real wave actually arrives.
 | | |
 |---|---|
 | `server.py` | matchmaking + serves the pages (standard library only) |
-| `index.html` | the BeeSide Studio's front page at `/`: a way into each site |
+| `index.html` | the BeeSide Studio's front page at `/`: a way into each site, and back -- the vault's header and the game's title screen each have a BeeSide button |
 | `neon-siege-2-coop.html` | the game, at `/neon-siege` |
 | `vault.html` | Bee's Vault, at `/vault` |
 | `chat_filter.py` | the vault chat's word filter |
