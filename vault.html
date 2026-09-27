@@ -1450,22 +1450,6 @@ body.theme-ultrabasic .chat-msg.owner .chat-text { color: var(--text); }
   .chat-wrap > .pl-box .pl-list { max-height: none; flex: 1; min-height: 0; }
 }
 
-/* the invite tab on the game window, under the close tab */
-#game-invite-tab {
-position:absolute;top:62px;right:0;z-index:2;display:flex;align-items:center;gap:8px;
-background:rgba(5,5,12,0.92);border:1px solid #3ddc84;border-right:none;
-border-radius:20px 0 0 20px;padding:7px 16px 7px 10px;cursor:pointer;
-color:#3ddc84;font-family:'Share Tech Mono',monospace;font-size:0.72rem;
-letter-spacing:0.12em;text-transform:uppercase;
-box-shadow:-2px 0 18px #3ddc8433,inset 0 0 12px #3ddc8411;
-transform:translateX(calc(100% - 18px));
-transition:transform var(--dur-3) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
-white-space:nowrap;user-select:none;pointer-events:all;
-}
-#game-invite-tab:hover, #game-invite-tab:focus-visible { transform:translateX(0);box-shadow:-4px 0 28px #3ddc8455,inset 0 0 16px #3ddc8422;outline:none; }
-#game-invite-tab:active { transform:translateX(2px); }
-.invite-tab-dot { width:7px;height:7px;border-radius:50%;background:#3ddc84;flex-shrink:0;box-shadow:0 0 6px #3ddc84; }
-
 /* invite and game-picker panels */
 .pl-pop-back { position: fixed; inset: 0; z-index: 100003; background: rgba(2, 2, 8, 0.62); display: flex; align-items: center;
   justify-content: center; padding: 16px; animation: bv-fade-in var(--dur-2) var(--ease-out); transition: opacity var(--dur-2) var(--ease-in); }
@@ -3750,21 +3734,55 @@ body.potato-mode { transition: none; }
 <style>
 #game-overlay { display:none;position:fixed;inset:0;z-index:99998;background:#000; }
 #game-overlay-frame { width:100%;height:100%;border:none;display:block; }
-#game-close-tab {
-position:absolute;top:18px;right:0;z-index:2;display:flex;align-items:center;gap:8px;
-background:rgba(5,5,12,0.92);border:1px solid #ff2d78;border-right:none;
-border-radius:20px 0 0 20px;padding:7px 16px 7px 10px;cursor:pointer;
-color:#ff2d78;font-family:'Share Tech Mono',monospace;font-size:0.72rem;
-letter-spacing:0.12em;text-transform:uppercase;
-box-shadow:-2px 0 18px #ff2d7833,inset 0 0 12px #ff2d7811;
-transform:translateX(calc(100% - 18px));
-transition:transform var(--dur-3) var(--ease-out), box-shadow var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out), border-color var(--dur-2) var(--ease-out);
-white-space:nowrap;user-select:none;pointer-events:all;
-}
-#game-close-tab:hover { transform:translateX(0);box-shadow:-4px 0 28px #ff2d7855,inset 0 0 16px #ff2d7822;color:#ff6fa8;border-color:#ff6fa8; }
-#game-close-tab:active { transform:translateX(2px); }
-.close-tab-dot { width:7px;height:7px;border-radius:50%;background:#ff2d78;flex-shrink:0;box-shadow:0 0 6px #ff2d78;transition:background var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out); }
-#game-close-tab:hover .close-tab-dot { background:#ff6fa8;box-shadow:0 0 10px #ff6fa8; }
+/* the game window's controls: one dock, top right */
+#game-dock { position:absolute; top:14px; right:14px; z-index:2; display:flex; align-items:center; gap:4px; padding:4px;
+  background:rgba(8,8,16,0.84); border:1px solid rgba(255,255,255,0.1); border-radius:999px; user-select:none;
+  box-shadow:0 8px 26px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+  opacity:0.72; font-family:'Share Tech Mono',monospace;
+  transition:opacity var(--dur-3) var(--ease-out), border-color var(--dur-3) var(--ease-out), box-shadow var(--dur-3) var(--ease-out);
+  animation:gd-in var(--dur-4) var(--ease-spring) 0.15s backwards; }
+@keyframes gd-in { from { opacity:0; transform:translateY(-10px) scale(0.96); } }
+#game-dock:hover, #game-dock:focus-within, #game-dock.peek { opacity:1;
+  border-color:color-mix(in srgb, var(--accent) 34%, rgba(255,255,255,0.12));
+  box-shadow:0 10px 32px rgba(0,0,0,0.55), 0 0 22px color-mix(in srgb, var(--accent) 16%, transparent), inset 0 1px 0 rgba(255,255,255,0.08); }
+.gd-title { display:flex; align-items:center; gap:8px; max-width:0; padding:0; overflow:hidden; opacity:0; white-space:nowrap;
+  color:#e8e8f6; font-size:0.72rem; letter-spacing:0.05em;
+  transition:max-width var(--dur-4) var(--ease-out), padding var(--dur-4) var(--ease-out), opacity var(--dur-3) var(--ease-out); }
+.gd-title span { overflow:hidden; text-overflow:ellipsis; }
+.gd-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; background:#3ddc84; box-shadow:0 0 8px #3ddc84; }
+#game-dock.live .gd-dot { background:#ff3b5c; box-shadow:0 0 8px #ff3b5c; animation:pl-live 1.6s var(--ease-in-out) infinite; }
+.gd-sep { width:1px; height:18px; flex-shrink:0; background:rgba(255,255,255,0.12); opacity:0; margin:0 -2px;
+  transition:opacity var(--dur-3) var(--ease-out), margin var(--dur-4) var(--ease-out); }
+.gd-btn { position:relative; display:flex; align-items:center; justify-content:center; width:34px; height:34px; padding:0; flex-shrink:0;
+  border-radius:50%; border:1px solid transparent; background:rgba(255,255,255,0.055); color:rgba(236,236,250,0.86); cursor:pointer;
+  transition:background var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out), border-color var(--dur-2) var(--ease-out), transform var(--dur-1) var(--ease-out); }
+.gd-btn svg { width:16px; height:16px; flex-shrink:0; }
+.gd-btn:active { transform:scale(0.94); }
+.gd-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+/* labels are captions under their buttons, so nothing moves under the pointer */
+.gd-label { position:absolute; top:calc(100% + 9px); transform:translateY(-4px); opacity:0; pointer-events:none;
+  white-space:nowrap; padding:4px 8px; border-radius:6px; background:rgba(8,8,16,0.94); border:1px solid rgba(255,255,255,0.1);
+  box-shadow:0 6px 16px rgba(0,0,0,0.45); color:#e8e8f6; font-family:'Orbitron',sans-serif; font-size:0.5rem;
+  letter-spacing:0.16em; text-transform:uppercase;
+  transition:opacity var(--dur-2) var(--ease-out), transform var(--dur-3) var(--ease-out); }
+/* the two hang away from each other, so both can show at once */
+.gd-invite .gd-label { right:0; }
+.gd-close .gd-label { left:0; }
+.gd-btn:hover .gd-label, .gd-btn:focus-visible .gd-label, #game-dock.peek .gd-label { opacity:1; transform:translateY(0); }
+.gd-invite:hover .gd-label { color:var(--accent); }
+.gd-close:hover .gd-label { color:#ff6b86; }
+#game-dock:hover .gd-title, #game-dock:focus-within .gd-title, #game-dock.peek .gd-title { max-width:230px; padding:0 6px 0 10px; opacity:1; }
+#game-dock:hover .gd-sep, #game-dock:focus-within .gd-sep, #game-dock.peek .gd-sep { opacity:1; margin:0 4px; }
+.gd-invite:hover { background:color-mix(in srgb, var(--accent) 18%, transparent); border-color:color-mix(in srgb, var(--accent) 55%, transparent); color:var(--accent); }
+.gd-close:hover { background:rgba(255,77,109,0.16); border-color:rgba(255,77,109,0.6); color:#ff6b86; }
+.gd-count { position:absolute; top:-5px; right:-5px; min-width:17px; height:17px; padding:0 4px; border-radius:9px;
+  background:var(--accent); color:#05050a; font:700 0.58rem/17px 'Share Tech Mono',monospace; text-align:center;
+  box-shadow:0 0 0 2px rgba(8,8,16,0.95), 0 0 10px color-mix(in srgb, var(--accent) 50%, transparent);
+  animation:gd-pop var(--dur-3) var(--ease-spring); }
+.gd-count[hidden] { display:none; }
+@keyframes gd-pop { from { transform:scale(0.4); opacity:0; } }
+@media (hover: none) { #game-dock { opacity:0.92; } }
+@media (max-width: 520px) { #game-dock { top:10px; right:10px; } .gd-title { display:none; } .gd-sep { display:none; } }
 #launch-overlay {
 position: fixed; inset: 0; z-index: 99999;
 background: radial-gradient(circle at center, var(--bg2) 0%, var(--bg) 70%, #000 100%);
@@ -3891,13 +3909,18 @@ animation: launch-flash-anim 0.4s var(--ease-out);
 </div>
 <div id="game-overlay">
 <iframe id="game-overlay-frame" allowfullscreen></iframe>
-<div id="game-close-tab" onclick="closeGameOverlay()" title="Close game">
-<span class="close-tab-dot"></span>
-<span><svg class="bv-icon" aria-hidden="true"><use href="#bv-close"/></svg> close</span>
-</div>
-<div id="game-invite-tab" role="button" tabindex="0" title="Invite someone to play this with you">
-<span class="invite-tab-dot"></span>
-<span id="game-invite-label">+ invite</span>
+<div id="game-dock" role="toolbar" aria-label="Game controls">
+<span class="gd-title"><i class="gd-dot" aria-hidden="true"></i><span id="gd-name">Playing</span></span>
+<span class="gd-sep" aria-hidden="true"></span>
+<button type="button" class="gd-btn gd-invite" id="game-invite-tab" title="Invite someone to play this with you" aria-label="Invite someone to play this with you">
+<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.6"/><path d="M2.8 20c.7-3.6 3.2-5.6 6.2-5.6s5.5 2 6.2 5.6"/><path d="M19 8v6M16 11h6"/></svg>
+<span class="gd-label">Invite</span>
+<b class="gd-count" id="game-invite-count" hidden></b>
+</button>
+<button type="button" class="gd-btn gd-close" id="game-close-tab" onclick="closeGameOverlay()" title="Close game" aria-label="Close game">
+<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>
+<span class="gd-label">Close</span>
+</button>
 </div>
 </div>
 <!-- request cards sit beside the game window, not inside the page, so they show over a game -->
@@ -7814,6 +7837,7 @@ function plSendStatus() {
     const was = open;
     open = now;
     PL.game = g;
+    if (g) plDockPeek(g.name, !was);
     plSendStatus();
     plDraw();
     if (!now) plStopSharing('closed');
@@ -7823,10 +7847,7 @@ function plSendStatus() {
   const frame = document.getElementById('game-overlay-frame');
   if (frame) new MutationObserver(sync).observe(frame, { attributes: true, attributeFilter: ['src'] });
   const tab = document.getElementById('game-invite-tab');
-  if (tab) {
-    tab.addEventListener('click', plOpenInvite);
-    tab.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); plOpenInvite(); } });
-  }
+  if (tab) tab.addEventListener('click', plOpenInvite);
 })();
 
 // ── the list of people ──
@@ -7888,10 +7909,11 @@ function plDraw() {
     v.querySelector('.pl-count').textContent = CH.connected && PL.people.length ? PL.people.length : '';
   }
   if (PL.pop && PL.pop.mode === 'invite') plDrawInvite();
-  const lbl = document.getElementById('game-invite-label');
-  if (lbl) {
-    const n = plOthers().length;
-    lbl.textContent = '+ invite' + (CH.connected && n ? ' (' + n + ')' : '');
+  const cnt = document.getElementById('game-invite-count');
+  if (cnt) {
+    const n = CH.connected ? plOthers().length : 0;
+    if (cnt.textContent !== String(n)) cnt.textContent = n;
+    cnt.hidden = !n;
   }
 }
 
@@ -8310,7 +8332,21 @@ function plLostSocket() {
   plDraw();
 }
 
+// The game dock: its title is the game, and it opens out for a moment when a
+// game starts so it is noticed before it settles small.
+function plDockPeek(name, open) {
+  const dock = document.getElementById('game-dock');
+  const nm = document.getElementById('gd-name');
+  if (nm) nm.textContent = name || 'Playing';
+  if (!dock || !open) return;
+  dock.classList.add('peek');
+  clearTimeout(dock._peek);
+  dock._peek = setTimeout(() => dock.classList.remove('peek'), 2800);
+}
+
 function plLiveBar() {
+  const dock = document.getElementById('game-dock');
+  if (dock) dock.classList.toggle('live', !!PL.stream);
   let bar = document.getElementById('pl-live');
   if (!PL.stream) { if (bar) bar.hidden = true; return; }
   if (!bar) {
