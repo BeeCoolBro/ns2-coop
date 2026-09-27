@@ -364,6 +364,19 @@ Details worth knowing:
 - The owner key is remembered in that browser after the first successful save,
   with a **Forget it** button beside the form. Worth pressing on a shared PC.
 
+**Suggestions.** Anyone can press **+ Suggest a link** and send a name, an
+address and a line about it. It waits in `links.json` under `"suggested"`,
+and only a request carrying `DEV_KEY` is shown the waiting ones
+(`GET /api/links` with an `X-Dev-Key` header). In dev mode they sit above the
+list: fix the name or description, open the address to check it, then
+**Accept** (it goes on the list, one commit) or **Deny**; **Deny all** clears
+the lot. The Links tab shows a count, and a new one pops up live while the
+owner's vault is open. Adding an address directly also clears its suggestion.
+`POST /api/suggest` needs no key, so it is rationed before GitHub is touched:
+one per address every 45 s, six an hour, forty an hour from everyone, forty
+waiting at most. Names go through the chat filter. The repo is public, so a
+suggestion is too -- the form says so and asks for nothing personal.
+
 Verified against a local stand-in for the GitHub API: missing branch created on
 first save, wrong or empty key refused, `DEV_KEY` unset refuses everything,
 `GITHUB_TOKEN` unset reads fine and refuses writes, an edit landing mid-save is
@@ -373,8 +386,8 @@ no empty commit, oversized bodies are refused, and hostile names render inert.
 ## Lyrics in the vault's music player
 
 While a song with lyrics plays, each line pops up at its moment as a
-**c00lgui** -- a black box with a red outline, a red title bar and white text,
-somewhere new on screen each time. The button with the little screen in the
+**c00lgui** -- a black box with a thick red border and white text, growing out
+from its centre somewhere new on screen each time. The button with the little screen in the
 player turns them off (remembered per device).
 
 **Adding them (dev mode):** play the song, open the player, press the pencil.
@@ -434,8 +447,12 @@ message. With the browser tab in the background the page title shows a count,
 and desktop alerts can be switched on from the chat's bell (secure pages only).
 
 **Moderation:** in the vault's dev mode each message gets Delete and Mute (30
-minutes), and the header gets Clear chat. All three are checked here against
-`DEV_KEY`, the same key the Links tab uses. The owner's own messages carry an
+minutes), and the header gets **Muted** and Clear chat. **Muted** lists who is
+muted -- the name and the line they were muted for, and the minutes left -- with
+**Unmute** on each; the person is told they can chat again. A mute goes by
+connection, so it covers everyone on that network, which is what Unmute is
+for. All of it is checked here against `DEV_KEY`, the same key the Links tab
+uses. The owner's own messages carry an
 OWNER badge, and only the owner can use a staff-sounding name.
 
 **Privacy:** history is kept in memory only -- the last 80 messages -- and is

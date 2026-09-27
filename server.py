@@ -81,8 +81,23 @@ LINKS_PATH = 'links.json'
 LINKS_TTL = 300                 # seconds a read is trusted before asking GitHub again
 LINKS_MAX = 300
 LINKS_BODY_MAX = 16384
-LINKS = {'list': [], 'sha': None, 'at': 0.0, 'ok': False}
+LINKS = {'list': [], 'sugg': [], 'sha': None, 'at': 0.0, 'ok': False}
 LINKS_LOCK = threading.Lock()   # guards LINKS
+
+# ── link suggestions ──────────────────────────────────────────────
+# Anyone may suggest a link. It waits in links.json, beside the list, until the
+# owner accepts or denies it in the vault; only a request with DEV_KEY is shown
+# the waiting ones. Every suggestion is a commit, so they are rationed per
+# address and overall. The repo is public, so the form asks for nothing but
+# the link and says where it is kept.
+SUGG_MAX = 40                   # suggestions waiting at once
+SUGG_GAP = 45                   # seconds between two from one address
+SUGG_PER_HOUR = 6               # from one address in an hour
+SUGG_ALL_PER_HOUR = 40          # from everyone in an hour
+SUGG_BODY_MAX = 4096
+SUGG_LOG = {}                   # address hash -> deque of when it suggested
+SUGG_ALL = collections.deque()  # when anyone suggested
+SUGG_LOCK = threading.Lock()
 
 # ── vault lyrics ──────────────────────────────────────────────────
 # Timed lyrics for the music player, typed in by the owner in the vault's
@@ -355,6 +370,15 @@ def clean_link(x):
             'desc': tidy(x.get('desc'), 140), 'added': added}
 
 
+def clean_sugg(x):
+    """A waiting suggestion: a link, plus the vault name it was sent under."""
+    item = clean_link(x)
+    if not item:
+        return None
+    item['from'] = tidy(x.get('from'), CHAT_NAME_LEN)
+    return item
+
+
 def new_link_id():
     return base64.urlsafe_b64encode(os.urandom(6)).decode('ascii')
 
@@ -378,13 +402,15 @@ def links_load(force=False):
             return False
         raw = doc.get('links', []) if isinstance(doc, dict) else doc
         items = [c for c in (clean_link(x) for x in (raw if isinstance(raw, list) else [])) if c]
+        raw = doc.get('suggested', []) if isinstance(doc, dict) else []
+        sugg = [c for c in (clean_sugg(x) for x in (raw if isinstance(raw, list) else [])) if c][:SUGG_MAX]
         with LINKS_LOCK:
-            LINKS.update(list=items, sha=js.get('sha'), at=time.time(), ok=True)
+            LINKS.update(list=items, sugg=sugg, sha=js.get('sha'), at=time.time(), ok=True)
         return True
     if st == 404:
         # no branch or no file yet: that is an empty list, not a failure
         with LINKS_LOCK:
-            LINKS.update(list=[], sha=None, at=time.time(), ok=True)
+            LINKS.update(list=[], sugg=[], sha=None, at=time.time(), ok=True)
         return True
     return False
 
@@ -404,9 +430,10 @@ def make_branch():
     return st in (201, 422)         # 422: it appeared in the meantime, which is fine
 
 
-def links_commit(items, sha, message):
-    """Write the list as one commit. ('ok'|'conflict'|'fail', message)."""
-    doc = json.dumps({'v': 1, 'links': items}, indent=2, ensure_ascii=False) + '\n'
+def links_commit(items, sugg, sha, message):
+    """Write the list and the waiting suggestions as one commit.
+    ('ok'|'conflict'|'fail', message)."""
+    doc = json.dumps({'v': 1, 'links': items, 'suggested': sugg}, indent=2, ensure_ascii=False) + '\n'
     body = {'message': message[:120], 'branch': LINKS_BRANCH,
             'content': base64.b64encode(doc.encode('utf-8')).decode('ascii')}
     if sha:
@@ -417,7 +444,7 @@ def links_commit(items, sha, message):
         if st in (200, 201):
             new_sha = ((js or {}).get('content') or {}).get('sha')
             with LINKS_LOCK:
-                LINKS.update(list=items, sha=new_sha, at=time.time(), ok=True)
+                LINKS.update(list=items, sugg=sugg, sha=new_sha, at=time.time(), ok=True)
             return 'ok', ''
         if st in (404, 422) and 'branch' in said and first:
             if make_branch():
@@ -434,26 +461,29 @@ def links_commit(items, sha, message):
 
 
 def links_mutate(change):
-    """Apply change(items) -> (new_items, message) | None on top of the newest
-    list and commit it. Re-reads first, so a save made on another machine a
-    second ago is built on rather than overwritten."""
+    """Apply change(items, sugg) -> (new_items, new_sugg, message) | None on top
+    of the newest list and commit it. Re-reads first, so a save made on another
+    machine a second ago is built on rather than overwritten."""
     with LINKS_WRITE:
         for _ in range(3):
             if not links_load(force=True):
                 return 502, {'ok': False, 'error': "Couldn't read the current list from GitHub. Try again."}
             with LINKS_LOCK:
                 items = [dict(x) for x in LINKS['list']]
+                sugg = [dict(x) for x in LINKS['sugg']]
                 sha = LINKS['sha']
             try:
-                result = change(items)
+                result = change(items, sugg)
             except ValueError as e:
                 return 400, {'ok': False, 'error': str(e)}
             if result is None:          # nothing to do: say so without a commit
-                return 200, {'ok': True, 'links': items}
-            new_items, message = result
-            st, err = links_commit(new_items, sha, message)
+                return 200, {'ok': True, 'links': items, 'suggested': sugg}
+            new_items, new_sugg, message = result
+            st, err = links_commit(new_items, new_sugg, sha, message)
             if st == 'ok':
-                return 200, {'ok': True, 'links': new_items}
+                if len(new_sugg) != len(sugg):
+                    sugg_notify(len(new_sugg))
+                return 200, {'ok': True, 'links': new_items, 'suggested': new_sugg}
             if st == 'fail':
                 return 502, {'ok': False, 'error': err}
         return 409, {'ok': False, 'error': 'The list kept changing underneath the save. Try again.'}
@@ -615,25 +645,136 @@ def links_post(key, raw):
         if not item:
             return 400, {'ok': False, 'error': 'A link needs a name and an http:// or https:// address.'}
 
-        def add(items):
+        def add(items, sugg):
             if any(x['url'] == item['url'] for x in items):
                 raise ValueError('That address is already on the list.')
             if len(items) >= LINKS_MAX:
                 raise ValueError('The list is full (%d links).' % LINKS_MAX)
-            return items + [item], 'vault links: add %s' % item['name']
+            # adding what someone suggested answers the suggestion too
+            return (items + [item], [x for x in sugg if x['url'] != item['url']],
+                    'vault links: add %s' % item['name'])
         return links_mutate(add)
 
     if op == 'remove':
         lid = str(msg.get('id') or '')
 
-        def remove(items):
+        def remove(items, sugg):
             gone = [x for x in items if x['id'] == lid]
             if not gone:
                 return None             # already removed, maybe from another machine
-            return [x for x in items if x['id'] != lid], 'vault links: remove %s' % gone[0]['name']
+            return [x for x in items if x['id'] != lid], sugg, 'vault links: remove %s' % gone[0]['name']
         return links_mutate(remove)
 
+    if op == 'accept':
+        sid = str(msg.get('id') or '')
+        # the owner may tidy the name and description on the way in
+        name = tidy(msg.get('name'), 60)
+        desc = tidy(msg.get('desc'), 140) if 'desc' in msg else None
+
+        def accept(items, sugg):
+            hit = [x for x in sugg if x['id'] == sid]
+            if not hit:
+                raise ValueError('That suggestion isn\'t waiting any more.')
+            s = hit[0]
+            rest = [x for x in sugg if x['id'] != sid]
+            if any(x['url'] == s['url'] for x in items):
+                # it went on the list some other way: just clear it
+                return items, rest, 'vault links: %s was already listed' % s['name']
+            if len(items) >= LINKS_MAX:
+                raise ValueError('The list is full (%d links).' % LINKS_MAX)
+            item = clean_link({'id': s['id'], 'name': name or s['name'], 'url': s['url'],
+                               'desc': s['desc'] if desc is None else desc, 'added': int(time.time())})
+            return items + [item], rest, 'vault links: accept %s' % item['name']
+        return links_mutate(accept)
+
+    if op == 'deny':
+        sid = str(msg.get('id') or '')
+
+        def deny(items, sugg):
+            hit = [x for x in sugg if x['id'] == sid]
+            if not hit:
+                return None             # already answered, maybe from another machine
+            return items, [x for x in sugg if x['id'] != sid], 'vault links: deny %s' % hit[0]['name']
+        return links_mutate(deny)
+
+    if op == 'deny-all':
+        def deny_all(items, sugg):
+            if not sugg:
+                return None
+            return items, [], 'vault links: deny %d suggestion%s' % (len(sugg), '' if len(sugg) == 1 else 's')
+        return links_mutate(deny_all)
+
     return 400, {'ok': False, 'error': 'Unknown request.'}
+
+
+def suggest_post(ip, raw):
+    """Anyone suggesting a link. Returns (http status, reply); the reply never
+    carries the list or anyone else's suggestions."""
+    try:
+        msg = json.loads(raw.decode('utf-8'))
+    except Exception:
+        return 400, {'ok': False, 'error': 'That request was not JSON.'}
+    if not isinstance(msg, dict):
+        return 400, {'ok': False, 'error': 'That request was not an object.'}
+    if not GITHUB_TOKEN:
+        return 503, {'ok': False, 'error': 'Suggestions aren\'t switched on yet.'}
+    name, desc, frm = tidy(msg.get('name'), 60), tidy(msg.get('desc'), 140), tidy(msg.get('from'), CHAT_NAME_LEN)
+    if chat_filter is not None:
+        if name and chat_filter.clean(name)[1]:
+            return 400, {'ok': False, 'error': 'Keep the name clean.'}
+        desc = chat_filter.clean(desc)[0] if desc else ''
+        if frm and chat_filter.clean(frm)[1]:
+            frm = ''
+    if CHAT_RESERVED.search(frm):
+        frm = ''
+    now = time.time()
+    item = clean_sugg({'name': name, 'url': msg.get('url'), 'desc': desc, 'from': frm, 'added': int(now)})
+    if not item:
+        return 400, {'ok': False, 'error': 'A link needs a name and an http:// or https:// address.'}
+
+    # rationed before GitHub is touched at all
+    with SUGG_LOCK:
+        for q in list(SUGG_LOG.values()) + [SUGG_ALL]:
+            while q and now - q[0] > 3600:
+                q.popleft()
+        for k in [k for k, q in SUGG_LOG.items() if not q]:
+            del SUGG_LOG[k]
+        mine = SUGG_LOG.get(ip) or collections.deque()
+        if mine and now - mine[-1] < SUGG_GAP:
+            return 429, {'ok': False, 'error': 'Give it a minute before suggesting another.'}
+        if len(mine) >= SUGG_PER_HOUR:
+            return 429, {'ok': False, 'error': 'That\'s plenty for now. Try again in a while.'}
+        if len(SUGG_ALL) >= SUGG_ALL_PER_HOUR:
+            return 429, {'ok': False, 'error': 'Lots of suggestions came in just now. Try again later.'}
+        mine.append(now)
+        SUGG_LOG[ip] = mine
+        SUGG_ALL.append(now)
+
+    def add(items, sugg):
+        if any(x['url'] == item['url'] for x in items):
+            raise ValueError('That one is already on the list.')
+        if any(x['url'] == item['url'] for x in sugg):
+            raise ValueError('Someone already suggested that one. It\'s waiting for the owner.')
+        if len(sugg) >= SUGG_MAX:
+            raise ValueError('Lots of suggestions are waiting already. Try again later.')
+        return items, sugg + [item], 'vault links: suggested %s' % item['name']
+    code, reply = links_mutate(add)
+    if code == 200 and reply.get('ok'):
+        return 200, {'ok': True}
+    # one that did not go through does not use up their allowance
+    with SUGG_LOCK:
+        for q in (SUGG_LOG.get(ip), SUGG_ALL):
+            if q and now in q:
+                q.remove(now)
+    return code, {'ok': False, 'error': reply.get('error') or 'Couldn\'t send that. Try again.'}
+
+
+def sugg_notify(n):
+    """Tell the owner's open vaults how many suggestions are waiting."""
+    with CHAT_LOCK:
+        owners = [p for p in CHAT['peers'] if p.owner]
+    for p in owners:
+        p.send({'t': 'sugg', 'n': n})
 
 
 class ChatPeer(object):
@@ -659,6 +800,7 @@ class ChatPeer(object):
         self.rq_log = collections.deque()
         self.rq_last = {}               # target id -> when it was last asked
         self.rtc_log = collections.deque()
+        self.owner = False              # said the owner key; told about suggestions
 
     def shown(self):
         return self.name or self.guest
@@ -779,9 +921,7 @@ def chat_request(peer, msg):
     if kind not in ('watch', 'play'):
         return
     now = time.time()
-    with CHAT_LOCK:
-        until = CHAT['muted'].get(peer.ip, 0)
-    if until > now:
+    if chat_muted(peer.ip, now) > 0:
         peer.send({'t': 'err', 'code': 'muted', 'msg': 'You are muted, so you can\'t send requests right now.'})
         return
     target = chat_find(str(msg.get('to') or ''))
@@ -950,16 +1090,34 @@ def chat_rename(peer, msg):
     vault's name changes. Filtered like a message; answered with the name
     actually shown, which may be a guest name."""
     now = time.time()
+    peer.owner = owner_ok(msg.get('key'))
     if peer.name is not None and now - peer.named_at < CHAT_RENAME_GAP:
         peer.send({'t': 'you', 'name': peer.shown(), 'id': peer.id})
         return
     wanted = tidy(msg.get('name'), CHAT_NAME_LEN)
-    name = chat_name(wanted, peer, owner_ok(msg.get('key')))
+    name = chat_name(wanted, peer, peer.owner)
     changed = name != peer.shown() or peer.name is None
     peer.name, peer.named_at = name, now
     peer.send({'t': 'you', 'name': name, 'asked': wanted, 'id': peer.id})
     if changed:
         chat_roster()
+
+
+def chat_muted(ip, now):
+    """Seconds this address stays muted for; 0 when it is not."""
+    with CHAT_LOCK:
+        m = CHAT['muted'].get(ip)
+    return max(0.0, m['until'] - now) if m else 0.0
+
+
+def chat_mute_rows(now):
+    """The mutes still running, newest first, for the owner's list. Addresses
+    stay on the server; the owner sees a name, the line, and an id."""
+    with CHAT_LOCK:
+        CHAT['muted'] = {ip: m for ip, m in CHAT['muted'].items() if m['until'] > now}
+        rows = sorted(CHAT['muted'].values(), key=lambda m: -m['until'])
+    return [{'id': m['id'], 'name': m['name'], 'text': m['text'],
+             'mins': max(1, int(-(-(m['until'] - now) // 60)))} for m in rows]
 
 
 def chat_mentions(text, names):
@@ -984,10 +1142,9 @@ def chat_say(peer, msg):
     if not text:
         return
     now = time.time()
-    with CHAT_LOCK:
-        until = CHAT['muted'].get(peer.ip, 0)
-    if until > now:
-        mins = int((until - now) // 60) + 1
+    left = chat_muted(peer.ip, now)
+    if left > 0:
+        mins = max(1, int(-(-left // 60)))
         peer.send({'t': 'err', 'code': 'muted', 'msg': 'You are muted for %d more minute%s.' % (mins, '' if mins == 1 else 's')})
         return
     if not peer.allow():
@@ -1027,8 +1184,10 @@ def chat_mod(peer, msg):
     if not owner_ok(msg.get('key')):
         peer.send({'t': 'err', 'code': 'key', 'msg': 'That owner key was refused.'})
         return
+    peer.owner = True
     op, mid = msg.get('op'), msg.get('id')
     now = time.time()
+    extra = {}
     if op == 'clear':
         with CHAT_LOCK:
             CHAT['history'].clear()
@@ -1040,14 +1199,33 @@ def chat_mod(peer, msg):
                 CHAT['history'] = collections.deque(
                     [(m, ip) for (m, ip) in CHAT['history'] if m['id'] != mid], maxlen=CHAT_HISTORY)
                 if op == 'mute':
-                    CHAT['muted'][hit[0][1]] = now + CHAT_MUTE_SECS
-            # forget mutes that have run out
-            CHAT['muted'] = {ip: t for ip, t in CHAT['muted'].items() if t > now}
+                    m, ip = hit[0]
+                    was = CHAT['muted'].get(ip)
+                    # muting again keeps the id, so a list already on screen still works
+                    CHAT['muted'][ip] = {'until': now + CHAT_MUTE_SECS, 'name': m['name'], 'text': m['text'][:80],
+                                         'id': was['id'] if was else os.urandom(4).hex()}
         if hit:
             chat_broadcast({'t': 'del', 'id': mid})
+    elif op == 'muted':
+        peer.send({'t': 'muted', 'rows': chat_mute_rows(now)})
+        return
+    elif op == 'unmute':
+        with CHAT_LOCK:
+            hit = [(ip, m) for ip, m in CHAT['muted'].items() if m['id'] == mid]
+            if hit:
+                del CHAT['muted'][hit[0][0]]
+                freed = [p for p in CHAT['peers'] if p.ip == hit[0][0]]
+            else:
+                freed = []
+        for p in freed:
+            p.send({'t': 'unmuted'})
+        if hit:
+            extra['name'] = hit[0][1]['name']
     else:
         return
-    peer.send({'t': 'mod-ok', 'op': op})
+    peer.send(dict({'t': 'mod-ok', 'op': op}, **extra))
+    if op in ('mute', 'unmute'):
+        peer.send({'t': 'muted', 'rows': chat_mute_rows(now)})
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -1108,10 +1286,17 @@ class Handler(SimpleHTTPRequestHandler):
             # with nothing in hand it says so, rather than claiming there are none
             fresh = links_load()
             with LINKS_LOCK:
-                ok, items = LINKS['ok'], list(LINKS['list'])
+                ok, items, sugg = LINKS['ok'], list(LINKS['list']), list(LINKS['sugg'])
             if not fresh and not ok:
                 return self.send_json(502, {'links': [], 'error': "Couldn't read the links from GitHub."})
-            return self.send_json(200, {'links': items, 'writable': bool(DEV_KEY and GITHUB_TOKEN)})
+            reply = {'links': items, 'writable': bool(DEV_KEY and GITHUB_TOKEN)}
+            # the waiting suggestions go only to a request with the owner key
+            key = self.headers.get('X-Dev-Key')
+            if key is not None:
+                reply['owner'] = owner_ok(key)
+                if reply['owner']:
+                    reply['suggested'] = sugg
+            return self.send_json(200, reply)
         if route in ('/healthz', '/stats'):
             with LOCK:
                 body = json.dumps({'ok': True, 'waiting': len(QUEUE),
@@ -1153,7 +1338,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.revalidate = False
-        if self.path.split('?')[0] in ('/api/links', '/api/lyrics'):
+        if self.path.split('?')[0] in ('/api/links', '/api/lyrics', '/api/suggest'):
             self.send_response(204)
             self.cors()
             self.send_header('Content-Length', '0')
@@ -1166,10 +1351,10 @@ class Handler(SimpleHTTPRequestHandler):
     def do_POST(self):
         self.revalidate = False
         route = self.path.split('?')[0]
-        if route not in ('/api/links', '/api/lyrics'):
+        if route not in ('/api/links', '/api/lyrics', '/api/suggest'):
             self.close_connection = True
             return self.send_json(404, {'ok': False, 'error': 'Not found.'})
-        cap = LYRICS_BODY_MAX if route == '/api/lyrics' else LINKS_BODY_MAX
+        cap = {'/api/lyrics': LYRICS_BODY_MAX, '/api/suggest': SUGG_BODY_MAX}.get(route, LINKS_BODY_MAX)
         try:
             n = int(self.headers.get('Content-Length') or 0)
         except ValueError:
@@ -1179,6 +1364,9 @@ class Handler(SimpleHTTPRequestHandler):
             self.close_connection = True
             return self.send_json(413 if n > cap else 400,
                                   {'ok': False, 'error': 'Bad request size.'})
+        if route == '/api/suggest':
+            code, reply = suggest_post(self.client_ip(), self.rfile.read(n))
+            return self.send_json(code, reply)
         handler = lyrics_post if route == '/api/lyrics' else links_post
         code, reply = handler(self.headers.get('X-Dev-Key') or '', self.rfile.read(n))
         return self.send_json(code, reply)

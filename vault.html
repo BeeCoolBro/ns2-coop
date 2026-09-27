@@ -1285,6 +1285,58 @@ transform: translateX(4px);
 .lnk-del:hover, .lnk-del.arm { color: #ff5d73; }
 .lnk-empty { padding: 40px 20px; text-align: center; color: var(--muted); font-size: 0.8rem; border: 1px dashed var(--border); font-family: 'Share Tech Mono', monospace; }
 .lnk-retry { margin-top: 12px; }
+/* ── suggesting a link ── */
+.lnk-head-btns { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.lnk-head-btns .lnk-refresh { margin-left: 0; }
+.lnk-suggest-btn { background: none; border: 1px solid color-mix(in srgb, var(--accent2) 55%, var(--border)); color: var(--accent2);
+  font-family: 'Share Tech Mono', monospace; font-size: 0.68rem; padding: 5px 10px; cursor: pointer; transition: all var(--dur-2) var(--ease-out); }
+.lnk-suggest-btn:hover, .lnk-suggest-btn.on { background: color-mix(in srgb, var(--accent2) 14%, transparent); border-color: var(--accent2);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent2) 30%, transparent); }
+.lnk-sform { display: none; gap: 8px; margin-bottom: 18px; padding: 14px 16px; background: var(--card); border: 1px solid var(--border); border-left: 2px solid var(--accent2); }
+.lnk-sform.open { display: grid; animation: bv-row-in 300ms var(--ease-out) backwards; }
+.lnk-sform .lnk-form-title { color: var(--accent2); }
+.lnk-sform input, .lnk-scard input { width: 100%; box-sizing: border-box; background: var(--bg2); border: 1px solid var(--border); color: var(--text);
+  padding: 9px 11px; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; border-radius: 2px; }
+.lnk-sform input:focus, .lnk-scard input:focus { outline: none; border-color: var(--accent2); box-shadow: 0 0 10px color-mix(in srgb, var(--accent2) 25%, transparent); }
+.lnk-s-send { background: color-mix(in srgb, var(--accent2) 14%, transparent); border: 1px solid var(--accent2); color: var(--accent2); font-family: 'Orbitron', sans-serif;
+  font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase; padding: 8px 14px; cursor: pointer; transition: all var(--dur-2) var(--ease-out); }
+.lnk-s-send:hover { background: color-mix(in srgb, var(--accent2) 26%, transparent); box-shadow: 0 0 14px color-mix(in srgb, var(--accent2) 35%, transparent); }
+.lnk-s-send:disabled { opacity: 0.5; cursor: wait; }
+.lnk-s-cancel { background: none; border: 0; padding: 0; color: var(--muted); font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; cursor: pointer; text-decoration: underline; }
+.lnk-s-cancel:hover { color: var(--text); }
+.lnk-snote { font-size: 0.68rem; line-height: 1.5; color: var(--muted); }
+.lnk-snote b { color: var(--text); font-weight: normal; }
+.lnk-smsg { font-size: 0.72rem; min-height: 1em; color: var(--muted); font-family: 'Share Tech Mono', monospace; }
+.lnk-smsg.bad { color: #ff5d73; }
+.lnk-smsg.good { color: #00ff88; }
+/* ── the owner's queue of suggestions ── */
+.lnk-sugg { margin-bottom: 18px; display: flex; flex-direction: column; gap: 6px; }
+.lnk-sugg[hidden] { display: none; }
+.lnk-sugg-head { display: flex; align-items: center; gap: 10px; min-height: 26px; }
+.lnk-sugg-title { font-family: 'Orbitron', sans-serif; font-size: 0.6rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent2); }
+.lnk-sugg-count { font-family: 'Share Tech Mono', monospace; font-size: 0.68rem; font-weight: normal; color: var(--muted); }
+.lnk-deny-all { margin-left: auto; background: none; border: 1px solid var(--border); color: var(--muted); font-family: 'Share Tech Mono', monospace; font-size: 0.66rem; padding: 4px 9px; cursor: pointer; }
+.lnk-deny-all:hover, .lnk-deny-all.arm { color: #ff5d73; border-color: #ff5d73; }
+.lnk-deny-all[hidden] { display: none; }
+.lnk-sugg-none { font-size: 0.72rem; color: var(--muted); font-family: 'Share Tech Mono', monospace; padding: 10px 12px; border: 1px dashed var(--border);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lnk-scard { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 14px; padding: 12px 14px; background: color-mix(in srgb, var(--accent2) 5%, var(--card));
+  border: 1px solid var(--border); border-left: 2px solid var(--accent2); border-radius: 2px; animation: bv-row-in 360ms var(--ease-out) backwards; }
+.lnk-scard-fields { display: grid; gap: 6px; min-width: 0; }
+.lnk-scard .lnk-sc-name { font-size: 0.82rem; }
+.lnk-scard .lnk-sc-desc { font-size: 0.72rem; padding: 7px 10px; }
+.lnk-sc-url { font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; color: var(--accent3); overflow-wrap: anywhere; text-decoration: none; }
+.lnk-sc-url:hover { text-decoration: underline; }
+.lnk-sc-meta { font-family: 'Share Tech Mono', monospace; font-size: 0.62rem; color: var(--muted); }
+.lnk-scard-acts { display: flex; flex-direction: column; gap: 6px; justify-content: center; }
+.lnk-accept, .lnk-deny { min-width: 96px; background: none; border: 1px solid var(--border); font-family: 'Orbitron', sans-serif; font-size: 0.58rem;
+  letter-spacing: 0.14em; text-transform: uppercase; padding: 8px 12px; cursor: pointer; transition: all var(--dur-2) var(--ease-out); }
+.lnk-accept { color: #00ff88; border-color: color-mix(in srgb, #00ff88 45%, var(--border)); }
+.lnk-accept:hover { background: color-mix(in srgb, #00ff88 14%, transparent); border-color: #00ff88; box-shadow: 0 0 12px rgba(0, 255, 136, 0.25); }
+.lnk-deny { color: var(--muted); }
+.lnk-deny:hover { color: #ff5d73; border-color: #ff5d73; background: color-mix(in srgb, #ff5d73 8%, transparent); }
+.lnk-accept:disabled, .lnk-deny:disabled { opacity: 0.45; cursor: wait; }
+body.theme-ultrabasic .lnk-accept { color: #0a8a4a; border-color: #0a8a4a; }
 /* ===== CHAT TAB ===== */
 .tab-btn.chat-tab.active { color: color-mix(in srgb, var(--accent) 55%, var(--accent2)); border-bottom-color: currentColor; }
 .chat-badge { display: inline-block; min-width: 16px; height: 16px; margin-left: 6px; padding: 0 4px; border-radius: 8px;
@@ -1305,6 +1357,25 @@ transform: translateX(4px);
   font-size: 0.68rem; padding: 5px 10px; cursor: pointer; }
 .chat-btn:hover { color: var(--text); border-color: var(--accent); }
 .chat-btn.danger:hover { color: #ff5d73; border-color: #ff5d73; }
+.chat-muted-btn b { color: #ff5d73; margin-left: 3px; font-weight: normal; }
+.chat-muted-btn.on { color: var(--text); border-color: var(--accent); }
+/* the owner's list of who is muted, on its own line under the header */
+.chat-muted { flex-basis: 100%; display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: var(--card);
+  border: 1px solid var(--border); border-left: 2px solid #ff5d73; animation: bv-row-in 260ms var(--ease-out) backwards; }
+.chat-muted[hidden] { display: none; }
+.chat-muted-head { font-family: 'Orbitron', sans-serif; font-size: 0.58rem; letter-spacing: 0.22em; text-transform: uppercase; color: #ff5d73; }
+.chat-muted-head span { font-family: 'Share Tech Mono', monospace; letter-spacing: 0.04em; text-transform: none; color: var(--muted); font-size: 0.66rem; }
+.chat-muted-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; background: color-mix(in srgb, #ff5d73 6%, transparent);
+  font-family: 'Share Tech Mono', monospace; border-radius: 2px; }
+.chat-muted-who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.chat-muted-who b { font-size: 0.74rem; }
+.chat-muted-who i { font-style: normal; font-size: 0.66rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chat-muted-left { font-size: 0.64rem; color: var(--muted); white-space: nowrap; }
+.chat-unmute { background: none; border: 1px solid var(--border); color: var(--muted); font-family: 'Share Tech Mono', monospace; font-size: 0.66rem;
+  padding: 4px 10px; cursor: pointer; }
+.chat-unmute:hover { color: #3ddc84; border-color: #3ddc84; }
+.chat-unmute:disabled { opacity: 0.5; cursor: wait; }
+.chat-muted-none { font-size: 0.7rem; color: var(--muted); font-family: 'Share Tech Mono', monospace; }
 .chat-key { background: var(--bg2); border: 1px solid var(--border); color: var(--text); padding: 5px 8px;
   font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; width: 190px; }
 .chat-log { height: min(60vh, 620px); min-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;
@@ -1652,6 +1723,9 @@ body.theme-ultrabasic .chat-msg.owner .chat-text { color: var(--text); }
 @media (max-width: 640px) {
   .lnk-wrap { margin: 16px 12px 32px; }
   .lnk-form-row { grid-template-columns: 1fr; }
+  .lnk-scard { grid-template-columns: 1fr; }
+  .lnk-scard-acts { flex-direction: row; }
+  .lnk-accept, .lnk-deny { flex: 1; }
 }
 #dev-panel { flex-direction:column;align-items:center;padding:40px 32px;min-height:60vh; }
 .experimental-btn { width:100%;margin-top:14px;background:#1a0008;border:1px solid #ff2d78;color:#ff2d78;font-family:'Share Tech Mono',monospace;font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;padding:10px 14px;cursor:pointer;border-radius:2px;transition:all var(--dur-2) var(--ease-out); }
@@ -3750,7 +3824,7 @@ animation: launch-flash-anim 0.4s var(--ease-out);
 <div class="tabs">
 <button class="tab-btn active" data-tab="games"><svg class="bv-icon" aria-hidden="true"><use href="#bv-gamepad"/></svg> Games</button>
 <button class="tab-btn apps-tab" data-tab="apps"><svg class="bv-icon" aria-hidden="true"><use href="#bv-apps"/></svg> Apps</button>
-<button class="tab-btn links-tab" data-tab="links"><svg class="bv-icon" aria-hidden="true"><use href="#bv-link"/></svg> Links</button>
+<button class="tab-btn links-tab" data-tab="links"><svg class="bv-icon" aria-hidden="true"><use href="#bv-link"/></svg> Links<span class="chat-badge" id="links-badge" title="Link suggestions waiting" hidden></span></button>
 <button class="tab-btn chat-tab" data-tab="chat"><svg class="bv-icon" aria-hidden="true"><use href="#bv-chat"/></svg> Chat<span class="chat-badge" id="chat-badge" hidden></span></button>
 <button class="tab-btn credits-tab" data-tab="credits" style="display:none"><svg class="bv-icon" aria-hidden="true"><use href="#bv-credits"/></svg> Credits</button>
 <button class="tab-btn dev-tab" data-tab="dev" id="dev-tab-btn"><svg class="bv-icon" aria-hidden="true"><use href="#bv-dev"/></svg> Dev</button>
@@ -6767,6 +6841,10 @@ let linksBusy = false;
 let linksSaving = false;
 let linksError = '';
 let linksFetchedAt = 0;
+let linksSugg = null;          // the waiting suggestions, once the owner key has fetched them
+let linksSuggN = 0;            // how many are waiting, as last heard
+let linksKeyRefused = false;
+let linksSuggesting = false;
 
 function linksIsDev() { return localStorage.getItem(DEV_UNLOCK_KEY) === '1'; }
 function linksKey() { try { return localStorage.getItem(LINKS_KEY_STORE) || ''; } catch (e) { return ''; } }
@@ -6824,12 +6902,24 @@ async function linksLoad() {
   linksBusy = true;
   linksError = '';
   if (activeTab === 'links') renderLinks();
+  // the owner's key goes along in dev mode, and only then do the waiting
+  // suggestions come back
+  const key = linksIsDev() ? linksKey() : '';
   try {
-    const { status, body } = await linksFetch('/api/links');
+    const { status, body } = await linksFetch('/api/links', key ? { headers: { 'X-Dev-Key': key } } : undefined);
     if (status !== 200 || !Array.isArray(body.links)) throw new Error(body.error || 'bad reply');
     linksData = body.links;
     linksWritable = !!body.writable;
     linksFetchedAt = Date.now();
+    if (key && body.owner === false) {
+      // a refused key is forgotten, so the next try asks for it again
+      try { localStorage.removeItem(LINKS_KEY_STORE); } catch (e) {}
+      linksKeyRefused = true;
+    }
+    if (body.owner === true) linksKeyRefused = false;
+    linksSugg = body.owner === true && Array.isArray(body.suggested) ? body.suggested : null;
+    linksSuggN = linksSugg ? linksSugg.length : 0;
+    linksBadge();
   } catch (e) {
     linksError = 'Couldn\u2019t reach the links server \u2014 it may be waking up. Try again in a moment.';
   }
@@ -6869,21 +6959,155 @@ async function linksWrite(payload, done) {
   const b = res.body;
   if (res.status === 200 && b.ok) {
     try { localStorage.setItem(LINKS_KEY_STORE, key); } catch (e) {}
+    linksKeyRefused = false;
     if (keyIn) keyIn.value = '';
     if (Array.isArray(b.links)) linksData = b.links;
+    if (Array.isArray(b.suggested)) { linksSugg = b.suggested; linksSuggN = linksSugg.length; linksBadge(); }
     linksFetchedAt = Date.now();
     renderLinks();
     linksSay(done, 'good');
     showToast('\u2713 ' + done);
-    playSound(payload.op === 'remove' ? 'links-removed' : 'links-added');
+    playSound(/^(remove|deny)/.test(payload.op) ? 'links-removed' : 'links-added');
     return true;
   }
   // a refused key is forgotten, so the next try asks for it again
-  if (res.status === 403) { try { localStorage.removeItem(LINKS_KEY_STORE); } catch (e) {} }
+  if (res.status === 403) { try { localStorage.removeItem(LINKS_KEY_STORE); } catch (e) {} linksKeyRefused = true; }
   renderLinks();
   linksSay(b.error || ('Save failed (' + res.status + ').'), 'bad');
   playSound('links-refused');
+  // answered on another machine in the meantime: show the queue as it is now
+  if (res.status === 400 && /^(accept|deny)/.test(payload.op)) setTimeout(linksLoad, 700);
   return false;
+}
+
+// ── suggestions ──
+function linksBadge() {
+  const b = document.getElementById('links-badge');
+  if (!b) return;
+  const n = linksIsDev() ? linksSuggN : 0;
+  b.hidden = n <= 0;
+  b.textContent = n <= 0 ? '' : n > 9 ? '9+' : String(n);
+}
+
+// The chat socket says a suggestion came in (or was answered elsewhere).
+function linksSuggPush(n) {
+  n = Math.max(0, +n || 0);
+  if (!linksIsDev()) return;
+  const had = linksSuggN;
+  linksSuggN = n;
+  linksBadge();
+  if (n > had) { showToast('\u2709 New link suggestion' + (n > 1 ? ' \u00b7 ' + n + ' waiting' : '')); playSound('chat-in'); }
+  if (!linksSugg || linksSugg.length !== n) {
+    if (activeTab === 'links') linksLoad(); else linksFetchedAt = 0;
+  }
+}
+
+function linksAgo(sec) {
+  const d = Math.max(0, Date.now() / 1000 - (+sec || 0));
+  if (!sec || d < 60) return 'just now';
+  if (d < 3600) return Math.floor(d / 60) + ' min ago';
+  if (d < 86400) return Math.floor(d / 3600) + ' h ago';
+  return Math.floor(d / 86400) + ' d ago';
+}
+
+function linksSmsg(text, kind) {
+  const m = document.querySelector('#links-view .lnk-smsg');
+  if (!m) return;
+  m.textContent = text || '';
+  m.className = 'lnk-smsg' + (kind ? ' ' + kind : '');
+}
+
+function linksSuggestOpen(open) {
+  const view = document.getElementById('links-view');
+  const form = view.querySelector('.lnk-sform');
+  const btn = view.querySelector('.lnk-suggest-btn');
+  if (form.classList.contains('open') === open) return;
+  form.classList.toggle('open', open);
+  btn.classList.toggle('on', open);
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if (open) {
+    form.querySelector('.lnk-s-as').textContent = CH.me || chatName();
+    linksSmsg('');
+    setTimeout(() => form.querySelector('.lnk-s-name').focus(), 30);
+  }
+  playSound(open ? 'toggle-on' : 'toggle-off');
+}
+
+function linksSuggCard(sg) {
+  const href = linksSafe(sg.url);
+  const card = lnkEl('div', 'lnk-scard');
+  const fields = lnkEl('div', 'lnk-scard-fields');
+  const name = lnkEl('input', 'lnk-sc-name');
+  name.maxLength = 60; name.value = String(sg.name || ''); name.placeholder = 'Name'; name.spellcheck = false;
+  name.setAttribute('aria-label', 'Name to list it under');
+  const desc = lnkEl('input', 'lnk-sc-desc');
+  desc.maxLength = 140; desc.value = String(sg.desc || ''); desc.placeholder = 'Short description (optional)'; desc.spellcheck = false;
+  desc.setAttribute('aria-label', 'Description');
+  // the address itself stays as suggested: open it to check it first
+  const url = lnkEl('a', 'lnk-sc-url', String(sg.url || ''));
+  if (href) { url.href = href; url.target = '_blank'; url.rel = 'noopener noreferrer'; url.title = 'Open it to check \u2197'; }
+  const meta = lnkEl('div', 'lnk-sc-meta', (sg.from ? 'from ' + sg.from + ' \u00b7 ' : '') + linksAgo(sg.added));
+  fields.append(name, url, desc, meta);
+  const acts = lnkEl('div', 'lnk-scard-acts');
+  const yes = lnkEl('button', 'lnk-accept', '\u2713 Accept');
+  yes.type = 'button';
+  yes.title = 'Put it on the list for everyone';
+  const no = lnkEl('button', 'lnk-deny', '\u2715 Deny');
+  no.type = 'button';
+  no.title = 'Throw this suggestion away';
+  const go = async (payload, done) => {
+    yes.disabled = no.disabled = true;
+    const ok = await linksWrite(payload, done);
+    if (!ok) yes.disabled = no.disabled = false;
+  };
+  yes.addEventListener('click', () => {
+    const nm = name.value.replace(/\s+/g, ' ').trim();
+    if (!nm) { linksSay('Give it a name first.', 'bad'); name.focus(); return; }
+    go({ op: 'accept', id: sg.id, name: nm, desc: desc.value.replace(/\s+/g, ' ').trim() }, 'Accepted \u2014 ' + nm + ' is on the list.');
+  });
+  name.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); yes.click(); } });
+  desc.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); yes.click(); } });
+  no.addEventListener('click', () => go({ op: 'deny', id: sg.id }, 'Suggestion denied.'));
+  acts.append(yes, no);
+  card.append(fields, acts);
+  return card;
+}
+
+function drawLinksSugg(view, dev) {
+  const box = view.querySelector('.lnk-sugg');
+  box.hidden = !dev;
+  if (!dev) return;
+  const list = box.querySelector('.lnk-sugg-list');
+  const n = linksSugg ? linksSugg.length : 0;
+  box.querySelector('.lnk-sugg-count').textContent = n ? n + ' waiting' : '';
+  box.querySelector('.lnk-deny-all').hidden = n < 2;
+  list.textContent = '';
+  if (!linksKey()) {
+    const none = lnkEl('div', 'lnk-sugg-none', linksKeyRefused
+      ? 'That owner key was refused. Enter it again above to see suggestions.'
+      : 'Enter the owner key above to see what people have suggested.');
+    const show = lnkEl('button', 'lnk-refresh', 'Show suggestions');
+    show.type = 'button';
+    show.style.marginLeft = 'auto';
+    show.addEventListener('click', () => {
+      const keyIn = view.querySelector('.lnk-key');
+      const typed = keyIn ? keyIn.value.trim() : '';
+      if (!typed) { linksSay('Enter the owner key first.', 'bad'); if (keyIn) keyIn.focus(); return; }
+      try { localStorage.setItem(LINKS_KEY_STORE, typed); } catch (e) {}
+      keyIn.value = '';
+      playSound('links-refresh');
+      linksLoad();
+    });
+    none.appendChild(show);
+    list.appendChild(none);
+    return;
+  }
+  if (linksSugg === null) {
+    list.appendChild(lnkEl('div', 'lnk-sugg-none', linksBusy || linksData === null ? 'Loading suggestions\u2026' : 'Suggestions couldn\u2019t be loaded \u2014 try Refresh.'));
+    return;
+  }
+  if (!n) { list.appendChild(lnkEl('div', 'lnk-sugg-none', 'No suggestions waiting.')); return; }
+  linksSugg.forEach(sg => list.appendChild(linksSuggCard(sg)));
 }
 
 // Two clicks to remove: the first arms it, the second does it. The vault has
@@ -6909,8 +7133,25 @@ function buildLinksShell(view) {
     <div class="lnk-head">
       <span class="lnk-label">Links</span>
       <span class="lnk-status"></span>
-      <button type="button" class="lnk-refresh" title="Fetch the list again">Refresh</button>
+      <span class="lnk-head-btns">
+        <button type="button" class="lnk-suggest-btn" aria-expanded="false" title="Tell the owner about a site">+ Suggest a link</button>
+        <button type="button" class="lnk-refresh" title="Fetch the list again">Refresh</button>
+      </span>
     </div>
+    <form class="lnk-sform" autocomplete="off" novalidate>
+      <div class="lnk-form-title">Suggest a link <span>\u00b7 the owner checks it first</span></div>
+      <div class="lnk-form-row">
+        <input class="lnk-s-name" maxlength="60" placeholder="Name" spellcheck="false" aria-label="Name">
+        <input class="lnk-s-url" maxlength="2048" placeholder="https://\u2026" spellcheck="false" inputmode="url" aria-label="Address">
+      </div>
+      <input class="lnk-s-desc" maxlength="140" placeholder="What is it? (optional)" spellcheck="false" aria-label="What it is">
+      <div class="lnk-actions">
+        <button type="submit" class="lnk-s-send">Send suggestion</button>
+        <button type="button" class="lnk-s-cancel">Cancel</button>
+      </div>
+      <div class="lnk-snote">Sent as <b class="lnk-s-as"></b>. Suggestions are kept in the site\u2019s public GitHub repo, so leave out anything personal.</div>
+      <div class="lnk-smsg"></div>
+    </form>
     <form class="lnk-form" autocomplete="off" novalidate>
       <div class="lnk-form-title">Add a link <span>\u00b7 owner only</span></div>
       <div class="lnk-form-row">
@@ -6926,8 +7167,75 @@ function buildLinksShell(view) {
       <div class="lnk-setup">Saving isn\u2019t switched on yet. In Render \u2192 Environment, set <b>DEV_KEY</b> and <b>GITHUB_TOKEN</b>.</div>
       <div class="lnk-msg"></div>
     </form>
+    <section class="lnk-sugg" hidden aria-label="Suggested links">
+      <div class="lnk-sugg-head">
+        <span class="lnk-sugg-title">Suggested</span>
+        <b class="lnk-sugg-count"></b>
+        <button type="button" class="lnk-deny-all" hidden>Deny all</button>
+      </div>
+      <div class="lnk-sugg-list"></div>
+    </section>
     <div class="lnk-list"></div>
   </div>`;
+
+  view.querySelector('.lnk-suggest-btn').addEventListener('click', () => {
+    linksSuggestOpen(!view.querySelector('.lnk-sform').classList.contains('open'));
+  });
+  view.querySelector('.lnk-s-cancel').addEventListener('click', () => linksSuggestOpen(false));
+  const sform = view.querySelector('.lnk-sform');
+  sform.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); linksSuggestOpen(false); } });
+  sform.addEventListener('submit', async e => {
+    e.preventDefault();
+    if (linksSuggesting) return;
+    const nameIn = sform.querySelector('.lnk-s-name');
+    const urlIn = sform.querySelector('.lnk-s-url');
+    const descIn = sform.querySelector('.lnk-s-desc');
+    const name = nameIn.value.replace(/\s+/g, ' ').trim();
+    let url = urlIn.value.trim();
+    if (url && !/^[a-z][a-z0-9+.-]*:/i.test(url)) url = 'https://' + url;
+    const href = linksSafe(url);
+    if (!name) { linksSmsg('Give it a name.', 'bad'); nameIn.focus(); playSound('links-refused'); return; }
+    if (!href) { linksSmsg('That isn\u2019t a web address.', 'bad'); urlIn.focus(); playSound('links-refused'); return; }
+    const send = sform.querySelector('.lnk-s-send');
+    linksSuggesting = true;
+    send.disabled = true;
+    linksSmsg('Sending\u2026');
+    let res = null;
+    try {
+      res = await linksFetch('/api/suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, url: href, desc: descIn.value.replace(/\s+/g, ' ').trim(), from: CH.me || chatName() })
+      });
+    } catch (x) { res = null; }
+    linksSuggesting = false;
+    send.disabled = false;
+    if (!res) { linksSmsg('Couldn\u2019t reach the links server.', 'bad'); playSound('links-offline'); return; }
+    if (res.status === 200 && res.body.ok) {
+      nameIn.value = ''; urlIn.value = ''; descIn.value = '';
+      linksSmsg('Thanks! The owner will take a look.', 'good');
+      showToast('\u2713 Suggestion sent');
+      playSound('links-added');
+      return;
+    }
+    linksSmsg(res.body.error || ('Couldn\u2019t send that (' + res.status + ').'), 'bad');
+    playSound('links-refused');
+  });
+  const denyAll = view.querySelector('.lnk-deny-all');
+  denyAll.addEventListener('click', () => {
+    if (!denyAll.classList.contains('arm')) {
+      denyAll.classList.add('arm');
+      denyAll.textContent = 'Deny all ' + (linksSugg ? linksSugg.length : '') + '?';
+      clearTimeout(denyAll._disarm);
+      denyAll._disarm = setTimeout(() => { denyAll.classList.remove('arm'); denyAll.textContent = 'Deny all'; }, 3000);
+      playSound('links-arm');
+      return;
+    }
+    clearTimeout(denyAll._disarm);
+    denyAll.classList.remove('arm');
+    denyAll.textContent = 'Deny all';
+    linksWrite({ op: 'deny-all' }, 'All suggestions denied.');
+  });
 
   view.querySelector('.lnk-refresh').addEventListener('click', () => { playSound('links-refresh'); linksLoad(); });
   view.querySelector('.lnk-forget').addEventListener('click', () => {
@@ -7014,6 +7322,11 @@ function renderLinks() {
   view.querySelector('.lnk-key').style.display = haveKey ? 'none' : '';
   view.querySelector('.lnk-keynote').style.display = haveKey ? '' : 'none';
   view.querySelector('.lnk-setup').style.display = (dev && linksData !== null && !linksWritable) ? '' : 'none';
+  // the owner adds links directly; suggesting is for everyone else
+  view.querySelector('.lnk-suggest-btn').style.display = dev ? 'none' : '';
+  if (dev) view.querySelector('.lnk-sform').classList.remove('open');
+  drawLinksSugg(view, dev);
+  linksBadge();
   const st = view.querySelector('.lnk-status');
   st.textContent = linksBusy ? 'Loading\u2026' : (linksError && linksData !== null ? 'Couldn\u2019t refresh \u2014 showing the last list.' : '');
   st.className = 'lnk-status' + (linksError && linksData !== null ? ' bad' : '');
@@ -7028,9 +7341,11 @@ function renderLinks() {
     const r = unlock.apply(this, arguments);
     if (activeTab === 'links') renderLinks();
     if (activeTab === 'chat') renderChat();
+    if (linksKey()) linksLoad();
     return r;
   };
 })();
+if (linksIsDev() && linksKey()) setTimeout(linksLoad, 1500);
 
 // ===== YOUR NAME =====
 // Until now the name could only be set once, at first run. Settings can change
@@ -7069,7 +7384,8 @@ function renderLinks() {
 // them; here, text only ever reaches the page through textContent.
 const CHAT_HOME_WS = 'wss://ns2-coop.onrender.com/chat';
 const CH = { ws: null, url: null, connected: false, started: false, retry: 0, retryT: null, pingT: null,
-             msgs: [], online: 0, unread: 0, mine: new Set(), me: '', roster: [], pinged: 0, ac: null };
+             msgs: [], online: 0, unread: 0, mine: new Set(), me: '', roster: [], pinged: 0, ac: null,
+             muted: [], mutedOpen: false, mutedAt: 0, mutedT: null };
 
 function chatName() {
   try { return (localStorage.getItem('player-name') || '').trim().slice(0, 20) || 'Guest'; } catch (e) { return 'Guest'; }
@@ -7101,6 +7417,7 @@ function chatConnect() {
       plSendStatus();
       chatStatus();
       plDraw();
+      chatMutedAsk(true);
     };
     ws.onmessage = function (e) {
       let m; try { m = JSON.parse(e.data); } catch (x) { return; }
@@ -7210,10 +7527,59 @@ function chatOnMessage(m) {
     }
     case 'clear': CH.msgs = []; chatDrawAll(); break;
     case 'mod-ok':
-      chatNote(m.op === 'clear' ? 'Chat cleared.' : m.op === 'mute' ? 'Muted for 30 minutes and removed.' : 'Removed.', 'good');
-      playSound('chat-mod');
+      chatNote(m.op === 'clear' ? 'Chat cleared.' : m.op === 'mute' ? 'Muted for 30 minutes and removed.' :
+               m.op === 'unmute' ? (m.name ? 'Unmuted ' + m.name + '.' : 'Unmuted.') : 'Removed.', 'good');
+      playSound(m.op === 'unmute' ? 'toggle-on' : 'chat-mod');
       break;
+    case 'muted':
+      CH.muted = Array.isArray(m.rows) ? m.rows : [];
+      chatMutedDraw();
+      break;
+    case 'unmuted':
+      chatNote('You\u2019ve been unmuted \u2014 you can chat again.', 'good');
+      playSound('toggle-on');
+      break;
+    case 'sugg': linksSuggPush(m.n); break;
   }
+}
+
+// ── who is muted (dev mode) ──
+// Asked for quietly when the chat opens in dev mode with a saved key; the
+// server sends it fresh after every mute and unmute too.
+function chatMutedAsk(force) {
+  if (!linksIsDev() || !linksKey() || !CH.connected) return;
+  if (!force && Date.now() - CH.mutedAt < 3000) return;
+  CH.mutedAt = Date.now();
+  chatSend({ t: 'mod', op: 'muted', key: linksKey() });
+}
+
+function chatMutedDraw() {
+  const v = document.getElementById('chat-view');
+  if (!v || !v.dataset.built) return;
+  const dev = linksIsDev();
+  const btn = v.querySelector('.chat-muted-btn');
+  btn.querySelector('b').textContent = CH.muted.length;
+  btn.classList.toggle('on', CH.mutedOpen);
+  btn.setAttribute('aria-expanded', CH.mutedOpen ? 'true' : 'false');
+  const box = v.querySelector('.chat-muted');
+  box.hidden = !(dev && CH.mutedOpen);
+  const list = box.querySelector('.chat-muted-list');
+  list.textContent = '';
+  if (!CH.muted.length) { list.appendChild(lnkEl('div', 'chat-muted-none', 'Nobody is muted.')); return; }
+  CH.muted.forEach(function (r) {
+    const row = lnkEl('div', 'chat-muted-row');
+    const who = lnkEl('div', 'chat-muted-who');
+    const name = lnkEl('b', '', String(r.name || 'Guest'));
+    name.style.color = 'hsl(' + chatHue(String(r.name || '')) + ' 70% 62%)';
+    who.appendChild(name);
+    if (r.text) who.appendChild(lnkEl('i', '', '\u201c' + String(r.text) + '\u201d'));
+    const left = lnkEl('span', 'chat-muted-left', (+r.mins || 1) + ' min left');
+    const un = lnkEl('button', 'chat-unmute', 'Unmute');
+    un.type = 'button';
+    un.addEventListener('click', function () { un.disabled = true; chatModerate('unmute', r.id); });
+    row.append(who, left, un);
+    list.appendChild(row);
+  });
 }
 
 function chatNote(text, kind) {
@@ -7518,8 +7884,13 @@ function buildChatShell(v) {
       <button type="button" class="chat-bell" hidden>Desktop alerts: off</button>
       <span class="chat-tools-head">
         <input class="chat-key" type="password" placeholder="Owner key (DEV_KEY)" autocomplete="current-password">
+        <button type="button" class="chat-btn chat-muted-btn" aria-expanded="false" title="Who is muted">Muted<b>0</b></button>
         <button type="button" class="chat-btn danger chat-clear">Clear chat</button>
       </span>
+      <div class="chat-muted" hidden>
+        <div class="chat-muted-head">Muted <span>\u00b7 30 minutes each; a mute covers everyone on that person\u2019s connection</span></div>
+        <div class="chat-muted-list"></div>
+      </div>
     </div>
     <aside class="pl-box" aria-label="People here">
       <div class="pl-box-head"><span>People here</span><b class="pl-count"></b></div>
@@ -7537,6 +7908,20 @@ function buildChatShell(v) {
     <div class="chat-rules">One room for everyone on the site. Keep it friendly \u2014 swearing is filtered and links are removed. Never share personal info.</div>
   </div>`;
   v.querySelector('.chat-clear').addEventListener('click', function () { chatModerate('clear'); });
+  v.querySelector('.chat-muted-btn').addEventListener('click', function () {
+    CH.mutedOpen = !CH.mutedOpen;
+    chatMutedDraw();
+    playSound(CH.mutedOpen ? 'toggle-on' : 'toggle-off');
+    clearInterval(CH.mutedT);
+    if (!CH.mutedOpen) return;
+    // the typed key is used and saved if there is no saved one yet
+    CH.mutedAt = Date.now();
+    chatModerate('muted');
+    // the minutes left tick down while it is open
+    CH.mutedT = setInterval(function () {
+      if (CH.mutedOpen && activeTab === 'chat' && !document.hidden) chatMutedAsk(true);
+    }, 30000);
+  });
   v.querySelector('.chat-bell').addEventListener('click', function () {
     if (!chatAlertsAvailable()) return;
     if (chatAlertsOn()) {
@@ -7600,6 +7985,8 @@ function renderChat() {
   // them -- otherwise the messages already on screen would stay without
   if (CH.dev !== dev) { CH.dev = dev; chatDrawAll(); }
   v.querySelector('.chat-key').style.display = linksKey() ? 'none' : '';
+  chatMutedDraw();
+  if (dev) chatMutedAsk(false);
   CH.unread = 0;
   CH.opened = true;
   chatBadge();
@@ -8914,7 +9301,7 @@ function stopRain() {
     { target: '.tab-btn[data-tab="apps"]', click: true, hint: 'Tap Apps',
       title: 'Apps', body: 'Handy tools and extras live in <strong>Apps</strong>.' },
     { target: '.tab-btn[data-tab="links"]', click: true, hint: 'Tap Links',
-      title: 'Links', body: 'Sites the owner shares \u2014 the same list on every device.' },
+      title: 'Links', body: 'Sites the owner shares \u2014 the same list on every device. Know a good one? <strong>Suggest a link</strong> and the owner can add it.' },
     { target: '.tab-btn[data-tab="chat"]', click: true, hint: 'Tap Chat', settle: 420,
       title: 'Chat', body: 'One room for everyone on the site.' },
     { target: '#chat-view .pl-box', wait: 2500, onEnter: () => goTab('chat'),
