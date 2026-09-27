@@ -2052,11 +2052,11 @@ html.nsi-land #logo{transition:opacity .22s ease}
       var r = target && title && title.classList.contains('on') ? target.getBoundingClientRect() : null;
       if (box && r && r.width) { box.classList.add('nsi-reveal'); setTimeout(function () { box.classList.remove('nsi-reveal'); }, 1500); }
       if (calm || !r || !r.width) {
-        logo.style.transition = 'opacity .45s ease';
-        logo.style.opacity = '0';
         root.classList.add('nsi-land');
         root.classList.remove('nsi-on');
-        setTimeout(done, 500);
+        after(logo, 'opacity', 1500, done);
+        logo.style.transition = 'opacity .45s ease';
+        logo.style.opacity = '0';
         return;
       }
       // line up the words themselves: the title's logo is a full-width block,
@@ -2074,13 +2074,25 @@ html.nsi-land #logo{transition:opacity .22s ease}
       var dy = (rt.top + rt.height / 2) - cy - s * ((ri.top + ri.height / 2) - cy) / k;
       logo.style.transition = 'transform .62s cubic-bezier(.7,0,.2,1)';
       logo.style.transform = 'translate(calc(-50% + ' + dx.toFixed(1) + 'px), calc(-50% + ' + dy.toFixed(1) + 'px)) scale(' + s.toFixed(4) + ')';
-      setTimeout(function () {
+      // each step waits for the last to finish on screen, so a busy moment
+      // can never stack the landing, the hand-over and the removal together
+      after(logo, 'transform', 1400, function () {
         root.classList.add('nsi-land');
         root.classList.remove('nsi-on');          // the real logo fades up underneath
+        after(logo, 'opacity', 900, done);
         logo.style.transition = 'opacity .24s ease';
         logo.style.opacity = '0';
-        setTimeout(done, 260);
-      }, 640);
+      });
+    }
+    // run fn once node's transition of prop ends; the backstop (ms) counts
+    // from when that transition really starts, with a longer one if it never does
+    function after(node, prop, ms, fn) {
+      var ran = false, t = setTimeout(go, ms + 2500);
+      function go() { if (ran) return; ran = true; clearTimeout(t); node.removeEventListener('transitionend', te); node.removeEventListener('transitionrun', tr); fn(); }
+      function te(e) { if (e.target === node && e.propertyName === prop) go(); }
+      function tr(e) { if (e.target === node && e.propertyName === prop) { clearTimeout(t); t = setTimeout(go, ms); } }
+      node.addEventListener('transitionend', te);
+      node.addEventListener('transitionrun', tr);
     }
     function skip() {
       if (!started) return;

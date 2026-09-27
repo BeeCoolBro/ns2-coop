@@ -311,7 +311,7 @@ h1 .ch { display: inline-block; transform-origin: 50% 100%; }
 
 /* ── leaving: the door you picked opens into the next place ── */
 #wipe { position: fixed; inset: 0; z-index: 60; pointer-events: none; visibility: hidden;
-  background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), color-mix(in srgb, var(--wc, #ffd633) 34%, var(--ink)) 0, var(--ink) 58%);
+  background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), color-mix(in srgb, var(--wc, #ffd633) 18%, #07080f) 0, #06070d 45%, #050508 70%);
   clip-path: circle(0 at var(--x, 50%) var(--y, 50%)); }
 #wipe.on { visibility: visible; clip-path: circle(150vmax at var(--x, 50%) var(--y, 50%));
   transition: clip-path .55s cubic-bezier(.7, 0, .3, 1); }
