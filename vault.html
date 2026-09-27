@@ -1300,10 +1300,45 @@ transform: translateX(4px);
 .chat-msg.fresh { animation: bv-row-in 360ms var(--ease-out) backwards; }
 .chat-msg:hover { background: color-mix(in srgb, var(--text) 4%, transparent); }
 .chat-msg.mine { border-left-color: color-mix(in srgb, var(--accent) 55%, var(--accent2)); background: color-mix(in srgb, var(--accent) 5%, transparent); }
+/* ── the owner's messages ── */
+.chat-msg.owner { overflow: hidden; border-left-color: transparent; padding-left: 14px;
+  background: linear-gradient(100deg, rgba(255, 205, 70, 0.11), color-mix(in srgb, var(--accent2) 6%, transparent) 55%, transparent 92%); }
+.chat-msg.owner:hover { background: linear-gradient(100deg, rgba(255, 205, 70, 0.16), color-mix(in srgb, var(--accent2) 8%, transparent) 55%, transparent 92%); }
+.chat-msg.owner::before { content: ''; position: absolute; left: 0; top: 5px; bottom: 5px; width: 3px; border-radius: 3px;
+  background: linear-gradient(180deg, #fff1a0, #ffc93a 45%, var(--accent2));
+  box-shadow: 0 0 10px rgba(255, 196, 50, 0.6), 0 0 22px rgba(255, 196, 50, 0.25); }
+.chat-msg.owner .chat-name { color: transparent;
+  background: linear-gradient(90deg, #ffe98a 0%, #ffc233 30%, #ffb07a 55%, #ffe98a 80%);
+  background-size: 220% 100%; -webkit-background-clip: text; background-clip: text;
+  animation: owner-name-sheen 7s linear infinite; }
+@keyframes owner-name-sheen { from { background-position: 0% 0; } to { background-position: -220% 0; } }
+.chat-msg.owner .chat-text { color: color-mix(in srgb, var(--text) 90%, #ffd35a); }
+/* one glint across the row as it arrives */
+.chat-msg.owner.fresh::after { content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 38%; pointer-events: none;
+  background: linear-gradient(100deg, transparent, rgba(255, 225, 130, 0.22), transparent);
+  transform: translateX(-120%) skewX(-16deg); animation: owner-row-glint 1.1s var(--ease-out) 0.15s forwards; }
+@keyframes owner-row-glint { to { transform: translateX(320%) skewX(-16deg); } }
+/* white theme: a deeper gold, or the name washes out */
+body.theme-ultrabasic .chat-msg.owner .chat-name { background-image: linear-gradient(90deg, #a86b00 0%, #d18a00 35%, #b35c00 60%, #a86b00 85%); }
+body.theme-ultrabasic .chat-msg.owner .chat-text { color: var(--text); }
+/* a mention popup from the owner */
+.chat-ping.owner { border-left-color: #ffc93a;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5), 0 0 22px rgba(255, 196, 50, 0.28); }
+.chat-ping .chat-owner { margin-left: 6px; vertical-align: 1px; }
 .chat-meta { display: flex; align-items: baseline; gap: 8px; font-size: 0.68rem; }
 .chat-name { font-weight: 700; letter-spacing: 0.04em; }
-.chat-owner { font-family: 'Orbitron', sans-serif; font-size: 0.5rem; letter-spacing: 0.15em; padding: 1px 5px;
-  border: 1px solid var(--accent3); color: var(--accent3); }
+/* ── the owner: a gold pill with a crown, and a sheen across it ── */
+.chat-owner { position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px 2px 6px; border-radius: 999px; align-self: center;
+  background: linear-gradient(135deg, #fff4b8 0%, #ffd34d 42%, #f2a61f 100%);
+  color: #3b2700; font-family: 'Orbitron', sans-serif; font-size: 0.5rem; font-weight: 800; letter-spacing: 0.17em;
+  box-shadow: 0 0 0 1px rgba(255, 214, 90, 0.55), 0 2px 12px rgba(255, 186, 40, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45); }
+.chat-owner svg { width: 11px; height: 9px; flex-shrink: 0; fill: currentColor; }
+.chat-owner::after { content: ''; position: absolute; top: -2px; bottom: -2px; left: 0; width: 45%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.85), transparent);
+  transform: translateX(-160%) skewX(-18deg); animation: owner-tag-sheen 3.8s var(--ease-in-out) infinite; }
+@keyframes owner-tag-sheen { 0%, 62% { transform: translateX(-160%) skewX(-18deg); } 100% { transform: translateX(330%) skewX(-18deg); } }
 .chat-time { color: var(--muted); font-size: 0.6rem; }
 .chat-text { margin-top: 2px; font-size: 0.82rem; color: var(--text); line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
 .chat-mod { position: absolute; top: 4px; right: 6px; display: none; gap: 6px; }
@@ -7136,6 +7171,21 @@ function chatStatus() {
   if (activeTab === 'chat') document.getElementById('total-count').textContent = CH.connected ? CH.online : '\u2014';
 }
 
+// The owner's tag: a crown and the word, built as elements -- no innerHTML.
+function chatOwnerTag() {
+  const tag = lnkEl('span', 'chat-owner');
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('viewBox', '0 0 16 12');
+  svg.setAttribute('aria-hidden', 'true');
+  const crown = document.createElementNS(svgNS, 'path');
+  crown.setAttribute('d', 'M1 9.2 2.3 2.6 5.6 5.7 8 1 10.4 5.7 13.7 2.6 15 9.2Z M1.6 10.2h12.8v1.6H1.6z');
+  svg.appendChild(crown);
+  tag.append(svg, document.createTextNode('OWNER'));
+  tag.title = 'The owner of the vault';
+  return tag;
+}
+
 function chatHue(name) {
   let h = 0;
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
@@ -7148,9 +7198,11 @@ function chatRow(m, fresh) {
   if (m.n && CH.mine.has(m.n)) row.classList.add('mine');
   const meta = lnkEl('div', 'chat-meta');
   const name = lnkEl('span', 'chat-name', String(m.name || 'Guest'));
-  name.style.color = 'hsl(' + chatHue(String(m.name || '')) + ' 70% 62%)';
+  // the owner's name is gold, set by the stylesheet; everyone else gets a hue
+  if (m.owner) row.classList.add('owner');
+  else name.style.color = 'hsl(' + chatHue(String(m.name || '')) + ' 70% 62%)';
   meta.appendChild(name);
-  if (m.owner) meta.appendChild(lnkEl('span', 'chat-owner', 'OWNER'));
+  if (m.owner) meta.appendChild(chatOwnerTag());
   const d = new Date(m.at || Date.now());
   meta.appendChild(lnkEl('span', 'chat-time', String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')));
   row.appendChild(meta);
@@ -7216,8 +7268,10 @@ function chatPing(m) {
   card.setAttribute('role', 'status');
   const head = lnkEl('div', 'chat-ping-head');
   const who = lnkEl('b', '', String(m.name || 'Someone'));
-  who.style.color = 'hsl(' + chatHue(String(m.name || '')) + ' 70% 62%)';
-  head.append(who, document.createTextNode(' mentioned you'));
+  who.style.color = m.owner ? '#ffc93a' : 'hsl(' + chatHue(String(m.name || '')) + ' 70% 62%)';
+  head.append(who);
+  if (m.owner) { card.classList.add('owner'); head.appendChild(chatOwnerTag()); }
+  head.appendChild(document.createTextNode(' mentioned you'));
   const text = String(m.text || '');
   const close = lnkEl('button', 'chat-ping-x', '\u2715');
   close.type = 'button';
