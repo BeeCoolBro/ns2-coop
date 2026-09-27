@@ -71,16 +71,6 @@ body {
 main { position: relative; z-index: 1; width: 100%; max-width: 1000px; padding: 48px 16px 56px; }
 
 .brand { text-align: center; margin-bottom: clamp(34px, 6vh, 60px); }
-.mark { width: clamp(58px, 9vw, 76px); height: auto; display: block; margin: 0 auto 18px;
-  filter: drop-shadow(0 0 18px rgba(255, 214, 51, .35));
-  animation: rise .9s var(--ease-out) backwards, mark-float 6s var(--ease-in-out) 1s infinite alternate; }
-@keyframes mark-float { to { transform: translateY(-6px); } }
-.mark .wing { transform-box: fill-box; transform-origin: 100% 100%; animation: wing 2.8s var(--ease-in-out) infinite; }
-.mark .wing.r { transform-origin: 0% 100%; animation-delay: -.12s; }
-@keyframes wing { 0%, 84%, 100% { transform: rotate(0); } 90% { transform: rotate(-14deg); } 95% { transform: rotate(8deg); } }
-.mark .wing.r { animation-name: wing-r; }
-@keyframes wing-r { 0%, 84%, 100% { transform: rotate(0); } 90% { transform: rotate(14deg); } 95% { transform: rotate(-8deg); } }
-
 h1 {
   margin: 0; font-family: 'Orbitron', sans-serif; font-weight: 900;
   font-size: clamp(30px, 7.4vw, 78px); line-height: 1.06; letter-spacing: .02em;
@@ -213,8 +203,8 @@ body.leaving main { opacity: .55; transform: scale(.992); transition: opacity .2
   .door:hover { transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .bg .hex, .bg .orb, .mark, .mark .wing, h1 .bee { animation: none; }
-  .mark, h1, .door, .rule { animation: fade .5s ease backwards; }
+  .bg .hex, .bg .orb, h1 .bee { animation: none; }
+  h1, .door, .rule { animation: fade .5s ease backwards; }
   .door:hover, .door:focus-visible { transform: none; }
   .door .sheen { display: none; }
   .ns2 .art .floor-move { animation: none; }
@@ -233,21 +223,6 @@ body.leaving main { opacity: .55; transform: scale(.992); transition: opacity .2
 
 <main>
   <header class="brand">
-    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true">
-      <defs>
-        <linearGradient id="g-gold" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="#fff4b8"/><stop offset=".5" stop-color="#ffd633"/><stop offset="1" stop-color="#ff9f1c"/>
-        </linearGradient>
-        <clipPath id="c-body"><ellipse cx="32" cy="37" rx="9.5" ry="12.5"/></clipPath>
-      </defs>
-      <path d="M32 3 57 17.5v29L32 61 7 46.5v-29Z" fill="rgba(255,214,51,.07)" stroke="url(#g-gold)" stroke-width="2.4" stroke-linejoin="round"/>
-      <g class="wing l"><ellipse cx="23.5" cy="25" rx="7" ry="4.6" transform="rotate(-28 23.5 25)" fill="rgba(210,245,255,.55)" stroke="rgba(210,245,255,.9)" stroke-width="1"/></g>
-      <g class="wing r"><ellipse cx="40.5" cy="25" rx="7" ry="4.6" transform="rotate(28 40.5 25)" fill="rgba(210,245,255,.55)" stroke="rgba(210,245,255,.9)" stroke-width="1"/></g>
-      <ellipse cx="32" cy="37" rx="9.5" ry="12.5" fill="url(#g-gold)"/>
-      <g clip-path="url(#c-body)" fill="#05060c"><rect x="20" y="33" width="24" height="3.6"/><rect x="20" y="40.5" width="24" height="3.6"/></g>
-      <circle cx="32" cy="22.5" r="5" fill="#05060c" stroke="url(#g-gold)" stroke-width="1.6"/>
-      <path d="M30 18.5c-1.5-3-3.5-4-5.5-4M34 18.5c1.5-3 3.5-4 5.5-4" fill="none" stroke="#ffd633" stroke-width="1.4" stroke-linecap="round"/>
-    </svg>
     <h1><span class="bee">BeeSide</span> <span class="studio">Studio's</span></h1>
     <div class="rule" aria-hidden="true"></div>
   </header>
