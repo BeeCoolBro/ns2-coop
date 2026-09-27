@@ -4590,7 +4590,6 @@ const GAME_COVERS = {
   "https://realwork.netlify.app/apps/etchasketch/": "https://upload.wikimedia.org/wikipedia/commons/e/e5/Taj_Mahal_drawing_on_an_Etch-A-Sketch.jpg",  // // Etch-A-Sketch
   "https://gchq.github.io/CyberChef/": "https://cdn.jsdelivr.net/gh/gchq/CyberChef@master/src/web/static/images/cyberchef-512x512.png",  // // CyberChef
   "https://winxp.netlify.app/": "https://upload.wikimedia.org/wikipedia/en/6/64/Windows_XP_Luna.png",  // // Windows XP
-  "https://hl2.slqnt.dev/": "https://cdn.akamai.steamstatic.com/steam/apps/220/header.jpg",  // // Half-Life 2
   "https://realwork.netlify.app/games/motox3m/": "https://img.poki-cdn.com/cdn-cgi/image/q=78,scq=50,width=1200,height=1200,fit=cover,f=png/2c6d5a46cdbceada277c870ce1c389ee/moto-x3m-logo.jpg",  // title art: poki title logo
   "https://truffled.lol/games/Cuphead/index.html": "https://cdn.akamai.steamstatic.com/steam/apps/268910/header.jpg",  // // Cuphead // Cuphead
   "https://truffled.lol/games/pikubog/index.html": "https://cdn.akamai.steamstatic.com/steam/apps/572890/header.jpg",  // // PikuBog // PikuBog
@@ -5129,8 +5128,7 @@ const GAMES = [
   { url: "https://epsteinclicker.github.io/", name: "Epstein Clicker", cat: ["idle"], icon: "" },
   { url: "https://truffled.lol/games/Cuphead/index.html", name: "Cuphead", cat: ["ports"], icon: "" },
   { url: "https://truffled.lol/games/pikubog/index.html", name: "PikuBog", cat: ["ports"], icon: "" },
-  { url: "https://truffled.lol/games/raldi/index.html", name: "Raldi", cat: ["ports"], icon: "" },
-  { url: "https://hl2.slqnt.dev/", name: "Half-Life 2", cat: ["ports", "retro"], icon: "" },];
+  { url: "https://truffled.lol/games/raldi/index.html", name: "Raldi", cat: ["ports"], icon: "" },];
 
 const APPS = [
   { url: "https://realwork.netlify.app/apps/ruffle/", name: "Ruffle", icon: "", tag: "Emulator", desc: "Play Flash games & animations in your browser" },
@@ -5480,7 +5478,6 @@ const EXTERNAL_GAMES = new Set([
   'https://realwork.netlify.app/games/motox3mpool/',
   'https://realwork.netlify.app/games/motox3mspooky/',
   'https://realwork.netlify.app/games/motox3mwinter/',
-  'https://hl2.slqnt.dev/',
 ]);
 
 // Pending external game awaiting double confirmation
@@ -6126,6 +6123,12 @@ scheduleOceanBubble();
 // ===== FAVORITES & RECENT =====
 let FAVS = JSON.parse(localStorage.getItem('favs') || '[]');
 let RECENT = JSON.parse(localStorage.getItem('recent') || '[]');
+// Only game cards have a star, so a favourite that is no longer in GAMES is a
+// game that was taken out -- drop it, or the Favorites count includes it.
+if (FAVS.some(u => !GAMES.some(g => g.url === u))) {
+  FAVS = FAVS.filter(u => GAMES.some(g => g.url === u));
+  localStorage.setItem('favs', JSON.stringify(FAVS));
+}
 
 function toggleFav(url) {
   const idx = FAVS.indexOf(url);
@@ -7603,7 +7606,6 @@ const UL_ADDED = [
   "Game launch sound effect + particle VFX",
   "Compact Mode, Scene Mode, External game warnings",
   "Cover art for 500+ games",
-  "Half-Life 2 added to Ported Games",
   "Data Reset, Export/Import, Custom Theme Builder",
 ];
 const UL_CHANGED = [
