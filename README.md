@@ -368,6 +368,58 @@ first save, wrong or empty key refused, `DEV_KEY` unset refuses everything,
 retried and both survive, a restart reads the list back, a repeat remove makes
 no empty commit, oversized bodies are refused, and hostile names render inert.
 
+## The vault's Chat tab
+
+One room for everyone on the site, live over a websocket at `/chat` on this
+server. The vault only connects once someone opens the tab.
+
+**The filter runs here, not in the page** (`chat_filter.py`): a filter in the
+page is a suggestion anyone can delete in devtools. Every message and every
+name is filtered before anyone else sees it. It is heavy on purpose and sees
+through the usual disguises -- look-alike letters from other alphabets,
+accents, full-width text, invisible characters, leet (`sh1t`, `a$$`), stretched
+words (`fuuuuck`), punctuation between letters (`f.u.c.k`), a letter swapped
+for `*` (`f*ck`) and words typed a letter at a time (`f u c k`). Slurs, sexual
+terms and "kill yourself"-type phrases are filtered too. Matches are masked
+with asterisks; links and email addresses are removed outright.
+
+It deliberately leaves the classic false positives alone -- *class, assassin,
+cockpit, grape, therapist, Scunthorpe, shiitake, cucumber, title, analysis,
+raccoon, Essex, hello, shell, "this hit"* -- and a number on its own (a score of
+455) is never masked. Tested against 112 disguised forms that must be caught
+and 113 innocent words that must pass: all of both. Its patterns are bounded,
+so no message can make it slow: a line of 240 asterisks once hung it for over
+eight seconds, and now takes under a millisecond.
+
+**Keeping one person from ruining it:** five messages at once then one every
+1.2 s; the same line twice in 20 s is dropped; 240 characters at most; frames
+over 4 KB close the socket; six chat sockets per address. Names the filter
+would touch, or that claim to be staff (*owner, admin, mod...*), become
+`Guest-1234`.
+
+**Names, who's online, and @mentions.** The chat goes by the name set in the
+vault -- at first run, or later in Settings -> Your Name -- and follows a
+change live: the page tells the server its name on connecting and whenever it
+changes, and the server answers with the name actually shown (a guest name if
+it could not be used) and tells everyone the new list of who is online.
+Type `@` and the names of people online come up to pick from. Mentions are
+worked out on the server against that list -- `@Cool Bee` is one name even
+with its space, the longest name wins where two overlap, only people online
+count, and three at most per message. Mentioned while you are not on the Chat
+tab and a card slides in with who and what they said; click it to jump to the
+message. With the browser tab in the background the page title shows a count,
+and desktop alerts can be switched on from the chat's bell (secure pages only).
+
+**Moderation:** in the vault's dev mode each message gets Delete and Mute (30
+minutes), and the header gets Clear chat. All three are checked here against
+`DEV_KEY`, the same key the Links tab uses. The owner's own messages carry an
+OWNER badge, and only the owner can use a staff-sounding name.
+
+**Privacy:** history is kept in memory only -- the last 80 messages -- and is
+gone when the service sleeps. It is never written to disk or to the repo.
+Addresses are held only as salted hashes, in memory, for the flood limits and
+mutes, and are never sent to anyone.
+
 ## THE ABYSS, wave 30
 
 The TYRANT silenced **every tower on the board at once** there. Its pulse has a

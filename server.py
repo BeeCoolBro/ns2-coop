@@ -16,10 +16,12 @@ for ~120 lines of framing would be this project's only dependency.
 """
 import argparse
 import base64
+import collections
 import hashlib
 import hmac
 import json
 import os
+import re
 import socket
 import struct
 import sys
@@ -29,6 +31,15 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+
+# The chat's filter lives in its own file. If it is ever missing from a
+# deploy, the chat switches off and says so -- it does not take the game, the
+# vault and the links down with it.
+try:
+    import chat_filter
+except Exception as e:                  # pragma: no cover
+    chat_filter = None
+    print('!! chat_filter.py could not be loaded (%s): chat is off' % e, flush=True)
 
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -71,6 +82,29 @@ LINKS_MAX = 300
 LINKS_BODY_MAX = 16384
 LINKS = {'list': [], 'sha': None, 'at': 0.0, 'ok': False}
 LINKS_LOCK = threading.Lock()   # guards LINKS
+
+# ── chat ──────────────────────────────────────────────────────────
+# The vault's Chat tab: one room for everyone on the site. Every message and
+# every name goes through chat_filter here, before anyone else sees it. History
+# is kept in memory only -- the free disk is wiped when the service sleeps, and
+# chat logs have no business in a public repository.
+CHAT_HISTORY = 80               # messages a newcomer is shown
+CHAT_MAX_LEN = 240
+CHAT_NAME_LEN = 20
+CHAT_FRAME_MAX = 4096           # bytes; anything larger closes the socket
+CHAT_PER_IP = 6                 # chat sockets one address may hold open
+CHAT_BURST = 5                  # messages allowed at once...
+CHAT_REFILL = 1.2               # ...then one every this many seconds
+CHAT_DUP_WINDOW = 20            # the same line twice within this is dropped
+CHAT_MUTE_SECS = 30 * 60
+CHAT_RENAME_GAP = 2.0           # seconds between name changes
+CHAT_MENTIONS_MAX = 3           # names one message may mention
+CHAT_SALT = os.urandom(16)      # addresses are kept only as salted hashes
+CHAT = {'peers': set(), 'history': collections.deque(maxlen=CHAT_HISTORY), 'next': 1, 'muted': {}}
+CHAT_LOCK = threading.Lock()
+# names nobody but the owner may take
+CHAT_RESERVED = re.compile(r'owner|admin|moderator|\bmod\b|staff|official|developer|\bdev\b|system|server|beecoolbro',
+                           re.I)
 LINKS_WRITE = threading.Lock()  # one save at a time, across the whole GitHub round trip
 MATCHES = {}                    # id -> {'host', 'guest', 'spec': set, 'start': frame}
 NEXT_ID = [1]
@@ -439,6 +473,183 @@ def links_post(key, raw):
     return 400, {'ok': False, 'error': 'Unknown request.'}
 
 
+class ChatPeer(object):
+    """One chat socket. Sends are serialised the same way Peer's are."""
+
+    def __init__(self, handler, ip):
+        self.h = handler
+        self.lock = threading.Lock()
+        self.alive = True
+        self.ip = ip                    # salted hash, never the address
+        self.tokens = float(CHAT_BURST)
+        self.refilled = time.time()
+        self.last_text = ''
+        self.last_at = 0.0
+        self.guest = 'Guest-%04d' % (int.from_bytes(os.urandom(2), 'big') % 10000)
+        self.name = None                # the name shown for this socket, once it says one
+        self.named_at = 0.0
+
+    def shown(self):
+        return self.name or self.guest
+
+    def send(self, obj):
+        data = json.dumps(obj, separators=(',', ':'), ensure_ascii=False).encode('utf-8')
+        with self.lock:
+            if not self.alive:
+                return
+            try:
+                self.h.wfile.write(ws_frame(data))
+                self.h.wfile.flush()
+            except Exception:
+                self.alive = False
+
+    def allow(self):
+        """A token bucket: a short burst, then a steady trickle."""
+        now = time.time()
+        self.tokens = min(float(CHAT_BURST), self.tokens + (now - self.refilled) / CHAT_REFILL)
+        self.refilled = now
+        if self.tokens < 1:
+            return False
+        self.tokens -= 1
+        return True
+
+
+def chat_broadcast(obj, skip=None):
+    with CHAT_LOCK:
+        peers = list(CHAT['peers'])
+    for p in peers:
+        if p is not skip:
+            p.send(obj)
+
+
+def owner_ok(key):
+    # constant-time, and an unset DEV_KEY can never match
+    return bool(DEV_KEY) and isinstance(key, str) and \
+        hmac.compare_digest(key.encode('utf-8'), DEV_KEY.encode('utf-8'))
+
+
+def chat_name(raw, peer, owner):
+    name = tidy(raw, CHAT_NAME_LEN)
+    if not name or chat_filter.clean(name)[1]:
+        return peer.guest
+    if not owner and CHAT_RESERVED.search(name):
+        return peer.guest
+    return name
+
+
+def chat_roster():
+    """Tell everyone who is here."""
+    with CHAT_LOCK:
+        names = sorted({p.shown() for p in CHAT['peers']}, key=str.lower)
+        online = len(CHAT['peers'])
+    chat_broadcast({'t': 'roster', 'names': names, 'online': online})
+
+
+def chat_rename(peer, msg):
+    """A page saying what it is called -- on connecting, and whenever the
+    vault's name changes. Filtered like a message; answered with the name
+    actually shown, which may be a guest name."""
+    now = time.time()
+    if peer.name is not None and now - peer.named_at < CHAT_RENAME_GAP:
+        peer.send({'t': 'you', 'name': peer.shown()})
+        return
+    wanted = tidy(msg.get('name'), CHAT_NAME_LEN)
+    name = chat_name(wanted, peer, owner_ok(msg.get('key')))
+    changed = name != peer.shown() or peer.name is None
+    peer.name, peer.named_at = name, now
+    peer.send({'t': 'you', 'name': name, 'asked': wanted})
+    if changed:
+        chat_roster()
+
+
+def chat_mentions(text, names):
+    """Names in the room that the text @-mentions. Longest first, so "@Cool
+    Bee" is one mention even when someone called "Cool" is also here."""
+    found, work = [], text
+    for name in sorted(names, key=len, reverse=True):
+        pat = re.compile(r'(?<![\w])@' + re.escape(name) + r'(?![\w])', re.I)
+        m = pat.search(work)
+        if not m:
+            continue
+        found.append(name)
+        # blank out what matched so a shorter name cannot claim the same text
+        work = work[:m.start()] + ' ' * (m.end() - m.start()) + work[m.end():]
+        if len(found) >= CHAT_MENTIONS_MAX:
+            break
+    return found
+
+
+def chat_say(peer, msg):
+    text = ' '.join(str(msg.get('text') or '').split())[:CHAT_MAX_LEN]
+    if not text:
+        return
+    now = time.time()
+    with CHAT_LOCK:
+        until = CHAT['muted'].get(peer.ip, 0)
+    if until > now:
+        mins = int((until - now) // 60) + 1
+        peer.send({'t': 'err', 'code': 'muted', 'msg': 'You are muted for %d more minute%s.' % (mins, '' if mins == 1 else 's')})
+        return
+    if not peer.allow():
+        peer.send({'t': 'err', 'code': 'slow', 'msg': 'Slow down a little.'})
+        return
+    if text == peer.last_text and now - peer.last_at < CHAT_DUP_WINDOW:
+        peer.send({'t': 'err', 'code': 'dup', 'msg': 'You just said that.'})
+        return
+    peer.last_text, peer.last_at = text, now
+    owner = owner_ok(msg.get('key'))
+    # the name this socket is known by; a page that never said one is named
+    # from the message, the way the first version of the chat worked
+    name = peer.name if peer.name is not None else chat_name(msg.get('name'), peer, owner)
+    clean, changed = chat_filter.clean(text)
+    with CHAT_LOCK:
+        here = {p.shown() for p in CHAT['peers']}
+        mid = CHAT['next']
+        CHAT['next'] += 1
+        m = {'id': mid, 'name': name, 'text': clean, 'at': int(now * 1000)}
+        mentions = chat_mentions(clean, here - {name})
+        if mentions:
+            m['mentions'] = mentions
+        if owner:
+            m['owner'] = True
+        # a random tag the sender chose, so its own page can tell which
+        # messages are its own; it identifies nobody to anyone else
+        tag = str(msg.get('n') or '')
+        if tag.isalnum() and len(tag) <= 12:
+            m['n'] = tag
+        CHAT['history'].append((m, peer.ip))
+    chat_broadcast({'t': 'msg', 'm': m})
+    if changed:
+        peer.send({'t': 'filtered'})
+
+
+def chat_mod(peer, msg):
+    if not owner_ok(msg.get('key')):
+        peer.send({'t': 'err', 'code': 'key', 'msg': 'That owner key was refused.'})
+        return
+    op, mid = msg.get('op'), msg.get('id')
+    now = time.time()
+    if op == 'clear':
+        with CHAT_LOCK:
+            CHAT['history'].clear()
+        chat_broadcast({'t': 'clear'})
+    elif op in ('delete', 'mute'):
+        with CHAT_LOCK:
+            hit = [(m, ip) for (m, ip) in CHAT['history'] if m['id'] == mid]
+            if hit:
+                CHAT['history'] = collections.deque(
+                    [(m, ip) for (m, ip) in CHAT['history'] if m['id'] != mid], maxlen=CHAT_HISTORY)
+                if op == 'mute':
+                    CHAT['muted'][hit[0][1]] = now + CHAT_MUTE_SECS
+            # forget mutes that have run out
+            CHAT['muted'] = {ip: t for ip, t in CHAT['muted'].items() if t > now}
+        if hit:
+            chat_broadcast({'t': 'del', 'id': mid})
+    else:
+        return
+    peer.send({'t': 'mod-ok', 'op': op})
+
+
 class Handler(SimpleHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
 
@@ -476,6 +687,8 @@ class Handler(SimpleHTTPRequestHandler):
         route = self.path.split('?')[0]
         if route == '/ws':
             return self.websocket()
+        if route == '/chat':
+            return self.chat_socket()
         if route == '/api/links':
             # a failed refresh with an older list in hand serves the older list;
             # with nothing in hand it says so, rather than claiming there are none
@@ -489,7 +702,7 @@ class Handler(SimpleHTTPRequestHandler):
             with LOCK:
                 body = json.dumps({'ok': True, 'waiting': len(QUEUE),
                                    'live': STATS['live'], 'paired': STATS['paired'],
-                                   'matches': len(MATCHES)}).encode()
+                                   'matches': len(MATCHES), 'chat': len(CHAT['peers'])}).encode()
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Content-Length', str(len(body)))
@@ -547,11 +760,12 @@ class Handler(SimpleHTTPRequestHandler):
         code, reply = links_post(self.headers.get('X-Dev-Key') or '', self.rfile.read(n))
         return self.send_json(code, reply)
 
-    def websocket(self):
+    def ws_accept(self):
+        """Answer a websocket upgrade. False, with a 400 sent, if it is not one."""
         key = self.headers.get('Sec-WebSocket-Key')
         if not key or 'websocket' not in (self.headers.get('Upgrade') or '').lower():
             self.send_error(400, 'expected a websocket upgrade')
-            return
+            return False
         accept = base64.b64encode(hashlib.sha1((key + GUID).encode()).digest()).decode()
         self.send_response(101, 'Switching Protocols')
         self.send_header('Upgrade', 'websocket')
@@ -559,6 +773,80 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header('Sec-WebSocket-Accept', accept)
         self.end_headers()
         self.wfile.flush()
+        return True
+
+    def client_ip(self):
+        """The caller's address as a salted hash. Behind Render's proxy the real
+        address is the last X-Forwarded-For entry; anything before it is
+        whatever the client chose to send."""
+        fwd = [p.strip() for p in (self.headers.get('X-Forwarded-For') or '').split(',') if p.strip()]
+        ip = fwd[-1] if fwd else self.client_address[0]
+        return hashlib.sha256(CHAT_SALT + ip.encode('utf-8', 'replace')).hexdigest()[:16]
+
+    def chat_socket(self):
+        if chat_filter is None:
+            # no filter, no chat: an unfiltered room is not an option
+            return self.send_json(503, {'ok': False, 'error': 'Chat is offline.'})
+        ip = self.client_ip()
+        with CHAT_LOCK:
+            held = sum(1 for p in CHAT['peers'] if p.ip == ip)
+        if not self.ws_accept():
+            return
+        peer = ChatPeer(self, ip)
+        if held >= CHAT_PER_IP:
+            peer.send({'t': 'err', 'code': 'busy', 'msg': 'Too many chat windows open from here.'})
+            return
+        with CHAT_LOCK:
+            CHAT['peers'].add(peer)
+            history = [m for (m, _) in CHAT['history']]
+            online = len(CHAT['peers'])
+            names = sorted({p.shown() for p in CHAT['peers']}, key=str.lower)
+        peer.send({'t': 'hello', 'history': history, 'online': online, 'names': names})
+        chat_roster()
+        try:
+            self.chat_pump(peer)
+        except Exception:
+            pass
+        finally:
+            peer.alive = False
+            with CHAT_LOCK:
+                CHAT['peers'].discard(peer)
+            chat_roster()
+
+    def chat_pump(self, peer):
+        while True:
+            frame = ws_read(self.rfile)
+            if frame is None:
+                return
+            opcode, payload = frame
+            if opcode == 0x8 or len(payload) > CHAT_FRAME_MAX:
+                return
+            if opcode == 0x9:
+                with peer.lock:
+                    self.wfile.write(ws_frame(payload, 0xA))
+                    self.wfile.flush()
+                continue
+            if opcode != 0x1:
+                continue
+            try:
+                msg = json.loads(payload.decode('utf-8'))
+            except Exception:
+                continue
+            if not isinstance(msg, dict):
+                continue
+            t = msg.get('t')
+            if t == 'say':
+                chat_say(peer, msg)
+            elif t in ('hi', 'name'):
+                chat_rename(peer, msg)
+            elif t == 'mod':
+                chat_mod(peer, msg)
+            elif t == 'ping':
+                peer.send({'t': 'pong'})
+
+    def websocket(self):
+        if not self.ws_accept():
+            return
 
         peer = Peer(self)
         with LOCK:

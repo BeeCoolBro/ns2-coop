@@ -1270,6 +1270,110 @@ transform: translateX(4px);
 .lnk-del:hover, .lnk-del.arm { color: #ff5d73; }
 .lnk-empty { padding: 40px 20px; text-align: center; color: var(--muted); font-size: 0.8rem; border: 1px dashed var(--border); font-family: 'Share Tech Mono', monospace; }
 .lnk-retry { margin-top: 12px; }
+/* ===== CHAT TAB ===== */
+.tab-btn.chat-tab.active { color: color-mix(in srgb, var(--accent) 55%, var(--accent2)); border-bottom-color: currentColor; }
+.chat-badge { display: inline-block; min-width: 16px; height: 16px; margin-left: 6px; padding: 0 4px; border-radius: 8px;
+  background: var(--accent2); color: #fff; font-size: 0.58rem; line-height: 16px; text-align: center; letter-spacing: 0;
+  vertical-align: 1px; animation: bv-tab-in var(--dur-3) var(--ease-spring); }
+.chat-badge[hidden] { display: none; }
+#chat-view { width: 100%; }
+.chat-wrap { max-width: 820px; margin: 20px 24px 28px; display: flex; flex-direction: column; gap: 10px; }
+.chat-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.chat-title { font-family: 'Orbitron', sans-serif; font-size: 0.65rem; letter-spacing: 0.25em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent) 55%, var(--accent2)); opacity: 0.9; }
+.chat-online { display: inline-flex; align-items: center; gap: 6px; font-size: 0.7rem; color: var(--muted); font-family: 'Share Tech Mono', monospace; }
+.chat-online i { width: 7px; height: 7px; border-radius: 50%; background: #3ddc84; box-shadow: 0 0 8px #3ddc84; }
+.chat-online.off i { background: var(--muted); box-shadow: none; }
+.chat-status { font-size: 0.68rem; color: var(--muted); font-family: 'Share Tech Mono', monospace; }
+.chat-tools-head { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.chat-btn { background: none; border: 1px solid var(--border); color: var(--muted); font-family: 'Share Tech Mono', monospace;
+  font-size: 0.68rem; padding: 5px 10px; cursor: pointer; }
+.chat-btn:hover { color: var(--text); border-color: var(--accent); }
+.chat-btn.danger:hover { color: #ff5d73; border-color: #ff5d73; }
+.chat-key { background: var(--bg2); border: 1px solid var(--border); color: var(--text); padding: 5px 8px;
+  font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; width: 190px; }
+.chat-log { height: min(60vh, 620px); min-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;
+  padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 2px; scroll-behavior: smooth; }
+.chat-empty { margin: auto; color: var(--muted); font-size: 0.78rem; text-align: center; font-family: 'Share Tech Mono', monospace; }
+.chat-msg { position: relative; padding: 6px 10px; border-left: 2px solid transparent; border-radius: 2px;
+  font-family: 'Share Tech Mono', monospace; transition: background-color var(--dur-2) var(--ease-out); }
+.chat-msg.fresh { animation: bv-row-in 360ms var(--ease-out) backwards; }
+.chat-msg:hover { background: color-mix(in srgb, var(--text) 4%, transparent); }
+.chat-msg.mine { border-left-color: color-mix(in srgb, var(--accent) 55%, var(--accent2)); background: color-mix(in srgb, var(--accent) 5%, transparent); }
+.chat-meta { display: flex; align-items: baseline; gap: 8px; font-size: 0.68rem; }
+.chat-name { font-weight: 700; letter-spacing: 0.04em; }
+.chat-owner { font-family: 'Orbitron', sans-serif; font-size: 0.5rem; letter-spacing: 0.15em; padding: 1px 5px;
+  border: 1px solid var(--accent3); color: var(--accent3); }
+.chat-time { color: var(--muted); font-size: 0.6rem; }
+.chat-text { margin-top: 2px; font-size: 0.82rem; color: var(--text); line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.chat-mod { position: absolute; top: 4px; right: 6px; display: none; gap: 6px; }
+.chat-msg:hover .chat-mod { display: flex; }
+.chat-mod button { background: var(--bg2); border: 1px solid var(--border); color: var(--muted); font-size: 0.6rem;
+  padding: 2px 7px; cursor: pointer; font-family: 'Share Tech Mono', monospace; }
+.chat-mod button:hover { color: #ff5d73; border-color: #ff5d73; }
+.chat-note { min-height: 1em; font-size: 0.72rem; color: var(--muted); font-family: 'Share Tech Mono', monospace; }
+.chat-note.bad { color: #ff5d73; }
+.chat-note.good { color: #3ddc84; }
+.chat-form { display: flex; gap: 8px; align-items: stretch; }
+.chat-as { align-self: center; font-size: 0.7rem; color: var(--muted); font-family: 'Share Tech Mono', monospace; white-space: nowrap; }
+.chat-as b { color: var(--text); }
+.chat-input { flex: 1; min-width: 0; background: var(--bg2); border: 1px solid var(--border); color: var(--text);
+  padding: 10px 12px; font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; border-radius: 2px; }
+.chat-input:focus { outline: none; border-color: color-mix(in srgb, var(--accent) 55%, var(--accent2));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 22%, transparent); }
+.chat-send { background: color-mix(in srgb, var(--accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--accent2));
+  color: var(--text); font-family: 'Orbitron', sans-serif; font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase;
+  padding: 0 16px; cursor: pointer; }
+.chat-send:hover { background: color-mix(in srgb, var(--accent) 26%, transparent); }
+.chat-send:disabled { opacity: 0.45; cursor: default; }
+.chat-rules { font-size: 0.66rem; color: var(--muted); line-height: 1.5; }
+.chat-at { color: color-mix(in srgb, var(--accent) 70%, var(--text)); font-weight: 700; }
+.chat-at.me { color: #111; background: var(--accent3); padding: 0 3px; border-radius: 2px; }
+.chat-msg.pinged { background: color-mix(in srgb, var(--accent3) 9%, transparent); border-left-color: var(--accent3); }
+.chat-msg.flash { animation: chat-flash 1.6s var(--ease-out); }
+@keyframes chat-flash { 0%, 30% { background: color-mix(in srgb, var(--accent3) 28%, transparent); } 100% { background: transparent; } }
+.chat-form { position: relative; }
+.chat-ac { position: absolute; left: 0; bottom: calc(100% + 6px); min-width: 220px; max-width: 100%; max-height: 220px; overflow-y: auto;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 3px; box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  padding: 4px; z-index: 30; animation: bv-fade-in var(--dur-2) var(--ease-out); }
+.chat-ac[hidden] { display: none; }
+.chat-ac-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 10px; background: none; border: 0;
+  color: var(--text); text-align: left; cursor: pointer; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; border-radius: 2px; }
+.chat-ac-item i { width: 7px; height: 7px; border-radius: 50%; background: #3ddc84; flex-shrink: 0; }
+.chat-ac-item.sel, .chat-ac-item:hover { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.chat-ac-empty { padding: 7px 10px; color: var(--muted); font-size: 0.72rem; font-family: 'Share Tech Mono', monospace; }
+.chat-bell { background: none; border: 1px solid var(--border); color: var(--muted); font-family: 'Share Tech Mono', monospace;
+  font-size: 0.66rem; padding: 4px 9px; cursor: pointer; }
+.chat-bell.on { color: var(--accent3); border-color: var(--accent3); }
+.chat-bell[hidden] { display: none; }
+#chat-pings { position: fixed; top: 16px; right: 16px; z-index: 99990; display: flex; flex-direction: column; gap: 10px;
+  width: min(340px, calc(100vw - 32px)); pointer-events: none; }
+.chat-ping { pointer-events: auto; cursor: pointer; background: var(--panel); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent3); border-radius: 3px; padding: 11px 34px 11px 14px; position: relative;
+  box-shadow: 0 14px 34px rgba(0,0,0,0.5), 0 0 18px color-mix(in srgb, var(--accent3) 18%, transparent);
+  animation: chat-ping-in var(--dur-4) var(--ease-spring) backwards; font-family: 'Share Tech Mono', monospace;
+  transition: opacity var(--dur-2) var(--ease-in), transform var(--dur-3) var(--ease-in); }
+.chat-ping.out { opacity: 0; transform: translateX(24px); }
+@keyframes chat-ping-in { from { opacity: 0; transform: translateX(28px) scale(0.97); } to { opacity: 1; transform: none; } }
+.chat-ping-head { font-size: 0.7rem; color: var(--muted); letter-spacing: 0.04em; }
+.chat-ping-head b { font-weight: 700; }
+.chat-ping-text { margin-top: 4px; font-size: 0.82rem; color: var(--text); line-height: 1.4; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.chat-ping-go { margin-top: 6px; font-size: 0.62rem; color: var(--accent3); letter-spacing: 0.08em; text-transform: uppercase; }
+.chat-ping-x { position: absolute; top: 6px; right: 8px; background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 0.8rem; }
+.chat-ping-x:hover { color: var(--text); }
+.bv-name-row { display: flex; gap: 8px; }
+.bv-name-row input { flex: 1; min-width: 0; background: var(--bg2); border: 1px solid var(--border); color: var(--text);
+  padding: 8px 10px; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; border-radius: 2px; }
+.bv-name-row input:focus { outline: none; border-color: var(--accent); }
+.bv-name-row button { background: none; border: 1px solid var(--accent); color: var(--accent); padding: 0 14px; cursor: pointer;
+  font-family: 'Orbitron', sans-serif; font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; }
+.bv-name-row button:hover { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+@media (max-width: 640px) {
+  .chat-wrap { margin: 14px 12px 24px; }
+  .chat-as { display: none; }
+  .chat-log { height: 56vh; }
+}
 @media (max-width: 640px) {
   .lnk-wrap { margin: 16px 12px 32px; }
   .lnk-form-row { grid-template-columns: 1fr; }
@@ -2896,7 +3000,7 @@ body.potato-mode { transition: none; }
    shown. render() hides and re-shows the active view inside one task, so
    typing in search does not replay it -- only a real switch does. */
 @keyframes bv-view-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-#categories-view, #filtered-view, #app-grid, #dev-panel, #allsongs-view, #links-view {
+#categories-view, #filtered-view, #app-grid, #dev-panel, #allsongs-view, #links-view, #chat-view {
   animation: bv-view-in var(--dur-4) var(--ease-out) backwards;
 }
 @keyframes bv-side-in { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
@@ -3008,6 +3112,10 @@ body.potato-mode { transition: none; }
 <line x1="5" y1="7.5" x2="11" y2="7.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
 <line x1="5" y1="10.5" x2="11" y2="10.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
 <line x1="5" y1="13" x2="8.5" y2="13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+</symbol>
+<symbol id="bv-chat" viewBox="0 0 16 16">
+<path d="M3 3.2h10a1.3 1.3 0 0 1 1.3 1.3v5.6a1.3 1.3 0 0 1-1.3 1.3H7.2L4.2 13.6v-2.2H3a1.3 1.3 0 0 1-1.3-1.3V4.5A1.3 1.3 0 0 1 3 3.2z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+<circle cx="5.4" cy="7.3" r=".9" fill="currentColor"/><circle cx="8" cy="7.3" r=".9" fill="currentColor"/><circle cx="10.6" cy="7.3" r=".9" fill="currentColor"/>
 </symbol>
 <symbol id="bv-link" viewBox="0 0 16 16">
 <path d="M6.6 9.4a2.8 2.8 0 0 0 4 0l2.3-2.3a2.8 2.8 0 0 0-4-4l-.9.9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -3185,6 +3293,14 @@ body.potato-mode { transition: none; }
 <div class="sfx-switch on" id="vfx-switch"></div>
 <span class="sfx-label" id="vfx-label">VFX Enabled</span>
 </div>
+</div>
+<div class="setting-group">
+<span class="setting-label">Your Name</span>
+<div class="bv-name-row">
+<input id="bv-name-input" maxlength="20" placeholder="Your name" spellcheck="false" autocomplete="off">
+<button type="button" id="bv-name-save">Save</button>
+</div>
+<div class="bv-motion-hint">Shown in the header and used in the chat.</div>
 </div>
 <div class="setting-group">
 <span class="setting-label">Full Motion</span>
@@ -3584,6 +3700,7 @@ animation: launch-flash-anim 0.4s var(--ease-out);
 <button class="tab-btn active" data-tab="games"><svg class="bv-icon" aria-hidden="true"><use href="#bv-gamepad"/></svg> Games</button>
 <button class="tab-btn apps-tab" data-tab="apps"><svg class="bv-icon" aria-hidden="true"><use href="#bv-apps"/></svg> Apps</button>
 <button class="tab-btn links-tab" data-tab="links"><svg class="bv-icon" aria-hidden="true"><use href="#bv-link"/></svg> Links</button>
+<button class="tab-btn chat-tab" data-tab="chat"><svg class="bv-icon" aria-hidden="true"><use href="#bv-chat"/></svg> Chat<span class="chat-badge" id="chat-badge" hidden></span></button>
 <button class="tab-btn credits-tab" data-tab="credits" style="display:none"><svg class="bv-icon" aria-hidden="true"><use href="#bv-credits"/></svg> Credits</button>
 <button class="tab-btn dev-tab" data-tab="dev" id="dev-tab-btn"><svg class="bv-icon" aria-hidden="true"><use href="#bv-dev"/></svg> Dev</button>
 <button class="tab-btn allsongs-tab" data-tab="allsongs" id="allsongs-tab-btn"><svg class="bv-icon" aria-hidden="true"><use href="#bv-music"/></svg> All Songs</button>
@@ -3727,6 +3844,8 @@ animation: launch-flash-anim 0.4s var(--ease-out);
 <div id="app-grid" style="display:none"></div>
 <div id="allsongs-view" style="display:none"></div>
 <div id="links-view" style="display:none"></div>
+<div id="chat-view" style="display:none"></div>
+<div id="chat-pings" aria-live="polite"></div>
 <div id="dev-panel" style="display:none"></div>
 </div>
 </div>
@@ -5699,6 +5818,7 @@ const SFX = {
   'tab-credits':  (v, a, seq, N) => v({ freq: N.B4, decay: 0.05, gain: 0.06, partials: [[2, 0.22], [3, 0.06]], wet: 0.06 }),
   'tab-dev':      (v, a, seq, N) => v({ freq: N.Cs6, decay: 0.05, gain: 0.06, partials: [[2, 0.22], [3, 0.06]], wet: 0.06 }),
   'tab-allsongs': (v, a, seq, N) => v({ freq: N.E6, decay: 0.05, gain: 0.06, partials: [[2, 0.22], [3, 0.06]], wet: 0.06 }),
+  'tab-chat':     (v, a, seq, N) => v({ freq: N.Fs6, decay: 0.05, gain: 0.06, partials: [[2, 0.22], [3, 0.06]], wet: 0.06 }),
   'filter':       (v, a, seq, N) => v({ freq: N.Fs5, to: N.Gs5, glide: 0.03, decay: 0.035, gain: 0.05, type: 'triangle', partials: [[2, 0.18]] }),
   'nav-back':     (v, a, seq, N) => seq([N.B5, N.Fs5], 0.045, { decay: 0.035, gain: 0.045, partials: [[2, 0.15]] }),
   'ui-mode':      (v, a, seq, N) => seq([N.Gs5, N.Cs6, N.Gs5], 0.04, { decay: 0.028, gain: 0.04, partials: [[2, 0.15]] }),
@@ -5790,6 +5910,15 @@ const SFX = {
   'secret-fade':   (v, a, seq, N) => { a({ from: 2000, to: 700, dur: 0.2, gain: 0.01 }); v({ freq: N.B5, to: N.Gs5, glide: 0.15, decay: 0.08, gain: 0.04, wet: 0.18 }); },
   'secret-yes':    (v, a, seq, N) => { v({ freq: 400, to: 800, glide: 0.07, decay: 0.05, gain: 0.06 }); seq([N.Gs5, N.B5, N.E6], 0.06, { at: 0.08, decay: 0.1, gain: 0.045, partials: [[2, 0.18]], wet: 0.22 }); },
 
+  // ── chat ──
+  'chat-send':     (v, a, seq, N) => { v({ freq: N.B5, to: N.Fs6, glide: 0.05, decay: 0.04, gain: 0.045, partials: [[2, 0.12]] }); a({ from: 1400, to: 3600, dur: 0.1, gain: 0.005 }); },
+  'chat-in':       (v, a, seq, N) => seq([N.Gs6, N.E6], 0.06, { decay: 0.05, gain: 0.035, partials: [[2, 0.1]], wet: 0.15 }),
+  'chat-filtered': (v, a, seq, N) => { v({ freq: N.B5, decay: 0.09, gain: 0.06, type: 'triangle' }); v({ freq: N.B6, decay: 0.05, gain: 0.015 }); },
+  'chat-slow':     (v, a, seq, N) => seq([N.B4, N.Gs4], 0.06, { decay: 0.035, gain: 0.06, type: 'triangle', lp: 1600 }),
+  'chat-mod':      (v, a, seq, N) => seq([N.Cs6, N.Gs6], 0.05, { decay: 0.06, gain: 0.04, type: 'triangle', wet: 0.12 }),
+  'chat-mention':  (v, a, seq, N) => { seq([N.E6, N.B6], 0.07, { decay: 0.1, gain: 0.045, partials: [[2, 0.18], [2.76, 0.06]], wet: 0.2 }); v({ at: 0.16, freq: N.Gs6, decay: 0.16, gain: 0.035, partials: [[2, 0.12]], wet: 0.3 }); },
+  'name-save':     (v, a, seq, N) => seq([N.Gs4, N.Cs5, N.Gs5], 0.045, { decay: 0.07, gain: 0.05, type: 'triangle', partials: [[2, 0.12]], wet: 0.12 }),
+
   // ── the old generic names, kept so nothing missed ever goes silent ──
   'click':      (v, a, seq, N) => v({ freq: N.B5, to: N.Gs5, glide: 0.03, decay: 0.035, gain: 0.05, partials: [[2, 0.2]] }),
   'tab':        (v, a, seq, N) => v({ freq: N.Gs5, decay: 0.05, gain: 0.06, partials: [[2, 0.25], [3, 0.08]], wet: 0.06 }),
@@ -5810,12 +5939,12 @@ const SFX = {
 // 100 ms, RMS). The trims that land them there are measured, not guessed.
 const SFX_TIER = {};
 [
- [['tab-games', 'tab-apps', 'tab-links', 'tab-credits', 'tab-dev', 'tab-allsongs', 'filter', 'nav-back', 'ui-mode',
+ [['tab-chat', 'chat-send', 'chat-in', 'tab-games', 'tab-apps', 'tab-links', 'tab-credits', 'tab-dev', 'tab-allsongs', 'filter', 'nav-back', 'ui-mode',
   'tour-next', 'tour-back', 'sfx-on', 'sfx-off', 'vfx-on', 'vfx-off', 'motion-on', 'motion-off', 'compact-on',
   'compact-off', 'scene-on', 'scene-off', 'blob-on', 'blob-off', 'potato-on', 'potato-off', 'music-on', 'music-off',
   'np-playlist', 'onboard-theme', 'onboard-ui', 'links-open', 'links-refresh', 'links-retry', 'links-arm',
   'bee-poke', 'bee-select', 'secret-send', 'click', 'tab', 'hover', 'reveal', 'toggle-on', 'toggle-off'], -33],
- [['tour-skip', 'tour-replay', 'settings-open', 'settings-close', 'theme-pick', 'themes-expand', 'themes-collapse',
+ [['chat-mention', 'name-save', 'chat-filtered', 'chat-slow', 'chat-mod', 'tour-skip', 'tour-replay', 'settings-open', 'settings-close', 'theme-pick', 'themes-expand', 'themes-collapse',
    'theme-locked', 'onboard-next', 'random', 'game-close', 'star', 'unstar', 'ext-warn-back', 'content-warn',
    'dev-gate', 'dev-wrong', 'devlink-wrong', 'reset-cancel', 'links-added', 'links-removed', 'links-refused',
    'links-offline', 'links-forget', 'bee-buzz', 'bee-pop', 'bee-hmm', 'bee-boing', 'bee-fade', 'bee-close',
@@ -5826,6 +5955,7 @@ const SFX_TIER = {};
 
 const SFX_TRIM = {
   // -33 dB
+  'tab-chat': 1.429, 'chat-send': 2.287, 'chat-in': 1.28,
   'tab-games': 1.437, 'tab-apps': 1.438, 'tab-links': 1.436, 'tab-credits': 1.433, 'tab-dev': 1.421,
   'tab-allsongs': 1.418, 'filter': 2.834, 'nav-back': 1.273, 'ui-mode': 1.153, 'tour-next': 1.142,
   'tour-back': 1.424, 'sfx-on': 0.971, 'sfx-off': 2.591, 'vfx-on': 1.155, 'vfx-off': 1.806,
@@ -5836,6 +5966,7 @@ const SFX_TRIM = {
   'bee-select': 0.969, 'secret-send': 1.37, 'click': 2.311, 'tab': 1.413, 'hover': 4, 'reveal': 4,
   'toggle-on': 0.962, 'toggle-off': 1.153,
   // -30 dB
+  'chat-mention': 0.929, 'name-save': 0.983, 'chat-filtered': 1.619, 'chat-slow': 1.529, 'chat-mod': 1.785,
   'tour-skip': 1.641, 'tour-replay': 1.193, 'settings-open': 1.199, 'settings-close': 1.52,
   'theme-pick': 0.818, 'themes-expand': 1.077, 'themes-collapse': 1.371, 'theme-locked': 1.01,
   'onboard-next': 1.184, 'random': 0.807, 'game-close': 1.431, 'star': 1.751, 'unstar': 1.94,
@@ -6098,9 +6229,17 @@ function render() {
   if (allSongsView) allSongsView.style.display = 'none';
   const linksView = document.getElementById('links-view');
   if (linksView) linksView.style.display = 'none';
+  const chatView = document.getElementById('chat-view');
+  if (chatView) chatView.style.display = 'none';
 
   // Sidebar visibility
-  sidebar.style.display = (activeTab === 'dev' || activeTab === 'allsongs' || activeTab === 'links' || uiMode === 'old') ? 'none' : 'flex';
+  sidebar.style.display = (activeTab === 'dev' || activeTab === 'allsongs' || activeTab === 'links' || activeTab === 'chat' || uiMode === 'old') ? 'none' : 'flex';
+
+  if (activeTab === 'chat') {
+    chatView.style.display = 'block';
+    renderChat();
+    return;
+  }
 
   if (activeTab === 'links') {
     linksView.style.display = 'block';
@@ -6791,9 +6930,549 @@ function renderLinks() {
   window.unlockDevMode = function () {
     const r = unlock.apply(this, arguments);
     if (activeTab === 'links') renderLinks();
+    if (activeTab === 'chat') renderChat();
     return r;
   };
 })();
+
+// ===== YOUR NAME =====
+// Until now the name could only be set once, at first run. Settings can change
+// it; the header, the chat's label and the name the chat room shows all follow.
+(function () {
+  const input = document.getElementById('bv-name-input');
+  const save = document.getElementById('bv-name-save');
+  if (!input || !save) return;
+  const fill = function () { try { input.value = localStorage.getItem('player-name') || ''; } catch (e) {} };
+  fill();
+  document.getElementById('settings-open-btn').addEventListener('click', fill);
+  const commit = function () {
+    const name = input.value.replace(/\s+/g, ' ').trim().slice(0, 20);
+    if (!name) { input.focus(); playSound('chat-slow'); return; }
+    let was = '';
+    try { was = localStorage.getItem('player-name') || ''; localStorage.setItem('player-name', name); } catch (e) {}
+    input.value = name;
+    if (name === was) return;
+    applyPlayerName(name);
+    showToast('\u2713 Name set to ' + name);
+    playSound('name-save');
+  };
+  save.addEventListener('click', commit);
+  input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); commit(); } });
+  // the vault open in another browser tab changed it
+  window.addEventListener('storage', function (e) {
+    if (e.key === 'player-name' && e.newValue) { applyPlayerName(e.newValue); fill(); }
+  });
+})();
+
+// ===== CHAT =====
+// One room for everyone on the site, live over a websocket to the same server
+// that serves the vault. The page connects only once someone opens the tab,
+// and stays connected after that so the tab can count what arrives while you
+// are elsewhere. The server filters every message and name before anyone sees
+// them; here, text only ever reaches the page through textContent.
+const CHAT_HOME_WS = 'wss://ns2-coop.onrender.com/chat';
+const CH = { ws: null, url: null, connected: false, started: false, retry: 0, retryT: null, pingT: null,
+             msgs: [], online: 0, unread: 0, mine: new Set(), me: '', roster: [], pinged: 0, ac: null };
+
+function chatName() {
+  try { return (localStorage.getItem('player-name') || '').trim().slice(0, 20) || 'Guest'; } catch (e) { return 'Guest'; }
+}
+
+function chatCandidates() {
+  const web = location.protocol === 'http:' || location.protocol === 'https:';
+  const out = web ? [(location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/chat'] : [];
+  if (!web || location.origin !== LINKS_HOME) out.push(CHAT_HOME_WS);
+  return out;
+}
+
+function chatConnect() {
+  if (CH.ws && CH.ws.readyState <= 1) return;
+  const urls = CH.url ? [CH.url] : chatCandidates();
+  let i = 0;
+  (function next() {
+    if (i >= urls.length) { chatRetryLater(); return; }
+    const url = urls[i++];
+    let ws, opened = false;
+    try { ws = new WebSocket(url); } catch (e) { next(); return; }
+    CH.ws = ws;
+    chatStatus();
+    ws.onopen = function () {
+      opened = true; CH.url = url; CH.connected = true; CH.retry = 0;
+      clearInterval(CH.pingT);
+      CH.pingT = setInterval(function () { chatSend({ t: 'ping' }); }, 25000);
+      chatHello();
+      chatStatus();
+    };
+    ws.onmessage = function (e) {
+      let m; try { m = JSON.parse(e.data); } catch (x) { return; }
+      chatOnMessage(m);
+    };
+    ws.onclose = function () {
+      clearInterval(CH.pingT);
+      if (CH.ws === ws) CH.ws = null;
+      CH.connected = false;
+      if (!opened) { next(); return; }        // this address never answered: try the next
+      chatStatus();
+      chatRetryLater();
+    };
+  })();
+}
+
+// A dropped connection comes back on its own, backing off to 15 s.
+function chatRetryLater() {
+  clearTimeout(CH.retryT);
+  const wait = Math.min(15000, 1000 * Math.pow(2, CH.retry++));
+  CH.retryT = setTimeout(chatConnect, wait);
+  chatStatus();
+}
+
+// Say who we are: on connecting, and whenever the vault's name changes.
+function chatHello() {
+  const msg = { t: 'hi', name: chatName() };
+  if (linksIsDev() && linksKey()) msg.key = linksKey();
+  chatSend(msg);
+}
+
+function chatSyncName() {
+  const v = document.getElementById('chat-view');
+  if (v && v.dataset.built) v.querySelector('.chat-as b').textContent = chatName();
+  if (CH.connected) {
+    const msg = { t: 'name', name: chatName() };
+    if (linksIsDev() && linksKey()) msg.key = linksKey();
+    chatSend(msg);
+  }
+}
+
+function chatSend(obj) {
+  if (CH.ws && CH.ws.readyState === 1) { CH.ws.send(JSON.stringify(obj)); return true; }
+  return false;
+}
+
+function chatOnMessage(m) {
+  switch (m.t) {
+    case 'hello':
+      CH.msgs = Array.isArray(m.history) ? m.history : [];
+      CH.online = m.online || 0;
+      if (Array.isArray(m.names)) CH.roster = m.names;
+      chatDrawAll();
+      chatStatus();
+      break;
+    case 'msg': {
+      CH.msgs.push(m.m);
+      if (CH.msgs.length > 200) CH.msgs.shift();
+      const mine = !!(m.m.n && CH.mine.has(m.m.n));
+      chatAppend(m.m, true);
+      if (!mine) {
+        const pinged = chatMentionsMe(m.m);
+        playSound(pinged ? 'chat-mention' : 'chat-in');
+        if (activeTab !== 'chat') { CH.unread++; chatBadge(); }
+        // away from the chat, or the whole browser tab is in the background
+        if (pinged && (activeTab !== 'chat' || document.hidden)) chatPing(m.m);
+      }
+      break;
+    }
+    case 'roster':
+      CH.roster = Array.isArray(m.names) ? m.names : [];
+      CH.online = m.online || 0;
+      chatStatus();
+      chatAutocomplete();
+      break;
+    case 'online': CH.online = m.n || 0; chatStatus(); break;
+    case 'you': {
+      const was = CH.me;
+      CH.me = String(m.name || '');
+      const v = document.getElementById('chat-view');
+      if (v && v.dataset.built) v.querySelector('.chat-as b').textContent = CH.me;
+      // the name asked for could not be used: say what we are called instead
+      if (m.asked && CH.me !== m.asked && CH.me !== was) chatNote('That name can\u2019t be used in chat, so you\u2019re ' + CH.me + '.', 'bad');
+      break;
+    }
+    case 'filtered': chatNote('Some of that was filtered.', 'bad'); playSound('chat-filtered'); break;
+    case 'err':
+      if (m.code === 'key') { try { localStorage.removeItem(LINKS_KEY_STORE); } catch (e) {} renderChat(); }
+      chatNote(m.msg || 'Something went wrong.', 'bad');
+      playSound('chat-slow');
+      break;
+    case 'del': {
+      CH.msgs = CH.msgs.filter(function (x) { return x.id !== m.id; });
+      const el = document.querySelector('#chat-view .chat-msg[data-id="' + (+m.id) + '"]');
+      if (el) el.remove();
+      chatEmptyState();
+      break;
+    }
+    case 'clear': CH.msgs = []; chatDrawAll(); break;
+    case 'mod-ok':
+      chatNote(m.op === 'clear' ? 'Chat cleared.' : m.op === 'mute' ? 'Muted for 30 minutes and removed.' : 'Removed.', 'good');
+      playSound('chat-mod');
+      break;
+  }
+}
+
+function chatNote(text, kind) {
+  const n = document.querySelector('#chat-view .chat-note');
+  if (!n) return;
+  n.textContent = text || '';
+  n.className = 'chat-note' + (kind ? ' ' + kind : '');
+  clearTimeout(n._t);
+  if (text) n._t = setTimeout(function () { n.textContent = ''; n.className = 'chat-note'; }, 4500);
+}
+
+function chatBadge() {
+  const b = document.getElementById('chat-badge');
+  if (!b) return;
+  b.hidden = CH.unread <= 0;
+  b.textContent = CH.unread <= 0 ? '' : CH.unread > 9 ? '9+' : String(CH.unread);
+}
+
+function chatStatus() {
+  const v = document.getElementById('chat-view');
+  if (!v || !v.dataset.built) return;
+  const on = v.querySelector('.chat-online');
+  on.classList.toggle('off', !CH.connected);
+  on.querySelector('b').textContent = CH.connected ? CH.online : '\u2014';
+  v.querySelector('.chat-status').textContent = CH.connected ? '' :
+    (CH.ws && CH.ws.readyState === 0 ? 'Connecting\u2026' : 'Reconnecting\u2026');
+  v.querySelector('.chat-send').disabled = !CH.connected;
+  if (activeTab === 'chat') document.getElementById('total-count').textContent = CH.connected ? CH.online : '\u2014';
+}
+
+function chatHue(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
+  return h;
+}
+
+function chatRow(m, fresh) {
+  const row = lnkEl('div', 'chat-msg' + (fresh ? ' fresh' : ''));
+  row.dataset.id = m.id;
+  if (m.n && CH.mine.has(m.n)) row.classList.add('mine');
+  const meta = lnkEl('div', 'chat-meta');
+  const name = lnkEl('span', 'chat-name', String(m.name || 'Guest'));
+  name.style.color = 'hsl(' + chatHue(String(m.name || '')) + ' 70% 62%)';
+  meta.appendChild(name);
+  if (m.owner) meta.appendChild(lnkEl('span', 'chat-owner', 'OWNER'));
+  const d = new Date(m.at || Date.now());
+  meta.appendChild(lnkEl('span', 'chat-time', String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')));
+  row.appendChild(meta);
+  row.appendChild(chatTextWithMentions(m));
+  if (!(m.n && CH.mine.has(m.n)) && chatMentionsMe(m)) row.classList.add('pinged');
+  if (linksIsDev()) {
+    const tools = lnkEl('div', 'chat-mod');
+    const del = lnkEl('button', '', 'Delete');
+    del.type = 'button';
+    del.addEventListener('click', function () { chatModerate('delete', m.id); });
+    const mute = lnkEl('button', '', 'Mute');
+    mute.type = 'button';
+    mute.addEventListener('click', function () { chatModerate('mute', m.id); });
+    tools.append(del, mute);
+    row.appendChild(tools);
+  }
+  return row;
+}
+
+function chatMentionsMe(m) {
+  if (!CH.me || !Array.isArray(m.mentions)) return false;
+  const me = CH.me.toLowerCase();
+  return m.mentions.some(function (n) { return String(n).toLowerCase() === me; });
+}
+
+// The message text, with each @name the server confirmed picked out. Built
+// from text nodes and spans -- never innerHTML.
+function chatTextWithMentions(m) {
+  const box = lnkEl('div', 'chat-text');
+  const text = String(m.text || '');
+  const names = Array.isArray(m.mentions) ? m.mentions.map(String) : [];
+  if (!names.length) { box.textContent = text; return box; }
+  const lower = text.toLowerCase();
+  const spans = [];
+  names.forEach(function (n) {
+    const needle = '@' + n.toLowerCase();
+    let at = lower.indexOf(needle);
+    while (at !== -1) {
+      spans.push([at, at + needle.length, n]);
+      at = lower.indexOf(needle, at + needle.length);
+    }
+  });
+  spans.sort(function (a, b) { return a[0] - b[0]; });
+  let pos = 0;
+  spans.forEach(function (sp) {
+    if (sp[0] < pos) return;                       // overlapping: first one wins
+    if (sp[0] > pos) box.appendChild(document.createTextNode(text.slice(pos, sp[0])));
+    const tag = lnkEl('span', 'chat-at', text.slice(sp[0], sp[1]));
+    if (CH.me && sp[2].toLowerCase() === CH.me.toLowerCase()) tag.classList.add('me');
+    box.appendChild(tag);
+    pos = sp[1];
+  });
+  if (pos < text.length) box.appendChild(document.createTextNode(text.slice(pos)));
+  return box;
+}
+
+// ── the popup when someone mentions you ──
+function chatPing(m) {
+  const box = document.getElementById('chat-pings');
+  if (!box) return;
+  while (box.children.length >= 3) box.firstChild.remove();
+  const card = lnkEl('div', 'chat-ping');
+  card.setAttribute('role', 'status');
+  const head = lnkEl('div', 'chat-ping-head');
+  const who = lnkEl('b', '', String(m.name || 'Someone'));
+  who.style.color = 'hsl(' + chatHue(String(m.name || '')) + ' 70% 62%)';
+  head.append(who, document.createTextNode(' mentioned you'));
+  const text = String(m.text || '');
+  const close = lnkEl('button', 'chat-ping-x', '\u2715');
+  close.type = 'button';
+  close.title = 'Dismiss';
+  card.append(head, lnkEl('div', 'chat-ping-text', text.length > 160 ? text.slice(0, 157) + '\u2026' : text),
+              lnkEl('div', 'chat-ping-go', 'Open chat \u2192'), close);
+  const dismiss = function () {
+    clearTimeout(card._t);
+    card.classList.add('out');
+    setTimeout(function () { card.remove(); }, 320);
+  };
+  close.addEventListener('click', function (e) { e.stopPropagation(); dismiss(); });
+  card.addEventListener('click', function () {
+    dismiss();
+    const tab = document.querySelector('.tab-btn[data-tab="chat"]');
+    if (tab && activeTab !== 'chat') tab.click();
+    setTimeout(function () {
+      const row = document.querySelector('#chat-view .chat-msg[data-id="' + (+m.id) + '"]');
+      if (!row) return;
+      row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash');
+    }, 80);
+  });
+  card._t = setTimeout(dismiss, 9000);
+  card.addEventListener('mouseenter', function () { clearTimeout(card._t); });
+  card.addEventListener('mouseleave', function () { card._t = setTimeout(dismiss, 4000); });
+  box.appendChild(card);
+  if (document.hidden) {
+    CH.pinged++;
+    document.title = '(@' + CH.pinged + ') Clever';
+    chatDesktopAlert(m);
+  }
+}
+
+// The browser tab's title carries the count while it is in the background.
+document.addEventListener('visibilitychange', function () {
+  if (!document.hidden && CH.pinged) { CH.pinged = 0; document.title = 'Clever'; }
+});
+
+// Desktop alerts: only when asked for, only on secure pages, only while the
+// browser tab is hidden.
+const CHAT_ALERT_KEY = 'chatDesktopAlerts';
+function chatAlertsAvailable() { return 'Notification' in window && window.isSecureContext; }
+function chatAlertsOn() {
+  try { return chatAlertsAvailable() && Notification.permission === 'granted' && localStorage.getItem(CHAT_ALERT_KEY) === '1'; } catch (e) { return false; }
+}
+function chatDesktopAlert(m) {
+  if (!chatAlertsOn()) return;
+  try {
+    const n = new Notification(String(m.name || 'Someone') + ' mentioned you', { body: String(m.text || '').slice(0, 160), tag: 'vault-chat' });
+    n.onclick = function () {
+      window.focus();
+      const tab = document.querySelector('.tab-btn[data-tab="chat"]');
+      if (tab && activeTab !== 'chat') tab.click();
+      n.close();
+    };
+  } catch (e) {}
+}
+function chatBellDraw() {
+  const b = document.querySelector('#chat-view .chat-bell');
+  if (!b) return;
+  b.hidden = !chatAlertsAvailable();
+  const on = chatAlertsOn();
+  b.classList.toggle('on', on);
+  b.textContent = on ? 'Desktop alerts: on' : 'Desktop alerts: off';
+}
+
+// ── @ autocomplete ──
+// The text after the last @ before the caret, when it begins a name.
+function chatAtQuery(input) {
+  const upto = input.value.slice(0, input.selectionStart == null ? input.value.length : input.selectionStart);
+  const at = upto.lastIndexOf('@');
+  if (at < 0 || (at > 0 && !/\s/.test(upto[at - 1]))) return null;
+  const q = upto.slice(at + 1);
+  if (q.length > 20 || /\n/.test(q)) return null;
+  return { at: at, q: q };
+}
+
+function chatAutocomplete() {
+  const v = document.getElementById('chat-view');
+  if (!v || !v.dataset.built) return;
+  const input = v.querySelector('.chat-input');
+  const list = v.querySelector('.chat-ac');
+  const found = document.activeElement === input ? chatAtQuery(input) : null;
+  if (!found) { list.hidden = true; CH.ac = null; return; }
+  const q = found.q.toLowerCase();
+  const me = (CH.me || chatName()).toLowerCase();
+  const names = CH.roster.filter(function (n) { return n.toLowerCase() !== me && n.toLowerCase().indexOf(q) === 0; }).slice(0, 8);
+  // a space after a finished name closes the list
+  if (!names.length && /\s$/.test(found.q)) { list.hidden = true; CH.ac = null; return; }
+  const prev = CH.ac && CH.ac.names[CH.ac.sel];
+  let sel = Math.max(0, names.indexOf(prev));
+  CH.ac = { at: found.at, q: found.q, names: names, sel: sel };
+  list.textContent = '';
+  if (!names.length) {
+    list.appendChild(lnkEl('div', 'chat-ac-empty', CH.roster.length > 1 ? 'Nobody online by that name' : 'Nobody else is online'));
+  }
+  names.forEach(function (n, i) {
+    const item = lnkEl('button', 'chat-ac-item' + (i === sel ? ' sel' : ''));
+    item.type = 'button';
+    item.append(document.createElement('i'), document.createTextNode(n));
+    item.addEventListener('mousedown', function (e) { e.preventDefault(); chatPickMention(n); });
+    list.appendChild(item);
+  });
+  list.hidden = false;
+}
+
+function chatPickMention(name) {
+  const v = document.getElementById('chat-view');
+  const input = v.querySelector('.chat-input');
+  if (!CH.ac) return;
+  const before = input.value.slice(0, CH.ac.at);
+  const after = input.value.slice(CH.ac.at + 1 + CH.ac.q.length);
+  const insert = '@' + name + ' ';
+  input.value = (before + insert + after.replace(/^\s+/, '')).slice(0, 240);
+  const caret = Math.min(input.value.length, before.length + insert.length);
+  input.setSelectionRange(caret, caret);
+  input.focus();
+  playSound('filter');
+  v.querySelector('.chat-ac').hidden = true;
+  CH.ac = null;
+}
+
+function chatNearBottom(log) { return log.scrollHeight - log.scrollTop - log.clientHeight < 80; }
+
+function chatAppend(m, fresh) {
+  const v = document.getElementById('chat-view');
+  if (!v || !v.dataset.built) return;
+  const log = v.querySelector('.chat-log');
+  const stick = chatNearBottom(log) || (m.n && CH.mine.has(m.n));
+  const empty = log.querySelector('.chat-empty');
+  if (empty) empty.remove();
+  log.appendChild(chatRow(m, fresh));
+  if (stick) log.scrollTop = log.scrollHeight;
+}
+
+function chatEmptyState() {
+  const v = document.getElementById('chat-view');
+  if (!v || !v.dataset.built) return;
+  const log = v.querySelector('.chat-log');
+  if (!log.querySelector('.chat-msg') && !log.querySelector('.chat-empty')) {
+    log.appendChild(lnkEl('div', 'chat-empty', CH.connected ? 'No messages yet \u2014 say hi.' : 'Connecting to the chat\u2026'));
+  }
+}
+
+function chatDrawAll() {
+  const v = document.getElementById('chat-view');
+  if (!v || !v.dataset.built) return;
+  const log = v.querySelector('.chat-log');
+  log.textContent = '';
+  CH.msgs.forEach(function (m) { log.appendChild(chatRow(m, false)); });
+  chatEmptyState();
+  log.scrollTop = log.scrollHeight;
+}
+
+function chatModerate(op, id) {
+  const keyIn = document.querySelector('#chat-view .chat-key');
+  const key = (keyIn && keyIn.value.trim()) || linksKey();
+  if (!key) { chatNote('Enter the owner key first.', 'bad'); if (keyIn) keyIn.focus(); return; }
+  try { localStorage.setItem(LINKS_KEY_STORE, key); } catch (e) {}
+  if (!chatSend({ t: 'mod', op: op, id: id, key: key })) chatNote('Not connected.', 'bad');
+}
+
+function buildChatShell(v) {
+  // static markup only -- messages are built with textContent in chatRow
+  v.innerHTML = `<div class="chat-wrap">
+    <div class="chat-head">
+      <span class="chat-title">Chat</span>
+      <span class="chat-online off"><i></i><b>\u2014</b> online</span>
+      <span class="chat-status"></span>
+      <button type="button" class="chat-bell" hidden>Desktop alerts: off</button>
+      <span class="chat-tools-head">
+        <input class="chat-key" type="password" placeholder="Owner key (DEV_KEY)" autocomplete="current-password">
+        <button type="button" class="chat-btn danger chat-clear">Clear chat</button>
+      </span>
+    </div>
+    <div class="chat-log" role="log" aria-live="polite"></div>
+    <div class="chat-note"></div>
+    <form class="chat-form" autocomplete="off">
+      <div class="chat-ac" hidden role="listbox"></div>
+      <span class="chat-as">as <b></b></span>
+      <input class="chat-input" maxlength="240" placeholder="Say something nice\u2026  (@ to mention)" spellcheck="true" aria-label="Message">
+      <button type="submit" class="chat-send" disabled>Send</button>
+    </form>
+    <div class="chat-rules">One room for everyone on the site. Keep it friendly \u2014 swearing is filtered and links are removed. Never share personal info.</div>
+  </div>`;
+  v.querySelector('.chat-clear').addEventListener('click', function () { chatModerate('clear'); });
+  v.querySelector('.chat-bell').addEventListener('click', function () {
+    if (!chatAlertsAvailable()) return;
+    if (chatAlertsOn()) {
+      try { localStorage.setItem(CHAT_ALERT_KEY, '0'); } catch (e) {}
+      chatBellDraw(); playSound('toggle-off');
+      return;
+    }
+    Notification.requestPermission().then(function (p) {
+      try { localStorage.setItem(CHAT_ALERT_KEY, p === 'granted' ? '1' : '0'); } catch (e) {}
+      if (p !== 'granted') chatNote('Desktop alerts are blocked for this site in your browser.', 'bad');
+      chatBellDraw(); playSound(p === 'granted' ? 'toggle-on' : 'chat-slow');
+    });
+  });
+  const input = v.querySelector('.chat-input');
+  input.addEventListener('input', chatAutocomplete);
+  input.addEventListener('click', chatAutocomplete);
+  input.addEventListener('blur', function () { setTimeout(function () { v.querySelector('.chat-ac').hidden = true; CH.ac = null; }, 120); });
+  input.addEventListener('keydown', function (e) {
+    const ac = CH.ac;
+    if (!ac || v.querySelector('.chat-ac').hidden) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!ac.names.length) return;
+      e.preventDefault();
+      ac.sel = (ac.sel + (e.key === 'ArrowDown' ? 1 : ac.names.length - 1)) % ac.names.length;
+      [].forEach.call(v.querySelectorAll('.chat-ac-item'), function (it, i) { it.classList.toggle('sel', i === ac.sel); });
+    } else if ((e.key === 'Enter' || e.key === 'Tab') && ac.names.length) {
+      e.preventDefault();
+      chatPickMention(ac.names[ac.sel]);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      v.querySelector('.chat-ac').hidden = true;
+      CH.ac = null;
+    }
+  });
+  v.querySelector('.chat-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    const input = v.querySelector('.chat-input');
+    const text = input.value.replace(/\s+/g, ' ').trim();
+    if (!text) return;
+    const n = Math.random().toString(36).slice(2, 12);
+    CH.mine.add(n);
+    const msg = { t: 'say', text: text, name: chatName(), n: n };
+    if (linksIsDev() && linksKey()) msg.key = linksKey();
+    if (!chatSend(msg)) { chatNote('Not connected yet \u2014 hang on a moment.', 'bad'); return; }
+    input.value = '';
+    playSound('chat-send');
+  });
+}
+
+function renderChat() {
+  const v = document.getElementById('chat-view');
+  if (!v) return;
+  if (!v.dataset.built) { buildChatShell(v); v.dataset.built = '1'; chatDrawAll(); }
+  document.getElementById('header-label').textContent = 'Online';
+  document.getElementById('total-count').textContent = CH.connected ? CH.online : '\u2014';
+  v.querySelector('.chat-as b').textContent = CH.me || chatName();
+  chatBellDraw();
+  const dev = linksIsDev();
+  v.querySelector('.chat-tools-head').style.display = dev ? '' : 'none';
+  // rows carry Delete and Mute only in dev mode, so a change of mode redraws
+  // them -- otherwise the messages already on screen would stay without
+  if (CH.dev !== dev) { CH.dev = dev; chatDrawAll(); }
+  v.querySelector('.chat-key').style.display = linksKey() ? 'none' : '';
+  CH.unread = 0;
+  chatBadge();
+  chatStatus();
+  if (!CH.started) { CH.started = true; chatConnect(); }
+}
 document.getElementById('enable-dev-btn').addEventListener('click', () => {
   document.getElementById('settings-modal').classList.remove('open');
   document.getElementById('dev-warn-password').value='';
@@ -6903,6 +7582,8 @@ let uiMode = localStorage.getItem(UI_KEY) || 'new';
 function applyPlayerName(name) {
   document.getElementById('header-subtitle').textContent = `Welcome, ${name}`;
   document.title = `Clever`;
+  // the chat goes by the vault's name, and hears about a change straight away
+  if (typeof chatSyncName === 'function') chatSyncName();
 }
 
 function applyUIMode() {
