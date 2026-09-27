@@ -9369,6 +9369,10 @@ let openBeeTalk = () => {};
   let popupVisible = false;
   let hideTimer = null;
   let manualHide = false;
+  // held: the pointer is over the panel, or one of its buttons has focus.
+  // autoShown: it came out because a track started, so it may tuck itself away.
+  let held = false;
+  let autoShown = false;
 
   const audio = new Audio();
 
@@ -9415,13 +9419,32 @@ let openBeeTalk = () => {};
     popup.classList.remove('hide-again');
     popup.classList.add('show');
     popupVisible = true;
+    autoShown = !!autoHide;
     clearTimeout(hideTimer);
-    if (autoHide) {
-      hideTimer = setTimeout(() => {
-        if (!manualHide) { slideAway(); }
-      }, 4500);
-    }
+    if (autoHide) scheduleTuck(4500);
   }
+
+  // Tuck the panel away after a while -- but never out from under someone who
+  // is using it. If it is held when the time comes, leaving it restarts this.
+  function scheduleTuck(ms) {
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => {
+      // :hover too -- a panel that slid out under a still cursor gets no mouseenter
+      if (!manualHide && !held && !popup.matches(':hover') && autoShown && popupVisible) slideAway();
+    }, ms);
+  }
+
+  function hold(on) {
+    held = on;
+    if (on) clearTimeout(hideTimer);
+    else if (autoShown && popupVisible && !manualHide) scheduleTuck(2000);
+  }
+  popup.addEventListener('mouseenter', () => hold(true));
+  popup.addEventListener('mouseleave', () => hold(popup.contains(document.activeElement)));
+  popup.addEventListener('focusin', () => hold(true));
+  popup.addEventListener('focusout', (e) => {
+    if (!popup.contains(e.relatedTarget) && !popup.matches(':hover')) hold(false);
+  });
 
   function slideAway() {
     popup.classList.add('hide-again');
