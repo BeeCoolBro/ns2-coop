@@ -21,8 +21,38 @@ paired automatically and land in the same match. No codes, no port forwarding.
 No dependencies. `requirements.txt` is empty on purpose; it only tells Render
 this is a Python service.
 
-`/healthz` and `/stats` return `{ok, waiting, live, paired}` if you want to see
-who is queued.
+`/healthz` and `/stats` return `{ok, waiting, live, paired, matches, chat}` if
+you want to see who is queued. The front page reads it too: `chat` is how many
+vaults are open (each one sits in the chat room) and `matches` how many games
+of NEON SIEGE 2 are going, shown on each door when above zero.
+
+## The front page and the two openings
+
+**`/` (index.html):** a honeycomb drawn on a canvas that lights up around the
+pointer, with pollen drifting up through it and a ripple where you click. On
+the first visit of a session a drop of honey falls into the logo and a ripple
+runs out through the hive as the page arrives. Each door tilts towards the
+pointer. The vault's door turns its dial and spills out what's inside, and
+NEON SIEGE 2's door has a small tower-defense fight running in it. Each door
+shows who is in there right now, and a ticker lists what is inside. **1** and
+**2** pick a door, and picking one opens it out into the next page.
+
+**Bee's Vault** opens with a vault door. Its dial cracks a combination while
+the page downloads, then the bolts pull back and the door swings open. It sits
+right after the favicon, not in `<body>`: the vault's head holds 1.7 MB of
+theme images, and until now the screen stayed blank while they arrived.
+
+**NEON SIEGE 2** opens like an arcade cabinet. The CRT powers on, and a
+synthwave sun rises over a rushing grid while "BeeSide Studio's presents"
+types out. Then the logo slams in with its colour channels split, and it flies
+onto the title screen's own logo.
+
+All three play in full once per browser session and short after that. The
+game's is always short inside Bee's Vault. A click, tap or key skips, reduced
+motion gets a fade, and a CSS-only failsafe hides either opening if its script
+never runs. The vault's tour and owner-key popup wait until the door has
+opened. The game's opening is in `neon-siege-2.html` like everything else, so
+`build-coop.py` carries it into the co-op build.
 
 ## What the free plan means
 
@@ -727,7 +757,7 @@ priority, synergy, or how a real wave actually arrives.
 | | |
 |---|---|
 | `server.py` | matchmaking + serves the pages (standard library only) |
-| `index.html` | the BeeSide Studio's front page at `/`: a way into each site, and back -- the vault's header and the game's title screen each have a BeeSide button |
+| `index.html` | the BeeSide Studio's front page at `/`: the hive, a door into each site with who is in there, and back -- the vault's header and the game's title screen each have a BeeSide button |
 | `neon-siege-2-coop.html` | the game, at `/neon-siege` |
 | `vault.html` | Bee's Vault, at `/vault` |
 | `chat_filter.py` | the vault chat's word filter |
