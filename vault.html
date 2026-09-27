@@ -2139,6 +2139,12 @@ body.theme-ultrabasic .bee-q:hover .bee-q-num { animation: none !important; }
 .dev-input:focus { border-color:var(--accent);box-shadow:var(--glow); }
 .dev-input::placeholder { color:var(--muted); }
 .dev-error { color:var(--accent2);font-size:0.7rem;letter-spacing:0.1em;margin-bottom:10px;min-height:1em; }
+.owner-key-text { font-size:0.78rem;line-height:1.65;letter-spacing:0.02em;color:var(--text);margin-bottom:16px; }
+.owner-key-text b { color:var(--accent);font-weight:normal;font-family:'Share Tech Mono',monospace; }
+.owner-key-note { font-size:0.66rem;line-height:1.55;color:var(--muted);margin-top:12px; }
+#owner-key-save:disabled { opacity:0.6;cursor:wait; }
+/* over the Q&A room (the bee's phrase turns dev mode on there), under a theme's unlock popup */
+#owner-key-modal { z-index:100005; }
 .dev-btn { background:var(--accent);color:#000;border:none;font-family:'Orbitron',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:0.15em;padding:10px 20px;cursor:pointer;border-radius:2px;width:100%;transition:opacity var(--dur-2) var(--ease-out); }
 .dev-btn:hover { opacity:0.85; }
 body.no-emoji .credits-bee, body.no-emoji .credits-author-icon { display:none; }
@@ -3527,6 +3533,21 @@ body.potato-mode { transition: none; }
 <div class="dev-error" id="dev-link-error"></div>
 <button class="dev-btn" id="dev-link-submit">LAUNCH</button>
 </div>
+</div>
+</div>
+<div class="modal-overlay" id="owner-key-modal">
+<div class="modal" style="max-width:380px">
+<div class="modal-title"><svg class="bv-icon" aria-hidden="true"><use href="#bv-lock"/></svg> Owner Key</div>
+<button class="modal-close" id="owner-key-close" title="Skip for now"><svg class="bv-icon" aria-hidden="true"><use href="#bv-close"/></svg></button>
+<p class="owner-key-text">Dev mode is on. To use the owner tools &mdash; adding links, reviewing suggestions, moderating chat and saving lyrics &mdash; enter the server&rsquo;s owner key (<b>DEV_KEY</b>).</p>
+<span class="setting-label">Owner key</span>
+<input class="dev-input" id="owner-key-input" type="password" placeholder="DEV_KEY..." autocomplete="current-password" spellcheck="false">
+<div class="dev-error" id="owner-key-error"></div>
+<div style="display:flex;gap:10px;">
+<button class="dev-btn" id="owner-key-save" style="flex:1">SAVE KEY</button>
+<button class="dev-btn" id="owner-key-skip" style="flex:1;background:none;color:var(--muted);border:1px solid var(--border);">SKIP</button>
+</div>
+<p class="owner-key-note">It&rsquo;s checked with the server, then remembered on this browser (Links &rarr; <i>Forget it</i> removes it). Skip it and the Links and Chat tabs ask when you need it.</p>
 </div>
 </div>
 <div class="modal-overlay" id="dev-warn-modal">
@@ -7338,14 +7359,97 @@ function renderLinks() {
   const unlock = window.unlockDevMode;
   if (typeof unlock !== 'function') return;
   window.unlockDevMode = function () {
+    const first = !linksIsDev();
     const r = unlock.apply(this, arguments);
     if (activeTab === 'links') renderLinks();
     if (activeTab === 'chat') renderChat();
     if (linksKey()) linksLoad();
+    // after the unlock toast -- and on a first unlock, after every theme it
+    // unlocks has had its popup
+    else ownerKeyAskSoon(first ? DEV_THEME_FNS.length * 300 + 500 : 450);
     return r;
   };
 })();
 if (linksIsDev() && linksKey()) setTimeout(linksLoad, 1500);
+
+// ── the owner key, asked for as dev mode turns on ──
+// Dev mode is only the public password; the owner tools need the server's
+// DEV_KEY. It is checked with the server before it is kept, so a typo is
+// caught here rather than at the first save.
+function ownerKeyAsk() {
+  const modal = document.getElementById('owner-key-modal');
+  if (!modal || modal.classList.contains('open') || linksKey()) return;
+  const input = document.getElementById('owner-key-input');
+  input.value = '';
+  document.getElementById('owner-key-error').textContent = '';
+  modal.classList.add('open');
+  setTimeout(() => input.focus(), 60);
+}
+
+function ownerKeyAskSoon(wait) {
+  setTimeout(function poll() {
+    if (linksKey() || !linksIsDev()) return;
+    if (typeof window.themeUnlockBusy === 'function' && window.themeUnlockBusy()) { setTimeout(poll, 400); return; }
+    ownerKeyAsk();
+  }, wait);
+}
+
+function ownerKeyClose() {
+  document.getElementById('owner-key-modal').classList.remove('open');
+}
+
+async function ownerKeySave() {
+  const input = document.getElementById('owner-key-input');
+  const err = document.getElementById('owner-key-error');
+  const btn = document.getElementById('owner-key-save');
+  const key = input.value.trim();
+  if (btn.disabled) return;
+  if (!key) { err.textContent = '\u2717 Enter the key'; input.focus(); playSound('dev-wrong'); return; }
+  btn.disabled = true;
+  btn.textContent = 'CHECKING\u2026';
+  err.textContent = '';
+  let res = null;
+  try { res = await linksFetch('/api/links', { headers: { 'X-Dev-Key': key } }); } catch (e) { res = null; }
+  btn.disabled = false;
+  btn.textContent = 'SAVE KEY';
+  if (!res || res.status !== 200) {
+    err.textContent = '\u2717 Couldn\u2019t reach the server \u2014 it may be waking up. Try again.';
+    playSound('links-offline');
+    return;
+  }
+  if (res.body.owner !== true) {
+    err.textContent = '\u2717 That key was refused';
+    input.value = '';
+    input.focus();
+    playSound('dev-wrong');
+    return;
+  }
+  try { localStorage.setItem(LINKS_KEY_STORE, key); } catch (e) {}
+  linksKeyRefused = false;
+  ownerKeyClose();
+  showToast('\u2713 Owner key saved \u2014 owner tools are on');
+  playSound('name-save');
+  // everything that uses the key picks it up now: the links and suggestions,
+  // the chat (which marks this vault as the owner's), and the muted list
+  linksLoad();
+  if (CH.connected) chatHello();
+  if (activeTab === 'chat') renderChat();
+  chatMutedAsk(true);
+}
+
+(function () {
+  const modal = document.getElementById('owner-key-modal');
+  if (!modal) return;
+  const skip = () => { ownerKeyClose(); playSound('toggle-off'); };
+  document.getElementById('owner-key-save').addEventListener('click', ownerKeySave);
+  document.getElementById('owner-key-skip').addEventListener('click', skip);
+  document.getElementById('owner-key-close').addEventListener('click', skip);
+  modal.addEventListener('click', e => { if (e.target === modal) skip(); });
+  document.getElementById('owner-key-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); ownerKeySave(); }
+    else if (e.key === 'Escape') { e.preventDefault(); skip(); }
+  });
+})();
 
 // ===== YOUR NAME =====
 // Until now the name could only be set once, at first run. Settings can change
@@ -11325,6 +11429,8 @@ let openBeeTalk = () => {};
     modalQueue.push(key);
     pumpModal();
   };
+  // showing one, or more waiting their turn
+  window.themeUnlockBusy = function() { return modalShowing || modalQueue.length > 0; };
 
   function closeModal(goTry) {
     if (!modalShowing) return;

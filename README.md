@@ -361,6 +361,11 @@ Details worth knowing:
 - Only `http://` and `https://` addresses are accepted, checked by the server
   on the way in and by the page again on the way out, and every name is put on
   the page as text, never as markup.
+- Turning dev mode on with no owner key saved pops up an **Owner Key** box.
+  The key is checked with the server before it is kept, and then the Links,
+  Chat and lyrics tools all use it. Skipping it is fine: the Links and Chat
+  tabs still have their own key boxes, and turning dev mode on again asks
+  again.
 - The owner key is remembered in that browser after the first successful save,
   with a **Forget it** button beside the form. Worth pressing on a shared PC.
 
