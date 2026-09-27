@@ -1671,7 +1671,9 @@ body.theme-ultrabasic .lnk-accept { color: #0a8a4a; border-color: #0a8a4a; }
 .chat-log { height: min(60vh, 620px); min-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;
   padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 2px; scroll-behavior: smooth; }
 .chat-empty { margin: auto; color: var(--muted); font-size: 0.78rem; text-align: center; font-family: 'Share Tech Mono', monospace; }
-.chat-msg { position: relative; padding: 6px 10px; border-left: 2px solid transparent; border-radius: 2px;
+/* flex-shrink: the log is a fixed-height column, and a row that hides its
+   overflow (the owner's) would otherwise be squeezed as the room fills */
+.chat-msg { position: relative; flex-shrink: 0; padding: 6px 10px; border-left: 2px solid transparent; border-radius: 2px;
   font-family: 'Share Tech Mono', monospace; transition: background-color var(--dur-2) var(--ease-out); }
 .chat-msg.fresh { animation: bv-row-in 360ms var(--ease-out) backwards; }
 .chat-msg:hover { background: color-mix(in srgb, var(--text) 4%, transparent); }
@@ -1726,6 +1728,9 @@ body.theme-ultrabasic .chat-msg.owner .chat-text { color: var(--text); }
 .chat-note.bad { color: #ff5d73; }
 .chat-note.good { color: #3ddc84; }
 .chat-form { display: flex; gap: 8px; align-items: stretch; }
+.chat-count, .gc-count { align-self: center; font-family: 'Share Tech Mono', monospace; font-size: 0.62rem; color: var(--muted); white-space: nowrap; }
+.chat-count[hidden], .gc-count[hidden] { display: none; }
+.chat-count.full, .gc-count.full { color: #ff6b86; }
 .chat-as { align-self: center; font-size: 0.7rem; color: var(--muted); font-family: 'Share Tech Mono', monospace; white-space: nowrap; }
 .chat-as b { color: var(--text); }
 .chat-input { flex: 1; min-width: 0; background: var(--bg2); border: 1px solid var(--border); color: var(--text);
@@ -3973,6 +3978,70 @@ body.potato-mode { transition: none; }
 @keyframes gd-pop { from { transform:scale(0.4); opacity:0; } }
 @media (hover: none) { #game-dock { opacity:0.92; } }
 @media (max-width: 520px) { #game-dock { top:10px; right:10px; } .gd-title { display:none; } .gd-sep { display:none; } }
+/* ── the chat, in a game ── */
+.gd-chat:hover, .gd-chat.on { background:color-mix(in srgb, var(--accent2) 18%, transparent); border-color:color-mix(in srgb, var(--accent2) 55%, transparent); color:var(--accent2); }
+.gd-chat .gd-label { right:0; }
+.gd-chat:hover .gd-label { color:var(--accent2); }
+#game-dock.peek .gd-chat .gd-label { opacity:0; }   /* when all the captions show at once, this one would sit on Invite's */
+.gd-chat .gd-count { background:var(--accent2); color:#fff; box-shadow:0 0 0 2px rgba(8,8,16,0.95), 0 0 10px color-mix(in srgb, var(--accent2) 55%, transparent); }
+#game-chat { position:absolute; left:14px; bottom:14px; z-index:3; width:min(340px, calc(100vw - 28px)); height:min(330px, 46vh);
+  display:flex; flex-direction:column; overflow:hidden; border-radius:14px;
+  background:rgba(8,8,16,0.88); border:1px solid rgba(255,255,255,0.1); box-shadow:0 14px 40px rgba(0,0,0,0.55);
+  color:#e8e8f6; font-family:'Share Tech Mono',monospace;
+  opacity:0.72; transition:opacity var(--dur-2) var(--ease-out); animation:gc-in var(--dur-3) var(--ease-spring); }
+#game-chat[hidden] { display:none; }
+#game-chat:hover, #game-chat:focus-within, #game-chat.dragging { opacity:1; }
+@keyframes gc-in { from { opacity:0; transform:translateY(12px) scale(0.97); } }
+.gc-head { display:flex; align-items:center; gap:10px; padding:7px 7px 7px 12px; border-bottom:1px solid rgba(255,255,255,0.08);
+  cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none; }
+#game-chat.dragging .gc-head { cursor:grabbing; }
+.gc-title { font-family:'Orbitron',sans-serif; font-size:0.56rem; letter-spacing:0.22em; text-transform:uppercase; color:color-mix(in srgb, var(--accent) 55%, var(--accent2)); }
+.gc-online { display:inline-flex; align-items:center; gap:5px; font-size:0.64rem; color:#9a9ac0; }
+.gc-online i { width:6px; height:6px; border-radius:50%; background:#3ddc84; box-shadow:0 0 6px #3ddc84; }
+.gc-online.off i { background:#666; box-shadow:none; }
+.gc-min { margin-left:auto; width:26px; height:26px; padding:0; display:grid; place-items:center; border-radius:8px; cursor:pointer;
+  border:1px solid transparent; background:rgba(255,255,255,0.06); color:#cfcfe6; }
+.gc-min svg { width:14px; height:14px; }
+.gc-min:hover { border-color:rgba(255,255,255,0.22); color:#fff; }
+.gc-log { flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:8px 10px; display:flex; flex-direction:column; gap:3px; scrollbar-width:thin; }
+.gc-msg { flex-shrink:0; padding:2px 5px; border-radius:5px; font-size:0.76rem; line-height:1.42; overflow-wrap:anywhere; }
+.gc-msg.fresh { animation:bv-row-in 300ms var(--ease-out) backwards; }
+.gc-msg b { font-weight:700; margin-right:7px; }
+.gc-msg.owner b { color:#ffc93a; }
+.gc-msg.mine { background:color-mix(in srgb, var(--accent) 8%, transparent); }
+.gc-msg.pinged { background:color-mix(in srgb, var(--accent2) 16%, transparent); }
+.gc-text { display:inline; color:#e8e8f6; white-space:pre-wrap; }
+.gc-empty { margin:auto; font-size:0.7rem; color:#8484aa; text-align:center; }
+.gc-note { font-size:0.66rem; padding:0 12px; color:#ff6b86; }
+.gc-note:empty { display:none; }
+.gc-note.good { color:#3ddc84; }
+.gc-form { display:flex; gap:6px; padding:8px; border-top:1px solid rgba(255,255,255,0.08); }
+.gc-input { flex:1; min-width:0; padding:8px 10px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12);
+  color:#f0f0ff; font:inherit; font-size:0.78rem; }
+.gc-input:focus { outline:none; border-color:color-mix(in srgb, var(--accent) 60%, transparent); }
+.gc-send { padding:0 12px; border-radius:8px; cursor:pointer; border:1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  background:color-mix(in srgb, var(--accent) 16%, transparent); color:var(--accent); font-family:'Orbitron',sans-serif; font-size:0.55rem; letter-spacing:0.14em; text-transform:uppercase; }
+.gc-send:hover { background:color-mix(in srgb, var(--accent) 28%, transparent); }
+.gc-send:disabled { opacity:0.45; cursor:default; }
+/* what comes in while the chat is closed floats up for a moment, like any game's chat */
+#game-chat-peek { position:absolute; left:14px; bottom:14px; z-index:3; width:min(360px, calc(100vw - 28px));
+  display:flex; flex-direction:column; align-items:flex-start; gap:5px; pointer-events:none; }
+#game-chat-peek[hidden] { display:none; }
+.gcp { pointer-events:auto; cursor:pointer; max-width:100%; padding:6px 11px; border-radius:10px;
+  background:rgba(8,8,16,0.84); border:1px solid rgba(255,255,255,0.1); box-shadow:0 6px 18px rgba(0,0,0,0.45);
+  font-family:'Share Tech Mono',monospace; font-size:0.74rem; line-height:1.4; color:#e8e8f6; overflow-wrap:anywhere;
+  animation:gcp-in var(--dur-3) var(--ease-spring); transition:opacity 0.4s var(--ease-out), transform 0.4s var(--ease-out); }
+.gcp b { font-weight:700; margin-right:7px; }
+.gcp.owner b { color:#ffc93a; }
+.gcp.pinged { border-color:color-mix(in srgb, var(--accent2) 65%, transparent); box-shadow:0 6px 18px rgba(0,0,0,0.45), 0 0 14px color-mix(in srgb, var(--accent2) 30%, transparent); }
+.gcp.out { opacity:0; transform:translateY(6px); }
+@keyframes gcp-in { from { opacity:0; transform:translateY(10px); } }
+@media (max-width: 520px) {
+  /* right: clear of the music player's tab on the right edge */
+  #game-chat { left:8px !important; right:36px; top:auto !important; bottom:8px; width:auto; height:min(300px, 44vh); }
+  #game-chat-peek { left:8px; bottom:8px; width:calc(100vw - 44px); }
+}
+@media (prefers-reduced-motion: reduce) { #game-chat, .gcp, .gc-msg.fresh { animation:none; } }
 #launch-overlay {
 position: fixed; inset: 0; z-index: 99999;
 background: radial-gradient(circle at center, var(--bg2) 0%, var(--bg) 70%, #000 100%);
@@ -4102,6 +4171,11 @@ animation: launch-flash-anim 0.4s var(--ease-out);
 <div id="game-dock" role="toolbar" aria-label="Game controls">
 <span class="gd-title"><i class="gd-dot" aria-hidden="true"></i><span id="gd-name">Playing</span></span>
 <span class="gd-sep" aria-hidden="true"></span>
+<button type="button" class="gd-btn gd-chat" id="game-chat-tab" title="Chat" aria-label="Open the chat" aria-expanded="false">
+<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h16v10.5H10.5L6 19.5V16H4Z"/><path d="M8.5 10.8h.01M12 10.8h.01M15.5 10.8h.01"/></svg>
+<span class="gd-label">Chat</span>
+<b class="gd-count" id="game-chat-count" hidden></b>
+</button>
 <button type="button" class="gd-btn gd-invite" id="game-invite-tab" title="Invite someone to play this with you" aria-label="Invite someone to play this with you">
 <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.6"/><path d="M2.8 20c.7-3.6 3.2-5.6 6.2-5.6s5.5 2 6.2 5.6"/><path d="M19 8v6M16 11h6"/></svg>
 <span class="gd-label">Invite</span>
@@ -4112,6 +4186,14 @@ animation: launch-flash-anim 0.4s var(--ease-out);
 <span class="gd-label">Close</span>
 </button>
 </div>
+<div id="game-chat" hidden aria-label="Chat">
+<div class="gc-head" title="Drag to move"><span class="gc-title">Chat</span><span class="gc-online off"><i aria-hidden="true"></i><b>&mdash;</b> online</span>
+<button type="button" class="gc-min" title="Hide the chat" aria-label="Hide the chat"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 12h12"/></svg></button></div>
+<div class="gc-log" role="log" aria-live="polite"></div>
+<div class="gc-note" aria-live="polite"></div>
+<form class="gc-form" autocomplete="off"><input class="gc-input" maxlength="240" placeholder="Say something&hellip;" spellcheck="true" aria-label="Message"><span class="gc-count" hidden></span><button type="submit" class="gc-send">Send</button></form>
+</div>
+<div id="game-chat-peek" aria-hidden="true"></div>
 </div>
 <div id="ly-stage" aria-hidden="true"></div>
 <div id="ly-tool" hidden role="dialog" aria-label="Lyrics tool"></div>
@@ -7914,7 +7996,7 @@ function chatOnMessage(m) {
         // the vault joins the room on load now: plain messages stay quiet
         // until someone has actually opened the chat
         if (pinged || CH.opened) playSound(pinged ? 'chat-mention' : 'chat-in');
-        if (activeTab !== 'chat') { CH.unread++; chatBadge(); }
+        if (activeTab !== 'chat' && !(GC.inGame && GC.open)) { CH.unread++; chatBadge(); }
         // away from the chat, or the whole browser tab is in the background
         if (pinged && (activeTab !== 'chat' || document.hidden)) chatPing(m.m);
       }
@@ -7969,6 +8051,8 @@ function chatOnMessage(m) {
       break;
     case 'sugg': linksSuggPush(m.n); break;
   }
+  // after the Chat tab has taken it in, so its list is already up to date
+  gcOnMessage(m);
 }
 
 // ── who is muted (dev mode) ──
@@ -8331,6 +8415,7 @@ function buildChatShell(v) {
       <div class="chat-ac" hidden role="listbox"></div>
       <span class="chat-as">as <b></b></span>
       <input class="chat-input" maxlength="240" placeholder="Say something nice\u2026  (@ to mention)" spellcheck="true" aria-label="Message">
+      <span class="chat-count" hidden aria-live="polite"></span>
       <button type="submit" class="chat-send" disabled>Send</button>
     </form>
     <div class="chat-rules">One room for everyone on the site. Keep it friendly \u2014 swearing is filtered and links are removed. Never share personal info.</div>
@@ -8365,6 +8450,7 @@ function buildChatShell(v) {
   });
   const input = v.querySelector('.chat-input');
   input.addEventListener('input', chatAutocomplete);
+  chatCounter(input, v.querySelector('.chat-count'));
   input.addEventListener('click', chatAutocomplete);
   input.addEventListener('blur', function () { setTimeout(function () { v.querySelector('.chat-ac').hidden = true; CH.ac = null; }, 120); });
   input.addEventListener('keydown', function (e) {
@@ -8389,14 +8475,36 @@ function buildChatShell(v) {
     const input = v.querySelector('.chat-input');
     const text = input.value.replace(/\s+/g, ' ').trim();
     if (!text) return;
-    const n = Math.random().toString(36).slice(2, 12);
-    CH.mine.add(n);
-    const msg = { t: 'say', text: text, name: chatName(), n: n };
-    if (linksIsDev() && linksKey()) msg.key = linksKey();
-    if (!chatSend(msg)) { chatNote('Not connected yet \u2014 hang on a moment.', 'bad'); return; }
+    if (!chatSayText(text)) { chatNote('Not connected yet \u2014 hang on a moment.', 'bad'); return; }
     input.value = '';
-    playSound('chat-send');
+    input.dispatchEvent(new Event('input'));
   });
+}
+
+// Say something in the room, from either chat. False if not connected.
+function chatSayText(text) {
+  const n = Math.random().toString(36).slice(2, 12);
+  CH.mine.add(n);
+  const msg = { t: 'say', text: text, name: chatName(), n: n };
+  if (linksIsDev() && linksKey()) msg.key = linksKey();
+  if (!chatSend(msg)) return false;
+  playSound('chat-send');
+  return true;
+}
+
+// A count of letters that shows once a message is getting near the limit,
+// so a long one doesn't just stop taking letters without saying why.
+function chatCounter(input, el) {
+  if (!input || !el) return;
+  const max = +input.getAttribute('maxlength') || 240;
+  const draw = function () {
+    const n = input.value.length;
+    el.hidden = n < max - 40;
+    el.textContent = n + '/' + max;
+    el.classList.toggle('full', n >= max);
+  };
+  input.addEventListener('input', draw);
+  draw();
 }
 
 function renderChat() {
@@ -8422,6 +8530,243 @@ function renderChat() {
   plDraw();
   if (!CH.started) { CH.started = true; chatConnect(); }
 }
+
+// ===== CHAT IN A GAME =====
+// The Chat tab can't be seen with a game open, so the game window has its own
+// small chat: a Chat button in the dock with a count, a few lines that float
+// up and fade while it's closed, and a panel to read and reply in -- the same
+// room, filter and limits. Opened by hand it takes the keyboard; reopened by
+// itself for the next game (it remembers) it leaves the keyboard to the game.
+const GC = { open: false, inGame: false, unread: 0 };
+const GC_OPEN_KEY = 'gameChatOpen', GC_POS_KEY = 'gameChatPos';
+function gcQ(sel) { return document.querySelector(sel); }
+
+function gcRow(m, fresh) {
+  const row = lnkEl('div', 'gc-msg' + (fresh ? ' fresh' : ''));
+  row.dataset.id = m.id;
+  const mine = !!(m.n && CH.mine.has(m.n));
+  if (mine) row.classList.add('mine');
+  if (m.owner) row.classList.add('owner');
+  if (!mine && chatMentionsMe(m)) row.classList.add('pinged');
+  const name = lnkEl('b', '', String(m.name || 'Guest'));
+  if (!m.owner) name.style.color = 'hsl(' + chatHue(String(m.name || '')) + ' 70% 62%)';
+  const text = chatTextWithMentions(m);
+  text.className = 'gc-text';
+  row.append(name, text);
+  return row;
+}
+
+function gcDrawAll() {
+  const log = gcQ('#game-chat .gc-log');
+  if (!log) return;
+  log.textContent = '';
+  const list = CH.msgs.slice(-60);
+  list.forEach(function (m) { log.appendChild(gcRow(m, false)); });
+  if (!list.length) log.appendChild(lnkEl('div', 'gc-empty', CH.connected ? 'No messages yet \u2014 say hi.' : 'Connecting to the chat\u2026'));
+  log.scrollTop = log.scrollHeight;
+}
+
+function gcAppend(m) {
+  const log = gcQ('#game-chat .gc-log');
+  if (!log) return;
+  const stick = log.scrollHeight - log.scrollTop - log.clientHeight < 60 || (m.n && CH.mine.has(m.n));
+  const empty = log.querySelector('.gc-empty');
+  if (empty) empty.remove();
+  log.appendChild(gcRow(m, true));
+  while (log.children.length > 80) log.firstChild.remove();
+  if (stick) log.scrollTop = log.scrollHeight;
+}
+
+function gcStatus() {
+  const on = gcQ('#game-chat .gc-online');
+  if (!on) return;
+  on.classList.toggle('off', !CH.connected);
+  on.querySelector('b').textContent = CH.connected ? CH.online : '\u2014';
+  gcQ('#game-chat .gc-send').disabled = !CH.connected;
+}
+
+function gcBadge() {
+  const b = document.getElementById('game-chat-count');
+  if (!b) return;
+  b.hidden = GC.unread <= 0;
+  b.textContent = GC.unread > 9 ? '9+' : String(GC.unread);
+}
+
+function gcNote(text, kind) {
+  const n = gcQ('#game-chat .gc-note');
+  if (!n) return;
+  n.textContent = text || '';
+  n.className = 'gc-note' + (kind ? ' ' + kind : '');
+  clearTimeout(n._t);
+  if (text) n._t = setTimeout(function () { n.textContent = ''; }, 4000);
+}
+
+// a line that floats up over the game while the chat is closed
+function gcPeek(m) {
+  const box = document.getElementById('game-chat-peek');
+  if (!box) return;
+  while (box.children.length >= 3) box.firstChild.remove();
+  const p = lnkEl('div', 'gcp');
+  const pinged = chatMentionsMe(m);
+  if (pinged) p.classList.add('pinged');
+  if (m.owner) p.classList.add('owner');
+  const name = lnkEl('b', '', String(m.name || 'Guest'));
+  if (!m.owner) name.style.color = 'hsl(' + chatHue(String(m.name || '')) + ' 70% 62%)';
+  const text = String(m.text || '');
+  p.append(name, document.createTextNode(text.length > 140 ? text.slice(0, 137) + '\u2026' : text));
+  p.title = 'Open the chat';
+  p.addEventListener('click', function () { gcToggle(true); });
+  box.appendChild(p);
+  setTimeout(function () {
+    p.classList.add('out');
+    setTimeout(function () { p.remove(); }, 450);
+  }, pinged ? 9000 : 5500);
+}
+
+function gcPlace() {
+  const panel = document.getElementById('game-chat');
+  let pos = null;
+  try { pos = JSON.parse(localStorage.getItem(GC_POS_KEY) || 'null'); } catch (e) {}
+  if (!pos || typeof pos.x !== 'number' || typeof pos.y !== 'number') { panel.style.left = ''; panel.style.top = ''; panel.style.bottom = ''; return; }
+  const w = panel.offsetWidth, h = panel.offsetHeight;
+  panel.style.left = Math.round(Math.max(0, Math.min(window.innerWidth - w, pos.x * window.innerWidth))) + 'px';
+  panel.style.top = Math.round(Math.max(0, Math.min(window.innerHeight - h, pos.y * window.innerHeight))) + 'px';
+  panel.style.bottom = 'auto';
+}
+
+// quiet: reopened by itself for a new game -- no sound, no keyboard
+function gcToggle(open, quiet) {
+  const panel = document.getElementById('game-chat');
+  const tab = document.getElementById('game-chat-tab');
+  const peek = document.getElementById('game-chat-peek');
+  if (!panel) return;
+  GC.open = !!open;
+  panel.hidden = !GC.open;
+  peek.hidden = GC.open;
+  if (GC.open) peek.textContent = '';
+  tab.classList.toggle('on', GC.open);
+  tab.setAttribute('aria-expanded', GC.open ? 'true' : 'false');
+  tab.setAttribute('aria-label', GC.open ? 'Hide the chat' : 'Open the chat');
+  if (GC.open) {
+    GC.unread = 0;
+    gcBadge();
+    CH.opened = true;
+    gcDrawAll();
+    gcStatus();
+    gcPlace();
+    if (!quiet) setTimeout(function () { const i = gcQ('#game-chat .gc-input'); if (i) i.focus(); }, 30);
+  }
+  if (!quiet) {
+    playSound(GC.open ? 'pl-open' : 'pl-close');
+    try { localStorage.setItem(GC_OPEN_KEY, GC.open ? '1' : '0'); } catch (e) {}
+  }
+}
+
+function gcOnMessage(m) {
+  if (!GC.inGame) return;
+  switch (m.t) {
+    case 'hello':
+    case 'clear':
+      if (GC.open) gcDrawAll();
+      break;
+    case 'msg': {
+      const mine = !!(m.m.n && CH.mine.has(m.m.n));
+      if (GC.open) gcAppend(m.m);
+      else if (!mine) { GC.unread++; gcBadge(); gcPeek(m.m); }
+      break;
+    }
+    case 'del': {
+      const row = gcQ('#game-chat .gc-msg[data-id="' + (+m.id) + '"]');
+      if (row) row.remove();
+      break;
+    }
+    case 'roster':
+    case 'online':
+      gcStatus();
+      break;
+    case 'err':
+      if (GC.open && String(m.code || '').indexOf('rq-') !== 0) gcNote(m.msg || 'Something went wrong.', 'bad');
+      break;
+    case 'filtered':
+      if (GC.open) gcNote('Some of that was filtered.', 'bad');
+      break;
+  }
+}
+
+(function () {
+  const overlay = document.getElementById('game-overlay');
+  const panel = document.getElementById('game-chat');
+  if (!overlay || !panel) return;
+  document.getElementById('game-chat-tab').addEventListener('click', function () { gcToggle(!GC.open); });
+  panel.querySelector('.gc-min').addEventListener('click', function () { gcToggle(false); });
+  const form = panel.querySelector('.gc-form');
+  const input = panel.querySelector('.gc-input');
+  chatCounter(input, panel.querySelector('.gc-count'));
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    const text = input.value.replace(/\s+/g, ' ').trim();
+    if (!text) return;
+    if (!chatSayText(text)) { gcNote('Not connected yet \u2014 hang on a moment.', 'bad'); return; }
+    input.value = '';
+    input.dispatchEvent(new Event('input'));
+  });
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { e.preventDefault(); gcToggle(false); }
+  });
+
+  // drag it out of the way by its header
+  const head = panel.querySelector('.gc-head');
+  let drag = null;
+  head.addEventListener('pointerdown', function (e) {
+    if (e.target.closest('button') || window.innerWidth <= 520) return;
+    const r = panel.getBoundingClientRect();
+    drag = { dx: e.clientX - r.left, dy: e.clientY - r.top, id: e.pointerId };
+    panel.classList.add('dragging');
+    try { head.setPointerCapture(e.pointerId); } catch (x) {}
+  });
+  head.addEventListener('pointermove', function (e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    const x = Math.max(0, Math.min(window.innerWidth - panel.offsetWidth, e.clientX - drag.dx));
+    const y = Math.max(0, Math.min(window.innerHeight - panel.offsetHeight, e.clientY - drag.dy));
+    panel.style.left = x + 'px';
+    panel.style.top = y + 'px';
+    panel.style.bottom = 'auto';
+  });
+  const drop = function (e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    drag = null;
+    panel.classList.remove('dragging');
+    const r = panel.getBoundingClientRect();
+    try { localStorage.setItem(GC_POS_KEY, JSON.stringify({ x: r.left / window.innerWidth, y: r.top / window.innerHeight })); } catch (x) {}
+  };
+  head.addEventListener('pointerup', drop);
+  head.addEventListener('pointercancel', drop);
+  // double-click the header to put it back in its corner
+  head.addEventListener('dblclick', function (e) {
+    if (e.target.closest('button')) return;
+    try { localStorage.removeItem(GC_POS_KEY); } catch (x) {}
+    gcPlace();
+  });
+  window.addEventListener('resize', function () { if (GC.open) gcPlace(); });
+
+  // every way a game opens or closes shows up as the window's display changing
+  new MutationObserver(function () {
+    const on = overlay.style.display === 'block';
+    if (on === GC.inGame) return;
+    GC.inGame = on;
+    GC.unread = 0;
+    gcBadge();
+    document.getElementById('game-chat-peek').textContent = '';
+    if (on) {
+      let want = false;
+      try { want = localStorage.getItem(GC_OPEN_KEY) === '1'; } catch (e) {}
+      gcToggle(want, true);
+    } else {
+      GC.open = false;
+      panel.hidden = true;
+    }
+  }).observe(overlay, { attributes: true, attributeFilter: ['style'] });
+})();
 
 // ===== PLAY TOGETHER =====
 // Ask someone with the vault open to let you watch their game, or to come and

@@ -481,6 +481,17 @@ tab and a card slides in with who and what they said; click it to jump to the
 message. With the browser tab in the background the page title shows a count,
 and desktop alerts can be switched on from the chat's bell (secure pages only).
 
+**Chat in a game.** With a game open, the Chat tab can't be seen, so the game
+window's dock has a **Chat** button with a count of what came in. New messages
+float up over the game for a few seconds, and ones that @mention you stay up
+longer. The button opens a small panel to read and reply in: the same room,
+filter and limits. Drag it by its header, and double-click the header to put
+it back. It remembers where it was and whether it was open, and when it
+reopens for the next game it leaves the keyboard with the game.
+
+Messages near the 240-character limit show a counter instead of the box
+silently refusing more letters.
+
 **Moderation:** in the vault's dev mode each message gets Delete and Mute (30
 minutes), and the header gets **Muted** and Clear chat. **Muted** lists who is
 muted -- the name and the line they were muted for, and the minutes left -- with
