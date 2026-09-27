@@ -11,8 +11,10 @@ paired automatically and land in the same match. No codes, no port forwarding.
 2. Render: **New → Blueprint**, pick the repo. `render.yaml` does the rest.
    (By hand: Runtime **Python**, Build Command *blank*, Start Command
    `python server.py`, Plan **Free**.)
-3. Open the URL it gives you, e.g. `https://ns2-coop.onrender.com`.
-4. Both players open it → **👥 CO-OP** → **PLAY**. First one waits, second one
+3. Open the URL it gives you, e.g. `https://ns2-coop.onrender.com`. That is
+   the **BeeSide Studio's** front page; **NEON SIEGE 2** on it opens the game at
+   `/neon-siege` (and **Bee's Vault** opens `/vault`).
+4. Both players open the game → **👥 CO-OP** → **PLAY**. First one waits, second one
    pairs instantly. Whoever is made host then presses **CHOOSE SECTOR** and
    deploys; the other drops in automatically.
 
@@ -45,7 +47,7 @@ silently pairing someone with a stranger halfway through a wave.
 python server.py
 ```
 
-`http://localhost:8765`, plus a `same wifi:` address for someone on your
+`http://localhost:8765` (the game is `/neon-siege`), plus a `same wifi:` address for someone on your
 network. `PORT` is honoured, which is how Render starts it.
 
 ## How the co-op works
@@ -651,8 +653,11 @@ priority, synergy, or how a real wave actually arrives.
 
 | | |
 |---|---|
-| `server.py` | matchmaking + serves the game (standard library only) |
-| `neon-siege-2-coop.html` | the game |
+| `server.py` | matchmaking + serves the pages (standard library only) |
+| `index.html` | the BeeSide Studio's front page at `/`: a way into each site |
+| `neon-siege-2-coop.html` | the game, at `/neon-siege` |
+| `vault.html` | Bee's Vault, at `/vault` |
+| `chat_filter.py` | the vault chat's word filter |
 | `render.yaml` | Render blueprint |
 
 Matchmaking is the only mode: press PLAY, get paired, and the host picks the

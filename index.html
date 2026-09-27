@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BeeSide Studio's</title>
+<meta name="description" content="BeeSide Studio's: Bee's Vault and NEON SIEGE 2.">
+<meta name="theme-color" content="#05060c">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 3 57 17.5v29L32 61 7 46.5v-29Z' fill='%2305060c' stroke='%23ffd633' stroke-width='4' stroke-linejoin='round'/%3E%3Cellipse cx='32' cy='35' rx='10' ry='13' fill='%23ffd633'/%3E%3Cpath d='M22 31h20v4H22zM22 39h20v4H22z' fill='%2305060c'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* BeeSide Studio's -- the front door: the studio's name, and a way into each
+   of the two sites. Everything that moves moves by transform or opacity, and
+   nothing is blurred, so it runs the same on a machine with no graphics card. */
+:root {
+  color-scheme: dark;
+  --ink: #05060c;
+  --ink2: #0a0c16;
+  --line: #1b1f33;
+  --text: #eef0ff;
+  --muted: #8a90b8;
+  --gold: #ffd633;
+  --gold-hi: #fff4b8;
+  --amber: #ff9f1c;
+  --pink: #ff2d78;
+  --cyan: #22e6ff;
+  --violet: #b46bff;
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  --ease-in-out: cubic-bezier(.65, 0, .35, 1);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  min-height: 100vh; min-height: 100dvh;
+  background: var(--ink); color: var(--text);
+  font-family: 'Rajdhani', system-ui, sans-serif;
+  display: flex; align-items: center; justify-content: center;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── the room: a honeycomb that fades out at the edges, and slow light ── */
+.bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.bg .hex {
+  position: absolute; inset: -100px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100'%3E%3Cpath d='M28 66 0 50V16L28 0l28 16v34L28 66v34M28 0v34L0 50v34l28 16 28-16V50L28 34' fill='none' stroke='%23ffd633' stroke-opacity='.075' stroke-width='1'/%3E%3C/svg%3E");
+  background-size: 56px 100px;
+  -webkit-mask-image: radial-gradient(ellipse 60% 55% at 50% 45%, #000 20%, transparent 75%);
+          mask-image: radial-gradient(ellipse 60% 55% at 50% 45%, #000 20%, transparent 75%);
+  animation: hex-drift 60s linear infinite;
+}
+@keyframes hex-drift { to { transform: translate3d(56px, 100px, 0); } }
+.bg .orb { position: absolute; border-radius: 50%; will-change: transform; }
+.bg .o1 { width: 70vmax; height: 70vmax; left: -28vmax; top: -30vmax;
+  background: radial-gradient(circle, rgba(255, 214, 51, .13), transparent 62%);
+  animation: orb-a 26s var(--ease-in-out) infinite alternate; }
+.bg .o2 { width: 64vmax; height: 64vmax; right: -26vmax; bottom: -30vmax;
+  background: radial-gradient(circle, rgba(34, 230, 255, .11), transparent 62%);
+  animation: orb-b 30s var(--ease-in-out) infinite alternate; }
+.bg .o3 { width: 46vmax; height: 46vmax; right: -10vmax; top: -18vmax;
+  background: radial-gradient(circle, rgba(255, 45, 120, .08), transparent 62%);
+  animation: orb-a 34s var(--ease-in-out) -12s infinite alternate-reverse; }
+@keyframes orb-a { to { transform: translate3d(8vmax, 6vmax, 0) scale(1.08); } }
+@keyframes orb-b { to { transform: translate3d(-9vmax, -5vmax, 0) scale(1.1); } }
+.bg .vignette { position: absolute; inset: 0;
+  background: radial-gradient(ellipse 85% 80% at 50% 50%, transparent 55%, rgba(0, 0, 0, .55)); }
+
+/* ── the page ── */
+main { position: relative; z-index: 1; width: 100%; max-width: 1000px; padding: 48px 16px 56px; }
+
+.brand { text-align: center; margin-bottom: clamp(34px, 6vh, 60px); }
+.mark { width: clamp(58px, 9vw, 76px); height: auto; display: block; margin: 0 auto 18px;
+  filter: drop-shadow(0 0 18px rgba(255, 214, 51, .35));
+  animation: rise .9s var(--ease-out) backwards, mark-float 6s var(--ease-in-out) 1s infinite alternate; }
+@keyframes mark-float { to { transform: translateY(-6px); } }
+.mark .wing { transform-box: fill-box; transform-origin: 100% 100%; animation: wing 2.8s var(--ease-in-out) infinite; }
+.mark .wing.r { transform-origin: 0% 100%; animation-delay: -.12s; }
+@keyframes wing { 0%, 84%, 100% { transform: rotate(0); } 90% { transform: rotate(-14deg); } 95% { transform: rotate(8deg); } }
+.mark .wing.r { animation-name: wing-r; }
+@keyframes wing-r { 0%, 84%, 100% { transform: rotate(0); } 90% { transform: rotate(14deg); } 95% { transform: rotate(-8deg); } }
+
+h1 {
+  margin: 0; font-family: 'Orbitron', sans-serif; font-weight: 900;
+  font-size: clamp(30px, 7.4vw, 78px); line-height: 1.06; letter-spacing: .02em;
+  animation: rise .9s var(--ease-out) .08s backwards;
+}
+h1 .bee {
+  background: linear-gradient(100deg, var(--gold-hi) 0%, var(--gold) 28%, var(--amber) 50%, var(--gold) 72%, var(--gold-hi) 100%);
+  background-size: 250% 100%; background-position: 100% 0;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 22px rgba(255, 190, 40, .28));
+  animation: title-sheen 7s var(--ease-in-out) 1.2s infinite;
+}
+@keyframes title-sheen { 0% { background-position: 100% 0; } 45%, 100% { background-position: -150% 0; } }
+h1 .studio { color: var(--text); text-shadow: 0 0 26px rgba(34, 230, 255, .18); }
+.rule { width: min(220px, 50%); height: 2px; margin: 22px auto 0; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), var(--pink), var(--cyan), transparent);
+  opacity: .75; transform-origin: 50% 50%;
+  animation: rule-in 1.1s var(--ease-out) .35s backwards; }
+@keyframes rule-in { from { transform: scaleX(0); opacity: 0; } }
+
+@keyframes rise { from { opacity: 0; transform: translateY(18px); } }
+
+/* ── the two doors ── */
+.doors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(16px, 2.6vw, 28px); }
+@media (max-width: 720px) { .doors { grid-template-columns: 1fr; } }
+
+.door {
+  --a: var(--gold); --b: var(--pink); --mx: 70%; --my: 20%;
+  position: relative; isolation: isolate; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 6px;
+  min-height: clamp(230px, 34vh, 300px); padding: 26px 26px 24px;
+  border-radius: 20px; text-decoration: none; color: var(--text);
+  background: linear-gradient(160deg, var(--ink2), #070810 70%);
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .04) inset, 0 18px 40px rgba(0, 0, 0, .45);
+  transition: transform .5s var(--ease-out), border-color .4s var(--ease-out), box-shadow .5s var(--ease-out);
+  animation: rise .9s var(--ease-out) backwards;
+  -webkit-tap-highlight-color: transparent;
+}
+.door.vault { animation-delay: .22s; }
+.door.ns2 { --a: var(--cyan); --b: var(--violet); animation-delay: .32s; }
+
+/* the colour of the place, coming up from a corner */
+.door::before { content: ''; position: absolute; inset: 0; z-index: -2;
+  background:
+    radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--a) 16%, transparent), transparent 60%),
+    radial-gradient(90% 70% at 0% 100%, color-mix(in srgb, var(--b) 10%, transparent), transparent 65%);
+  transition: opacity .5s var(--ease-out); }
+/* a light that follows the pointer */
+.door::after { content: ''; position: absolute; inset: 0; z-index: -1; opacity: 0;
+  background: radial-gradient(360px circle at var(--mx) var(--my), color-mix(in srgb, var(--a) 16%, transparent), transparent 60%);
+  transition: opacity .4s var(--ease-out); }
+/* a gradient edge that lights up */
+.door .edge { position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: linear-gradient(135deg, var(--a), transparent 40%, transparent 60%, var(--b));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  opacity: .35; transition: opacity .4s var(--ease-out); }
+.door .sheen { position: absolute; top: 0; bottom: 0; left: 0; width: 40%; pointer-events: none; z-index: -1;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .07), transparent);
+  transform: translateX(-140%) skewX(-16deg); }
+
+.door:hover, .door:focus-visible {
+  transform: translateY(-6px);
+  border-color: color-mix(in srgb, var(--a) 45%, var(--line));
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .06) inset, 0 26px 60px rgba(0, 0, 0, .55),
+              0 0 0 1px color-mix(in srgb, var(--a) 22%, transparent),
+              0 0 44px color-mix(in srgb, var(--a) 18%, transparent);
+}
+.door:hover::after, .door:focus-visible::after { opacity: 1; }
+.door:hover .edge, .door:focus-visible .edge { opacity: 1; }
+.door:hover .sheen, .door:focus-visible .sheen { transform: translateX(330%) skewX(-16deg); transition: transform 1s var(--ease-out); }
+.door:active { transform: translateY(-2px) scale(.985); transition-duration: .12s; }
+.door:focus-visible { outline: 2px solid var(--a); outline-offset: 4px; }
+
+/* the picture in each door */
+.art { position: absolute; z-index: -1; pointer-events: none; transition: transform .8s var(--ease-out), opacity .5s var(--ease-out); }
+.vault .art { width: 230px; height: 230px; right: -46px; top: -46px; opacity: .55; }
+.vault .art .dial { transform-origin: 50% 50%; transition: transform 1.2s var(--ease-out); }
+.vault:hover .art .dial, .vault:focus-visible .art .dial { transform: rotate(90deg); }
+.vault:hover .art, .vault:focus-visible .art { opacity: .8; }
+.ns2 .art { inset: 0; opacity: .6; }
+.ns2 .art .floor {
+  position: absolute; left: -30%; right: -30%; bottom: -4%; height: 140%;
+  transform: perspective(480px) rotateX(58deg); transform-origin: 50% 100%;
+  -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 70%);
+          mask-image: linear-gradient(to top, #000 0%, transparent 70%);
+}
+.ns2 .art .floor-move { position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(34, 230, 255, .38) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 230, 255, .38) 1px, transparent 1px);
+  background-size: 44px 44px;
+  animation: floor-run 3.2s linear infinite paused; }
+.ns2:hover .art .floor-move, .ns2:focus-visible .art .floor-move { animation-play-state: running; }
+@keyframes floor-run { to { background-position: 0 44px; } }
+.ns2 .art .reticle { position: absolute; width: 170px; height: 170px; right: -24px; top: -24px; opacity: .8;
+  transition: transform 1.2s var(--ease-out); }
+.ns2:hover .art .reticle, .ns2:focus-visible .art .reticle { transform: rotate(-45deg) scale(1.05); }
+.ns2:hover .art, .ns2:focus-visible .art { opacity: .85; }
+
+.icon { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; margin-bottom: 12px;
+  background: color-mix(in srgb, var(--a) 12%, #080a14);
+  border: 1px solid color-mix(in srgb, var(--a) 40%, transparent);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--a) 22%, transparent), inset 0 1px 0 rgba(255, 255, 255, .08);
+  transition: transform .5s var(--ease-out), box-shadow .5s var(--ease-out); }
+.icon svg { width: 24px; height: 24px; }
+.door:hover .icon, .door:focus-visible .icon { transform: translateY(-2px) scale(1.06);
+  box-shadow: 0 0 30px color-mix(in srgb, var(--a) 40%, transparent), inset 0 1px 0 rgba(255, 255, 255, .1); }
+
+.name { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: clamp(22px, 2.8vw, 30px);
+  letter-spacing: .03em; line-height: 1.1; }
+.vault .name { color: var(--gold); text-shadow: 0 0 20px rgba(255, 214, 51, .3); }
+.ns2 .name { color: var(--cyan); text-shadow: 0 0 20px rgba(34, 230, 255, .32); }
+.sub { font-size: 17px; font-weight: 600; color: var(--muted); letter-spacing: .02em; }
+.go { margin-top: 14px; display: inline-flex; align-items: center; gap: 8px; align-self: flex-start;
+  padding: 9px 16px 9px 18px; border-radius: 999px;
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--ink); background: linear-gradient(135deg, color-mix(in srgb, var(--a) 70%, #fff), var(--a));
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--a) 30%, transparent), inset 0 1px 0 rgba(255, 255, 255, .6);
+  transition: box-shadow .4s var(--ease-out), gap .4s var(--ease-out); }
+.go svg { width: 14px; height: 14px; transition: transform .4s var(--ease-out); }
+.door:hover .go, .door:focus-visible .go { gap: 11px; box-shadow: 0 8px 28px color-mix(in srgb, var(--a) 45%, transparent), inset 0 1px 0 rgba(255, 255, 255, .6); }
+.door:hover .go svg, .door:focus-visible .go svg { transform: translateX(2px); }
+
+/* leaving: the page dips as the next one loads, so a click is felt at once */
+body.leaving main { opacity: .55; transform: scale(.992); transition: opacity .25s var(--ease-out), transform .25s var(--ease-out); }
+
+@media (hover: none) {
+  .door:hover { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bg .hex, .bg .orb, .mark, .mark .wing, h1 .bee { animation: none; }
+  .mark, h1, .door, .rule { animation: fade .5s ease backwards; }
+  .door:hover, .door:focus-visible { transform: none; }
+  .door .sheen { display: none; }
+  .ns2 .art .floor-move { animation: none; }
+  @keyframes fade { from { opacity: 0; } }
+}
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true">
+  <div class="hex"></div>
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+  <div class="orb o3"></div>
+  <div class="vignette"></div>
+</div>
+
+<main>
+  <header class="brand">
+    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true">
+      <defs>
+        <linearGradient id="g-gold" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#fff4b8"/><stop offset=".5" stop-color="#ffd633"/><stop offset="1" stop-color="#ff9f1c"/>
+        </linearGradient>
+        <clipPath id="c-body"><ellipse cx="32" cy="37" rx="9.5" ry="12.5"/></clipPath>
+      </defs>
+      <path d="M32 3 57 17.5v29L32 61 7 46.5v-29Z" fill="rgba(255,214,51,.07)" stroke="url(#g-gold)" stroke-width="2.4" stroke-linejoin="round"/>
+      <g class="wing l"><ellipse cx="23.5" cy="25" rx="7" ry="4.6" transform="rotate(-28 23.5 25)" fill="rgba(210,245,255,.55)" stroke="rgba(210,245,255,.9)" stroke-width="1"/></g>
+      <g class="wing r"><ellipse cx="40.5" cy="25" rx="7" ry="4.6" transform="rotate(28 40.5 25)" fill="rgba(210,245,255,.55)" stroke="rgba(210,245,255,.9)" stroke-width="1"/></g>
+      <ellipse cx="32" cy="37" rx="9.5" ry="12.5" fill="url(#g-gold)"/>
+      <g clip-path="url(#c-body)" fill="#05060c"><rect x="20" y="33" width="24" height="3.6"/><rect x="20" y="40.5" width="24" height="3.6"/></g>
+      <circle cx="32" cy="22.5" r="5" fill="#05060c" stroke="url(#g-gold)" stroke-width="1.6"/>
+      <path d="M30 18.5c-1.5-3-3.5-4-5.5-4M34 18.5c1.5-3 3.5-4 5.5-4" fill="none" stroke="#ffd633" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>
+    <h1><span class="bee">BeeSide</span> <span class="studio">Studio's</span></h1>
+    <div class="rule" aria-hidden="true"></div>
+  </header>
+
+  <nav class="doors" aria-label="Where to">
+    <a class="door vault" href="/vault">
+      <span class="edge" aria-hidden="true"></span>
+      <span class="sheen" aria-hidden="true"></span>
+      <svg class="art" viewBox="0 0 200 200" aria-hidden="true" fill="none" stroke="#ffd633">
+        <circle cx="100" cy="100" r="92" stroke-opacity=".22" stroke-width="2"/>
+        <circle cx="100" cy="100" r="74" stroke-opacity=".3" stroke-width="6" stroke-dasharray="4 10"/>
+        <g class="dial">
+          <circle cx="100" cy="100" r="46" stroke-opacity=".4" stroke-width="3"/>
+          <path d="M100 54v92M54 100h92M67.5 67.5l65 65M132.5 67.5l-65 65" stroke-opacity=".32" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="100" cy="100" r="14" stroke-opacity=".55" stroke-width="4"/>
+        </g>
+      </svg>
+      <span class="icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ffd633" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="12" cy="12" r="4.2"/><path d="M12 7.8v1.4M12 14.8v1.4M7.8 12h1.4M14.8 12h1.4"/><path d="M6.5 20v1.5M17.5 20v1.5"/>
+        </svg>
+      </span>
+      <span class="name">Bee's Vault</span>
+      <span class="sub">Games, apps, links &amp; chat</span>
+      <span class="go">Enter
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h9M8.5 4 12.5 8l-4 4"/></svg>
+      </span>
+    </a>
+
+    <a class="door ns2" href="/neon-siege">
+      <span class="edge" aria-hidden="true"></span>
+      <span class="sheen" aria-hidden="true"></span>
+      <span class="art" aria-hidden="true">
+        <span class="floor"><span class="floor-move"></span></span>
+        <svg class="reticle" viewBox="0 0 100 100" fill="none" stroke="#22e6ff">
+          <circle cx="50" cy="50" r="38" stroke-opacity=".35" stroke-width="2"/>
+          <circle cx="50" cy="50" r="24" stroke="#b46bff" stroke-opacity=".45" stroke-width="2" stroke-dasharray="6 6"/>
+          <path d="M50 4v20M50 76v20M4 50h20M76 50h20" stroke-opacity=".5" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="50" cy="50" r="3.5" fill="#ff2d9b" stroke="none" fill-opacity=".8"/>
+        </svg>
+      </span>
+      <span class="icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#22e6ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2.8 19.5 7v10L12 21.2 4.5 17V7Z"/><circle cx="12" cy="12" r="3.2"/><path d="M12 8.8V4.5"/>
+        </svg>
+      </span>
+      <span class="name">NEON SIEGE 2</span>
+      <span class="sub">Tower defense &middot; solo or co-op</span>
+      <span class="go">Play
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h9M8.5 4 12.5 8l-4 4"/></svg>
+      </span>
+    </a>
+  </nav>
+</main>
+
+<script>
+(function () {
+  // The light inside a door follows the pointer.
+  var doors = document.querySelectorAll('.door');
+  Array.prototype.forEach.call(doors, function (door) {
+    var raf = 0, x = 0, y = 0;
+    door.addEventListener('pointermove', function (e) {
+      var r = door.getBoundingClientRect();
+      x = ((e.clientX - r.left) / r.width * 100).toFixed(1);
+      y = ((e.clientY - r.top) / r.height * 100).toFixed(1);
+      if (!raf) raf = requestAnimationFrame(function () {
+        raf = 0;
+        door.style.setProperty('--mx', x + '%');
+        door.style.setProperty('--my', y + '%');
+      });
+    });
+
+    // Both sites are single files of a few megabytes. Start fetching one the
+    // moment someone reaches for it, so the click has less to wait for.
+    var warmed = false;
+    function warm() {
+      if (warmed) return;
+      warmed = true;
+      var l = document.createElement('link');
+      l.rel = 'prefetch';
+      l.href = door.getAttribute('href');
+      document.head.appendChild(l);
+    }
+    door.addEventListener('pointerenter', warm);
+    door.addEventListener('focus', warm);
+    door.addEventListener('touchstart', warm, { passive: true });
+
+    door.addEventListener('click', function (e) {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      document.body.classList.add('leaving');
+    });
+  });
+
+  // Coming back with the Back button restores this page from the cache as it
+  // was left -- dipped. Undo that.
+  window.addEventListener('pageshow', function () { document.body.classList.remove('leaving'); });
+})();
+</script>
+</body>
+</html>

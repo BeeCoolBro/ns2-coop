@@ -43,6 +43,7 @@ except Exception as e:                  # pragma: no cover
 
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
 HERE = os.path.dirname(os.path.abspath(__file__))
+HOME = 'index.html'              # BeeSide Studio's: the way into both
 GAME = 'neon-siege-2-coop.html'
 VAULT = 'vault.html'
 
@@ -661,7 +662,10 @@ class Handler(SimpleHTTPRequestHandler):
     revalidate = False
 
     def translate_path(self, path):
+        # The front door picks between the two sites; the game lives one step in.
         if path in ('/', '/index.html'):
+            path = '/' + HOME
+        elif path == '/neon-siege':
             path = '/' + GAME
         # Bee's Vault rides along as its own page. It is nothing to do with the
         # game and shares none of its state; it is here because this is the
@@ -689,6 +693,10 @@ class Handler(SimpleHTTPRequestHandler):
             return self.websocket()
         if route == '/chat':
             return self.chat_socket()
+        if route == '/neon-siege/':
+            # the game fetches its voice lines by relative URL, and under a
+            # trailing slash those would resolve to /neon-siege/<file> and 404
+            return self.redirect('/neon-siege' + self.path[len(route):])
         if route == '/api/links':
             # a failed refresh with an older list in hand serves the older list;
             # with nothing in hand it says so, rather than claiming there are none
@@ -711,6 +719,12 @@ class Handler(SimpleHTTPRequestHandler):
             return
         self.revalidate = True
         return SimpleHTTPRequestHandler.do_GET(self)
+
+    def redirect(self, where):
+        self.send_response(301)
+        self.send_header('Location', where)
+        self.send_header('Content-Length', '0')
+        self.end_headers()
 
     # ── the links API ────────────────────────────────────────────
     # Open to every origin: the vault can be opened from a copy on disk, and
