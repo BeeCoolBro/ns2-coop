@@ -84,6 +84,21 @@ LINKS_BODY_MAX = 16384
 LINKS = {'list': [], 'sha': None, 'at': 0.0, 'ok': False}
 LINKS_LOCK = threading.Lock()   # guards LINKS
 
+# ── vault lyrics ──────────────────────────────────────────────────
+# Timed lyrics for the music player, typed in by the owner in the vault's
+# lyrics tool: a map from a track's address to its lines and the second each
+# starts. Kept like the links -- lyrics.json on the same branch, read by
+# anyone, written only with DEV_KEY.
+LYRICS_PATH = 'lyrics.json'
+LYRICS_TTL = 300
+LYRICS_BODY_MAX = 65536         # one song's lines with their times
+LYRICS_TRACKS_MAX = 200
+LYRICS_LINES_MAX = 300
+LYRICS_LINE_LEN = 160
+LYRICS = {'map': {}, 'sha': None, 'at': 0.0, 'ok': False}
+LYRICS_LOCK = threading.Lock()
+LYRICS_WRITE = threading.Lock()
+
 # ── chat ──────────────────────────────────────────────────────────
 # The vault's Chat tab: one room for everyone on the site. Every message and
 # every name goes through chat_filter here, before anyone else sees it. History
@@ -442,6 +457,139 @@ def links_mutate(change):
             if st == 'fail':
                 return 502, {'ok': False, 'error': err}
         return 409, {'ok': False, 'error': 'The list kept changing underneath the save. Try again.'}
+
+
+def clean_song(track, entry):
+    """One song's lyrics as stored -- lines in time order -- or None."""
+    if not safe_url(str(track or '')) or not isinstance(entry, dict):
+        return None
+    lines = []
+    for x in (entry.get('lines') if isinstance(entry.get('lines'), list) else [])[:LYRICS_LINES_MAX]:
+        if not isinstance(x, dict):
+            continue
+        try:
+            t = round(float(x.get('t')), 2)
+        except (TypeError, ValueError):
+            continue
+        text = tidy(x.get('text'), LYRICS_LINE_LEN)
+        if text and 0 <= t <= 3600:
+            lines.append({'t': t, 'text': text})
+    if not lines:
+        return None
+    lines.sort(key=lambda l: l['t'])
+    try:
+        updated = max(0, int(entry.get('updated') or 0))
+    except (TypeError, ValueError):
+        updated = 0
+    return {'title': tidy(entry.get('title'), 80), 'lines': lines, 'updated': updated}
+
+
+def lyrics_path():
+    return '/repos/%s/contents/%s' % (LINKS_REPO, LYRICS_PATH)
+
+
+def lyrics_load(force=False):
+    """Refresh the cache from GitHub when it is stale; False if GitHub could
+    not be read (the old cache stands)."""
+    with LYRICS_LOCK:
+        if not force and LYRICS['ok'] and time.time() - LYRICS['at'] < LYRICS_TTL:
+            return True
+    st, js = gh('GET', lyrics_path() + '?ref=' + urllib.parse.quote(LINKS_BRANCH, safe=''))
+    if st == 200 and isinstance(js, dict) and js.get('type') == 'file':
+        try:
+            doc = json.loads(base64.b64decode(js.get('content') or '').decode('utf-8'))
+        except Exception:
+            log('!! %s on %s is not valid JSON; keeping the cached lyrics' % (LYRICS_PATH, LINKS_BRANCH))
+            return False
+        raw = doc.get('songs', {}) if isinstance(doc, dict) else {}
+        songs = {}
+        for track, entry in (raw.items() if isinstance(raw, dict) else []):
+            c = clean_song(track, entry)
+            if c:
+                songs[track] = c
+        with LYRICS_LOCK:
+            LYRICS.update(map=songs, sha=js.get('sha'), at=time.time(), ok=True)
+        return True
+    if st == 404:
+        with LYRICS_LOCK:
+            LYRICS.update(map={}, sha=None, at=time.time(), ok=True)
+        return True
+    return False
+
+
+def lyrics_commit(songs, sha, message):
+    doc = json.dumps({'v': 1, 'songs': songs}, indent=2, ensure_ascii=False) + '\n'
+    body = {'message': message[:120], 'branch': LINKS_BRANCH,
+            'content': base64.b64encode(doc.encode('utf-8')).decode('ascii')}
+    if sha:
+        body['sha'] = sha
+    for first in (True, False):
+        st, js = gh('PUT', lyrics_path(), body)
+        said = str((js or {}).get('message', '')).lower() if isinstance(js, dict) else ''
+        if st in (200, 201):
+            with LYRICS_LOCK:
+                LYRICS.update(map=songs, sha=((js or {}).get('content') or {}).get('sha'), at=time.time(), ok=True)
+            return 'ok', ''
+        if st in (404, 422) and 'branch' in said and first:
+            if make_branch():
+                continue
+            return 'fail', "Couldn't create the %s branch on GitHub." % LINKS_BRANCH
+        if st == 409 or (st == 422 and 'sha' in said):
+            return 'conflict', ''
+        if st in (401, 403):
+            return 'fail', 'GitHub refused the token. It needs Contents: read and write on %s.' % LINKS_REPO
+        return 'fail', "Couldn't reach GitHub (%s). Try again." % (st or 'no answer')
+    return 'fail', "Couldn't save to GitHub."
+
+
+def lyrics_post(key, raw):
+    """One owner request to set or remove a song's lyrics."""
+    if not DEV_KEY:
+        return 403, {'ok': False, 'error': 'This server has no owner key. Set DEV_KEY in Render -> Environment.'}
+    if not hmac.compare_digest(key.encode('utf-8'), DEV_KEY.encode('utf-8')):
+        return 403, {'ok': False, 'error': 'That owner key was refused.'}
+    try:
+        msg = json.loads(raw.decode('utf-8'))
+    except Exception:
+        return 400, {'ok': False, 'error': 'That request was not JSON.'}
+    if not isinstance(msg, dict):
+        return 400, {'ok': False, 'error': 'That request was not an object.'}
+    if not GITHUB_TOKEN:
+        return 503, {'ok': False, 'error': 'Saving is not set up yet. Set GITHUB_TOKEN in Render -> Environment.'}
+    op, track = msg.get('op'), str(msg.get('track') or '')
+    if op == 'set':
+        song = clean_song(track, {'title': msg.get('title'), 'lines': msg.get('lines'), 'updated': int(time.time())})
+        if not song:
+            return 400, {'ok': False, 'error': 'Those lyrics have no lines with times.'}
+    elif op == 'remove':
+        song = None
+        if not safe_url(track):
+            return 400, {'ok': False, 'error': 'Unknown track.'}
+    else:
+        return 400, {'ok': False, 'error': 'Unknown request.'}
+    with LYRICS_WRITE:
+        for _ in range(3):
+            if not lyrics_load(force=True):
+                return 502, {'ok': False, 'error': "Couldn't read the current lyrics from GitHub. Try again."}
+            with LYRICS_LOCK:
+                songs = dict(LYRICS['map'])
+                sha = LYRICS['sha']
+            if song is None:
+                if track not in songs:
+                    return 200, {'ok': True, 'lyrics': songs}
+                songs.pop(track)
+                message = 'vault lyrics: remove %s' % (tidy(msg.get('title'), 60) or track.rsplit('/', 1)[-1])
+            else:
+                if track not in songs and len(songs) >= LYRICS_TRACKS_MAX:
+                    return 400, {'ok': False, 'error': 'Too many songs have lyrics already.'}
+                songs[track] = song
+                message = 'vault lyrics: %s' % (song['title'] or track.rsplit('/', 1)[-1])
+            st, err = lyrics_commit(songs, sha, message)
+            if st == 'ok':
+                return 200, {'ok': True, 'lyrics': songs}
+            if st == 'fail':
+                return 502, {'ok': False, 'error': err}
+        return 409, {'ok': False, 'error': 'The lyrics kept changing underneath the save. Try again.'}
 
 
 def links_post(key, raw):
@@ -948,6 +1096,13 @@ class Handler(SimpleHTTPRequestHandler):
             # the game fetches its voice lines by relative URL, and under a
             # trailing slash those would resolve to /neon-siege/<file> and 404
             return self.redirect('/neon-siege' + self.path[len(route):])
+        if route == '/api/lyrics':
+            fresh = lyrics_load()
+            with LYRICS_LOCK:
+                ok, songs = LYRICS['ok'], dict(LYRICS['map'])
+            if not fresh and not ok:
+                return self.send_json(502, {'lyrics': {}, 'error': "Couldn't read the lyrics from GitHub."})
+            return self.send_json(200, {'lyrics': songs, 'writable': bool(DEV_KEY and GITHUB_TOKEN)})
         if route == '/api/links':
             # a failed refresh with an older list in hand serves the older list;
             # with nothing in hand it says so, rather than claiming there are none
@@ -998,7 +1153,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.revalidate = False
-        if self.path.split('?')[0] == '/api/links':
+        if self.path.split('?')[0] in ('/api/links', '/api/lyrics'):
             self.send_response(204)
             self.cors()
             self.send_header('Content-Length', '0')
@@ -1010,19 +1165,22 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         self.revalidate = False
-        if self.path.split('?')[0] != '/api/links':
+        route = self.path.split('?')[0]
+        if route not in ('/api/links', '/api/lyrics'):
             self.close_connection = True
             return self.send_json(404, {'ok': False, 'error': 'Not found.'})
+        cap = LYRICS_BODY_MAX if route == '/api/lyrics' else LINKS_BODY_MAX
         try:
             n = int(self.headers.get('Content-Length') or 0)
         except ValueError:
             n = -1
-        if n <= 0 or n > LINKS_BODY_MAX:
+        if n <= 0 or n > cap:
             # the body was not read, so this connection cannot be reused
             self.close_connection = True
-            return self.send_json(413 if n > LINKS_BODY_MAX else 400,
+            return self.send_json(413 if n > cap else 400,
                                   {'ok': False, 'error': 'Bad request size.'})
-        code, reply = links_post(self.headers.get('X-Dev-Key') or '', self.rfile.read(n))
+        handler = lyrics_post if route == '/api/lyrics' else links_post
+        code, reply = handler(self.headers.get('X-Dev-Key') or '', self.rfile.read(n))
         return self.send_json(code, reply)
 
     def ws_accept(self):

@@ -1413,6 +1413,71 @@ body.theme-ultrabasic .chat-msg.owner .chat-text { color: var(--text); }
 .chat-ping-x { position: absolute; top: 6px; right: 8px; background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 0.8rem; }
 .chat-ping-x:hover { color: var(--text); }
 
+/* ===== LYRICS: c00lguis ===== */
+#ly-stage { position: fixed; inset: 0; z-index: 99999; pointer-events: none; overflow: hidden; }
+.cg-win { position: absolute; min-width: 190px; max-width: min(480px, 84vw); box-sizing: border-box;
+  background: #000; border: 3px solid #ff0000; color: #fff; font-family: Arial, Helvetica, sans-serif;
+  box-shadow: 5px 5px 0 rgba(0,0,0,0.55); animation: cg-in 0.14s steps(3, end);
+  transition: opacity 0.2s linear; }
+@keyframes cg-in { from { transform: scale(0.55); opacity: 0; } }
+.cg-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 3px 7px 3px 8px;
+  border-bottom: 3px solid #ff0000; color: #ff0000; font-weight: 700; font-size: 13px; letter-spacing: 0.02em; }
+.cg-top i { font-style: normal; font-weight: 900; font-size: 13px; line-height: 1; }
+.cg-body { padding: 11px 16px 13px; font-weight: 700; font-size: 21px; line-height: 1.25; text-align: center; overflow-wrap: anywhere; }
+.cg-win.old { opacity: 0.5; }
+.cg-win.out { opacity: 0; }
+@media (max-width: 560px) { .cg-body { font-size: 16px; padding: 9px 12px 10px; } .cg-win { min-width: 150px; } }
+
+/* the player's lyrics buttons */
+.np-lyr[hidden], .np-lyr-edit[hidden] { display: none; }
+.np-lyr.on { color: #ff4d4d; }
+
+/* the owner's lyrics tool: a panel on the left, so the preview shows beside it */
+#ly-tool { position: fixed; left: 16px; top: 76px; bottom: 16px; width: min(420px, calc(100vw - 32px)); z-index: 100003;
+  display: flex; flex-direction: column; background: var(--panel); border: 1px solid color-mix(in srgb, #ff3b3b 45%, var(--border));
+  border-top: 3px solid #ff3b3b; border-radius: 10px; box-shadow: 0 20px 50px rgba(0,0,0,0.6); font-family: 'Share Tech Mono', monospace;
+  color: var(--text); animation: pl-pop-in var(--dur-3) var(--ease-spring); }
+#ly-tool[hidden] { display: none; }
+.ly-head { display: flex; align-items: center; gap: 10px; padding: 12px 12px 10px 16px; border-bottom: 1px solid var(--border); }
+.ly-head b { font-family: 'Orbitron', sans-serif; font-size: 0.72rem; letter-spacing: 0.12em; color: #ff5c5c; }
+.ly-head span { flex: 1; min-width: 0; font-size: 0.72rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ly-body { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 16px 14px; display: flex; flex-direction: column; gap: 10px; }
+.ly-step { font-size: 0.66rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-family: 'Orbitron', sans-serif; }
+.ly-hint { font-size: 0.72rem; color: var(--muted); line-height: 1.5; }
+#ly-text { min-height: 120px; resize: vertical; background: var(--bg2); border: 1px solid var(--border); color: var(--text); border-radius: 6px;
+  padding: 9px 10px; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; line-height: 1.5; }
+#ly-text:focus { outline: none; border-color: #ff5c5c; }
+.ly-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ly-btn { background: none; border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 7px 11px; cursor: pointer;
+  font-family: 'Share Tech Mono', monospace; font-size: 0.74rem; transition: border-color var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out); }
+.ly-btn:hover { border-color: #ff5c5c; color: #ff8a8a; }
+.ly-btn:disabled { opacity: 0.4; cursor: default; }
+.ly-btn.red { background: #ff3b3b; border-color: #ff3b3b; color: #fff; }
+.ly-btn.red:hover { color: #fff; filter: brightness(1.1); }
+.ly-num { width: 64px; background: var(--bg2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 6px 8px;
+  font-family: 'Share Tech Mono', monospace; font-size: 0.74rem; }
+.ly-clock { font-size: 0.8rem; color: #ff8a8a; font-variant-numeric: tabular-nums; }
+#ly-tap { width: 100%; padding: 16px 12px; border-radius: 8px; border: 3px solid #ff0000; background: #000; color: #fff; cursor: pointer;
+  font-family: Arial, Helvetica, sans-serif; font-weight: 700; font-size: 1rem; line-height: 1.3; }
+#ly-tap small { display: block; margin-top: 4px; font-size: 0.66rem; font-weight: 400; color: #ff8a8a; letter-spacing: 0.06em; }
+#ly-tap:active { transform: scale(0.99); }
+.ly-list { display: flex; flex-direction: column; gap: 3px; }
+.ly-line { display: grid; grid-template-columns: 66px 1fr auto; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 6px; font-size: 0.74rem; }
+.ly-line.now { background: rgba(255,59,59,0.12); }
+.ly-line .t { background: none; border: 1px solid transparent; color: #ff8a8a; cursor: pointer; font-family: inherit; font-size: inherit;
+  padding: 3px 4px; border-radius: 4px; font-variant-numeric: tabular-nums; text-align: left; }
+.ly-line .t:hover { border-color: var(--border); }
+.ly-line .t.none { color: var(--muted); }
+.ly-line .x { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ly-line .n { display: flex; gap: 2px; }
+.ly-line .n button { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 4px; cursor: pointer; font-size: 0.66rem; padding: 2px 6px; font-family: inherit; }
+.ly-line .n button:hover { color: var(--text); border-color: #ff5c5c; }
+.ly-status { font-size: 0.72rem; min-height: 1em; }
+.ly-status.bad { color: #ff6b7d; }
+.ly-status.good { color: #3ddc84; }
+.ly-key { flex: 1; min-width: 140px; background: var(--bg2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 7px 9px;
+  font-family: 'Share Tech Mono', monospace; font-size: 0.74rem; }
+
 /* ===== PLAY TOGETHER ===== */
 .pl-box { border: 1px solid var(--border); background: color-mix(in srgb, var(--panel) 88%, transparent); border-radius: 3px;
   padding: 10px 10px 9px; display: flex; flex-direction: column; gap: 8px; }
@@ -3653,6 +3718,8 @@ animation: launch-flash-anim 0.4s var(--ease-out);
 </button>
 </div>
 </div>
+<div id="ly-stage" aria-hidden="true"></div>
+<div id="ly-tool" hidden role="dialog" aria-label="Lyrics tool"></div>
 <!-- request cards sit beside the game window, not inside the page, so they show over a game -->
 <div id="pl-cards" aria-live="assertive"></div>
 <header>
@@ -3975,6 +4042,8 @@ animation: launch-flash-anim 0.4s var(--ease-out);
 <button type="button" class="np-icon-btn np-mute" id="np-mute" title="Mute music" aria-label="Mute music"></button>
 <input type="range" class="np-vol" id="np-vol" min="0" max="100" value="55" aria-label="Music volume">
 <span class="np-vol-val" id="np-vol-val">55</span>
+<button type="button" class="np-icon-btn np-lyr on" id="np-lyr" hidden title="Lyrics: on" aria-label="Lyrics on or off" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M7 9h10M7 12.5h6"/><path d="M8 17l-2 3.5M16 17l2 3.5"/></svg></button>
+<button type="button" class="np-icon-btn np-lyr-edit" id="np-lyr-edit" hidden title="Lyrics tool (dev)" aria-label="Open the lyrics tool"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></button>
 </div>
 <div class="np-playlist-row" id="np-playlist-row">
 <span class="np-playlist-label">Playlist</span>
@@ -10370,6 +10439,341 @@ let openBeeTalk = () => {};
   new MutationObserver(__throttle(npPlaylistsShown, 150)).observe(document.body, { attributes: true, attributeFilter: ['class'] });
   document.querySelectorAll('.np-playlist-opt').forEach(b => b.addEventListener('click', () => setTimeout(npPlaylistsShown, 0)));
   npPlaylistsShown();
+
+
+  // ---- Lyrics: c00lguis, and the owner's tool for timing them ----
+  // Lines are typed in by the owner in the tool below and kept on the server
+  // like the links: a map from a track's address to lines with start times.
+  const LY = { map: {}, loaded: false, shown: -1, wins: [], timer: 0, preview: null, on: true };
+  try { LY.on = localStorage.getItem('lyricsOn') !== '0'; } catch (e) {}
+  const lyStage = document.getElementById('ly-stage');
+  const lyBtn = document.getElementById('np-lyr');
+  const lyEditBtn = document.getElementById('np-lyr-edit');
+
+  function lyTrack() { const t = TRACKS[currentIdx]; return t ? t.file : ''; }
+  function lyLines() {
+    const tr = lyTrack();
+    if (LY.preview && LY.preview.track === tr) return LY.preview.lines;
+    const song = LY.map[tr];
+    return song ? song.lines : null;
+  }
+  async function lyLoad() {
+    try {
+      const { status, body } = await linksFetch('/api/lyrics');
+      if (status === 200 && body && typeof body.lyrics === 'object') { LY.map = body.lyrics || {}; LY.loaded = true; }
+    } catch (e) {}
+    lyChrome();
+  }
+  function lyChrome() {
+    const has = !!(lyLines() && lyLines().length);
+    lyBtn.hidden = !has;
+    lyBtn.classList.toggle('on', LY.on);
+    lyBtn.setAttribute('aria-pressed', String(LY.on));
+    lyBtn.title = LY.on ? 'Lyrics: on' : 'Lyrics: off';
+    lyEditBtn.hidden = !(typeof linksIsDev === 'function' && linksIsDev());
+  }
+  function lyClear() {
+    LY.wins.forEach(w => w.remove());
+    LY.wins = [];
+    LY.shown = -1;
+  }
+  // One line, one c00lgui: somewhere new each time, the last one dims.
+  function lySpawn(text) {
+    LY.wins = LY.wins.filter(w => {
+      if (w.classList.contains('old')) { w.classList.add('out'); setTimeout(() => w.remove(), 220); return false; }
+      w.classList.add('old');
+      return true;
+    });
+    const win = document.createElement('div');
+    win.className = 'cg-win';
+    const top = document.createElement('div');
+    top.className = 'cg-top';
+    const name = document.createElement('span');
+    name.textContent = 'c00lgui';
+    const x = document.createElement('i');
+    x.textContent = 'X';
+    top.append(name, x);
+    const body = document.createElement('div');
+    body.className = 'cg-body';
+    body.textContent = text;
+    win.append(top, body);
+    lyStage.appendChild(win);
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const w = win.offsetWidth, h = win.offsetHeight;
+    const pad = Math.min(40, vw * 0.04);
+    win.style.left = Math.round(pad + Math.random() * Math.max(0, vw - w - pad * 2)) + 'px';
+    win.style.top = Math.round(Math.max(70, vh * 0.1) + Math.random() * Math.max(0, vh * 0.7 - h)) + 'px';
+    LY.wins.push(win);
+  }
+  function lyTick() {
+    const lines = LY.on ? lyLines() : null;
+    if (!lines || !lines.length) { if (LY.wins.length) lyClear(); lyStop(); return; }
+    const now = audio.currentTime;
+    let i = -1;
+    for (let k = 0; k < lines.length; k++) { if (lines[k].t <= now) i = k; else break; }
+    if (i !== LY.shown) {
+      if (i < LY.shown) lyClear();                       // went back: start clean
+      if (i >= 0) lySpawn(lines[i].text);
+      LY.shown = i;
+    }
+    // after the last line, let it sit a few seconds, then clear
+    if (i === lines.length - 1 && now - lines[i].t > 6 && LY.wins.length) { LY.wins.forEach(w => { w.classList.add('out'); setTimeout(() => w.remove(), 220); }); LY.wins = []; }
+    if (audio.paused) lyStop();
+  }
+  // a tenth-ish of a second is plenty for words
+  function lyRun() { if (!LY.timer && !audio.paused) LY.timer = setInterval(lyTick, 80); lyTick(); }
+  function lyStop() { clearInterval(LY.timer); LY.timer = 0; }
+  audio.addEventListener('play', lyRun);
+  audio.addEventListener('seeked', () => { lyClear(); lyRun(); });
+  audio.addEventListener('loadstart', () => { lyClear(); lyChrome(); });
+  lyBtn.addEventListener('click', () => {
+    LY.on = !LY.on;
+    try { localStorage.setItem('lyricsOn', LY.on ? '1' : '0'); } catch (e) {}
+    if (!LY.on) lyClear(); else { LY.shown = -1; lyRun(); }
+    lyChrome();
+    showToast(LY.on ? 'Lyrics on' : 'Lyrics off');
+  });
+  const devTab = document.getElementById('dev-tab-btn');
+  if (devTab) new MutationObserver(lyChrome).observe(devTab, { attributes: true, attributeFilter: ['class'] });
+  window.addEventListener('storage', lyChrome);
+  lyLoad();
+
+  // ---- the owner's lyrics tool ----
+  const lyTool = document.getElementById('ly-tool');
+  const ED = { track: '', title: '', lines: [], i: 0, mode: 'edit' };
+  function lyClock(t) {
+    if (t == null || !isFinite(t)) return '\u2013:\u2013\u2013';
+    const m = Math.floor(t / 60), s = t - m * 60;
+    return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
+  }
+  // one line per row; [mm:ss.xx] in front of a line is its time already
+  function lyParse(text, old) {
+    const out = [];
+    text.split(/\r?\n/).forEach((raw, k) => {
+      const m = raw.match(/^\s*\[(\d+):(\d+(?:\.\d+)?)\]\s*(.*)$/);
+      const line = (m ? m[3] : raw).trim();
+      if (!line) return;
+      let t = m ? (+m[1]) * 60 + (+m[2]) : null;
+      if (t == null && old) { const o = old[out.length]; if (o && o.text === line) t = o.t; }
+      out.push({ text: line.slice(0, 160), t: t });
+    });
+    return out;
+  }
+  function lyPreview() {
+    const timed = ED.lines.filter(l => l.t != null).map(l => ({ t: Math.round(l.t * 100) / 100, text: l.text })).sort((a, b) => a.t - b.t);
+    LY.preview = { track: ED.track, lines: timed };
+    lyClear();
+    lyRun();
+    lyChrome();
+  }
+  function lyToolDraw() {
+    const n = ED.lines.length, timed = ED.lines.filter(l => l.t != null).length;
+    lyTool.innerHTML = '';
+    const head = document.createElement('div');
+    head.className = 'ly-head';
+    head.innerHTML = '<b>LYRICS</b><span></span><button type="button" class="np-icon-btn" title="Close" aria-label="Close">\u2715</button>';
+    head.querySelector('span').textContent = ED.title;
+    head.querySelector('button').addEventListener('click', lyToolClose);
+    const body = document.createElement('div');
+    body.className = 'ly-body';
+    lyTool.append(head, body);
+    const add = (html) => { const d = document.createElement('div'); d.innerHTML = html; while (d.firstChild) body.appendChild(d.firstChild); };
+
+    add('<div class="ly-step">1 \u00B7 The words</div><div class="ly-hint">One line per row. An .lrc file\u2019s [mm:ss.xx] times are read as they are.</div>');
+    const ta = document.createElement('textarea');
+    ta.id = 'ly-text';
+    ta.spellcheck = false;
+    ta.value = ED.lines.map(l => l.text).join('\n');
+    ta.addEventListener('input', () => { ED.lines = lyParse(ta.value, ED.lines); if (ED.mode !== 'timing') ED.mode = 'edit'; lyToolSoft(); });
+    body.appendChild(ta);
+
+    add('<div class="ly-step">2 \u00B7 Time them</div><div class="ly-hint">Press Start, then tap <b>Space</b> or the big button the moment each line starts. Undo steps back one.</div>');
+    const row = document.createElement('div');
+    row.className = 'ly-row';
+    row.innerHTML = '<span class="ly-hint">start from</span><input class="ly-num" id="ly-from" type="number" min="0" step="1" value="0" title="seconds"><button type="button" class="ly-btn red" id="ly-start">Start</button><button type="button" class="ly-btn" id="ly-undo">Undo</button><span class="ly-clock" id="ly-clock"></span>';
+    body.appendChild(row);
+    const tap = document.createElement('button');
+    tap.type = 'button';
+    tap.id = 'ly-tap';
+    body.appendChild(tap);
+
+    add('<div class="ly-step">3 \u00B7 Check and save</div><div class="ly-hint">Click a time to hear that line; \u2212/+ nudge it a tenth of a second.</div>');
+    const list = document.createElement('div');
+    list.className = 'ly-list';
+    list.id = 'ly-list';
+    body.appendChild(list);
+    const save = document.createElement('div');
+    save.className = 'ly-row';
+    save.innerHTML = (linksKey() ? '' : '<input class="ly-key" id="ly-key" type="password" placeholder="Owner key (DEV_KEY)" autocomplete="current-password">') +
+      '<button type="button" class="ly-btn red" id="ly-save">Save for everyone</button><button type="button" class="ly-btn" id="ly-remove">Remove</button>';
+    body.appendChild(save);
+    add('<div class="ly-status" id="ly-status"></div>');
+
+    body.querySelector('#ly-start').addEventListener('click', () => {
+      if (!ED.lines.length) { lyStatus('Paste the words first.', 'bad'); return; }
+      ED.lines.forEach(l => { l.t = null; });
+      ED.i = 0;
+      ED.mode = 'timing';
+      const from = Math.max(0, parseFloat(body.querySelector('#ly-from').value) || 0);
+      audio.currentTime = from;
+      audio.play().catch(() => {});
+      lyPreview();
+      lyToolSoft();
+      tap.focus();
+    });
+    body.querySelector('#ly-undo').addEventListener('click', lyUndo);
+    tap.addEventListener('click', lyTap);
+    body.querySelector('#ly-save').addEventListener('click', lySave);
+    body.querySelector('#ly-remove').addEventListener('click', lyRemove);
+    lyToolSoft();
+  }
+  // the parts that change while timing, redrawn without touching the textarea
+  function lyToolSoft() {
+    const tap = document.getElementById('ly-tap');
+    const list = document.getElementById('ly-list');
+    if (!tap || !list) return;
+    const n = ED.lines.length;
+    if (ED.mode === 'timing' && ED.i < n) {
+      tap.disabled = false;
+      tap.innerHTML = '';
+      tap.appendChild(document.createTextNode(ED.lines[ED.i].text));
+      const sm = document.createElement('small');
+      sm.textContent = 'TAP when this line starts \u00B7 ' + (ED.i + 1) + ' of ' + n;
+      tap.appendChild(sm);
+    } else {
+      if (ED.mode === 'timing' && ED.i >= n) ED.mode = 'review';
+      tap.disabled = true;
+      tap.textContent = ED.mode === 'review' ? 'All ' + n + ' timed \u2014 check below, or Start again to redo'
+        : (n ? 'Press Start to time ' + n + ' line' + (n === 1 ? '' : 's') : 'Paste the words above');
+    }
+    list.innerHTML = '';
+    const lines = LY.preview ? LY.preview.lines : [];
+    const nowT = audio.currentTime;
+    ED.lines.forEach((l, k) => {
+      const row = document.createElement('div');
+      row.className = 'ly-line';
+      const next = ED.lines[k + 1];
+      if (l.t != null && l.t <= nowT && (!next || next.t == null || next.t > nowT)) row.classList.add('now');
+      const t = document.createElement('button');
+      t.type = 'button';
+      t.className = 't' + (l.t == null ? ' none' : '');
+      t.textContent = lyClock(l.t);
+      t.title = 'Play from just before this line';
+      t.addEventListener('click', () => { if (l.t == null) return; audio.currentTime = Math.max(0, l.t - 1.5); audio.play().catch(() => {}); });
+      const x = document.createElement('span');
+      x.className = 'x';
+      x.textContent = l.text;
+      const nb = document.createElement('span');
+      nb.className = 'n';
+      [['\u2212', -0.1], ['+', 0.1]].forEach(([label, d]) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = label;
+        b.addEventListener('click', () => { if (l.t == null) return; l.t = Math.max(0, Math.round((l.t + d) * 100) / 100); lyPreview(); lyToolSoft(); });
+        nb.appendChild(b);
+      });
+      row.append(t, x, nb);
+      list.appendChild(row);
+    });
+    const clock = document.getElementById('ly-clock');
+    if (clock) clock.textContent = lyClock(audio.currentTime);
+  }
+  function lyTap() {
+    if (ED.mode !== 'timing' || ED.i >= ED.lines.length) return;
+    // taps land a touch late: take a tenth back
+    ED.lines[ED.i].t = Math.max(0, Math.round((audio.currentTime - 0.1) * 100) / 100);
+    ED.i++;
+    lyPreview();
+    lyToolSoft();
+  }
+  function lyUndo() {
+    if (ED.i <= 0) return;
+    ED.i--;
+    ED.lines[ED.i].t = null;
+    ED.mode = 'timing';
+    const back = ED.i > 0 ? ED.lines[ED.i - 1].t : 0;
+    audio.currentTime = Math.max(0, (back || 0));
+    audio.play().catch(() => {});
+    lyPreview();
+    lyToolSoft();
+  }
+  function lyStatus(text, kind) {
+    const el = document.getElementById('ly-status');
+    if (!el) return;
+    el.textContent = text || '';
+    el.className = 'ly-status' + (kind ? ' ' + kind : '');
+  }
+  function lyKey() {
+    const k = document.getElementById('ly-key');
+    return (k && k.value.trim()) || linksKey();
+  }
+  async function lyPost(body) {
+    const key = lyKey();
+    if (!key) { lyStatus('Enter the owner key first.', 'bad'); return null; }
+    lyStatus('Saving\u2026');
+    try {
+      const { status, body: reply } = await linksFetch('/api/lyrics', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Dev-Key': key }, body: JSON.stringify(body) });
+      if (status === 200 && reply.ok) {
+        try { localStorage.setItem(LINKS_KEY_STORE, key); } catch (e) {}
+        LY.map = reply.lyrics || {};
+        return reply;
+      }
+      lyStatus(reply.error || 'That didn\u2019t save.', 'bad');
+    } catch (e) {
+      lyStatus('Couldn\u2019t reach the server \u2014 it may be waking up. Try again.', 'bad');
+    }
+    return null;
+  }
+  async function lySave() {
+    const lines = ED.lines.filter(l => l.t != null).map(l => ({ t: Math.round(l.t * 100) / 100, text: l.text }));
+    if (!lines.length) { lyStatus('Time at least one line first.', 'bad'); return; }
+    const untimed = ED.lines.length - lines.length;
+    const ok = await lyPost({ op: 'set', track: ED.track, title: ED.title, lines: lines });
+    if (ok) { lyStatus('Saved for everyone' + (untimed ? ' (' + untimed + ' untimed line' + (untimed === 1 ? '' : 's') + ' left out)' : '') + '.', 'good'); playSound('links-added'); lyChrome(); }
+  }
+  async function lyRemove() {
+    if (!LY.map[ED.track]) { lyStatus('This song has no saved lyrics.', 'bad'); return; }
+    const ok = await lyPost({ op: 'remove', track: ED.track, title: ED.title });
+    if (ok) { lyStatus('Removed.', 'good'); playSound('links-removed'); }
+  }
+  function lyToolOpen() {
+    const t = TRACKS[currentIdx];
+    if (!t) return;
+    ED.track = t.file;
+    ED.title = t.title || cleanTitle(t.file.split('/').pop());
+    const saved = LY.map[ED.track];
+    ED.lines = saved ? saved.lines.map(l => ({ text: l.text, t: l.t })) : [];
+    ED.i = 0;
+    ED.mode = 'edit';
+    lyTool.hidden = false;
+    lyToolDraw();
+    lyPreview();
+    playSound('pl-open');
+  }
+  function lyToolClose() {
+    lyTool.hidden = true;
+    ED.mode = 'edit';
+    LY.preview = null;
+    lyClear();
+    lyRun();
+    lyChrome();
+    playSound('pl-close');
+  }
+  lyEditBtn.addEventListener('click', () => { if (lyTool.hidden) lyToolOpen(); else lyToolClose(); });
+  // Space taps while timing -- unless typing in the words box
+  document.addEventListener('keydown', e => {
+    if (lyTool.hidden || ED.mode !== 'timing') return;
+    if (e.key !== ' ' && e.code !== 'Space') return;
+    const tg = e.target;
+    if (tg && (tg.id === 'ly-text' || tg.tagName === 'INPUT')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    lyTap();
+  }, true);
+  // the tool's clock and "now" row follow the song
+  audio.addEventListener('timeupdate', () => { if (!lyTool.hidden) lyToolSoft(); });
+  // a different song while the tool is open: the tool follows it
+  audio.addEventListener('loadstart', () => { if (!lyTool.hidden && TRACKS[currentIdx] && TRACKS[currentIdx].file !== ED.track) lyToolOpen(); });
 
   // Load track 0 on init (but don't autoplay — browser blocks it anyway until interaction)
   loadTrack(0, false);

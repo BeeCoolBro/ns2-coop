@@ -370,6 +370,25 @@ first save, wrong or empty key refused, `DEV_KEY` unset refuses everything,
 retried and both survive, a restart reads the list back, a repeat remove makes
 no empty commit, oversized bodies are refused, and hostile names render inert.
 
+## Lyrics in the vault's music player
+
+While a song with lyrics plays, each line pops up at its moment as a
+**c00lgui** -- a black box with a red outline, a red title bar and white text,
+somewhere new on screen each time. The button with the little screen in the
+player turns them off (remembered per device).
+
+**Adding them (dev mode):** play the song, open the player, press the pencil.
+Paste the words one line per row -- an `.lrc` file's `[mm:ss.xx]` times are
+read as they are -- set where to start from, press **Start**, and tap
+**Space** (or the big button) as each line begins; **Undo** steps back one.
+Then click any time to hear that line, nudge it with **-/+**, and **Save for
+everyone**. **Remove** takes a song's lyrics away.
+
+Kept like the links: `lyrics.json` on the `vault-data` branch, a map from a
+track's address to its lines and start times. `GET /api/lyrics` is open;
+`POST /api/lyrics` takes `DEV_KEY` (`{op: "set", track, title, lines}` or
+`{op: "remove", track}`). Lines are cut to 160 characters, 300 a song.
+
 ## The vault's Chat tab
 
 One room for everyone on the site, live over a websocket at `/chat` on this
