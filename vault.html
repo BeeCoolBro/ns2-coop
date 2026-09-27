@@ -2243,26 +2243,38 @@ transition: width var(--dur-4) 0.2s var(--ease-out);
 html:not(.bv-full-motion) *, html:not(.bv-full-motion) *::before, html:not(.bv-full-motion) *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
 /* ===== MUSIC PLAYER ===== */
-/* hidden: a record peeking out of the right edge. open: a floating card */
+/* hidden: a small tab on the right edge. open: a floating card */
 #now-playing-popup { position: fixed; bottom: 22px; right: 0; z-index: 100000; display: flex; align-items: flex-end; padding-right: 16px;
-  transform: translateX(calc(100% - 22px)); transition: transform var(--dur-4) var(--ease-out); pointer-events: none; }
+  transform: translateX(calc(100% - 28px)); transition: transform var(--dur-4) var(--ease-out); pointer-events: none; }
 #now-playing-popup.show { transform: translateX(0); }
-#now-playing-popup.hide-again { transform: translateX(calc(100% - 22px)); }
+#now-playing-popup.hide-again { transform: translateX(calc(100% - 28px)); }
 
-.np-disc-tab { position: relative; width: 22px; height: 46px; margin-bottom: 14px; flex-shrink: 0; padding: 0; border: 0; background: none;
-  border-radius: 23px 0 0 23px; overflow: hidden; cursor: pointer; pointer-events: auto;
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 38%, transparent));
+.np-disc-tab { position: relative; width: 28px; height: 60px; margin-bottom: 14px; flex-shrink: 0; padding: 0 0 0 7px; box-sizing: border-box;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  border-radius: 14px 0 0 14px; border: 1px solid color-mix(in srgb, var(--accent) 50%, var(--border)); border-right: 0;
+  background:
+    linear-gradient(165deg, color-mix(in srgb, var(--accent) 20%, var(--panel)) 0%, var(--panel) 55%, color-mix(in srgb, var(--accent2) 12%, var(--panel)) 100%);
+  box-shadow: -4px 0 18px color-mix(in srgb, var(--accent) 22%, transparent), inset 1px 1px 0 rgba(255,255,255,0.08);
+  color: var(--accent); overflow: hidden; cursor: pointer; pointer-events: auto;
   transition: transform var(--dur-3) var(--ease-out), opacity var(--dur-2) var(--ease-out); }
 /* no hover effect: it sits still under the pointer; the keyboard still gets a ring */
 .np-disc-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.np-tab-disc { position: absolute; top: 0; left: 0; width: 46px; height: 46px; border-radius: 50%;
-  background:
-    radial-gradient(circle, #04040a 0 1.7px, var(--accent) 2px 6.6px, color-mix(in srgb, var(--accent) 55%, #000) 7px 7.9px, transparent 8.3px),
-    linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0) 42%, rgba(255,255,255,0.07) 70%, rgba(255,255,255,0)),
-    repeating-radial-gradient(circle, #0a0a14 0 1.1px, #16162a 1.1px 1.9px);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent);
-  animation: disc-spin 4s linear infinite; animation-play-state: paused; }
-#now-playing-popup:not(.paused) .np-tab-disc { animation-play-state: running; }
+/* how far into the song: a thin line filling up, just inside the edge */
+.np-disc-tab::before, .np-disc-tab::after { content: ''; position: absolute; left: 5px; top: 11px; bottom: 11px; width: 2px; border-radius: 2px; }
+.np-disc-tab::before { background: color-mix(in srgb, var(--text) 14%, transparent); }
+.np-disc-tab::after { background: linear-gradient(0deg, var(--accent), var(--accent2)); box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 70%, transparent);
+  transform-origin: bottom center; transform: scaleY(var(--np-p, 0)); transition: transform 0.26s linear; }
+.np-tab-note svg { display: block; width: 13px; height: 13px; filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 60%, transparent));
+  transition: opacity var(--dur-2) var(--ease-out); }
+#now-playing-popup.paused .np-tab-note svg { opacity: 0.7; }
+.np-tab-eq { display: flex; align-items: flex-end; gap: 2px; height: 10px; }
+.np-tab-eq i { width: 2px; height: 3px; border-radius: 1px; background: currentColor;
+  animation: eq-bounce 0.62s var(--ease-sine) infinite; animation-play-state: paused; }
+.np-tab-eq i:nth-child(2) { animation-delay: 0.18s; background: var(--accent2); }
+.np-tab-eq i:nth-child(3) { animation-delay: 0.34s; }
+#now-playing-popup:not(.paused) .np-tab-eq i { animation-play-state: running; }
+#now-playing-popup.paused .np-tab-eq i { height: 3px !important; opacity: 0.55; }
+body.potato-mode .np-tab-eq i { animation: none; }
 #now-playing-popup.show:not(.hide-again) .np-disc-tab { opacity: 0; pointer-events: none; transform: translateX(12px); }
 
 .np-body { position: relative; width: min(500px, calc(100vw - 62px)); display: grid; padding: 12px 12px 11px 14px;
@@ -3886,7 +3898,8 @@ animation: launch-flash-anim 0.4s var(--ease-out);
 <div id="toast"></div>
 <div id="now-playing-popup" class="paused">
 <button type="button" class="np-disc-tab" id="np-pull-tab" title="Music" aria-label="Open the music player" aria-expanded="false" aria-controls="np-body">
-<span class="np-tab-disc" aria-hidden="true"></span>
+<span class="np-tab-note" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3" fill="currentColor"/><circle cx="18" cy="16" r="3" fill="currentColor"/></svg></span>
+<span class="np-tab-eq" aria-hidden="true"><i></i><i></i><i></i></span>
 </button>
 <div class="np-body" id="np-body" role="region" aria-label="Music player">
 <div class="np-top">
@@ -8830,9 +8843,9 @@ function stopRain() {
       body: 'Who has the vault open, and what they\u2019re playing. <strong>Watch</strong> asks to watch their game live \u2014 they have to say yes. <strong>Invite</strong> asks them to play a game with you.' },
     { target: '#chat-view .chat-form', onEnter: () => goTab('chat'),
       title: 'Say hi', body: 'Swearing is filtered, and <strong>@name</strong> pings someone. Your chat name is your vault name.' },
-    { target: '#np-pull-tab', click: true, hint: 'Tap the record', settle: 620,
+    { target: '#np-pull-tab', click: true, hint: 'Tap the music tab', settle: 620,
       onEnter: () => { goTab('games'); tuckPlayer(); },
-      title: 'Music', body: 'That little record on the right edge is the music player.' },
+      title: 'Music', body: 'That little tab on the right edge is the music player \u2014 it bounces along while something plays.' },
     { target: '#np-body', wait: 1500, onEnter: openPlayer, onLeave: tuckPlayer,
       title: 'The player', body: 'Play, skip, shuffle or repeat one. Drag the bar to jump around, and set the volume right here.' },
     { target: '#header-bee',
@@ -10223,6 +10236,7 @@ let openBeeTalk = () => {};
     if (jump) { npBar.classList.add('jump'); requestAnimationFrame(() => requestAnimationFrame(() => npBar.classList.remove('jump'))); }
     npFill.style.transform = 'scaleX(' + frac + ')';
     npKnob.style.left = (frac * 100) + '%';
+    popup.style.setProperty('--np-p', frac.toFixed(4));
     npBar.setAttribute('aria-valuenow', String(Math.round(frac * 100)));
   }
   function npProgress(jump) {
