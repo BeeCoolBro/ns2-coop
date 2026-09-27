@@ -1410,6 +1410,172 @@ body.theme-ultrabasic .chat-msg.owner .chat-text { color: var(--text); }
 .chat-ping-go { margin-top: 6px; font-size: 0.62rem; color: var(--accent3); letter-spacing: 0.08em; text-transform: uppercase; }
 .chat-ping-x { position: absolute; top: 6px; right: 8px; background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 0.8rem; }
 .chat-ping-x:hover { color: var(--text); }
+
+/* ===== PLAY TOGETHER ===== */
+.pl-box { border: 1px solid var(--border); background: color-mix(in srgb, var(--panel) 88%, transparent); border-radius: 3px;
+  padding: 10px 10px 9px; display: flex; flex-direction: column; gap: 8px; }
+.pl-box-head { display: flex; align-items: center; gap: 8px; font-family: 'Orbitron', sans-serif; font-size: 0.58rem;
+  letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); }
+.pl-box-head b { margin-left: auto; color: var(--accent); font-family: 'Share Tech Mono', monospace; letter-spacing: 0.04em; font-size: 0.72rem; }
+.pl-list { display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow-y: auto; }
+.pl-box-foot { font-size: 0.62rem; color: var(--muted); line-height: 1.45; font-family: 'Share Tech Mono', monospace; }
+.pl-row { display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: 3px; border: 1px solid transparent;
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+  transition: background var(--dur-2) var(--ease-out), border-color var(--dur-2) var(--ease-out);
+  animation: pl-row-in var(--dur-3) var(--ease-out) backwards; }
+.pl-row:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); border-color: color-mix(in srgb, var(--accent) 22%, transparent); }
+@keyframes pl-row-in { from { opacity: 0; transform: translateY(4px); } }
+.pl-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.pl-who { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.pl-line { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.pl-name { font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-you { flex-shrink: 0; font-size: 0.52rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+  border: 1px solid var(--border); border-radius: 999px; padding: 0 6px; line-height: 1.5; }
+.pl-status { font-size: 0.64rem; color: var(--muted); font-family: 'Share Tech Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-status.on { color: #3ddc84; }
+.pl-acts { display: flex; gap: 5px; flex-shrink: 0; }
+.pl-act { background: none; border: 1px solid var(--border); color: var(--text); font-family: 'Share Tech Mono', monospace; font-size: 0.64rem;
+  letter-spacing: 0.06em; padding: 5px 9px; border-radius: 2px; cursor: pointer;
+  transition: color var(--dur-2) var(--ease-out), border-color var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out), transform var(--dur-1) var(--ease-out); }
+.pl-act:not(:disabled):active { transform: scale(0.96); }
+.pl-act.watch:not(:disabled):hover { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 28%, transparent); }
+.pl-act.invite:not(:disabled):hover { border-color: var(--accent3); color: var(--accent3); box-shadow: 0 0 12px color-mix(in srgb, var(--accent3) 28%, transparent); }
+.pl-act:disabled { opacity: 0.4; cursor: default; }
+.pl-empty { padding: 14px 8px; text-align: center; font-size: 0.7rem; color: var(--muted); font-family: 'Share Tech Mono', monospace; line-height: 1.5; }
+@media (min-width: 1000px) {
+  .chat-wrap { max-width: 1120px; display: grid; grid-template-columns: minmax(0, 1fr) 280px; column-gap: 18px; row-gap: 10px; align-items: start; }
+  .chat-wrap > * { grid-column: 1; }
+  .chat-wrap > .chat-head { grid-column: 1 / -1; }
+  .chat-wrap > .pl-box { grid-column: 2; grid-row: 2 / span 3; max-height: calc(min(60vh, 620px) + 70px); }
+  .chat-wrap > .pl-box .pl-list { max-height: none; flex: 1; min-height: 0; }
+}
+
+/* the invite tab on the game window, under the close tab */
+#game-invite-tab {
+position:absolute;top:62px;right:0;z-index:2;display:flex;align-items:center;gap:8px;
+background:rgba(5,5,12,0.92);border:1px solid #3ddc84;border-right:none;
+border-radius:20px 0 0 20px;padding:7px 16px 7px 10px;cursor:pointer;
+color:#3ddc84;font-family:'Share Tech Mono',monospace;font-size:0.72rem;
+letter-spacing:0.12em;text-transform:uppercase;
+box-shadow:-2px 0 18px #3ddc8433,inset 0 0 12px #3ddc8411;
+transform:translateX(calc(100% - 18px));
+transition:transform var(--dur-3) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
+white-space:nowrap;user-select:none;pointer-events:all;
+}
+#game-invite-tab:hover, #game-invite-tab:focus-visible { transform:translateX(0);box-shadow:-4px 0 28px #3ddc8455,inset 0 0 16px #3ddc8422;outline:none; }
+#game-invite-tab:active { transform:translateX(2px); }
+.invite-tab-dot { width:7px;height:7px;border-radius:50%;background:#3ddc84;flex-shrink:0;box-shadow:0 0 6px #3ddc84; }
+
+/* invite and game-picker panels */
+.pl-pop-back { position: fixed; inset: 0; z-index: 100003; background: rgba(2, 2, 8, 0.62); display: flex; align-items: center;
+  justify-content: center; padding: 16px; animation: bv-fade-in var(--dur-2) var(--ease-out); transition: opacity var(--dur-2) var(--ease-in); }
+.pl-pop-back.out { opacity: 0; }
+.pl-pop { width: min(440px, 100%); max-height: min(560px, calc(100vh - 32px)); display: flex; flex-direction: column;
+  background: var(--panel); border: 1px solid var(--border); border-top: 2px solid var(--accent3); border-radius: 4px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 30px color-mix(in srgb, var(--accent3) 14%, transparent);
+  animation: pl-pop-in var(--dur-3) var(--ease-spring); }
+@keyframes pl-pop-in { from { opacity: 0; transform: translateY(10px) scale(0.97); } }
+.pl-pop-head { position: relative; padding: 14px 46px 11px 16px; border-bottom: 1px solid var(--border); }
+.pl-pop-title { font-family: 'Orbitron', sans-serif; font-size: 0.8rem; letter-spacing: 0.08em; color: var(--text); overflow-wrap: anywhere; }
+.pl-pop-sub { margin-top: 4px; font-size: 0.68rem; color: var(--muted); font-family: 'Share Tech Mono', monospace; line-height: 1.45; }
+.pl-pop-x { position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; background: none; border: 1px solid transparent;
+  color: var(--muted); cursor: pointer; border-radius: 2px; font-size: 0.8rem; }
+.pl-pop-x:hover { color: var(--text); border-color: var(--border); }
+.pl-pop-body { padding: 12px 14px 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.pl-search { background: var(--bg2); border: 1px solid var(--border); color: var(--text); padding: 9px 11px;
+  font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; border-radius: 2px; }
+.pl-search:focus { outline: none; border-color: var(--accent3); }
+.pl-games-label { font-size: 0.56rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); font-family: 'Orbitron', sans-serif; margin: 6px 2px 0; }
+.pl-games { display: flex; flex-direction: column; gap: 2px; }
+.pl-game { text-align: left; background: none; border: 1px solid transparent; color: var(--text); padding: 6px 8px; border-radius: 2px;
+  cursor: pointer; font-family: 'Share Tech Mono', monospace; font-size: 0.78rem; display: flex; align-items: center; gap: 10px;
+  transition: background var(--dur-1) var(--ease-out), border-color var(--dur-1) var(--ease-out); }
+.pl-game:hover, .pl-game:focus-visible { background: color-mix(in srgb, var(--accent3) 10%, transparent);
+  border-color: color-mix(in srgb, var(--accent3) 35%, transparent); outline: none; }
+.pl-game img, .pl-game i { width: 46px; height: 27px; object-fit: cover; border-radius: 2px; background: var(--bg2); flex-shrink: 0; }
+
+/* a request, arriving */
+#pl-cards { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 100002; display: flex; flex-direction: column;
+  gap: 10px; width: min(380px, calc(100vw - 32px)); pointer-events: none; }
+.pl-card { pointer-events: auto; position: relative; overflow: hidden; background: var(--panel); border: 1px solid var(--border);
+  border-top: 2px solid var(--accent3); border-radius: 4px; padding: 13px 16px 15px; font-family: 'Share Tech Mono', monospace;
+  box-shadow: 0 18px 44px rgba(0,0,0,0.55), 0 0 26px color-mix(in srgb, var(--accent3) 18%, transparent);
+  animation: pl-card-in var(--dur-4) var(--ease-spring) backwards;
+  transition: opacity var(--dur-2) var(--ease-in), transform var(--dur-3) var(--ease-in); }
+.pl-card.watch { border-top-color: var(--accent); box-shadow: 0 18px 44px rgba(0,0,0,0.55), 0 0 26px color-mix(in srgb, var(--accent) 18%, transparent); }
+.pl-card.out { opacity: 0; transform: translateY(-12px) scale(0.98); }
+@keyframes pl-card-in { from { opacity: 0; transform: translateY(-16px) scale(0.97); } }
+.pl-card-head { font-size: 0.72rem; color: var(--muted); }
+.pl-card-head b { font-weight: 700; }
+.pl-card-game { margin-top: 3px; font-family: 'Orbitron', sans-serif; font-size: 0.86rem; color: var(--text); letter-spacing: 0.04em; overflow-wrap: anywhere; }
+.pl-card-note { margin-top: 6px; font-size: 0.64rem; color: var(--muted); line-height: 1.45; }
+.pl-card-btns { display: flex; gap: 8px; margin-top: 11px; }
+.pl-yes, .pl-no { flex: 1; padding: 8px 10px; border-radius: 2px; cursor: pointer; font-family: 'Orbitron', sans-serif; font-size: 0.58rem;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  transition: box-shadow var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out), border-color var(--dur-2) var(--ease-out), transform var(--dur-1) var(--ease-out); }
+.pl-yes:active, .pl-no:active { transform: scale(0.97); }
+.pl-yes { background: color-mix(in srgb, var(--accent3) 16%, transparent); border: 1px solid var(--accent3); color: var(--accent3); }
+.pl-yes:hover { box-shadow: 0 0 16px color-mix(in srgb, var(--accent3) 40%, transparent); }
+.pl-card.watch .pl-yes { background: color-mix(in srgb, var(--accent) 14%, transparent); border-color: var(--accent); color: var(--accent); }
+.pl-card.watch .pl-yes:hover { box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 40%, transparent); }
+.pl-no { background: none; border: 1px solid var(--border); color: var(--muted); }
+.pl-no:hover { color: var(--text); border-color: var(--muted); }
+.pl-card.wait .pl-yes { opacity: 0.65; cursor: progress; }
+.pl-card-bar { position: absolute; left: 0; bottom: 0; height: 2px; width: 100%; background: var(--accent3); opacity: 0.75;
+  transform-origin: left center; animation: pl-card-time linear forwards; }
+.pl-card.watch .pl-card-bar { background: var(--accent); }
+.pl-card.wait .pl-card-bar { animation-play-state: paused; }
+@keyframes pl-card-time { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+/* watching someone */
+.pl-viewer { position: fixed; right: 20px; bottom: 20px; z-index: 100001; width: min(560px, calc(100vw - 32px));
+  height: min(360px, calc(100vh - 120px)); min-width: 260px; min-height: 180px; resize: both; overflow: hidden;
+  display: flex; flex-direction: column; background: #000; border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  box-shadow: 0 24px 60px rgba(0,0,0,0.65), 0 0 30px color-mix(in srgb, var(--accent) 16%, transparent);
+  animation: pl-pop-in var(--dur-3) var(--ease-spring); transition: opacity var(--dur-2) var(--ease-in), transform var(--dur-2) var(--ease-in); }
+.pl-viewer.out { opacity: 0; transform: scale(0.96); }
+.pl-viewer-bar { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px; background: var(--panel);
+  border-bottom: 1px solid var(--border); cursor: grab; user-select: none; touch-action: none; flex-shrink: 0; }
+.pl-viewer.dragging .pl-viewer-bar { cursor: grabbing; }
+.pl-viewer-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem; color: var(--muted); white-space: nowrap; overflow: hidden; }
+.pl-viewer-title b { font-weight: 700; }
+.pl-viewer-game { overflow: hidden; text-overflow: ellipsis; }
+.pl-live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+.pl-viewer.live .pl-live-dot { background: #ff3b5c; box-shadow: 0 0 8px #ff3b5c; animation: pl-live 1.6s var(--ease-in-out) infinite; }
+@keyframes pl-live { 50% { opacity: 0.35; } }
+.pl-viewer-btns { display: flex; gap: 2px; flex-shrink: 0; }
+.pl-vbtn { width: 30px; height: 26px; display: grid; place-items: center; background: none; border: 1px solid transparent;
+  color: var(--muted); cursor: pointer; border-radius: 2px; transition: color var(--dur-1) var(--ease-out), border-color var(--dur-1) var(--ease-out); }
+.pl-vbtn:hover { color: var(--text); border-color: var(--border); }
+.pl-vbtn.x:hover { color: #ff5d73; }
+.pl-vbtn svg { width: 15px; height: 15px; }
+.pl-viewer-stage { position: relative; flex: 1; min-height: 0; background: #000; }
+.pl-viewer-stage video { width: 100%; height: 100%; object-fit: contain; display: block; }
+.pl-viewer-status { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  text-align: center; padding: 20px; color: var(--muted); font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; line-height: 1.5; }
+.pl-viewer-status[hidden] { display: none; }
+.pl-viewer-status.spin::before { content: ''; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border);
+  border-top-color: var(--accent); animation: pl-spin 0.9s linear infinite; }
+@keyframes pl-spin { to { transform: rotate(360deg); } }
+.pl-viewer-status button { pointer-events: auto; background: none; border: 1px solid var(--accent); color: var(--accent);
+  font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; padding: 6px 12px; cursor: pointer; border-radius: 2px; }
+
+/* sharing: the sharer always knows */
+#pl-live { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 100001; display: flex; align-items: center;
+  gap: 10px; padding: 6px 6px 6px 14px; background: rgba(8, 8, 16, 0.94); border: 1px solid #ff3b5c; border-radius: 999px;
+  color: #f0f0ff; font-family: 'Share Tech Mono', monospace; font-size: 0.72rem; max-width: calc(100vw - 32px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 22px #ff3b5c44; animation: pl-live-in var(--dur-3) var(--ease-spring); }
+@keyframes pl-live-in { from { opacity: 0; transform: translate(-50%, 12px); } }
+#pl-live[hidden] { display: none; }
+#pl-live i { width: 8px; height: 8px; border-radius: 50%; background: #ff3b5c; box-shadow: 0 0 8px #ff3b5c; flex-shrink: 0;
+  animation: pl-live 1.6s var(--ease-in-out) infinite; }
+#pl-live b { color: #ff3b5c; font-family: 'Orbitron', sans-serif; font-size: 0.58rem; letter-spacing: 0.18em; }
+#pl-live span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#pl-live button { background: #ff3b5c; border: 0; color: #fff; font-family: 'Orbitron', sans-serif; font-size: 0.56rem; letter-spacing: 0.14em;
+  text-transform: uppercase; padding: 7px 13px; border-radius: 999px; cursor: pointer; flex-shrink: 0; }
+#pl-live button:hover { filter: brightness(1.12); }
 .bv-name-row { display: flex; gap: 8px; }
 .bv-name-row input { flex: 1; min-width: 0; background: var(--bg2); border: 1px solid var(--border); color: var(--text);
   padding: 8px 10px; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; border-radius: 2px; }
@@ -3729,7 +3895,13 @@ animation: launch-flash-anim 0.4s var(--ease-out);
 <span class="close-tab-dot"></span>
 <span><svg class="bv-icon" aria-hidden="true"><use href="#bv-close"/></svg> close</span>
 </div>
+<div id="game-invite-tab" role="button" tabindex="0" title="Invite someone to play this with you">
+<span class="invite-tab-dot"></span>
+<span id="game-invite-label">+ invite</span>
 </div>
+</div>
+<!-- request cards sit beside the game window, not inside the page, so they show over a game -->
+<div id="pl-cards" aria-live="assertive"></div>
 <header>
 <div>
 <div class="logo">BEE'S<span>VAULT</span></div>
@@ -5501,6 +5673,7 @@ const WARNED_APP_MESSAGES = {
 let pendingWarnedApp = null;
 
 function openGame(url, name, cardEl) {
+  window.__plLast = { url: String(url || ''), name: String(name || '') };
   if (settings.vfx && cardEl) {
     cardEl.style.animation = 'none';
     setTimeout(() => { cardEl.style.animation = ''; }, 10);
@@ -5965,6 +6138,23 @@ const SFX = {
   'chat-mention':  (v, a, seq, N) => { seq([N.E6, N.B6], 0.07, { decay: 0.1, gain: 0.045, partials: [[2, 0.18], [2.76, 0.06]], wet: 0.2 }); v({ at: 0.16, freq: N.Gs6, decay: 0.16, gain: 0.035, partials: [[2, 0.12]], wet: 0.3 }); },
   'name-save':     (v, a, seq, N) => seq([N.Gs4, N.Cs5, N.Gs5], 0.045, { decay: 0.07, gain: 0.05, type: 'triangle', partials: [[2, 0.12]], wet: 0.12 }),
 
+  // ── play together ──
+  // asking: a rising bend, the way a question lifts at the end
+  'rq-send':     (v, a, seq, N) => { v({ freq: N.Cs5, to: N.Fs5, glide: 0.13, decay: 0.16, gain: 0.05, partials: [[2, 0.1]], wet: 0.2 }); v({ at: 0.17, freq: N.Cs6, decay: 0.05, gain: 0.02, wet: 0.3 }); },
+  // being asked: a doorbell, ding-dong
+  'rq-in':       (v, a, seq, N) => { v({ freq: N.Gs5, decay: 0.34, gain: 0.05, partials: [[2, 0.22], [3, 0.06]], wet: 0.28 }); v({ at: 0.26, freq: N.E5, decay: 0.5, gain: 0.052, partials: [[2, 0.22], [3, 0.06]], wet: 0.34 }); },
+  // a yes: two voices together, a bright pair of sixths that opens into shimmer
+  'rq-yes':      (v, a, seq, N) => { v({ freq: N.E5, decay: 0.12, gain: 0.035, partials: [[2, 0.12]], wet: 0.2 }); v({ freq: N.Cs6, decay: 0.12, gain: 0.028, wet: 0.2 }); v({ at: 0.09, freq: N.Gs5, decay: 0.32, gain: 0.04, partials: [[2, 0.15]], wet: 0.3 }); v({ at: 0.09, freq: N.E6, decay: 0.32, gain: 0.034, wet: 0.3 }); a({ at: 0.1, from: 3000, to: 7200, dur: 0.26, gain: 0.006, wet: 0.4 }); },
+  // a no: a fifth falling away, soft
+  'rq-no':       (v, a, seq, N) => seq([N.Cs5, N.Fs4], 0.1, { decay: 0.14, gain: 0.05, partials: [[2, 0.08]], wet: 0.18 }),
+  // the picture arrives: a warm swell under a clear chime
+  'watch-start': (v, a, seq, N) => { v({ freq: N.E3, to: N.E4, glide: 0.25, decay: 0.3, gain: 0.08, attack: 0.08, lp: 900 }); a({ from: 300, to: 2400, dur: 0.35, gain: 0.014, wet: 0.3 }); v({ at: 0.2, freq: N.B5, decay: 0.3, gain: 0.04, partials: [[2, 0.2], [2.76, 0.06]], wet: 0.35 }); },
+  // the picture goes: the swell, run backwards
+  'watch-end':   (v, a, seq, N) => { v({ freq: N.E4, to: N.E3, glide: 0.3, decay: 0.28, gain: 0.07, lp: 700 }); a({ from: 2400, to: 300, dur: 0.3, gain: 0.012, wet: 0.25 }); },
+  // a people or game panel opening and closing
+  'pl-open':     (v, a, seq, N) => { v({ freq: N.Cs6, to: N.E6, glide: 0.04, decay: 0.06, gain: 0.04, partials: [[2, 0.15]] }); a({ from: 1200, to: 3000, dur: 0.12, gain: 0.006 }); },
+  'pl-close':    (v, a, seq, N) => { v({ freq: N.B5, to: N.Fs5, glide: 0.06, decay: 0.07, gain: 0.035, type: 'triangle' }); a({ from: 2400, to: 700, dur: 0.14, gain: 0.005 }); },
+
   // ── the old generic names, kept so nothing missed ever goes silent ──
   'click':      (v, a, seq, N) => v({ freq: N.B5, to: N.Gs5, glide: 0.03, decay: 0.035, gain: 0.05, partials: [[2, 0.2]] }),
   'tab':        (v, a, seq, N) => v({ freq: N.Gs5, decay: 0.05, gain: 0.06, partials: [[2, 0.25], [3, 0.08]], wet: 0.06 }),
@@ -5985,22 +6175,23 @@ const SFX = {
 // 100 ms, RMS). The trims that land them there are measured, not guessed.
 const SFX_TIER = {};
 [
- [['tab-chat', 'chat-send', 'chat-in', 'tab-games', 'tab-apps', 'tab-links', 'tab-credits', 'tab-dev', 'tab-allsongs', 'filter', 'nav-back', 'ui-mode',
+ [['pl-close', 'tab-chat', 'chat-send', 'chat-in', 'tab-games', 'tab-apps', 'tab-links', 'tab-credits', 'tab-dev', 'tab-allsongs', 'filter', 'nav-back', 'ui-mode',
   'tour-next', 'tour-back', 'sfx-on', 'sfx-off', 'vfx-on', 'vfx-off', 'motion-on', 'motion-off', 'compact-on',
   'compact-off', 'scene-on', 'scene-off', 'blob-on', 'blob-off', 'potato-on', 'potato-off', 'music-on', 'music-off',
   'np-playlist', 'onboard-theme', 'onboard-ui', 'links-open', 'links-refresh', 'links-retry', 'links-arm',
   'bee-poke', 'bee-select', 'secret-send', 'click', 'tab', 'hover', 'reveal', 'toggle-on', 'toggle-off'], -33],
- [['chat-mention', 'name-save', 'chat-filtered', 'chat-slow', 'chat-mod', 'tour-skip', 'tour-replay', 'settings-open', 'settings-close', 'theme-pick', 'themes-expand', 'themes-collapse',
+ [['rq-send', 'rq-no', 'watch-end', 'pl-open', 'chat-mention', 'name-save', 'chat-filtered', 'chat-slow', 'chat-mod', 'tour-skip', 'tour-replay', 'settings-open', 'settings-close', 'theme-pick', 'themes-expand', 'themes-collapse',
    'theme-locked', 'onboard-next', 'random', 'game-close', 'star', 'unstar', 'ext-warn-back', 'content-warn',
    'dev-gate', 'dev-wrong', 'devlink-wrong', 'reset-cancel', 'links-added', 'links-removed', 'links-refused',
    'links-offline', 'links-forget', 'bee-buzz', 'bee-pop', 'bee-hmm', 'bee-boing', 'bee-fade', 'bee-close',
    'secret-empty', 'secret-reply', 'secret-fade', 'notify', 'whoosh', 'open', 'close', 'error', 'warning'], -30],
- [['launch', 'dev-launch', 'ext-warn', 'ext-warn-step2', 'reset-ask', 'danger', 'dev-unlocked', 'theme-unlock',
+ [['rq-in', 'rq-yes', 'watch-start', 'launch', 'dev-launch', 'ext-warn', 'ext-warn-step2', 'reset-ask', 'danger', 'dev-unlocked', 'theme-unlock',
    'onboard-done', 'secret-yes', 'success'], -26]
 ].forEach(function (g) { g[0].forEach(function (k) { SFX_TIER[k] = g[1]; }); });
 
 const SFX_TRIM = {
   // -33 dB
+  'pl-close': 2.455,
   'tab-chat': 1.429, 'chat-send': 2.287, 'chat-in': 1.28,
   'tab-games': 1.437, 'tab-apps': 1.438, 'tab-links': 1.436, 'tab-credits': 1.433, 'tab-dev': 1.421,
   'tab-allsongs': 1.418, 'filter': 2.834, 'nav-back': 1.273, 'ui-mode': 1.153, 'tour-next': 1.142,
@@ -6012,6 +6203,7 @@ const SFX_TRIM = {
   'bee-select': 0.969, 'secret-send': 1.37, 'click': 2.311, 'tab': 1.413, 'hover': 4, 'reveal': 4,
   'toggle-on': 0.962, 'toggle-off': 1.153,
   // -30 dB
+  'rq-send': 1.187, 'rq-no': 0.765, 'watch-end': 0.628, 'pl-open': 2.633,
   'chat-mention': 0.929, 'name-save': 0.983, 'chat-filtered': 1.619, 'chat-slow': 1.529, 'chat-mod': 1.785,
   'tour-skip': 1.641, 'tour-replay': 1.193, 'settings-open': 1.199, 'settings-close': 1.52,
   'theme-pick': 0.818, 'themes-expand': 1.077, 'themes-collapse': 1.371, 'theme-locked': 1.01,
@@ -6023,6 +6215,7 @@ const SFX_TRIM = {
   'secret-reply': 1.615, 'secret-fade': 2.181, 'notify': 0.969, 'whoosh': 4, 'open': 1.198, 'close': 1.52,
   'error': 0.679, 'warning': 0.771,
   // -26 dB
+  'rq-in': 0.919, 'rq-yes': 1.034, 'watch-start': 0.711,
   'theme-unlock': 1.037, 'onboard-done': 0.899, 'launch': 0.479, 'ext-warn': 1.653, 'ext-warn-step2': 1.122,
   'dev-unlocked': 0.729, 'dev-launch': 0.654, 'reset-ask': 1.097, 'danger': 0.685, 'secret-yes': 1.18,
   'success': 0.954
@@ -7053,7 +7246,9 @@ function chatConnect() {
       clearInterval(CH.pingT);
       CH.pingT = setInterval(function () { chatSend({ t: 'ping' }); }, 25000);
       chatHello();
+      plSendStatus();
       chatStatus();
+      plDraw();
     };
     ws.onmessage = function (e) {
       let m; try { m = JSON.parse(e.data); } catch (x) { return; }
@@ -7063,6 +7258,7 @@ function chatConnect() {
       clearInterval(CH.pingT);
       if (CH.ws === ws) CH.ws = null;
       CH.connected = false;
+      if (opened) plLostSocket();
       if (!opened) { next(); return; }        // this address never answered: try the next
       chatStatus();
       chatRetryLater();
@@ -7101,11 +7297,13 @@ function chatSend(obj) {
 }
 
 function chatOnMessage(m) {
+  if (plOnMessage(m)) return;
   switch (m.t) {
     case 'hello':
       CH.msgs = Array.isArray(m.history) ? m.history : [];
       CH.online = m.online || 0;
       if (Array.isArray(m.names)) CH.roster = m.names;
+      if (m.id) PL.me = String(m.id);
       chatDrawAll();
       chatStatus();
       break;
@@ -7116,7 +7314,9 @@ function chatOnMessage(m) {
       chatAppend(m.m, true);
       if (!mine) {
         const pinged = chatMentionsMe(m.m);
-        playSound(pinged ? 'chat-mention' : 'chat-in');
+        // the vault joins the room on load now: plain messages stay quiet
+        // until someone has actually opened the chat
+        if (pinged || CH.opened) playSound(pinged ? 'chat-mention' : 'chat-in');
         if (activeTab !== 'chat') { CH.unread++; chatBadge(); }
         // away from the chat, or the whole browser tab is in the background
         if (pinged && (activeTab !== 'chat' || document.hidden)) chatPing(m.m);
@@ -7126,13 +7326,16 @@ function chatOnMessage(m) {
     case 'roster':
       CH.roster = Array.isArray(m.names) ? m.names : [];
       CH.online = m.online || 0;
+      PL.people = Array.isArray(m.people) ? m.people : [];
       chatStatus();
       chatAutocomplete();
+      plDraw();
       break;
     case 'online': CH.online = m.n || 0; chatStatus(); break;
     case 'you': {
       const was = CH.me;
       CH.me = String(m.name || '');
+      if (m.id) PL.me = String(m.id);
       const v = document.getElementById('chat-view');
       if (v && v.dataset.built) v.querySelector('.chat-as b').textContent = CH.me;
       // the name asked for could not be used: say what we are called instead
@@ -7141,6 +7344,7 @@ function chatOnMessage(m) {
     }
     case 'filtered': chatNote('Some of that was filtered.', 'bad'); playSound('chat-filtered'); break;
     case 'err':
+      if (String(m.code || '').indexOf('rq-') === 0 || (m.code === 'muted' && PL.asking.size)) { plAskFailed(m); break; }
       if (m.code === 'key') { try { localStorage.removeItem(LINKS_KEY_STORE); } catch (e) {} renderChat(); }
       chatNote(m.msg || 'Something went wrong.', 'bad');
       playSound('chat-slow');
@@ -7465,6 +7669,11 @@ function buildChatShell(v) {
         <button type="button" class="chat-btn danger chat-clear">Clear chat</button>
       </span>
     </div>
+    <aside class="pl-box" aria-label="People here">
+      <div class="pl-box-head"><span>People here</span><b class="pl-count"></b></div>
+      <div class="pl-list"></div>
+      <div class="pl-box-foot">Watch someone\u2019s game, or invite them to play one with you.</div>
+    </aside>
     <div class="chat-log" role="log" aria-live="polite"></div>
     <div class="chat-note"></div>
     <form class="chat-form" autocomplete="off">
@@ -7540,10 +7749,711 @@ function renderChat() {
   if (CH.dev !== dev) { CH.dev = dev; chatDrawAll(); }
   v.querySelector('.chat-key').style.display = linksKey() ? 'none' : '';
   CH.unread = 0;
+  CH.opened = true;
   chatBadge();
   chatStatus();
+  plDraw();
   if (!CH.started) { CH.started = true; chatConnect(); }
 }
+
+// ===== PLAY TOGETHER =====
+// Ask someone with the vault open to let you watch their game, or to come and
+// play one with you. Every request goes to one person over the chat socket and
+// needs their yes. Watching is their browser sharing its screen (it asks them
+// what to share) straight to yours over WebRTC -- the server only passes the
+// setup messages between two people who both agreed, and never sees the picture.
+const PL_ICE = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
+const PL_CAN_SHARE = !!(window.isSecureContext && navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+const PL_WAIT = 45000;           // how long a request card waits for an answer
+const PL = { me: '', people: [], game: null, asking: new Set(), sent: {}, cards: {}, sess: {}, stream: null, pop: null };
+const PL_NO = {
+  blocked: n => n + '\u2019s device doesn\u2019t allow screen sharing',
+  unsupported: n => n + '\u2019s browser can\u2019t share its screen',
+  cancelled: n => n + ' didn\u2019t share their screen',
+  missing: n => n + ' doesn\u2019t have that game in their vault',
+  busy: n => 'Too many people are already watching ' + n,
+  timeout: n => n + ' didn\u2019t answer',
+  left: n => n + ' left the vault'
+};
+const PL_ICON = {
+  sound: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>',
+  mute: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m16 9 6 6M22 9l-6 6"/></svg>',
+  full: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>',
+  close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>'
+};
+
+function plHue(name) { return 'hsl(' + chatHue(String(name || '')) + ' 70% 62%)'; }
+function plOthers() { return PL.people.filter(p => p.id !== PL.me); }
+function plWeb(u) { return /^https?:\/\//.test(String(u || '')) ? String(u) : ''; }
+
+// The game behind a request, as this vault knows it: by address, or by name
+// for the games that live inside the page. Nothing else is ever opened.
+function plFindGame(g) {
+  if (!g) return null;
+  const all = GAMES.concat(typeof APPS !== 'undefined' ? APPS : []);
+  return (g.url && all.find(x => x.url === g.url)) || GAMES.find(x => x.name === g.name) || null;
+}
+
+function plSendStatus() {
+  const g = PL.game;
+  chatSend({ t: 'status', share: PL_CAN_SHARE, game: g ? { name: g.name, url: plWeb(g.url) } : null });
+}
+
+// What game is open: the game window showing or not, and which game it was
+// asked for. Closing the game also stops showing it to anyone.
+(function () {
+  const ov = document.getElementById('game-overlay');
+  if (!ov) return;
+  let open = false;
+  // the window opening or closing, or a new game loading into it while open
+  const sync = function () {
+    const now = ov.style.display === 'block';
+    const g = now ? (window.__plLast || null) : null;
+    const same = PL.game && g ? PL.game.url === g.url && PL.game.name === g.name : PL.game === g;
+    if (now === open && same) return;
+    const was = open;
+    open = now;
+    PL.game = g;
+    plSendStatus();
+    plDraw();
+    if (!now) plStopSharing('closed');
+    else if (!was && PL.pop && PL.pop.mode === 'invite') plClosePop(true);
+  };
+  new MutationObserver(sync).observe(ov, { attributes: true, attributeFilter: ['style'] });
+  const frame = document.getElementById('game-overlay-frame');
+  if (frame) new MutationObserver(sync).observe(frame, { attributes: true, attributeFilter: ['src'] });
+  const tab = document.getElementById('game-invite-tab');
+  if (tab) {
+    tab.addEventListener('click', plOpenInvite);
+    tab.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); plOpenInvite(); } });
+  }
+})();
+
+// ── the list of people ──
+function plRow(p, mode) {
+  const me = p.id === PL.me;
+  const row = lnkEl('div', 'pl-row');
+  const dot = lnkEl('span', 'pl-dot');
+  dot.style.background = plHue(p.name);
+  dot.style.boxShadow = '0 0 8px ' + plHue(p.name);
+  const who = lnkEl('div', 'pl-who');
+  const line = lnkEl('div', 'pl-line');
+  const nm = lnkEl('span', 'pl-name', p.name);
+  nm.style.color = plHue(p.name);
+  line.appendChild(nm);
+  if (me) line.appendChild(lnkEl('span', 'pl-you', 'you'));
+  const st = lnkEl('div', 'pl-status' + (p.game ? ' on' : ''), p.game ? '\u25B6 ' + p.game : 'In the vault');
+  if (p.game) st.title = 'Playing ' + p.game;
+  who.append(line, st);
+  row.append(dot, who);
+  if (me) return row;
+  const acts = lnkEl('div', 'pl-acts');
+  const asked = PL.asking.has(p.id) || Object.values(PL.sent).some(r => r.to.id === p.id);
+  if (mode !== 'invite') {
+    const watching = Object.values(PL.sess).some(x => x.role === 'viewer' && x.peer.id === p.id);
+    const w = lnkEl('button', 'pl-act watch', watching ? 'Watching' : 'Watch');
+    w.type = 'button';
+    w.disabled = watching || asked || !p.game || !p.share || !CH.connected;
+    w.title = watching ? 'You\u2019re watching ' + p.name
+      : !p.game ? p.name + ' isn\u2019t playing anything right now'
+      : !p.share ? p.name + '\u2019s device can\u2019t share its screen'
+      : 'Ask to watch ' + p.name + ' play ' + p.game;
+    w.addEventListener('click', () => plAsk('watch', p));
+    acts.appendChild(w);
+  }
+  const inv = lnkEl('button', 'pl-act invite', asked ? 'Asked\u2026' : 'Invite');
+  inv.type = 'button';
+  inv.disabled = asked || !CH.connected;
+  inv.title = PL.game ? 'Invite ' + p.name + ' to play ' + PL.game.name : 'Pick a game to play with ' + p.name;
+  inv.addEventListener('click', () => { if (PL.game) plAsk('play', p, PL.game); else plPickGame(p); });
+  acts.appendChild(inv);
+  row.appendChild(acts);
+  return row;
+}
+
+function plDraw() {
+  const v = document.getElementById('chat-view');
+  if (v && v.dataset.built) {
+    const list = v.querySelector('.pl-list');
+    const keep = list.scrollTop;
+    list.textContent = '';
+    const mine = PL.people.filter(p => p.id === PL.me);
+    const others = plOthers();
+    if (!CH.connected) list.appendChild(lnkEl('div', 'pl-empty', 'Connecting\u2026'));
+    else {
+      mine.concat(others).forEach(p => list.appendChild(plRow(p, 'chat')));
+      if (!others.length) list.appendChild(lnkEl('div', 'pl-empty', 'Nobody else is here yet. When friends open the vault, they\u2019ll show up here.'));
+    }
+    list.scrollTop = keep;
+    v.querySelector('.pl-count').textContent = CH.connected && PL.people.length ? PL.people.length : '';
+  }
+  if (PL.pop && PL.pop.mode === 'invite') plDrawInvite();
+  const lbl = document.getElementById('game-invite-label');
+  if (lbl) {
+    const n = plOthers().length;
+    lbl.textContent = '+ invite' + (CH.connected && n ? ' (' + n + ')' : '');
+  }
+}
+
+// ── panels: invite people to this game, or pick a game for a person ──
+function plModal(title, sub, mode) {
+  plClosePop(true);
+  const back = lnkEl('div', 'pl-pop-back');
+  const box = lnkEl('div', 'pl-pop');
+  box.setAttribute('role', 'dialog');
+  box.setAttribute('aria-modal', 'true');
+  box.setAttribute('aria-label', title);
+  const head = lnkEl('div', 'pl-pop-head');
+  head.appendChild(lnkEl('div', 'pl-pop-title', title));
+  if (sub) head.appendChild(lnkEl('div', 'pl-pop-sub', sub));
+  const x = lnkEl('button', 'pl-pop-x', '\u2715');
+  x.type = 'button';
+  x.title = 'Close';
+  x.addEventListener('click', () => plClosePop());
+  head.appendChild(x);
+  const body = lnkEl('div', 'pl-pop-body');
+  box.append(head, body);
+  back.appendChild(box);
+  back.addEventListener('mousedown', e => { if (e.target === back) plClosePop(); });
+  document.body.appendChild(back);
+  PL.pop = { el: back, body: body, mode: mode };
+  playSound('pl-open');
+  return PL.pop;
+}
+function plClosePop(quiet) {
+  if (!PL.pop) return;
+  const el = PL.pop.el;
+  PL.pop = null;
+  el.classList.add('out');
+  setTimeout(() => el.remove(), 200);
+  if (!quiet) playSound('pl-close');
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && PL.pop) { e.stopPropagation(); e.preventDefault(); plClosePop(); }
+}, true);
+
+function plOpenInvite() {
+  if (!PL.game) return;
+  plModal('Invite to ' + PL.game.name, 'They get a request, and the game opens for them if they say yes.', 'invite');
+  plDrawInvite();
+  if (!CH.started) { CH.started = true; chatConnect(); }
+}
+function plDrawInvite() {
+  const pop = PL.pop;
+  if (!pop || pop.mode !== 'invite') return;
+  pop.body.textContent = '';
+  const others = plOthers();
+  if (!CH.connected) pop.body.appendChild(lnkEl('div', 'pl-empty', 'Connecting to the vault\u2019s chat\u2026'));
+  else if (!others.length) pop.body.appendChild(lnkEl('div', 'pl-empty', 'Nobody else has the vault open right now.'));
+  others.forEach(p => pop.body.appendChild(plRow(p, 'invite')));
+}
+
+function plPickGame(p) {
+  const pop = plModal('Play with ' + p.name, 'Pick a game \u2014 they\u2019ll get an invite to play it with you.', 'games');
+  const input = lnkEl('input', 'pl-search');
+  input.type = 'search';
+  input.placeholder = 'Search games\u2026';
+  input.setAttribute('aria-label', 'Search games');
+  const label = lnkEl('div', 'pl-games-label');
+  const list = lnkEl('div', 'pl-games');
+  pop.body.append(input, label, list);
+  const draw = () => {
+    const q = input.value.trim().toLowerCase();
+    let games;
+    if (q) {
+      games = GAMES.filter(g => g.name.toLowerCase().includes(q));
+      label.textContent = games.length ? games.length + ' match' + (games.length === 1 ? '' : 'es') : '';
+    } else {
+      const seen = new Set();
+      games = RECENT.concat(FAVS).map(u => GAMES.find(g => g.url === u)).filter(g => g && !seen.has(g.url) && seen.add(g.url));
+      label.textContent = games.length ? 'Recently played & favourites' : 'Some games';
+      if (!games.length) games = GAMES.slice(0, 20);
+    }
+    list.textContent = '';
+    games.slice(0, 40).forEach(g => {
+      const b = lnkEl('button', 'pl-game');
+      b.type = 'button';
+      const cover = typeof GAME_COVERS !== 'undefined' && GAME_COVERS[g.url];
+      if (cover) {
+        const img = document.createElement('img');
+        img.alt = ''; img.loading = 'lazy'; img.src = cover;
+        img.onerror = () => img.replaceWith(document.createElement('i'));
+        b.appendChild(img);
+      } else b.appendChild(document.createElement('i'));
+      b.appendChild(document.createTextNode(g.name));
+      b.addEventListener('click', () => { plClosePop(true); plAsk('play', p, { name: g.name, url: g.url }); });
+      list.appendChild(b);
+    });
+    if (!games.length) list.appendChild(lnkEl('div', 'pl-empty', 'No games match that.'));
+  };
+  input.addEventListener('input', draw);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { const first = list.querySelector('.pl-game'); if (first) { e.preventDefault(); first.click(); } }
+  });
+  draw();
+  setTimeout(() => input.focus(), 40);
+}
+
+// ── asking ──
+function plAsk(kind, p, game) {
+  if (!CH.connected) { showToast('Not connected to the chat yet'); return; }
+  const msg = { t: 'rq', kind: kind, to: p.id };
+  if (kind === 'play') msg.game = { name: game.name, url: plWeb(game.url) };
+  if (!chatSend(msg)) { showToast('Not connected to the chat yet'); return; }
+  PL.asking.add(p.id);
+  playSound('rq-send');
+  plDraw();
+}
+function plAskFailed(m) {
+  PL.asking.clear();
+  plDraw();
+  showToast(m.msg || 'That request didn\u2019t go through');
+  playSound('rq-no');
+}
+
+function plOnMessage(m) {
+  switch (m.t) {
+    case 'rq-sent': {
+      PL.asking.delete(m.to.id);
+      const r = { kind: m.kind, to: m.to, game: m.game };
+      r.timer = setTimeout(() => {
+        if (!PL.sent[m.rid]) return;
+        delete PL.sent[m.rid];
+        chatSend({ t: 'rq-cancel', rid: m.rid });
+        showToast(m.to.name + ' didn\u2019t answer');
+        plDraw();
+      }, PL_WAIT + 6000);
+      PL.sent[m.rid] = r;
+      showToast(m.kind === 'watch' ? 'Asked ' + m.to.name + ' if you can watch\u2026' : 'Invited ' + m.to.name + ' to play ' + m.game.name + '\u2026');
+      plDraw();
+      return true;
+    }
+    case 'rq-reply': {
+      const r = PL.sent[m.rid];
+      if (!r) return true;
+      clearTimeout(r.timer);
+      delete PL.sent[m.rid];
+      const name = (m.by && m.by.name) || r.to.name;
+      if (m.ok) {
+        playSound('rq-yes');
+        if (m.kind === 'play') {
+          const g = plFindGame(m.game);
+          showToast('\u2713 ' + name + ' is in \u2014 opening ' + (m.game && m.game.name));
+          if (g && !(PL.game && PL.game.url === g.url)) openGame(g.url, g.name, null);
+        } else {
+          showToast('\u2713 ' + name + ' said yes');
+          plViewerOpen(m.rid, m.by || r.to, m.game);
+        }
+      } else {
+        playSound('rq-no');
+        showToast((PL_NO[m.why] || (n => n + ' said no thanks'))(name));
+      }
+      plDraw();
+      return true;
+    }
+    case 'rq': plCard(m); return true;
+    case 'rq-cancel': plCardGone(m.rid); return true;
+    case 'rq-gone':
+      plCardGone(m.rid);
+      showToast('That request ran out');
+      if (!Object.values(PL.sess).some(x => x.role === 'sharer')) plStopStream();
+      return true;
+    case 'watch-go': plShareTo(m.sid, m.viewer); return true;
+    case 'watch-no':
+      showToast('Too many people are watching already');
+      if (!Object.values(PL.sess).some(x => x.role === 'sharer')) plStopStream();
+      return true;
+    case 'rtc': plRtc(m); return true;
+    case 'rtc-end': plEnd(m.sid, false, 'them'); return true;
+  }
+  return false;
+}
+
+// ── being asked ──
+function plCard(m) {
+  const box = document.getElementById('pl-cards');
+  if (!box || PL.cards[m.rid]) return;
+  const who = String((m.from && m.from.name) || 'Someone');
+  const gname = String((m.game && m.game.name) || 'a game');
+  const watch = m.kind === 'watch';
+  const card = lnkEl('div', 'pl-card ' + (watch ? 'watch' : 'play'));
+  card.setAttribute('role', 'alertdialog');
+  const head = lnkEl('div', 'pl-card-head');
+  const nm = lnkEl('b', '', who);
+  nm.style.color = plHue(who);
+  head.append(nm, document.createTextNode(watch ? ' wants to watch you play' : ' invited you to play'));
+  card.append(head, lnkEl('div', 'pl-card-game', gname));
+  if (watch) card.appendChild(lnkEl('div', 'pl-card-note', PL_CAN_SHARE
+    ? 'Your browser will ask what to share \u2014 choose this tab. You can stop any time.'
+    : 'This browser can\u2019t share its screen.'));
+  const btns = lnkEl('div', 'pl-card-btns');
+  const yes = lnkEl('button', 'pl-yes', watch ? 'Let them watch' : 'Play');
+  const no = lnkEl('button', 'pl-no', 'No thanks');
+  yes.type = no.type = 'button';
+  if (watch && !PL_CAN_SHARE) yes.disabled = true;
+  btns.append(yes, no);
+  const bar = lnkEl('div', 'pl-card-bar');
+  bar.style.animationDuration = PL_WAIT + 'ms';
+  card.append(btns, bar);
+  const c = { el: card, m: m, yes: yes };
+  c.t = setTimeout(() => { plAnswer(m.rid, false, 'timeout'); plCardGone(m.rid); }, PL_WAIT);
+  PL.cards[m.rid] = c;
+  yes.addEventListener('click', () => plAccept(m.rid));
+  no.addEventListener('click', () => { plAnswer(m.rid, false); plCardGone(m.rid); playSound('rq-no'); });
+  box.appendChild(card);
+  playSound('rq-in');
+  if (document.hidden) {
+    CH.pinged++;
+    document.title = '(@' + CH.pinged + ') Clever';
+    if (chatAlertsOn()) {
+      try {
+        const n = new Notification(who + (watch ? ' wants to watch you play' : ' invited you to play'), { body: gname, tag: 'vault-rq' });
+        n.onclick = () => { window.focus(); n.close(); };
+      } catch (e) {}
+    }
+  }
+}
+function plCardGone(rid) {
+  const c = PL.cards[rid];
+  if (!c) return;
+  delete PL.cards[rid];
+  clearTimeout(c.t);
+  c.el.classList.add('out');
+  setTimeout(() => c.el.remove(), 320);
+}
+function plAnswer(rid, ok, why) {
+  const msg = { t: 'rq-reply', rid: rid, ok: !!ok };
+  if (why) msg.why = why;
+  chatSend(msg);
+}
+
+async function plAccept(rid) {
+  const c = PL.cards[rid];
+  if (!c || c.busy) return;
+  const m = c.m;
+  if (m.kind === 'play') {
+    const g = plFindGame(m.game);
+    if (!g) {
+      plAnswer(rid, false, 'missing'); plCardGone(rid);
+      showToast('That game isn\u2019t in your vault'); playSound('rq-no');
+      return;
+    }
+    plAnswer(rid, true); plCardGone(rid); playSound('rq-yes');
+    if (!(PL.game && PL.game.url === g.url)) openGame(g.url, g.name, null);
+    return;
+  }
+  // watch: get the picture first, and only then say yes
+  if (!PL_CAN_SHARE) { plAnswer(rid, false, 'unsupported'); plCardGone(rid); return; }
+  c.busy = true;
+  clearTimeout(c.t);
+  c.el.classList.add('wait');
+  c.yes.textContent = 'Choose what to share\u2026';
+  const t0 = performance.now();
+  try {
+    await plCapture();
+  } catch (e) {
+    // a refusal that comes back before any picker could be seen is a policy
+    const blocked = e && e.name === 'NotAllowedError' && performance.now() - t0 < 350;
+    if (PL.cards[rid]) { plAnswer(rid, false, blocked ? 'blocked' : 'cancelled'); plCardGone(rid); }
+    showToast(blocked ? 'Screen sharing is blocked on this device' : 'Nothing was shared');
+    playSound('rq-no');
+    if (!Object.values(PL.sess).some(x => x.role === 'sharer')) plStopStream();
+    return;
+  }
+  if (!PL.cards[rid]) {           // taken back while choosing
+    if (!Object.values(PL.sess).some(x => x.role === 'sharer')) plStopStream();
+    return;
+  }
+  plAnswer(rid, true);
+  plCardGone(rid);
+  playSound('rq-yes');
+}
+
+// ── sharing ──
+async function plCapture() {
+  if (PL.stream && PL.stream.getVideoTracks().some(t => t.readyState === 'live')) return PL.stream;
+  const stream = await navigator.mediaDevices.getDisplayMedia({
+    video: { frameRate: { ideal: 30, max: 30 }, height: { ideal: 720, max: 1080 } },
+    audio: true, preferCurrentTab: true, selfBrowserSurface: 'include', surfaceSwitching: 'include', systemAudio: 'exclude'
+  });
+  PL.stream = stream;
+  stream.getVideoTracks().forEach(t => {
+    try { t.contentHint = 'motion'; } catch (e) {}
+    t.addEventListener('ended', () => plStopSharing('ended'));
+  });
+  plLiveBar();
+  return stream;
+}
+
+function plPc(s) {
+  const pc = new RTCPeerConnection({ iceServers: PL_ICE });
+  s.pc = pc;
+  pc.onicecandidate = e => { if (e.candidate) chatSend({ t: 'rtc', sid: s.sid, data: { c: e.candidate.toJSON() } }); };
+  pc.onconnectionstatechange = () => plState(s);
+  return pc;
+}
+function plSendSdp(s) {
+  const d = s.pc.localDescription;
+  chatSend({ t: 'rtc', sid: s.sid, data: { sdp: { type: d.type, sdp: d.sdp } } });
+}
+
+function plShareTo(sid, viewer) {
+  if (!PL.stream) { chatSend({ t: 'rtc-end', sid: sid }); return; }
+  const s = { role: 'sharer', sid: sid, peer: viewer, q: [], ready: false };
+  PL.sess[sid] = s;
+  const pc = plPc(s);
+  PL.stream.getTracks().forEach(t => pc.addTrack(t, PL.stream));
+  pc.createOffer()
+    .then(o => pc.setLocalDescription(o))
+    .then(() => plSendSdp(s))
+    .catch(() => plEnd(sid, true, 'failed'));
+  s.connT = setTimeout(() => { if (!s.live) plEnd(sid, true, 'failed'); }, 30000);
+  plLiveBar();
+  plDraw();
+}
+
+// Cap what one viewer costs: 2.5 Mbps is plenty for a game in a window.
+function plCapBitrate(pc) {
+  pc.getSenders().forEach(snd => {
+    if (!snd.track || snd.track.kind !== 'video') return;
+    try {
+      const p = snd.getParameters();
+      if (!p.encodings || !p.encodings.length) p.encodings = [{}];
+      p.encodings[0].maxBitrate = 2500000;
+      snd.setParameters(p).catch(() => {});
+    } catch (e) {}
+  });
+}
+
+function plState(s) {
+  const st = s.pc.connectionState;
+  if (st === 'connected') {
+    clearTimeout(s.lostT);
+    if (!s.live) {
+      s.live = true;
+      if (s.role === 'viewer') { plViewerStatus(s, ''); s.win.el.classList.add('live'); playSound('watch-start'); }
+      else { plCapBitrate(s.pc); showToast(s.peer.name + ' is watching'); plLiveBar(); }
+    } else if (s.role === 'viewer') plViewerStatus(s, '');
+  } else if (st === 'disconnected') {
+    if (s.role === 'viewer') plViewerStatus(s, 'Connection wobbling\u2026', true);
+    clearTimeout(s.lostT);
+    s.lostT = setTimeout(() => { if (s.pc.connectionState !== 'connected') plEnd(s.sid, true, 'lost'); }, 8000);
+  } else if (st === 'failed') plEnd(s.sid, true, 'failed');
+}
+
+async function plRtc(m) {
+  const s = PL.sess[m.sid];
+  const d = m.data || {};
+  if (!s) return;
+  const pc = s.pc || plViewerPc(s);
+  try {
+    if (d.sdp) {
+      await pc.setRemoteDescription(d.sdp);
+      if (d.sdp.type === 'offer') {
+        await pc.setLocalDescription(await pc.createAnswer());
+        plSendSdp(s);
+      }
+      s.ready = true;
+      while (s.q.length) await pc.addIceCandidate(s.q.shift()).catch(() => {});
+    } else if (d.c) {
+      if (!s.ready) s.q.push(d.c);
+      else await pc.addIceCandidate(d.c).catch(() => {});
+    }
+  } catch (e) {
+    plEnd(m.sid, true, 'failed');
+  }
+}
+
+function plEnd(sid, tell, why) {
+  const s = PL.sess[sid];
+  if (!s) return;
+  delete PL.sess[sid];
+  clearTimeout(s.lostT);
+  clearTimeout(s.connT);
+  if (tell) chatSend({ t: 'rtc-end', sid: sid });
+  try { if (s.pc) s.pc.close(); } catch (e) {}
+  if (s.role === 'viewer') plViewerClose(s, why);
+  else {
+    if (why === 'them') showToast(s.peer.name + ' stopped watching');
+    if (!Object.values(PL.sess).some(x => x.role === 'sharer')) plStopStream();
+    plLiveBar();
+  }
+  plDraw();
+}
+
+function plStopStream() {
+  if (!PL.stream) return;
+  const st = PL.stream;
+  PL.stream = null;
+  st.getTracks().forEach(t => { try { t.stop(); } catch (e) {} });
+  plLiveBar();
+}
+function plStopSharing(why) {
+  const had = Object.values(PL.sess).filter(x => x.role === 'sharer');
+  had.forEach(x => plEnd(x.sid, true, 'self'));
+  const was = !!PL.stream;
+  plStopStream();
+  if (had.length || was) {
+    showToast(why === 'closed' ? 'Stopped sharing \u2014 you closed the game' : 'Stopped sharing');
+    playSound('watch-end');
+  }
+}
+
+// The chat socket dropped: every session it carried is over.
+function plLostSocket() {
+  Object.keys(PL.sess).forEach(sid => plEnd(sid, false, 'lost'));
+  Object.keys(PL.cards).forEach(plCardGone);
+  Object.values(PL.sent).forEach(r => clearTimeout(r.timer));
+  PL.sent = {};
+  PL.asking.clear();
+  PL.people = [];
+  plDraw();
+}
+
+function plLiveBar() {
+  let bar = document.getElementById('pl-live');
+  if (!PL.stream) { if (bar) bar.hidden = true; return; }
+  if (!bar) {
+    bar = lnkEl('div');
+    bar.id = 'pl-live';
+    bar.setAttribute('role', 'status');
+    const stop = lnkEl('button', '', 'Stop');
+    stop.type = 'button';
+    stop.title = 'Stop sharing your screen';
+    stop.addEventListener('click', () => plStopSharing('button'));
+    bar.append(lnkEl('i'), lnkEl('b', '', 'LIVE'), lnkEl('span'), stop);
+    document.body.appendChild(bar);
+  }
+  const names = Object.values(PL.sess).filter(x => x.role === 'sharer').map(x => x.peer.name);
+  bar.querySelector('span').textContent = names.length ? names.join(', ') + (names.length === 1 ? ' is watching' : ' are watching') : 'Sharing\u2026';
+  bar.hidden = false;
+}
+
+// ── watching ──
+function plViewerOpen(sid, by, game) {
+  const s = { role: 'viewer', sid: sid, peer: by, game: game, q: [], ready: false, pc: null };
+  PL.sess[sid] = s;
+  const n = Object.values(PL.sess).filter(x => x.role === 'viewer').length - 1;
+  const w = lnkEl('div', 'pl-viewer');
+  if (n > 0) { w.style.right = (20 + n * 28) + 'px'; w.style.bottom = (20 + n * 28) + 'px'; }
+  const bar = lnkEl('div', 'pl-viewer-bar');
+  const title = lnkEl('div', 'pl-viewer-title');
+  const nm = lnkEl('b', '', by.name);
+  nm.style.color = plHue(by.name);
+  title.append(lnkEl('span', 'pl-live-dot'), document.createTextNode('Watching '), nm);
+  if (game && game.name) title.appendChild(lnkEl('span', 'pl-viewer-game', '\u00B7 ' + game.name));
+  const btns = lnkEl('div', 'pl-viewer-btns');
+  const mk = (cls, icon, tip) => { const b = lnkEl('button', 'pl-vbtn ' + cls); b.type = 'button'; b.title = tip; b.innerHTML = icon; return b; };
+  const snd = mk('snd', PL_ICON.sound, 'Sound on / off');
+  const full = mk('full', PL_ICON.full, 'Full screen');
+  const x = mk('x', PL_ICON.close, 'Stop watching');
+  btns.append(snd, full, x);
+  bar.append(title, btns);
+  const stage = lnkEl('div', 'pl-viewer-stage');
+  const video = document.createElement('video');
+  video.autoplay = true;
+  video.playsInline = true;
+  const status = lnkEl('div', 'pl-viewer-status spin', 'Waiting for ' + by.name + '\u2019s screen\u2026');
+  stage.append(video, status);
+  w.append(bar, stage);
+  document.body.appendChild(w);
+  s.win = { el: w, video: video, status: status, snd: snd };
+  snd.addEventListener('click', () => {
+    video.muted = !video.muted;
+    if (!video.muted) video.play().catch(() => {});
+    snd.innerHTML = video.muted ? PL_ICON.mute : PL_ICON.sound;
+  });
+  full.addEventListener('click', () => {
+    if (document.fullscreenElement === stage) document.exitFullscreen();
+    else if (stage.requestFullscreen) stage.requestFullscreen().catch(() => {});
+  });
+  x.addEventListener('click', () => plEnd(sid, true, 'self'));
+  plDrag(w, bar);
+  s.connT = setTimeout(() => { if (!s.live) plEnd(sid, true, 'failed'); }, 30000);
+  plDraw();
+}
+
+function plViewerPc(s) {
+  const pc = plPc(s);
+  pc.ontrack = e => {
+    const v = s.win && s.win.video;
+    if (!v || v.srcObject === e.streams[0]) return;
+    v.srcObject = e.streams[0];
+    v.play().catch(() => {
+      // sound needs a click on some browsers: start muted, offer the sound
+      v.muted = true;
+      s.win.snd.innerHTML = PL_ICON.mute;
+      v.play().catch(() => {});
+    });
+  };
+  return pc;
+}
+
+function plViewerStatus(s, text, spin) {
+  if (!s.win) return;
+  s.win.status.textContent = text || '';
+  s.win.status.hidden = !text;
+  s.win.status.classList.toggle('spin', !!spin);
+}
+
+function plViewerClose(s, why) {
+  if (!s.win) return;
+  const name = s.peer.name;
+  if (why === 'failed' || why === 'lost') {
+    // leave the window up long enough to say what happened
+    plViewerStatus(s, why === 'failed'
+      ? 'Couldn\u2019t connect to ' + name + '. One of your networks may block direct connections \u2014 school and work Wi-Fi often do.'
+      : 'Lost the connection to ' + name + '.');
+    s.win.el.classList.remove('live');
+    const ok = lnkEl('button', '', 'Close');
+    ok.type = 'button';
+    ok.addEventListener('click', () => plViewerGone(s));
+    s.win.status.appendChild(ok);
+    s.closeT = setTimeout(() => plViewerGone(s), 9000);
+  } else {
+    if (why === 'them') showToast(name + ' stopped sharing');
+    plViewerGone(s);
+  }
+  playSound('watch-end');
+}
+function plViewerGone(s) {
+  if (!s.win) return;
+  clearTimeout(s.closeT);
+  const el = s.win.el;
+  s.win = null;
+  if (document.fullscreenElement && el.contains(document.fullscreenElement)) document.exitFullscreen().catch(() => {});
+  el.classList.add('out');
+  setTimeout(() => el.remove(), 220);
+}
+
+// Move a window by its title bar, kept on screen.
+function plDrag(win, handle) {
+  let sx = 0, sy = 0, ox = 0, oy = 0, on = false;
+  handle.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || e.target.closest('button')) return;
+    const r = win.getBoundingClientRect();
+    on = true; sx = e.clientX; sy = e.clientY; ox = r.left; oy = r.top;
+    win.style.left = r.left + 'px'; win.style.top = r.top + 'px';
+    win.style.right = 'auto'; win.style.bottom = 'auto';
+    win.classList.add('dragging');
+    handle.setPointerCapture(e.pointerId);
+  });
+  handle.addEventListener('pointermove', e => {
+    if (!on) return;
+    const r = win.getBoundingClientRect();
+    const x = Math.min(Math.max(0, ox + e.clientX - sx), window.innerWidth - r.width);
+    const y = Math.min(Math.max(0, oy + e.clientY - sy), window.innerHeight - 40);
+    win.style.left = x + 'px'; win.style.top = y + 'px';
+  });
+  const up = e => { if (!on) return; on = false; win.classList.remove('dragging'); try { handle.releasePointerCapture(e.pointerId); } catch (x) {} };
+  handle.addEventListener('pointerup', up);
+  handle.addEventListener('pointercancel', up);
+}
+
+// Join the room as soon as the vault loads, so friends can reach you without
+// the Chat tab being open. A copy opened from a file waits for the Chat tab,
+// as before, rather than waking the live server on its own.
+if (location.protocol !== 'file:' && !CH.started) { CH.started = true; chatConnect(); }
 document.getElementById('enable-dev-btn').addEventListener('click', () => {
   document.getElementById('settings-modal').classList.remove('open');
   document.getElementById('dev-warn-password').value='';

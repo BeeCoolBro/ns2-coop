@@ -373,7 +373,9 @@ no empty commit, oversized bodies are refused, and hostile names render inert.
 ## The vault's Chat tab
 
 One room for everyone on the site, live over a websocket at `/chat` on this
-server. The vault only connects once someone opens the tab.
+server. The vault joins as soon as it loads (so people can reach you for
+*Play together*, below); plain messages stay silent until you have opened the
+Chat tab once. A copy opened from a file still waits for the Chat tab.
 
 **The filter runs here, not in the page** (`chat_filter.py`): a filter in the
 page is a suggestion anyone can delete in devtools. Every message and every
@@ -421,6 +423,36 @@ OWNER badge, and only the owner can use a staff-sounding name.
 gone when the service sleeps. It is never written to disk or to the repo.
 Addresses are held only as salted hashes, in memory, for the flood limits and
 mutes, and are never sent to anyone.
+
+## Play together (vault)
+
+Beside the chat, **People here** lists everyone with the vault open and what
+each is playing. Every row has two buttons:
+
+- **Invite** -- ask them to play a game with you. In a game, it invites them
+  to that game (the game window also has a **+ invite** tab under *close*);
+  otherwise it opens a game picker. They get a card with **Play** / **No
+  thanks**; a yes opens the game for them, and for you if you are not in it.
+  A game only ever opens if it is in the receiver's own vault list.
+- **Watch** -- ask to watch someone who is in a game. Saying yes has their
+  browser ask what to share (the vault tab), and the picture goes **straight
+  between the two browsers** (WebRTC, Google's public STUN servers to find a
+  route). This server only relays the setup messages, and only inside a
+  session the sharer agreed to. The viewer gets a window they can drag,
+  resize, mute or make full screen; the sharer gets a red **LIVE** bar with
+  **Stop**. Closing the game stops the sharing too.
+
+Limits, enforced by the server: a request goes to one person by an id (names
+are not unique) and runs out after a minute; one person can be asked by the
+same sender at most every 15 seconds, and a sender can ask at most 8 times a
+minute; muted chatters cannot ask; at most 4 people can watch one screen.
+Setup messages are cut down to the two shapes WebRTC needs.
+
+What can stop watching from working: phones cannot share a screen (their
+**Watch** button stays grey for others); a school-managed device may block
+screen sharing (the viewer is told); and some networks -- school or work
+Wi-Fi especially -- block direct connections, since there is no relay server
+(TURN) to fall back on. The viewer is told that too.
 
 ## THE ABYSS, wave 30
 

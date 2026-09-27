@@ -92,7 +92,8 @@ LINKS_LOCK = threading.Lock()   # guards LINKS
 CHAT_HISTORY = 80               # messages a newcomer is shown
 CHAT_MAX_LEN = 240
 CHAT_NAME_LEN = 20
-CHAT_FRAME_MAX = 4096           # bytes; anything larger closes the socket
+CHAT_FRAME_MAX = 4096           # bytes; anything larger closes the socket...
+CHAT_RTC_FRAME_MAX = 16384      # ...except call setup, whose offers run to a few KB
 CHAT_PER_IP = 6                 # chat sockets one address may hold open
 CHAT_BURST = 5                  # messages allowed at once...
 CHAT_REFILL = 1.2               # ...then one every this many seconds
@@ -102,6 +103,19 @@ CHAT_RENAME_GAP = 2.0           # seconds between name changes
 CHAT_MENTIONS_MAX = 3           # names one message may mention
 CHAT_SALT = os.urandom(16)      # addresses are kept only as salted hashes
 CHAT = {'peers': set(), 'history': collections.deque(maxlen=CHAT_HISTORY), 'next': 1, 'muted': {}}
+
+# ── play together ─────────────────────────────────────────────────
+# Requests to watch someone's game or to play one with them. The picture of a
+# watched game never comes through here: the two browsers connect directly and
+# this server only relays their setup messages, within a session both agreed to.
+RQ_TTL = 60                     # seconds a request waits for an answer
+RQ_GAP = 15                     # seconds between two requests to the same person
+RQ_PER_MIN = 8                  # requests one socket may send in a minute
+RTC_PER_MIN = 400               # call-setup messages one socket may send in a minute
+WATCH_MAX = 4                   # people who may watch one screen at once
+RQ_WHY = ('blocked', 'unsupported', 'cancelled', 'missing', 'busy', 'timeout')
+RQ = {}                         # rid -> {'frm', 'to', 'kind', 'game', 'at'}
+SESS = {}                       # sid -> {'sharer', 'viewer'}
 CHAT_LOCK = threading.Lock()
 # names nobody but the owner may take
 CHAT_RESERVED = re.compile(r'owner|admin|moderator|\bmod\b|staff|official|developer|\bdev\b|system|server|beecoolbro',
@@ -489,6 +503,14 @@ class ChatPeer(object):
         self.guest = 'Guest-%04d' % (int.from_bytes(os.urandom(2), 'big') % 10000)
         self.name = None                # the name shown for this socket, once it says one
         self.named_at = 0.0
+        self.id = os.urandom(5).hex()   # how others address it; names are not unique
+        self.game = None                # {'name', 'url'} of the game it has open
+        self.share = False              # whether its browser can share a screen
+        self.status_at = 0.0
+        self.roster_due = False
+        self.rq_log = collections.deque()
+        self.rq_last = {}               # target id -> when it was last asked
+        self.rtc_log = collections.deque()
 
     def shown(self):
         return self.name or self.guest
@@ -538,12 +560,241 @@ def chat_name(raw, peer, owner):
     return name
 
 
+def chat_people():
+    """Everyone here, each with an id to address them by and what they are
+    playing. `names` stays alongside for pages from before this existed."""
+    with CHAT_LOCK:
+        peers = list(CHAT['peers'])
+    people = [{'id': p.id, 'name': p.shown(), 'game': p.game['name'] if p.game else None, 'share': p.share}
+              for p in peers]
+    people.sort(key=lambda x: (x['name'].lower(), x['id']))
+    return people
+
+
 def chat_roster():
     """Tell everyone who is here."""
     with CHAT_LOCK:
         names = sorted({p.shown() for p in CHAT['peers']}, key=str.lower)
         online = len(CHAT['peers'])
-    chat_broadcast({'t': 'roster', 'names': names, 'online': online})
+    chat_broadcast({'t': 'roster', 'names': names, 'online': online, 'people': chat_people()})
+
+
+def chat_find(pid):
+    with CHAT_LOCK:
+        for p in CHAT['peers']:
+            if p.id == pid:
+                return p
+    return None
+
+
+def chat_game(raw):
+    """A game as a page describes it: a filtered name and, for a web game, its
+    address. Anything else -- a data: game, a bad address -- travels as a name."""
+    if not isinstance(raw, dict):
+        return None
+    name = tidy(raw.get('name'), 60)
+    if not name or chat_filter.clean(name)[1]:
+        return None
+    url = str(raw.get('url') or '')
+    if not url.startswith(('https://', 'http://')) or len(url) > 400 or any(c.isspace() for c in url):
+        url = ''
+    return {'name': name, 'url': url}
+
+
+def chat_status(peer, msg):
+    """A page saying what game it has open. The roster goes out at most once a
+    second per socket, so opening and closing games fast cannot flood anyone."""
+    game = chat_game(msg.get('game'))
+    share = msg.get('share') is True
+    if game == peer.game and share == peer.share:
+        return
+    peer.game, peer.share = game, share
+    now = time.time()
+    if now - peer.status_at >= 1.0:
+        peer.status_at = now
+        chat_roster()
+    elif not peer.roster_due:
+        peer.roster_due = True
+
+        def later():
+            peer.roster_due = False
+            peer.status_at = time.time()
+            if peer.alive:
+                chat_roster()
+        t = threading.Timer(1.0, later)
+        t.daemon = True
+        t.start()
+
+
+def chat_request(peer, msg):
+    kind = msg.get('kind')
+    if kind not in ('watch', 'play'):
+        return
+    now = time.time()
+    with CHAT_LOCK:
+        until = CHAT['muted'].get(peer.ip, 0)
+    if until > now:
+        peer.send({'t': 'err', 'code': 'muted', 'msg': 'You are muted, so you can\'t send requests right now.'})
+        return
+    target = chat_find(str(msg.get('to') or ''))
+    if target is peer:
+        return
+    if target is None or not target.alive:
+        peer.send({'t': 'err', 'code': 'rq-gone', 'msg': 'They aren\'t online any more.'})
+        return
+    while peer.rq_log and now - peer.rq_log[0] > 60:
+        peer.rq_log.popleft()
+    if len(peer.rq_log) >= RQ_PER_MIN or now - peer.rq_last.get(target.id, 0) < RQ_GAP:
+        peer.send({'t': 'err', 'code': 'rq-slow', 'msg': 'Give them a moment before asking again.'})
+        return
+    if kind == 'play':
+        game = chat_game(msg.get('game'))
+        if not game:
+            peer.send({'t': 'err', 'code': 'rq-game', 'msg': 'That game can\'t be sent.'})
+            return
+    else:
+        if not target.game:
+            peer.send({'t': 'err', 'code': 'rq-idle', 'msg': target.shown() + ' isn\'t playing anything right now.'})
+            return
+        if not target.share:
+            peer.send({'t': 'err', 'code': 'rq-noshare', 'msg': target.shown() + '\'s device can\'t share its screen.'})
+            return
+        game = target.game
+    peer.rq_log.append(now)
+    peer.rq_last[target.id] = now
+    rid = os.urandom(6).hex()
+    with CHAT_LOCK:
+        for k in [k for k, r in RQ.items() if now - r['at'] > RQ_TTL]:
+            del RQ[k]
+        RQ[rid] = {'frm': peer, 'to': target, 'kind': kind, 'game': game, 'at': now}
+    target.send({'t': 'rq', 'rid': rid, 'kind': kind, 'game': game,
+                 'from': {'id': peer.id, 'name': peer.shown()}})
+    peer.send({'t': 'rq-sent', 'rid': rid, 'kind': kind, 'game': game,
+               'to': {'id': target.id, 'name': target.shown()}})
+
+
+def chat_reply(peer, msg):
+    """The person asked, answering. Only they can; a yes to a watch opens a
+    session the two browsers may then pass setup messages through."""
+    rid = str(msg.get('rid') or '')
+    ok = msg.get('ok') is True
+    why = msg.get('why') if msg.get('why') in RQ_WHY else None
+    now = time.time()
+    with CHAT_LOCK:
+        r = RQ.get(rid)
+        if not r or r['to'] is not peer:
+            return
+        del RQ[rid]
+        frm = r['frm']
+        late = now - r['at'] > RQ_TTL
+        gone = not frm.alive or frm not in CHAT['peers']
+        if ok and r['kind'] == 'watch' and not late and not gone:
+            if sum(1 for x in SESS.values() if x['sharer'] is peer) >= WATCH_MAX:
+                ok, why = False, 'busy'
+            else:
+                SESS[rid] = {'sharer': peer, 'viewer': frm}
+    if late or gone:
+        peer.send({'t': 'rq-gone', 'rid': rid})
+        return
+    reply = {'t': 'rq-reply', 'rid': rid, 'kind': r['kind'], 'ok': ok, 'game': r['game'],
+             'by': {'id': peer.id, 'name': peer.shown()}}
+    if why:
+        reply['why'] = why
+    frm.send(reply)
+    if r['kind'] == 'watch':
+        if ok:
+            peer.send({'t': 'watch-go', 'sid': rid, 'viewer': {'id': frm.id, 'name': frm.shown()}})
+        elif why == 'busy':
+            peer.send({'t': 'watch-no', 'sid': rid, 'why': 'busy'})
+
+
+def chat_cancel(peer, msg):
+    """The asker taking a request back, or giving up waiting."""
+    rid = str(msg.get('rid') or '')
+    with CHAT_LOCK:
+        r = RQ.get(rid)
+        if not r or r['frm'] is not peer:
+            return
+        del RQ[rid]
+    r['to'].send({'t': 'rq-cancel', 'rid': rid})
+
+
+def rtc_clean(data):
+    """Only the two shapes call setup needs: a description or a candidate."""
+    if not isinstance(data, dict):
+        return None
+    d = data.get('sdp')
+    if isinstance(d, dict) and d.get('type') in ('offer', 'answer') and isinstance(d.get('sdp'), str) \
+            and len(d['sdp']) <= 14000:
+        return {'sdp': {'type': d['type'], 'sdp': d['sdp']}}
+    if 'c' in data:
+        c = data['c']
+        if c is None:
+            return {'c': None}
+        if isinstance(c, dict) and isinstance(c.get('candidate'), str) and len(c['candidate']) <= 1000:
+            mid = c.get('sdpMid')
+            line = c.get('sdpMLineIndex')
+            return {'c': {'candidate': c['candidate'],
+                          'sdpMid': mid if isinstance(mid, str) and len(mid) <= 64 else None,
+                          'sdpMLineIndex': line if isinstance(line, int) and 0 <= line < 64 else None}}
+    return None
+
+
+def sess_other(sid, peer):
+    with CHAT_LOCK:
+        x = SESS.get(sid)
+    if not x:
+        return None
+    if x['sharer'] is peer:
+        return x['viewer']
+    if x['viewer'] is peer:
+        return x['sharer']
+    return None
+
+
+def chat_rtc(peer, msg):
+    sid = str(msg.get('sid') or '')
+    data = rtc_clean(msg.get('data'))
+    if data is None:
+        return
+    now = time.time()
+    while peer.rtc_log and now - peer.rtc_log[0] > 60:
+        peer.rtc_log.popleft()
+    if len(peer.rtc_log) >= RTC_PER_MIN:
+        return
+    peer.rtc_log.append(now)
+    other = sess_other(sid, peer)
+    if other is not None:
+        other.send({'t': 'rtc', 'sid': sid, 'data': data})
+
+
+def chat_end(peer, msg):
+    sid = str(msg.get('sid') or '')
+    other = sess_other(sid, peer)
+    if other is None:
+        return
+    with CHAT_LOCK:
+        SESS.pop(sid, None)
+    other.send({'t': 'rtc-end', 'sid': sid})
+
+
+def chat_left(peer):
+    """A socket closed: end its watch sessions and settle its requests."""
+    with CHAT_LOCK:
+        ended = [(sid, x) for sid, x in SESS.items() if x['sharer'] is peer or x['viewer'] is peer]
+        for sid, _ in ended:
+            del SESS[sid]
+        open_rq = [(rid, r) for rid, r in RQ.items() if r['frm'] is peer or r['to'] is peer]
+        for rid, _ in open_rq:
+            del RQ[rid]
+    for sid, x in ended:
+        (x['viewer'] if x['sharer'] is peer else x['sharer']).send({'t': 'rtc-end', 'sid': sid})
+    for rid, r in open_rq:
+        if r['to'] is peer:
+            r['frm'].send({'t': 'rq-reply', 'rid': rid, 'kind': r['kind'], 'ok': False, 'why': 'left',
+                           'game': r['game'], 'by': {'id': peer.id, 'name': peer.shown()}})
+        else:
+            r['to'].send({'t': 'rq-cancel', 'rid': rid})
 
 
 def chat_rename(peer, msg):
@@ -552,13 +803,13 @@ def chat_rename(peer, msg):
     actually shown, which may be a guest name."""
     now = time.time()
     if peer.name is not None and now - peer.named_at < CHAT_RENAME_GAP:
-        peer.send({'t': 'you', 'name': peer.shown()})
+        peer.send({'t': 'you', 'name': peer.shown(), 'id': peer.id})
         return
     wanted = tidy(msg.get('name'), CHAT_NAME_LEN)
     name = chat_name(wanted, peer, owner_ok(msg.get('key')))
     changed = name != peer.shown() or peer.name is None
     peer.name, peer.named_at = name, now
-    peer.send({'t': 'you', 'name': name, 'asked': wanted})
+    peer.send({'t': 'you', 'name': name, 'asked': wanted, 'id': peer.id})
     if changed:
         chat_roster()
 
@@ -815,7 +1066,7 @@ class Handler(SimpleHTTPRequestHandler):
             history = [m for (m, _) in CHAT['history']]
             online = len(CHAT['peers'])
             names = sorted({p.shown() for p in CHAT['peers']}, key=str.lower)
-        peer.send({'t': 'hello', 'history': history, 'online': online, 'names': names})
+        peer.send({'t': 'hello', 'history': history, 'online': online, 'names': names, 'id': peer.id})
         chat_roster()
         try:
             self.chat_pump(peer)
@@ -825,6 +1076,7 @@ class Handler(SimpleHTTPRequestHandler):
             peer.alive = False
             with CHAT_LOCK:
                 CHAT['peers'].discard(peer)
+            chat_left(peer)
             chat_roster()
 
     def chat_pump(self, peer):
@@ -833,7 +1085,7 @@ class Handler(SimpleHTTPRequestHandler):
             if frame is None:
                 return
             opcode, payload = frame
-            if opcode == 0x8 or len(payload) > CHAT_FRAME_MAX:
+            if opcode == 0x8 or len(payload) > CHAT_RTC_FRAME_MAX:
                 return
             if opcode == 0x9:
                 with peer.lock:
@@ -849,6 +1101,8 @@ class Handler(SimpleHTTPRequestHandler):
             if not isinstance(msg, dict):
                 continue
             t = msg.get('t')
+            if len(payload) > CHAT_FRAME_MAX and t != 'rtc':
+                return
             if t == 'say':
                 chat_say(peer, msg)
             elif t in ('hi', 'name'):
@@ -857,6 +1111,18 @@ class Handler(SimpleHTTPRequestHandler):
                 chat_mod(peer, msg)
             elif t == 'ping':
                 peer.send({'t': 'pong'})
+            elif t == 'status':
+                chat_status(peer, msg)
+            elif t == 'rq':
+                chat_request(peer, msg)
+            elif t == 'rq-reply':
+                chat_reply(peer, msg)
+            elif t == 'rq-cancel':
+                chat_cancel(peer, msg)
+            elif t == 'rtc':
+                chat_rtc(peer, msg)
+            elif t == 'rtc-end':
+                chat_end(peer, msg)
 
     def websocket(self):
         if not self.ws_accept():
