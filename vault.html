@@ -3547,7 +3547,7 @@ body.potato-mode { transition: none; }
 <button class="dev-btn" id="owner-key-save" style="flex:1">SAVE KEY</button>
 <button class="dev-btn" id="owner-key-skip" style="flex:1;background:none;color:var(--muted);border:1px solid var(--border);">SKIP</button>
 </div>
-<p class="owner-key-note">It&rsquo;s checked with the server, then remembered on this browser (Links &rarr; <i>Forget it</i> removes it). Skip it and the Links and Chat tabs ask when you need it.</p>
+<p class="owner-key-note">It&rsquo;s checked with the server, then remembered on this browser (Links &rarr; <i>Forget it</i> removes it). Skip it and this comes back when you use an owner tool.</p>
 </div>
 </div>
 <div class="modal-overlay" id="dev-warn-modal">
@@ -6960,7 +6960,7 @@ async function linksWrite(payload, done) {
   const keyIn = view.querySelector('.lnk-key');
   const typed = keyIn && keyIn.offsetParent !== null ? keyIn.value.trim() : '';
   const key = typed || linksKey();
-  if (!key) { linksSay('Enter the owner key first.', 'bad'); if (keyIn) keyIn.focus(); return false; }
+  if (!key) { ownerKeyNeed(() => linksWrite(payload, done)); return false; }
   if (linksSaving) return false;
   linksSaving = true;
   const addBtn = view.querySelector('.lnk-add');
@@ -7113,7 +7113,7 @@ function drawLinksSugg(view, dev) {
     show.addEventListener('click', () => {
       const keyIn = view.querySelector('.lnk-key');
       const typed = keyIn ? keyIn.value.trim() : '';
-      if (!typed) { linksSay('Enter the owner key first.', 'bad'); if (keyIn) keyIn.focus(); return; }
+      if (!typed) { ownerKeyNeed(); return; }
       try { localStorage.setItem(LINKS_KEY_STORE, typed); } catch (e) {}
       keyIn.value = '';
       playSound('links-refresh');
@@ -7278,6 +7278,11 @@ function buildLinksShell(view) {
     const href = linksSafe(url);
     if (!name) { linksSay('Give it a name.', 'bad'); nameIn.focus(); return; }
     if (!href) { linksSay('That isn\u2019t a web address.', 'bad'); urlIn.focus(); return; }
+    const keyIn = form.querySelector('.lnk-key');
+    if (!linksKey() && !(keyIn && keyIn.offsetParent !== null && keyIn.value.trim())) {
+      ownerKeyNeed(() => form.requestSubmit());
+      return;
+    }
     const ok = await linksWrite({ op: 'add', name: name, url: href, desc: descIn.value.trim() }, 'Link added.');
     if (ok) { nameIn.value = ''; urlIn.value = ''; descIn.value = ''; nameIn.focus(); }
   });
@@ -7372,7 +7377,16 @@ function renderLinks() {
 })();
 if (linksIsDev() && linksKey()) setTimeout(linksLoad, 1500);
 
-// ── the owner key, asked for as dev mode turns on ──
+// ── the owner key: asked for as dev mode turns on, on load if dev mode is
+// on without one, and by any owner action that finds none ──
+const OWNER_KEY_SKIP = 'ownerKeySkipped';     // sessionStorage: skipped this visit
+let ownerKeyThen = null;                      // the action to finish once it is saved
+
+// An owner action with no key: ask now, then carry on with it.
+function ownerKeyNeed(then) {
+  ownerKeyThen = typeof then === 'function' ? then : null;
+  ownerKeyAsk();
+}
 // Dev mode is only the public password; the owner tools need the server's
 // DEV_KEY. It is checked with the server before it is kept, so a typo is
 // caught here rather than at the first save.
@@ -7386,10 +7400,14 @@ function ownerKeyAsk() {
   setTimeout(() => input.focus(), 60);
 }
 
+// Waits its turn behind theme popups, the tour and any other dialog.
 function ownerKeyAskSoon(wait) {
   setTimeout(function poll() {
     if (linksKey() || !linksIsDev()) return;
-    if (typeof window.themeUnlockBusy === 'function' && window.themeUnlockBusy()) { setTimeout(poll, 400); return; }
+    const tour = document.getElementById('tour-overlay');
+    if ((typeof window.themeUnlockBusy === 'function' && window.themeUnlockBusy()) ||
+        (tour && tour.classList.contains('active')) ||
+        document.querySelector('.modal-overlay.open:not(#owner-key-modal)')) { setTimeout(poll, 500); return; }
     ownerKeyAsk();
   }, wait);
 }
@@ -7429,6 +7447,12 @@ async function ownerKeySave() {
   ownerKeyClose();
   showToast('\u2713 Owner key saved \u2014 owner tools are on');
   playSound('name-save');
+  // the key box in an open lyrics tool is no longer needed
+  const lyKeyIn = document.getElementById('ly-key');
+  if (lyKeyIn) lyKeyIn.remove();
+  const then = ownerKeyThen;
+  ownerKeyThen = null;
+  if (then) setTimeout(then, 60);
   // everything that uses the key picks it up now: the links and suggestions,
   // the chat (which marks this vault as the owner's), and the muted list
   linksLoad();
@@ -7440,7 +7464,12 @@ async function ownerKeySave() {
 (function () {
   const modal = document.getElementById('owner-key-modal');
   if (!modal) return;
-  const skip = () => { ownerKeyClose(); playSound('toggle-off'); };
+  const skip = () => {
+    ownerKeyThen = null;
+    try { sessionStorage.setItem(OWNER_KEY_SKIP, '1'); } catch (e) {}
+    ownerKeyClose();
+    playSound('toggle-off');
+  };
   document.getElementById('owner-key-save').addEventListener('click', ownerKeySave);
   document.getElementById('owner-key-skip').addEventListener('click', skip);
   document.getElementById('owner-key-close').addEventListener('click', skip);
@@ -7449,6 +7478,10 @@ async function ownerKeySave() {
     if (e.key === 'Enter') { e.preventDefault(); ownerKeySave(); }
     else if (e.key === 'Escape') { e.preventDefault(); skip(); }
   });
+  // dev mode already on from an earlier visit, and no key: ask once
+  let skipped = false;
+  try { skipped = sessionStorage.getItem(OWNER_KEY_SKIP) === '1'; } catch (e) {}
+  if (linksIsDev() && !linksKey() && !skipped) ownerKeyAskSoon(2500);
 })();
 
 // ===== YOUR NAME =====
@@ -7973,7 +8006,7 @@ function chatDrawAll() {
 function chatModerate(op, id) {
   const keyIn = document.querySelector('#chat-view .chat-key');
   const key = (keyIn && keyIn.value.trim()) || linksKey();
-  if (!key) { chatNote('Enter the owner key first.', 'bad'); if (keyIn) keyIn.focus(); return; }
+  if (!key) { ownerKeyNeed(function () { chatModerate(op, id); }); return; }
   try { localStorage.setItem(LINKS_KEY_STORE, key); } catch (e) {}
   if (!chatSend({ t: 'mod', op: op, id: id, key: key })) chatNote('Not connected.', 'bad');
 }
@@ -11231,7 +11264,7 @@ let openBeeTalk = () => {};
   }
   async function lyPost(body) {
     const key = lyKey();
-    if (!key) { lyStatus('Enter the owner key first.', 'bad'); return null; }
+    if (!key) { ownerKeyNeed(); return null; }
     lyStatus('Saving\u2026');
     try {
       const { status, body: reply } = await linksFetch('/api/lyrics', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Dev-Key': key }, body: JSON.stringify(body) });
@@ -11249,12 +11282,14 @@ let openBeeTalk = () => {};
   async function lySave() {
     const lines = ED.lines.filter(l => l.t != null).map(l => ({ t: Math.round(l.t * 100) / 100, text: l.text }));
     if (!lines.length) { lyStatus('Time at least one line first.', 'bad'); return; }
+    if (!lyKey()) { ownerKeyNeed(lySave); return; }
     const untimed = ED.lines.length - lines.length;
     const ok = await lyPost({ op: 'set', track: ED.track, title: ED.title, lines: lines });
     if (ok) { lyStatus('Saved for everyone' + (untimed ? ' (' + untimed + ' untimed line' + (untimed === 1 ? '' : 's') + ' left out)' : '') + '.', 'good'); playSound('links-added'); lyChrome(); }
   }
   async function lyRemove() {
     if (!LY.map[ED.track]) { lyStatus('This song has no saved lyrics.', 'bad'); return; }
+    if (!lyKey()) { ownerKeyNeed(lyRemove); return; }
     const ok = await lyPost({ op: 'remove', track: ED.track, title: ED.title });
     if (ok) { lyStatus('Removed.', 'good'); playSound('links-removed'); }
   }
