@@ -46,6 +46,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 HOME = 'index.html'              # BeeSide Studio's: the way into both
 GAME = 'neon-siege-2-coop.html'
 VAULT = 'vault.html'
+ROTFALL = 'rotfall.html'          # Other Projects: a survival shooter
 
 QUEUE = []                      # peers waiting for a partner, longest wait first
 LOCK = threading.Lock()
@@ -1460,6 +1461,9 @@ class Handler(SimpleHTTPRequestHandler):
         # host that is already wired to the repo.
         elif path in ('/vault', '/vault/'):
             path = '/' + VAULT
+        # the landing page's Other Projects
+        elif path in ('/rotfall', '/rotfall/'):
+            path = '/' + ROTFALL
         return SimpleHTTPRequestHandler.translate_path(self, path)
 
     def end_headers(self):

@@ -37,6 +37,16 @@ NEON SIEGE 2's door has a small tower-defense fight running in it. Each door
 shows who is in there right now, and a ticker lists what is inside. **1** and
 **2** pick a door, and picking one opens it out into the next page.
 
+**Other Projects** (under the doors, or press **3**) opens a panel of the
+studio's smaller projects; `#projects` in the address opens it straight
+away. First is **ROTFALL** (`rotfall.html`, served at `/rotfall`), a top-down
+survival shooter whose weapons aim and fire on their own. Its card is drawn in
+the game's own look: near-black with film grain, burnt orange (#e85d00),
+Bebas Neue and glowing orbs. Behind the logo, a small live scene of the game
+plays: the swarm closes in on the orange orb, which picks them off. SURVIVE
+leaves the way the doors do. The game's menu has a BeeSide button back, shown
+only when it's played at `/rotfall`.
+
 **Bee's Vault** opens with a vault door. Its dial cracks a combination while
 the page downloads, then the bolts pull back and the door swings open. It sits
 right after the favicon, not in `<body>`: the vault's head holds 1.7 MB of
@@ -818,6 +828,7 @@ priority, synergy, or how a real wave actually arrives.
 |---|---|
 | `server.py` | matchmaking + serves the pages (standard library only) |
 | `index.html` | the BeeSide Studio's front page at `/`: the hive, a door into each site with who is in there, and back -- the vault's header and the game's title screen each have a BeeSide button |
+| `rotfall.html` | ROTFALL, the first of the Other Projects, at `/rotfall` |
 | `neon-siege-2-coop.html` | the game, at `/neon-siege` |
 | `vault.html` | Bee's Vault, at `/vault` |
 | `chat_filter.py` | the vault chat's word filter |
