@@ -37,12 +37,29 @@ NEON SIEGE 2's door has a small tower-defense fight running in it. Each door
 shows who is in there right now, and a ticker lists what is inside. **1** and
 **2** pick a door, and picking one opens it out into the next page.
 
-**Sound**, on the front page and Other Projects, is synthesized in the page
-with nothing to download. Pointing at a door gives a glassy tick pitched to
-it, opening one gives a whoosh up into that door's own chord, and tapping the
-hive gives a drop of water. A browser only allows sound after the first click
-or key press, so pointing stays silent until then. The **Sound on/off**
-switch in the footer is remembered (`bs-sound` in localStorage).
+**Sound** is on everything, synthesized by `beeside-sound.js`: one small
+shared synth with a reverb hall, stereo panning and bell tones, used by the
+front page, Other Projects and the three openings. There are no sound files.
+- **Doors.** Pointing at one rings a glass bell pitched to it. The vault's
+  dial ratchets round and its three cards flick out over a low hum, NEON
+  SIEGE 2 plays an arcade coin and hums while you stay, and ROTFALL growls,
+  with a heartbeat.
+- **Opening a door.** A riser, a drop underneath, the door's chord and a
+  shimmer.
+- **The page.** Tapping the hive drops water into it, and faint glass ticks
+  follow the pointer across it. The hive's slow ripples bloom, the honey drip
+  plips, live counts blip in, and the ticker stops like tape. The empty door
+  knocks back, and the little fights inside the doors can be heard while you
+  point at them.
+- **The front page's opening.** The honey drop whistles down and splashes,
+  the mark rings, each letter ticks in, the rule sweeps, and the doors deal
+  in with a whoosh each.
+
+A browser only allows sound after the first click or key press on the site.
+Arriving from another BeeSide page counts in Chrome, so pointing is silent
+only on a cold first visit. The **Sound on/off** switch in the footer is
+remembered (`bs-sound` in localStorage) and silences everything, the openings
+included.
 
 **The BeeSide mark** is a honey B with hexagon holes, bee wings and a drip, on
 a honeycomb tile in a metal frame. Every few seconds a drop falls from the
@@ -92,15 +109,24 @@ popup wait until the door has opened. The game's opening is in
 `neon-siege-2.html` like everything else, so `build-coop.py` carries it into
 the co-op build.
 
-The three openings have sound, synthesized in the page. The vault's dial
-ratchets, each number clacks home with a chime, the bolts rattle back and the
-door swings open with a rumble. The game's CRT thunks on, a synth pad rises
-with the sun, "presents" types out, the letters punch in and the neon hits
-with a flicker of hum. In ROTFALL the ember catches, a heart beats twice, a
-drone creeps in with the eyes, the shot booms and every letter lands with a
-thud. A browser only plays sound once the visitor has done something on the
-site: coming from the BeeSide front page counts in Chrome, and otherwise the
-opening is silent. They are always silent when BeeSide's sound switch is off.
+The three openings have a sound for every step, on the same synth.
+- **Bee's Vault.** The door arrives with a heavy ring over a vault hum, and
+  the status types out. The dial ratchets, each click coming from where it
+  points. Each number drops a tumbler, chimes and fills the ring, and "access
+  granted" rings a chord. The twelve bolts slide back, each from its own side,
+  then the handle creaks and clunks. The seal hisses, the hinge groans, the
+  door rumbles open, light pours out in bells, and you whoosh inside.
+- **NEON SIEGE 2.** The CRT thunks on with static, a whine and the degauss
+  wobble, and stars ping. The sun rises on a pad, a riser and the grid's bass
+  pulse, and "presents" types out. Each letter punches in from left to right,
+  then the II, with glitches as the colours split. The neon hits with a
+  crash, the shockwave and a flickering hum, the light sweeps, and the logo
+  whooshes up and lands on a chime.
+- **ROTFALL.** The ember crackles and catches, and each heartbeat sends out a
+  sonar pulse. Every eye opens where it is, as a drone and breathing creep
+  in. The shot cracks and booms, and the ring sweeps out, popping each eye as
+  it passes. Each letter lands where it stands, and the glow rings out.
+
 The vault also listens to its own SFX switch, and the game is silent inside
 the vault, where the vault's music is playing.
 
@@ -870,6 +896,7 @@ priority, synergy, or how a real wave actually arrives.
 | `index.html` | the BeeSide Studio's front page at `/`: the hive, a door into each site with who is in there, and back -- the vault's header and the game's title screen each have a BeeSide button |
 | `projects.html` | Other Projects at `/projects`: the front page's look, a door for each of the smaller projects |
 | `rotfall.html` | ROTFALL, the first of the Other Projects, at `/rotfall` |
+| `beeside-sound.js` | the shared synth behind every sound on the front page, Other Projects and the three openings |
 | `neon-siege-2-coop.html` | the game, at `/neon-siege` |
 | `vault.html` | Bee's Vault, at `/vault` |
 | `chat_filter.py` | the vault chat's word filter |

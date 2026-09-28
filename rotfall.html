@@ -980,6 +980,7 @@ document.getElementById('playBtn').addEventListener('click',startGame);
 // the way back shows when this is played on the BeeSide site
 if(/^\/rotfall\/?$/.test(location.pathname))document.getElementById('toBeeside').hidden=false;
 </script>
+<script src="beeside-sound.js"></script>
 <script>
 // ── the opening ──────────────────────────────────────────────
 (function(){
@@ -1024,75 +1025,42 @@ if(/^\/rotfall\/?$/.test(location.pathname))document.getElementById('toBeeside')
     el.querySelector('.ri-wave').style.setProperty('--wr',(far*2.2/40).toFixed(1));
     var at=quick?{fire:500,name:560,end:1250}:{fire:1750,name:1850,end:3000};
 
-    // ── its sound: made here, nothing to download. A browser plays it only
-    // once the visitor has done something on the site (coming from the BeeSide
-    // front page counts); otherwise the opening is silent. Never when sound is
-    // switched off on BeeSide.
-    var S = (function () {
-      var C = window.AudioContext || window.webkitAudioContext, A, out, room, buf;
-      try { if (localStorage.getItem('bs-sound') === 'off') return null; } catch (e) {}
-      if (!C) return null;
-      try { A = new C(); } catch (e) { return null; }
-      out = A.createGain(); out.gain.value = 0.8;
-      var comp = A.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 5;
-      out.connect(comp); comp.connect(A.destination);
-      room = A.createGain(); room.gain.value = 0.35;
-      var dl = A.createDelay(1), fb = A.createGain(), lp = A.createBiquadFilter();
-      dl.delayTime.value = 0.17; fb.gain.value = 0.38; lp.type = 'lowpass'; lp.frequency.value = 2200;
-      room.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(out);
-      buf = A.createBuffer(1, A.sampleRate, A.sampleRate);
-      var nz = buf.getChannelData(0); for (var j = 0; j < nz.length; j++) nz[j] = Math.random() * 2 - 1;
-      if (A.state !== 'running') {
-        // not allowed yet: a tap or key (skipping, say) lets the rest play
-        var wake = function () { try { A.resume(); } catch (e) {} };
-        wake();
-        document.addEventListener('pointerdown', wake, { capture: true, once: true });
-        window.addEventListener('keydown', wake, { capture: true, once: true });
-      }
-      function live() { return A.state === 'running'; }
-      function env(g, t, vol, atk, dur) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + atk); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); }
-      return {
-        now: function () { return A.currentTime; },
-        tone: function (f, f2, at, dur, vol, type, wet, cut) {
-          if (!live()) return;
-          var t = A.currentTime + at, o = A.createOscillator(), g = A.createGain(), node = o;
-          o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); if (f2 !== f) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
-          if (cut) { var fl = A.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = cut; o.connect(fl); node = fl; }
-          env(g, t, vol, Math.min(0.02, dur * 0.3), dur); node.connect(g); g.connect(out); if (wet) g.connect(room);
-          o.start(t); o.stop(t + dur + 0.05);
-        },
-        hiss: function (f, f2, at, dur, vol, q, type, atk) {
-          if (!live()) return;
-          var t = A.currentTime + at, s = A.createBufferSource(), fl = A.createBiquadFilter(), g = A.createGain();
-          s.buffer = buf; fl.type = type || 'bandpass'; fl.Q.value = q || 1; fl.frequency.setValueAtTime(f, t); if (f2 !== f) fl.frequency.exponentialRampToValueAtTime(f2, t + dur);
-          env(g, t, vol, atk || Math.min(0.01, dur * 0.2), dur); s.connect(fl); fl.connect(g); g.connect(out); g.connect(room);
-          s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.05);
-        },
-        // a held chord through a filter that opens, until it is let go
-        drone: function (freqs, vol, rise, cut, type) {
-          if (!live()) return null;
-          var t = A.currentTime, g = A.createGain(), fl = A.createBiquadFilter(), os = [];
-          fl.type = 'lowpass'; fl.frequency.setValueAtTime(cut[0], t); fl.frequency.exponentialRampToValueAtTime(cut[1], t + rise);
-          g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + rise);
-          freqs.forEach(function (f, i) { var o = A.createOscillator(); o.type = type || 'sawtooth'; o.frequency.value = f; o.detune.value = i % 2 ? 7 : -7; o.connect(fl); o.start(t); os.push(o); });
-          fl.connect(g); g.connect(out); g.connect(room);
-          return { g: g, stop: function (fade) {
-            var n = A.currentTime; fade = fade || 0.4;
-            g.gain.cancelScheduledValues(n); g.gain.setValueAtTime(Math.max(0.0001, g.gain.value), n); g.gain.exponentialRampToValueAtTime(0.0001, n + fade);
-            os.forEach(function (o) { try { o.stop(n + fade + 0.1); } catch (e) {} });
-          } };
-        },
-        close: function () { setTimeout(function () { try { A.close(); } catch (e) {} }, 3000); }
-      };
-    })();
-    // the ember catches, the heart beats twice, a low drone creeps in with the
-    // eyes, the shot booms and the eyes pop, and each letter lands with a thud
-    var drone=null,named=false;
-    function sIgnite(){if(!S)return;S.hiss(700,3200,0,0.3,0.06,1.2);S.tone(95,50,0,0.45,0.12,'sine');S.tone(300,900,0,0.15,0.02,'triangle');}
-    function sBeat(at){if(!S)return;S.tone(62,34,at,0.28,0.32,'sine');S.tone(52,32,at+0.19,0.26,0.22,'sine');}
-    function sCreep(){if(!S)return;drone=S.drone([55,55.6,82.41],0.05,1.1,[120,420]);for(var k=0;k<5;k++){var f=420+Math.random()*200;S.tone(f,180,0.1+k*0.22+Math.random()*0.1,0.09,0.012,'sawtooth',true,900);}}
-    function sFire(){if(!S)return;S.hiss(5000,5000,0,0.06,0.12,1,'highpass');S.hiss(900,120,0,1.1,0.28,0.7,'lowpass');S.tone(85,28,0,0.9,0.35,'sine');if(drone){drone.stop(0.25);drone=null;}for(var k=0;k<8;k++)S.tone(700+Math.random()*300,160,0.08+k*0.065,0.06,0.025,'triangle');}
-    function sName(){if(!S||named)return;named=true;if(drone){drone.stop(0.3);drone=null;}var n=logo.querySelector('.ri-main').children.length||7;for(var k=0;k<n;k++){var big=k===n-1;S.tone(big?140:125,big?38:50,k*0.055,big?0.3:0.14,big?0.26:0.15,'sine');S.hiss(1600,400,k*0.055,0.05,0.05,1);}[220,261.63,329.63].forEach(function(f,k){S.tone(f,f,0.1+k*0.03,1.6,0.02,'triangle',true);});S.close();}
+    // ── its sound, on the shared BeeSide synth (beeside-sound.js); silent
+    // when BeeSide's sound switch is off or until the browser allows sound
+    var SN=window.BSND,drone=null,named=false;if(SN)SN.start();
+    function live(){return SN&&SN.live();}
+    function eyePan(e){return SN.pan(parseFloat(e.style.left)||cx);}
+    // the ember catches: crackles, a breath of fire, a low whomp
+    function sIgnite(){if(!live())return;for(var k=0;k<7;k++)SN.noise({at:Math.random()*0.35,f:2500+Math.random()*3000,dur:0.012,vol:0.04,q:4,pan:Math.random()*0.6-0.3,wet:0.15});SN.noise({f:500,f2:1600,dur:0.45,vol:0.05,ft:'lowpass',atk:0.12,wet:0.3});SN.tone({f:95,f2:48,dur:0.5,vol:0.14});}
+    // each heartbeat sends a pulse ring out: a double thump and a sonar swell
+    function sBeat(at){if(!live())return;SN.tone({at:at,f:62,f2:34,dur:0.28,vol:0.32});SN.tone({at:at+0.19,f:52,f2:32,dur:0.26,vol:0.22});SN.tone({at:at,f:300,f2:120,dur:0.8,vol:0.012,wet:0.8});SN.noise({at:at,f:400,f2:1600,dur:0.8,vol:0.012,q:3,atk:0.1,wet:0.7});}
+    // the eyes open one by one, each where it is, as a drone and breathing creep in
+    function sCreep(){
+      if(!live())return;
+      drone=SN.drone({fs:[55,55.6,82.41],vol:0.05,rise:1.1,cut:120,cut2:420,wet:0.5});
+      [].forEach.call(el.querySelectorAll('.ri-eyes'),function(e){var d=parseFloat(e.style.getPropertyValue('--d'))||0.5,p=eyePan(e);SN.tone({at:d+0.05,f:380+Math.random()*160,f2:190,dur:0.08,vol:0.009,type:'triangle',pan:p,wet:0.35});SN.noise({at:d+0.05,f:900,f2:400,dur:0.06,vol:0.006,pan:p});});
+      for(var k=0;k<3;k++)SN.noise({at:0.5+k*0.4+Math.random()*0.2,f:280,f2:200,dur:0.7,vol:0.016,q:5,atk:0.3,pan:Math.random()*1.6-0.8,wet:0.6});
+    }
+    // the shot: a crack, a boom, the ring sweeping out, and every eye popping as it passes
+    function sFire(){
+      if(!live())return;
+      SN.noise({f:5000,dur:0.06,vol:0.14,ft:'highpass'});
+      SN.noise({f:900,f2:120,dur:1.2,vol:0.3,ft:'lowpass',q:0.7,wet:0.5});
+      SN.tone({f:85,f2:26,dur:1,vol:0.35});
+      SN.noise({f:200,f2:3500,dur:0.75,vol:0.03,q:2,atk:0.05,wet:0.6});
+      if(drone){drone.stop(0.25);drone=null;}
+      [].forEach.call(el.querySelectorAll('.ri-eyes'),function(e){var k=parseFloat(e.style.getPropertyValue('--k'))||0.2,p=eyePan(e);SN.tone({at:k+0.03,f:700+Math.random()*300,f2:150,dur:0.06,vol:0.018,type:'triangle',pan:p,wet:0.2});SN.noise({at:k+0.03,f:1500,f2:300,dur:0.05,vol:0.012,pan:p});});
+    }
+    // the name: every letter lands where it stands, then the glow rings out
+    function sName(){
+      if(!live()||named)return;named=true;
+      if(drone){drone.stop(0.3);drone=null;}
+      var sp=el.querySelectorAll('.ri-main span');
+      [].forEach.call(sp,function(s,k){var r=s.getBoundingClientRect(),p=SN.pan(r.left+r.width/2),last=k===sp.length-1,at=k*0.055+0.18;SN.tone({at:at,f:last?140:125,f2:last?38:50,dur:last?0.35:0.15,vol:last?0.26:0.15,pan:p});SN.noise({at:at,f:1600,f2:400,dur:0.05,vol:0.05,pan:p,wet:0.2});});
+      var e=sp.length*0.055+0.25;
+      SN.noise({at:e,f:3000,f2:8000,dur:0.5,vol:0.02,q:2,atk:0.1,wet:0.5});
+      SN.chord([110,164.81,220,261.63],{bell:true,at:e,dur:2.4,vol:0.02,spread:0.05,ratio:1.5,index:1.2});
+    }
 
     function fontReady(){try{return !document.fonts||document.fonts.check('96px "Bebas Neue"');}catch(e){return true;}}
     function fire(){el.classList.add('ri-fire','ri-shake');sFire();}

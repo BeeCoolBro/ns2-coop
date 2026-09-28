@@ -183,6 +183,7 @@
 <div class="bvs-status"><span class="bvs-code">--&middot;--&middot;--</span><span class="bvs-msg">CRACKING THE CODE</span></div>
 <div class="bvs-skip">TAP TO SKIP</div>
 </div>
+<script src="beeside-sound.js"></script>
 <script>
 (function () {
   // The page may be about to copy itself into a blob and reload from there
@@ -223,75 +224,74 @@
     })(performance.now());
     var q = function (sel) { return el.querySelector(sel); };
 
-    // ── its sound: made here, nothing to download. A browser plays it only
-    // once the visitor has done something on the site (coming from the BeeSide
-    // front page counts); otherwise the opening is silent. Never when sound is
-    // switched off on BeeSide, or the vault's own SFX switch is off.
-    var S = (function () {
-      var C = window.AudioContext || window.webkitAudioContext, A, out, room, buf;
-      try { if (localStorage.getItem('bs-sound') === 'off' || localStorage.getItem('sfx') === 'false') return null; } catch (e) {}
-      if (!C) return null;
-      try { A = new C(); } catch (e) { return null; }
-      out = A.createGain(); out.gain.value = 0.8;
-      var comp = A.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 5;
-      out.connect(comp); comp.connect(A.destination);
-      room = A.createGain(); room.gain.value = 0.35;
-      var dl = A.createDelay(1), fb = A.createGain(), lp = A.createBiquadFilter();
-      dl.delayTime.value = 0.17; fb.gain.value = 0.38; lp.type = 'lowpass'; lp.frequency.value = 2200;
-      room.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(out);
-      buf = A.createBuffer(1, A.sampleRate, A.sampleRate);
-      var nz = buf.getChannelData(0); for (var j = 0; j < nz.length; j++) nz[j] = Math.random() * 2 - 1;
-      if (A.state !== 'running') {
-        // not allowed yet: a tap or key (skipping, say) lets the rest play
-        var wake = function () { try { A.resume(); } catch (e) {} };
-        wake();
-        document.addEventListener('pointerdown', wake, { capture: true, once: true });
-        window.addEventListener('keydown', wake, { capture: true, once: true });
+    // ── its sound, on the shared BeeSide synth (beeside-sound.js). Silent
+    // when BeeSide's sound switch or the vault's own SFX switch is off, or
+    // until the browser allows sound (arriving from the front page does).
+    var SN = window.BSND, hum = null, lastTick = null, lastTickT = 0, typed = false;
+    try { if (SN && localStorage.getItem('sfx') === 'false') SN = null; } catch (e) {}
+    if (SN) SN.start();
+    function live() { return SN && SN.live(); }
+    // the door comes out of the dark with a heavy ring, and the vault hums
+    function sArrive() {
+      if (!live()) return;
+      SN.tone({ f: 55, f2: 34, dur: 0.7, vol: 0.28 });
+      SN.bell({ f: 180, ratio: 2.4, index: 3, dur: 2, vol: 0.05, wet: 0.7 });
+      SN.bell({ at: 0.02, f: 271, ratio: 1.8, index: 2, dur: 1.6, vol: 0.02, wet: 0.7 });
+      SN.noise({ f: 300, f2: 120, dur: 0.6, vol: 0.05, ft: 'lowpass', wet: 0.5 });
+      hum = SN.drone({ fs: [50, 100, 150.5], type: 'sawtooth', vol: 0.02, cut: 140, cut2: 320, rise: 1.2, wet: 0.3 });
+    }
+    // the status line types itself out
+    function sType() { if (!live()) return; for (var k = 0; k < 16; k++) SN.tone({ at: 0.15 + k * 0.032, f: 2100 + (k % 4) * 140, dur: 0.018, vol: 0.008, type: 'square', cut: 5000, pan: -0.3 + k * 0.04, wet: 0.1 }); }
+    // the dial ratchets, each click from where the dial is pointing
+    function sTick(ang) {
+      if (!live()) return;
+      var t = performance.now(); if (t - lastTickT < 22) return; lastTickT = t;
+      var p = Math.sin(ang * Math.PI / 180) * 0.5;
+      SN.noise({ f: 3800, dur: 0.018, vol: 0.045, q: 6, pan: p, wet: 0.1 });
+      SN.bell({ f: 2400, ratio: 1.41, index: 0.8, dur: 0.12, vol: 0.008, pan: p, wet: 0.2 });
+    }
+    // a number clacks home: a tumbler falls, a chime, and the ring fills
+    function sNum(k, prog) {
+      if (!live()) return;
+      var f = [659.26, 783.99, 987.77][k] || 659.26;
+      SN.noise({ f: 1400, f2: 700, dur: 0.05, vol: 0.12, q: 2, wet: 0.2 });
+      SN.tone({ f: 130, f2: 80, dur: 0.12, vol: 0.12, type: 'triangle', cut: 900 });
+      SN.bell({ at: 0.02, f: f, ratio: 3.01, index: 1.2, dur: 1.2, vol: 0.035, wet: 0.6 });
+      SN.tone({ at: 0.02, f: 300 + prog * 600, f2: 320 + prog * 640, dur: 0.5, vol: 0.012, atk: 0.15, wet: 0.5 });
+    }
+    function sAlmost() { if (!live()) return; SN.tone({ f: 880, dur: 0.08, vol: 0.01, type: 'triangle', wet: 0.3 }); }
+    function sGranted() {
+      if (!live()) return;
+      SN.chord([659.26, 830.61, 987.77, 1318.51], { bell: true, dur: 1.6, vol: 0.028, spread: 0.07, ratio: 3.01, index: 1 });
+      SN.tone({ f: 1318.51, dur: 0.12, vol: 0.02, type: 'square', cut: 3000, wet: 0.3 });
+      SN.noise({ at: 0.1, f: 4000, f2: 9000, dur: 0.6, vol: 0.015, q: 2, atk: 0.2, wet: 0.5 });
+    }
+    // twelve bolts slide back, each from its own side of the door, then the handle
+    function sBolts() {
+      if (!live()) return;
+      for (var k = 0; k < 12; k++) {
+        var p = Math.sin((k * 30 + 15) * Math.PI / 180) * 0.8;
+        SN.noise({ at: 0.02 + k * 0.014, f: 2800 - k * 70, f2: 1800, dur: 0.035, vol: 0.06, q: 5, pan: p, wet: 0.15 });
+        SN.tone({ at: 0.02 + k * 0.014, f: 420 - k * 12, dur: 0.04, vol: 0.012, type: 'square', cut: 1500, pan: p });
       }
-      function live() { return A.state === 'running'; }
-      function env(g, t, vol, atk, dur) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + atk); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); }
-      return {
-        now: function () { return A.currentTime; },
-        tone: function (f, f2, at, dur, vol, type, wet, cut) {
-          if (!live()) return;
-          var t = A.currentTime + at, o = A.createOscillator(), g = A.createGain(), node = o;
-          o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); if (f2 !== f) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
-          if (cut) { var fl = A.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = cut; o.connect(fl); node = fl; }
-          env(g, t, vol, Math.min(0.02, dur * 0.3), dur); node.connect(g); g.connect(out); if (wet) g.connect(room);
-          o.start(t); o.stop(t + dur + 0.05);
-        },
-        hiss: function (f, f2, at, dur, vol, q, type, atk) {
-          if (!live()) return;
-          var t = A.currentTime + at, s = A.createBufferSource(), fl = A.createBiquadFilter(), g = A.createGain();
-          s.buffer = buf; fl.type = type || 'bandpass'; fl.Q.value = q || 1; fl.frequency.setValueAtTime(f, t); if (f2 !== f) fl.frequency.exponentialRampToValueAtTime(f2, t + dur);
-          env(g, t, vol, atk || Math.min(0.01, dur * 0.2), dur); s.connect(fl); fl.connect(g); g.connect(out); g.connect(room);
-          s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.05);
-        },
-        // a held chord through a filter that opens, until it is let go
-        drone: function (freqs, vol, rise, cut, type) {
-          if (!live()) return null;
-          var t = A.currentTime, g = A.createGain(), fl = A.createBiquadFilter(), os = [];
-          fl.type = 'lowpass'; fl.frequency.setValueAtTime(cut[0], t); fl.frequency.exponentialRampToValueAtTime(cut[1], t + rise);
-          g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + rise);
-          freqs.forEach(function (f, i) { var o = A.createOscillator(); o.type = type || 'sawtooth'; o.frequency.value = f; o.detune.value = i % 2 ? 7 : -7; o.connect(fl); o.start(t); os.push(o); });
-          fl.connect(g); g.connect(out); g.connect(room);
-          return { g: g, stop: function (fade) {
-            var n = A.currentTime; fade = fade || 0.4;
-            g.gain.cancelScheduledValues(n); g.gain.setValueAtTime(Math.max(0.0001, g.gain.value), n); g.gain.exponentialRampToValueAtTime(0.0001, n + fade);
-            os.forEach(function (o) { try { o.stop(n + fade + 0.1); } catch (e) {} });
-          } };
-        },
-        close: function () { setTimeout(function () { try { A.close(); } catch (e) {} }, 3000); }
-      };
-    })();
-    // the dial ratchets as it turns, each number clacks home with a chime,
-    // the bolts rattle back, the handle clunks, and the door swings with a rumble
-    var lastTick = null, lastTickT = 0;
-    function sTick() { if (!S) return; var t = performance.now(); if (t - lastTickT < 22) return; lastTickT = t; S.hiss(3800, 3800, 0, 0.018, 0.05, 6); S.tone(2400, 2200, 0, 0.012, 0.012, 'square'); }
-    function sNum(k) { if (!S) return; var f = [659.26, 783.99, 987.77][k] || 659.26; S.hiss(1400, 700, 0, 0.05, 0.12, 2); S.tone(260, 180, 0, 0.07, 0.07, 'triangle'); S.tone(f, f, 0.02, 0.5, 0.03, 'sine', true); }
-    function sGranted() { if (!S) return; S.tone(659.26, 659.26, 0, 0.25, 0.035, 'sine', true); S.tone(987.77, 987.77, 0.1, 0.45, 0.035, 'sine', true); }
-    function sBolts() { if (!S) return; for (var k = 0; k < 12; k++) S.hiss(2600 - k * 60, 2000, 0.02 + k * 0.014, 0.03, 0.06, 5); S.tone(170, 110, 0.18, 0.16, 0.12, 'square', false, 700); S.hiss(900, 400, 0.18, 0.12, 0.1, 1.5); }
-    function sOpen() { if (!S) return; S.tone(62, 38, 0, 1.0, 0.22, 'sine'); S.hiss(300, 1400, 0, 0.8, 0.12, 0.8, 'lowpass', 0.35); S.tone(95, 150, 0.05, 0.5, 0.04, 'sawtooth', false, 500); [1318.51, 1760, 2637.02].forEach(function (f, k) { S.tone(f, f, 0.2 + k * 0.07, 1.1, 0.014, 'sine', true); }); S.close(); }
+      SN.tone({ at: 0.05, f: 110, f2: 170, dur: 0.38, vol: 0.03, type: 'sawtooth', ft: 'bandpass', cut: 900, q: 6, vib: [23, 12], wet: 0.4 });
+      SN.tone({ at: 0.4, f: 170, f2: 100, dur: 0.18, vol: 0.14, type: 'square', cut: 700 });
+      SN.noise({ at: 0.4, f: 900, f2: 380, dur: 0.14, vol: 0.12, q: 1.5, wet: 0.4 });
+    }
+    // the seal breaks with a hiss, the hinge groans, a rumble, and light pours out
+    function sOpen() {
+      if (!live()) return;
+      SN.noise({ f: 6000, f2: 900, dur: 0.7, vol: 0.06, ft: 'highpass', wet: 0.4 });
+      SN.tone({ f: 45, f2: 32, dur: 1.3, vol: 0.2, type: 'sawtooth', cut: 150 });
+      SN.tone({ at: 0.05, f: 130, f2: 230, dur: 0.75, vol: 0.035, type: 'sawtooth', ft: 'bandpass', cut: 700, q: 9, vib: [17, 18], wet: 0.5 });
+      SN.noise({ at: 0.1, f: 300, f2: 1500, dur: 0.8, vol: 0.08, ft: 'lowpass', atk: 0.35, wet: 0.5 });
+      SN.chord([523.25, 659.25, 783.99, 987.77], { at: 0.2, dur: 2.4, vol: 0.02, atk: 0.6, wet: 0.9, spread: 0.08 });
+      [1318.51, 1760, 2637.02, 3135.96].forEach(function (f, k) { SN.bell({ at: 0.3 + k * 0.08, f: f, ratio: 2, index: 0.7, dur: 1.4, vol: 0.012, pan: -0.4 + k * 0.27 }); });
+      if (hum) { hum.stop(1.2); hum = null; }
+    }
+    // into the vault
+    function sOut() { if (!live()) return; SN.noise({ f: 400, f2: 2400, dur: 0.7, vol: 0.05, q: 0.9, atk: 0.3, wet: 0.5 }); }
+    try { new MutationObserver(function () { if (!typed && el.classList.contains('bvs-type')) { typed = true; sType(); } }).observe(el, { attributes: true, attributeFilter: ['class'] }); } catch (e) {}
     var NS = 'http://www.w3.org/2000/svg';
     var dial = q('.bvs-dial'), prog = q('.bvs-prog'), code = q('.bvs-code'), msg = q('.bvs-msg'), mark = q('.bvs-mark');
 
@@ -324,6 +324,7 @@
       q('.bvs-bolts').appendChild(g);
     }
 
+    sArrive();
     var t0 = performance.now(), ready = false, skip = false, finished = false;
     var angle = 0, digits = [], progress = 0;
     function setProg(p) { progress = Math.max(progress, Math.min(1, p)); prog.style.strokeDashoffset = (678.6 * (1 - progress)).toFixed(1); }
@@ -342,7 +343,7 @@
         // ease out with a small overshoot, like a heavy dial settling
         var e = 1 + 2.2 * Math.pow(k - 1, 3) + 1.2 * Math.pow(k - 1, 2);
         angle = from + (target - from) * e;
-        var tk = Math.floor(angle / 7.2); if (tk !== lastTick) { if (lastTick !== null) sTick(); lastTick = tk; }
+        var tk = Math.floor(angle / 7.2); if (tk !== lastTick) { if (lastTick !== null) sTick(angle); lastTick = tk; }
         dial.style.transform = 'rotate(' + angle.toFixed(2) + 'deg)';
         showCode(numAt(angle));
         if (k < 1) requestAnimationFrame(step); else then();
@@ -350,7 +351,7 @@
     }
     function click() {
       digits.push(numAt(angle));
-      sNum(digits.length - 1);
+      sNum(digits.length - 1, 0.12 + digits.length * 0.26);
       showCode();
       mark.style.fill = '#d6ebe8';
       setTimeout(function () { mark.style.fill = ''; }, 120);
@@ -394,6 +395,7 @@
       });
       void el.offsetWidth;
       el.classList.add('bvs-out');
+      sOut();
     }
     function maybeUnlock() {
       if (finished || !ready) return;
@@ -410,6 +412,7 @@
         if (ready) { unlock(); return; }
         // the page is still coming: keep the dial restless until it has
         msg.textContent = 'ALMOST THERE';
+        sAlmost();
         setProg(progress + 0.02);
         turnTo(angle + (Math.random() < 0.5 ? -1 : 1) * (18 + Math.random() * 30), 400, function () { setTimeout(crack, 140); });
         return;

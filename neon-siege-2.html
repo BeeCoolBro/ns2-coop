@@ -1973,6 +1973,7 @@ html.nsi-land #logo{transition:opacity .22s ease}
   <div class="nsi-shock"></div>
   <div class="nsi-skip">CLICK TO SKIP</div>
 </div>
+<script src="beeside-sound.js"></script>
 <script>
 (function () {
   var el = document.getElementById('nsIntro');
@@ -2010,83 +2011,68 @@ html.nsi-land #logo{transition:opacity .22s ease}
     });
     var logo = el.querySelector('.nsi-logo');
 
-    // ── its sound: made here, nothing to download. A browser plays it only
-    // once the visitor has done something on the site (coming from the BeeSide
-    // front page counts); otherwise the opening is silent. Never when sound is
-    // switched off on BeeSide (inside Bee's Vault the game stays quiet: the vault's music is playing).
-    var S = (function () {
-      var C = window.AudioContext || window.webkitAudioContext, A, out, room, buf;
-      try { if (localStorage.getItem('bs-sound') === 'off' || embedded) return null; } catch (e) {}
-      if (!C) return null;
-      try { A = new C(); } catch (e) { return null; }
-      out = A.createGain(); out.gain.value = 0.8;
-      var comp = A.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 5;
-      out.connect(comp); comp.connect(A.destination);
-      room = A.createGain(); room.gain.value = 0.35;
-      var dl = A.createDelay(1), fb = A.createGain(), lp = A.createBiquadFilter();
-      dl.delayTime.value = 0.17; fb.gain.value = 0.38; lp.type = 'lowpass'; lp.frequency.value = 2200;
-      room.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(out);
-      buf = A.createBuffer(1, A.sampleRate, A.sampleRate);
-      var nz = buf.getChannelData(0); for (var j = 0; j < nz.length; j++) nz[j] = Math.random() * 2 - 1;
-      if (A.state !== 'running') {
-        // not allowed yet: a tap or key (skipping, say) lets the rest play
-        var wake = function () { try { A.resume(); } catch (e) {} };
-        wake();
-        document.addEventListener('pointerdown', wake, { capture: true, once: true });
-        window.addEventListener('keydown', wake, { capture: true, once: true });
-      }
-      function live() { return A.state === 'running'; }
-      function env(g, t, vol, atk, dur) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + atk); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); }
-      return {
-        now: function () { return A.currentTime; },
-        tone: function (f, f2, at, dur, vol, type, wet, cut) {
-          if (!live()) return;
-          var t = A.currentTime + at, o = A.createOscillator(), g = A.createGain(), node = o;
-          o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); if (f2 !== f) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
-          if (cut) { var fl = A.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = cut; o.connect(fl); node = fl; }
-          env(g, t, vol, Math.min(0.02, dur * 0.3), dur); node.connect(g); g.connect(out); if (wet) g.connect(room);
-          o.start(t); o.stop(t + dur + 0.05);
-        },
-        hiss: function (f, f2, at, dur, vol, q, type, atk) {
-          if (!live()) return;
-          var t = A.currentTime + at, s = A.createBufferSource(), fl = A.createBiquadFilter(), g = A.createGain();
-          s.buffer = buf; fl.type = type || 'bandpass'; fl.Q.value = q || 1; fl.frequency.setValueAtTime(f, t); if (f2 !== f) fl.frequency.exponentialRampToValueAtTime(f2, t + dur);
-          env(g, t, vol, atk || Math.min(0.01, dur * 0.2), dur); s.connect(fl); fl.connect(g); g.connect(out); g.connect(room);
-          s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.05);
-        },
-        // a held chord through a filter that opens, until it is let go
-        drone: function (freqs, vol, rise, cut, type) {
-          if (!live()) return null;
-          var t = A.currentTime, g = A.createGain(), fl = A.createBiquadFilter(), os = [];
-          fl.type = 'lowpass'; fl.frequency.setValueAtTime(cut[0], t); fl.frequency.exponentialRampToValueAtTime(cut[1], t + rise);
-          g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + rise);
-          freqs.forEach(function (f, i) { var o = A.createOscillator(); o.type = type || 'sawtooth'; o.frequency.value = f; o.detune.value = i % 2 ? 7 : -7; o.connect(fl); o.start(t); os.push(o); });
-          fl.connect(g); g.connect(out); g.connect(room);
-          return { g: g, stop: function (fade) {
-            var n = A.currentTime; fade = fade || 0.4;
-            g.gain.cancelScheduledValues(n); g.gain.setValueAtTime(Math.max(0.0001, g.gain.value), n); g.gain.exponentialRampToValueAtTime(0.0001, n + fade);
-            os.forEach(function (o) { try { o.stop(n + fade + 0.1); } catch (e) {} });
-          } };
-        },
-        close: function () { setTimeout(function () { try { A.close(); } catch (e) {} }, 3000); }
-      };
-    })();
-    // the CRT thunks on, a synth pad rises with the sun, "presents" types
-    // out, the letters punch in, the neon hits with a flicker of hum, the
-    // light sweeps across, and the logo whooshes up to the title
-    var pad = null, hum = null;
-    function sCrt() { if (!S) return; S.tone(55, 45, 0, 0.3, 0.16, 'sawtooth', false, 300); S.hiss(7000, 3000, 0, 0.28, 0.05, 0.7, 'highpass'); S.tone(180, 1400, 0.02, 0.28, 0.025, 'triangle'); }
-    function sPad() { if (!S) return; pad = S.drone([110, 220, 261.63, 329.63, 493.88], 0.045, 1.4, [250, 1800]); }
-    function sType() { if (!S) return; for (var k = 0; k < 12; k++) S.tone(1900 + (k % 3) * 120, 1900 + (k % 3) * 120, k * 0.046, 0.018, 0.018, 'square', false, 4000); }
-    function sSlam() { if (!S) return; for (var k = 0; k < 5; k++) { S.tone(160, 55, k * 0.07, 0.12, 0.12, 'sine'); S.hiss(2500, 1200, k * 0.07, 0.05, 0.05, 1); } }
-    function sLit() {
-      if (!S) return;
-      S.tone(120, 32, 0, 0.6, 0.3, 'sine'); S.hiss(6000, 1500, 0, 0.9, 0.09, 0.6, 'highpass');
-      hum = S.drone([120, 240], 0.03, 0.02, [1400, 1400]);
-      if (hum) { var t = S.now(); [[0.07, 0.03], [0.12, 0.004], [0.19, 0.03], [0.26, 0.008], [0.31, 0.03], [0.7, 0.012]].forEach(function (p) { hum.g.gain.setValueAtTime(p[1], t + p[0]); }); }
+    // ── its sound, on the shared BeeSide synth (beeside-sound.js). Silent
+    // inside Bee's Vault (the vault's music is playing), when BeeSide's sound
+    // switch is off, or until the browser allows sound.
+    var SN = embedded ? null : window.BSND, pad = null, hum = null;
+    if (SN) SN.start();
+    function live() { return SN && SN.live(); }
+    // the CRT: a thunk, static, a thin whine, the degauss wobble, and stars pinging on
+    function sCrt() {
+      if (!live()) return;
+      SN.tone({ f: 60, f2: 38, dur: 0.35, vol: 0.2, type: 'sawtooth', cut: 280 });
+      SN.noise({ f: 6000, f2: 2500, dur: 0.35, vol: 0.05, ft: 'highpass', wet: 0.3 });
+      SN.tone({ f: 9800, dur: 0.7, vol: 0.004, atk: 0.05 });
+      SN.tone({ at: 0.05, f: 190, f2: 70, dur: 0.55, vol: 0.05, vib: [28, 22], wet: 0.4 });
+      for (var k = 0; k < 6; k++) SN.bell({ at: 0.3 + Math.random() * 0.9, f: 1800 + Math.random() * 2400, ratio: 2, index: 0.6, dur: 0.9, vol: 0.006, pan: Math.random() * 1.6 - 0.8, wet: 0.8 });
     }
-    function sSweep() { if (!S) return; S.hiss(2500, 9000, 0, 0.4, 0.06, 3); S.tone(1760, 3520, 0, 0.35, 0.018, 'sine', true); }
-    function sFly() { if (!S) return; S.hiss(3000, 350, 0, 0.55, 0.08, 1.2); S.tone(90, 60, 0.35, 0.45, 0.1, 'sine'); if (pad) pad.stop(0.9); if (hum) hum.stop(0.25); pad = hum = null; S.close(); }
+    // the sun comes up: a pad that opens, a riser, and the grid's pulse under it
+    function sPad() {
+      if (!live()) return;
+      pad = SN.drone({ fs: [110, 220, 261.63, 329.63, 493.88], vol: 0.04, rise: 1.4, cut: 250, cut2: 2200, wet: 0.6 });
+      SN.noise({ f: 300, f2: 3000, dur: 1.4, vol: 0.02, atk: 1.2, wet: 0.5 });
+      var sp = 0.105;
+      for (var k = 0; k < (quick ? 6 : 16); k++) {
+        SN.tone({ at: k * sp, f: [55, 55, 110, 55][k % 4], dur: sp * 0.9, vol: 0.05, type: 'sawtooth', cut: 500 + k * 60, q: 4 });
+        if (k % 2) SN.noise({ at: k * sp, f: 8000, dur: 0.03, vol: 0.012, ft: 'highpass' });
+      }
+    }
+    // "presents" types out
+    function sType() { if (!live()) return; for (var k = 0; k < 12; k++) SN.tone({ at: k * 0.046, f: 1900 + (k % 3) * 120 + Math.random() * 60, dur: 0.02, vol: 0.016, type: 'square', cut: 4500, pan: -0.3 + k * 0.05, wet: 0.15 }); }
+    // each letter punches in, left to right, then the II, with glitches as the colours split
+    function sSlam() {
+      if (!live()) return;
+      var st = parseFloat(getComputedStyle(logo).getPropertyValue('--st')) || 55;
+      for (var k = 0; k < 10; k++) {
+        if (k === 4) continue;
+        var at = k * st / 1000 + 0.2, p = -0.7 + k * 0.155;
+        SN.tone({ at: at, f: 170, f2: 52, dur: 0.14, vol: 0.13, pan: p });
+        SN.noise({ at: at, f: 2600, f2: 1200, dur: 0.05, vol: 0.05, pan: p, wet: 0.2 });
+      }
+      SN.tone({ at: 10 * st / 1000 + 0.25, f: 120, f2: 40, dur: 0.3, vol: 0.18, pan: 0.5 });
+      for (var j = 0; j < 3; j++) SN.tone({ at: 0.15 + j * 0.09 + Math.random() * 0.05, f: 3000 + Math.random() * 2000, f2: 200, dur: 0.05, vol: 0.02, type: 'square', cut: 6000, pan: Math.random() * 1.2 - 0.6 });
+    }
+    // the neon catches: a heavy hit, a crash, the shockwave, the shake, and a flickering hum
+    function sLit() {
+      if (!live()) return;
+      SN.tone({ f: 120, f2: 30, dur: 0.7, vol: 0.3 });
+      SN.noise({ f: 6000, f2: 1500, dur: 1.1, vol: 0.09, ft: 'highpass', q: 0.6, wet: 0.6 });
+      SN.noise({ f: 150, f2: 1800, dur: 0.6, vol: 0.06, ft: 'lowpass', wet: 0.4 });
+      SN.noise({ f: 90, dur: 0.45, vol: 0.08, ft: 'lowpass' });
+      hum = SN.drone({ fs: [120, 240], vol: 0.03, rise: 0.02, cut: 1400, wet: 0.2 });
+      if (hum) { var t = SN.now(); [[0.07, 0.03], [0.12, 0.004], [0.19, 0.03], [0.26, 0.008], [0.31, 0.03], [0.7, 0.012]].forEach(function (p) { hum.g.gain.setValueAtTime(p[1], t + p[0]); }); }
+      if (pad) pad.f.frequency.setTargetAtTime(3200, SN.now(), 0.2);
+    }
+    // the light sweeps across
+    function sSweep() { if (!live()) return; SN.noise({ f: 2500, f2: 9000, dur: 0.4, vol: 0.06, q: 3, pan: -0.6, wet: 0.4 }); SN.tone({ f: 1760, f2: 3520, dur: 0.35, vol: 0.018, wet: 0.5 }); SN.bell({ at: 0.2, f: 2637.02, ratio: 2, index: 0.8, dur: 1, vol: 0.012, pan: 0.6 }); }
+    // up to the title: a whoosh, a soft landing, and a chime as it settles
+    function sFly() {
+      if (!live()) return;
+      SN.noise({ f: 3000, f2: 350, dur: 0.55, vol: 0.08, q: 1.2, wet: 0.4 });
+      SN.tone({ at: 0.45, f: 90, f2: 60, dur: 0.45, vol: 0.1 });
+      SN.chord([440, 523.25, 659.25, 880], { bell: true, at: 0.55, dur: 1.6, vol: 0.02, spread: 0.06, ratio: 3.01, index: 0.9 });
+      if (pad) pad.stop(1.1); if (hum) hum.stop(0.25); pad = hum = null;
+    }
     var ready = document.readyState !== 'loading', started = false, flying = false, T0 = 0;
     // when each step happens, full and short
     var at = quick

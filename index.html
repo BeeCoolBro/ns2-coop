@@ -542,6 +542,7 @@ body.leaving main { opacity: .6; transform: scale(.985); transition: opacity .3s
 
 <div id="wipe" aria-hidden="true"></div>
 
+<script src="beeside-sound.js"></script>
 <script>
 (function () {
   var root = document.documentElement;
@@ -551,93 +552,161 @@ body.leaving main { opacity: .6; transform: scale(.985); transition: opacity .3s
   var loops = [];
 
   // ── sound ──────────────────────────────────────────────────────
-  // Small synthesized sounds, nothing to download: a glassy tick when you
-  // point at a door, a whoosh and a chord when one opens (each door its own
-  // chord), a drop of water when you tap the hive. A browser only lets a page
-  // make sound once you have clicked or pressed a key, so pointing is silent
-  // until then. The switch in the footer remembers its setting.
+  // Everything here makes a sound, synthesized by beeside-sound.js (shared
+  // with the openings of the three projects). A browser only allows sound
+  // once you have clicked or pressed a key on the site, so until then this
+  // is silent. The switch in the footer turns it all off and remembers it.
   var Sound = (function () {
-    var AC = null, out = null, room = null, buf = null, on = true, last = 0;
-    try { on = localStorage.getItem('bs-sound') !== 'off'; } catch (e) {}
-    // each door's chord: the vault's warm major, the game's cool one, the rest
-    var CH = { '#ffd633': [392, 587.33, 783.99], '#22e6ff': [329.63, 493.88, 659.26], '#ff9f1c': [349.23, 523.25, 698.46], '#e85d00': [220, 329.63, 440] };
-    function chord(col) { return CH[(col || '').toLowerCase()] || CH['#ffd633']; }
-    function make() {
-      if (AC) return AC;
-      var C = window.AudioContext || window.webkitAudioContext;
-      if (!C) return null;
-      AC = new C();
-      out = AC.createGain(); out.gain.value = 0.9;
-      var comp = AC.createDynamicsCompressor(); comp.threshold.value = -20; comp.ratio.value = 4;
-      out.connect(comp); comp.connect(AC.destination);
-      // a short, soft echo gives the sounds some room
-      room = AC.createGain(); room.gain.value = 0.3;
-      var d = AC.createDelay(1), fb = AC.createGain(), lp = AC.createBiquadFilter();
-      d.delayTime.value = 0.14; fb.gain.value = 0.32; lp.type = 'lowpass'; lp.frequency.value = 2600;
-      room.connect(d); d.connect(lp); lp.connect(fb); fb.connect(d); lp.connect(out);
-      buf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
-      var n = buf.getChannelData(0); for (var i = 0; i < n.length; i++) n[i] = Math.random() * 2 - 1;
-      return AC;
-    }
-    function wake() { if (!on) return; var a = make(); if (a && a.state === 'suspended') a.resume(); }
-    ['pointerdown', 'keydown'].forEach(function (t) { document.addEventListener(t, wake, { capture: true, passive: true }); });
-    function live() { return on && AC && AC.state === 'running'; }
-    function tone(f, f2, at, dur, vol, type, wet) {
-      var t = AC.currentTime + at, o = AC.createOscillator(), g = AC.createGain();
-      o.type = type || 'sine'; o.frequency.setValueAtTime(f, t);
-      if (f2 !== f) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
-      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + Math.min(0.03, dur * 0.25)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      o.connect(g); g.connect(out); if (wet) g.connect(room);
-      o.start(t); o.stop(t + dur + 0.05);
-    }
-    function air(f, f2, at, dur, vol, q) {
-      var t = AC.currentTime + at, s = AC.createBufferSource(), f1 = AC.createBiquadFilter(), g = AC.createGain();
-      s.buffer = buf; f1.type = 'bandpass'; f1.Q.value = q || 1.2; f1.frequency.setValueAtTime(f, t); f1.frequency.exponentialRampToValueAtTime(f2, t + dur);
-      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + dur * 0.55); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      s.connect(f1); f1.connect(g); g.connect(out); g.connect(room);
-      s.start(t, Math.random() * 0.4); s.stop(t + dur + 0.05);
-    }
-    // the switch
+    var SN = window.BSND, noop = function () {};
+    var api = { hover: noop, leave: noop, go: noop, drop: noop, bloom: noop, badge: noop, td: noop, tdPop: noop, rfShot: noop, rfPop: noop, intro: noop, arrive: noop };
     var sw = document.getElementById('snd');
-    function show() { if (!sw) return; sw.setAttribute('aria-pressed', on ? 'true' : 'false'); sw.lastChild.textContent = on ? 'Sound on' : 'Sound off'; }
+    function show() { if (!sw) return; var on = !!(SN && SN.on); sw.setAttribute('aria-pressed', on ? 'true' : 'false'); sw.lastChild.textContent = on ? 'Sound on' : 'Sound off'; }
     show();
+    if (!SN) { if (sw) sw.hidden = true; return api; }
+    SN.start();
+    // each door's chord: the vault's warm major, the game's cool one, the rest
+    var CH = { '#ffd633': [392, 587.33, 783.99, 1174.66], '#22e6ff': [329.63, 493.88, 659.26, 987.77], '#ff9f1c': [349.23, 523.25, 698.46, 1046.5], '#e85d00': [220, 329.63, 440, 659.26] };
+    var PENTA = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51];
+    function chord(col) { return CH[(col || '').toLowerCase()] || CH['#ffd633']; }
+    var last = {};
+    function gap(k, s) { var n = SN.now(); if (n - (last[k] == null ? -9 : last[k]) < s) return false; last[k] = n; return true; }
+    function quietNow() { return !SN.live() || document.hidden || document.body.classList.contains('leaving'); }
+
     if (sw) sw.addEventListener('click', function () {
-      on = !on; show();
-      try { localStorage.setItem('bs-sound', on ? 'on' : 'off'); } catch (e) {}
-      if (on) { wake(); setTimeout(function () { if (live()) { tone(660, 660, 0, 0.12, 0.05, 'sine', true); tone(990, 990, 0.07, 0.16, 0.04, 'sine', true); } }, 30); }
+      if (SN.on) { SN.chord([987.77, 659.25, 493.88], { dur: 0.3, vol: 0.035, spread: 0.06, bell: true, ratio: 2, index: 0.6 }); SN.set(false); }
+      else { SN.set(true); setTimeout(function () { SN.chord([493.88, 659.25, 987.77, 1318.51], { dur: 0.7, vol: 0.035, spread: 0.07, bell: true, ratio: 2, index: 0.8 }); }, 40); }
+      show();
     });
-    return {
-      // a glassy tick, pitched to the door
-      hover: function (el) {
-        if (!live()) return;
-        var n = AC.currentTime; if (n - last < 0.07) return; last = n;
-        var f = chord(el.getAttribute('data-color'))[2];
-        tone(f, f, 0, 0.22, 0.035, 'sine', true); tone(f * 2.76, f * 2.76, 0, 0.09, 0.008, 'sine', false);
-        air(3000, 5000, 0, 0.07, 0.012, 2);
-      },
-      // a whoosh up into the door's chord
-      go: function (col) {
-        if (!live()) return;
-        var c = chord(col);
-        air(380, 2800, 0, 0.5, 0.11, 0.9);
-        tone(c[0] / 2, c[0] / 2, 0.02, 0.6, 0.06, 'triangle', false);
-        c.forEach(function (f, i) { tone(f, f * 1.003, 0.04 + i * 0.045, 0.75, 0.045, 'sine', true); });
-        tone(c[2] * 2, c[2] * 2, 0.2, 0.5, 0.018, 'sine', true);
-      },
-      // a drop of water in the hive
-      drop: function () {
-        if (!live()) return;
-        var k = 0.85 + Math.random() * 0.3;
-        tone(1250 * k, 420 * k, 0, 0.1, 0.06, 'sine', true);
-        tone(1700 * k, 900 * k, 0.07, 0.07, 0.02, 'sine', true);
+
+    // pointing at a door: a glass bell and a breath of air, and the door's own thing
+    api.hover = function (el) {
+      if (!SN.live() || !gap('hover', 0.06)) return;
+      var c = chord(el.getAttribute('data-color')), p = SN.panOf(el), d = el.classList;
+      SN.bell({ f: c[2], ratio: 3.01, index: 1.1, dur: 1.1, vol: 0.03, pan: p });
+      SN.bell({ at: 0.04, f: c[3], ratio: 2, index: 0.6, dur: 0.7, vol: 0.012, pan: p });
+      SN.noise({ f: 2500, f2: 7000, dur: 0.16, vol: 0.012, q: 0.7, atk: 0.05, pan: p, wet: 0.2 });
+      if (d.contains('vault')) {
+        // the dial ratchets round and three cards flick out of the vault
+        for (var i = 0; i < 9; i++) SN.noise({ at: 0.05 + i * i * 0.012, f: 3200 - i * 90, dur: 0.02, vol: 0.02 - i * 0.0015, q: 6, pan: p, wet: 0.1 });
+        [0.04, 0.1, 0.16].forEach(function (t, k) {
+          SN.noise({ at: t + 0.05, f: 2200 + k * 500, f2: 900, dur: 0.09, vol: 0.02, q: 0.9, pan: p + 0.2, wet: 0.2 });
+          SN.tone({ at: t + 0.1, f: [659.25, 783.99, 987.77][k], dur: 0.3, vol: 0.012, type: 'triangle', pan: p + 0.25, wet: 0.5 });
+        });
+        hum(el, { fs: [55, 82.41], type: 'sine', vol: 0.03, cut: 300, rise: 0.8, pan: p });
+      } else if (d.contains('ns2')) {
+        // an arcade coin, and the grid's synth hum while you stay
+        [0, 0.05, 0.1].forEach(function (t, k) { SN.tone({ at: t, f: [987.77, 1318.51, 1975.53][k], dur: 0.08, vol: 0.02, type: 'square', cut: 5000, pan: p, wet: 0.2 }); });
+        hum(el, { fs: [110, 164.81, 220], type: 'sawtooth', vol: 0.016, cut: 300, cut2: 900, rise: 1.2, pan: p });
+      } else if (d.contains('rotfall')) {
+        // a growl from the swarm and a heartbeat
+        SN.tone({ at: 0.02, f: 90, f2: 70, dur: 0.6, vol: 0.05, type: 'sawtooth', cut: 380, q: 4, vib: [11, 6], pan: p, wet: 0.4 });
+        SN.tone({ at: 0.35, f: 58, f2: 34, dur: 0.28, vol: 0.12, pan: p }); SN.tone({ at: 0.54, f: 50, f2: 32, dur: 0.26, vol: 0.09, pan: p });
+        hum(el, { fs: [55, 55.7], type: 'sawtooth', vol: 0.02, cut: 160, cut2: 260, rise: 1.5, pan: p });
       }
     };
+    function hum(el, o) { if (!el.__hum) el.__hum = SN.drone(o); }
+    api.leave = function (el) {
+      if (el.__hum) { el.__hum.stop(0.6); el.__hum = null; }
+      if (SN.live() && gap('leave', 0.08)) SN.noise({ f: 5000, f2: 1400, dur: 0.18, vol: 0.006, atk: 0.08, pan: SN.panOf(el), wet: 0.2 });
+    };
+    // opening a door: a riser, a drop underneath, the door's chord and a shimmer
+    api.go = function (el) {
+      if (el.__hum) { el.__hum.stop(0.3); el.__hum = null; }
+      if (!SN.live()) return;
+      var c = chord(el.getAttribute('data-color')), p = SN.panOf(el);
+      SN.noise({ f: 250, f2: 4200, dur: 0.5, vol: 0.12, q: 0.8, atk: 0.35, pan: p, wet: 0.35 });
+      SN.tone({ at: 0.3, f: 110, f2: 38, dur: 0.7, vol: 0.14 });
+      SN.chord(c, { at: 0.05, dur: 1.2, vol: 0.035, type: 'triangle', spread: 0.035, wet: 0.6, pan: p * 0.5 });
+      SN.bell({ at: 0.28, f: c[3] * 2, ratio: 2.76, index: 1.4, dur: 1.4, vol: 0.02, pan: p });
+      SN.noise({ at: 0.1, f: 7000, dur: 0.6, vol: 0.02, ft: 'highpass', atk: 0.3, wet: 0.5 });
+    };
+    // a tap on the hive: a drop of water, and the ripple ringing out
+    api.drop = function (x) {
+      if (!SN.live() || !gap('drop', 0.05)) return;
+      var k = 0.85 + Math.random() * 0.3, p = SN.pan(x);
+      SN.tone({ f: 1250 * k, f2: 420 * k, dur: 0.1, vol: 0.06, pan: p, wet: 0.45 });
+      SN.tone({ at: 0.07, f: 1700 * k, f2: 900 * k, dur: 0.07, vol: 0.02, pan: p, wet: 0.5 });
+      SN.bell({ at: 0.02, f: PENTA[(Math.random() * PENTA.length) | 0] / 2, ratio: 2.01, index: 0.5, dur: 1.4, vol: 0.012, pan: p, wet: 0.8 });
+    };
+    // the slow ripples the hive makes on its own
+    api.bloom = function (x) {
+      if (quietNow()) return;
+      SN.bell({ f: PENTA[(Math.random() * PENTA.length) | 0] / 4, ratio: 1.5, index: 0.8, dur: 2.6, vol: 0.009, pan: SN.pan(x), wet: 0.9 });
+    };
+    api.badge = function (el) {
+      if (quietNow() || !gap('badge', 0.3)) return;
+      var p = SN.panOf(el);
+      SN.tone({ f: 880, f2: 1320, dur: 0.1, vol: 0.02, type: 'triangle', pan: p, wet: 0.3 });
+      SN.bell({ at: 0.06, f: 1760, dur: 0.7, vol: 0.01, pan: p });
+    };
+    // the little fights inside the doors, heard while you point at them
+    api.td = function (host) { if (!SN.live() || !gap('td', 0.07)) return; SN.tone({ f: 1800 * (0.9 + Math.random() * 0.2), f2: 600, dur: 0.05, vol: 0.008, type: 'square', cut: 4000, pan: SN.panOf(host) + 0.2, wet: 0.15 }); };
+    api.tdPop = function (host) { if (!SN.live() || !gap('tdp', 0.05)) return; var p = SN.panOf(host) + 0.2; SN.noise({ f: 1200, f2: 300, dur: 0.08, vol: 0.014, pan: p }); SN.tone({ f: 440, f2: 110, dur: 0.07, vol: 0.008, type: 'square', cut: 2000, pan: p }); };
+    api.rfShot = function (host) { if (!SN.live() || !gap('rfs', 0.1)) return; var p = SN.panOf(host) + 0.2; SN.noise({ ft: 'highpass', f: 2500, dur: 0.03, vol: 0.012, pan: p }); SN.tone({ f: 300, f2: 100, dur: 0.05, vol: 0.008, type: 'square', cut: 2500, pan: p }); };
+    api.rfPop = function (host) { if (!SN.live() || !gap('rfp', 0.06)) return; var p = SN.panOf(host) + 0.2; SN.noise({ f: 800, f2: 200, dur: 0.1, vol: 0.016, pan: p }); SN.tone({ f: 160, f2: 60, dur: 0.1, vol: 0.012, pan: p }); };
+
+    // the page's own opening, heard when you arrive from another BeeSide page
+    api.intro = function (full) {
+      if (!SN.live()) return;
+      var T = full ? { hit: 0.6, bee: 0.72, ch: 0.86, chs: 0.05, rule: 1.2, tag: 1.3, tags: 0.18, door: 1.4, doors: 0.12, foot: 1.9 }
+                   : { hit: 0.05, bee: 0.08, ch: 0.16, chs: 0.028, rule: 0.3, tag: 0.34, tags: 0.09, door: 0.4, doors: 0.09, foot: 0.7 };
+      if (full) { SN.tone({ at: 0.1, f: 1800, f2: 500, dur: 0.5, vol: 0.012, wet: 0.4 }); SN.noise({ at: 0.1, f: 3000, f2: 900, dur: 0.5, vol: 0.01, atk: 0.3, wet: 0.3 }); }
+      SN.tone({ at: T.hit, f: 1100, f2: 380, dur: 0.12, vol: 0.06, wet: 0.5 });
+      SN.tone({ at: T.hit, f: 90, f2: 45, dur: 0.8, vol: 0.12 });
+      SN.noise({ at: T.hit, f: 600, f2: 3000, dur: 0.5, vol: 0.03, atk: 0.02, wet: 0.7 });
+      SN.chord([392, 493.88, 587.33, 783.99], { bell: true, at: T.hit + 0.02, dur: 2.2, vol: 0.016, spread: 0.04, ratio: 3.01, index: 1 });
+      SN.noise({ at: T.bee, f: 800, f2: 2600, dur: 0.35, vol: 0.02, atk: 0.12, wet: 0.3 });
+      var notes = [1318.51, 1174.66, 1046.5, 987.77, 1174.66, 1318.51, 1567.98, 1760];
+      for (var i = 0; i < 8; i++) SN.tone({ at: T.ch + i * T.chs, f: notes[i], dur: 0.09, vol: 0.012, type: 'triangle', wet: 0.35, pan: -0.15 + i * 0.05 });
+      SN.noise({ at: T.rule, f: 1200, f2: 6000, dur: 0.9, vol: 0.015, q: 2, atk: 0.3, wet: 0.4 });
+      SN.bell({ at: T.tag, f: 659.25, dur: 1.2, vol: 0.012 }); SN.bell({ at: T.tag + T.tags, f: 783.99, dur: 1.2, vol: 0.012 });
+      [].forEach.call(document.querySelectorAll('.door'), function (d, k) {
+        var p = SN.panOf(d);
+        SN.noise({ at: T.door + k * T.doors, f: 300, f2: 1400, dur: 0.35, vol: 0.05, atk: 0.1, pan: p, wet: 0.3 });
+        SN.tone({ at: T.door + k * T.doors + 0.22, f: 80, f2: 50, dur: 0.3, vol: 0.06, pan: p });
+      });
+      SN.noise({ at: T.foot, f: 5000, dur: 0.8, vol: 0.008, ft: 'highpass', atk: 0.4, wet: 0.6 });
+    };
+    api.arrive = function () { api.intro(false); };
+
+    // faint glass ticks as the pointer crosses the hive
+    var cell = '';
+    document.addEventListener('pointermove', function (e) {
+      if (e.pointerType !== 'mouse' || !SN.live()) return;
+      if (e.target.closest && e.target.closest('a, button')) return;
+      var c = Math.round(e.clientX / 42) + ',' + Math.round(e.clientY / 37);
+      if (c === cell) return;
+      cell = c;
+      if (!gap('hex', 0.07)) return;
+      SN.tone({ f: PENTA[(Math.random() * PENTA.length) | 0] * 2, dur: 0.06, vol: 0.0045, pan: SN.pan(e.clientX), wet: 0.35 });
+    }, { passive: true });
+    // a tap on the room itself
+    document.addEventListener('pointerdown', function (e) {
+      if (e.target.closest && e.target.closest('a, button')) return;
+      api.drop(e.clientX);
+    });
+    // the honey drip in the mark
+    var drip = document.querySelector('.mark .drip');
+    function plip() { setTimeout(function () { if (!quietNow()) SN.tone({ f: 1500, f2: 600, dur: 0.07, vol: 0.012, wet: 0.5 }); }, 3490); }
+    if (drip) { drip.addEventListener('animationstart', plip); drip.addEventListener('animationiteration', plip); }
+    // the ticker stops under the pointer, like tape
+    var tick = document.querySelector('.ticker');
+    if (tick) {
+      tick.addEventListener('pointerenter', function () { if (SN.live()) SN.tone({ f: 600, f2: 280, dur: 0.18, vol: 0.012, type: 'triangle', wet: 0.3 }); });
+      tick.addEventListener('pointerleave', function () { if (SN.live()) SN.tone({ f: 280, f2: 600, dur: 0.18, vol: 0.01, type: 'triangle', wet: 0.3 }); });
+    }
+    // the empty door knocks back
+    var soon = document.querySelector('.door.soon');
+    if (soon) soon.addEventListener('pointerenter', function () {
+      if (!SN.live() || !gap('soon', 0.3)) return;
+      var p = SN.panOf(soon);
+      SN.tone({ f: 150, f2: 95, dur: 0.12, vol: 0.05, type: 'triangle', cut: 700, pan: p, wet: 0.35 });
+      SN.tone({ at: 0.13, f: 140, f2: 90, dur: 0.12, vol: 0.04, type: 'triangle', cut: 700, pan: p, wet: 0.35 });
+      SN.bell({ at: 0.05, f: 311.13, ratio: 1.41, index: 0.9, dur: 1, vol: 0.008, pan: p });
+    });
+    if (sw) sw.addEventListener('pointerenter', function () { if (SN.live() && gap('swh', 0.1)) SN.tone({ f: 1400, dur: 0.04, vol: 0.01, wet: 0.2 }); });
+    return api;
   })();
-  // a tap on the room itself: a drop of water where the ripple starts
-  document.addEventListener('pointerdown', function (e) {
-    if (e.target.closest && e.target.closest('a, button')) return;
-    Sound.drop();
-  });
   var last = 0;
   function loop(now) {
     var dt = last ? Math.min(0.05, (now - last) / 1000) : 0.016;
@@ -764,7 +833,9 @@ body.leaving main { opacity: .6; transform: scale(.985); transition: opacity .3s
       autoRipple -= dt;
       if (autoRipple <= 0) {
         autoRipple = 7 + Math.random() * 6;
-        ripple(Math.random() * W, Math.random() * H, 0.45);
+        var ax = Math.random() * W;
+        ripple(ax, Math.random() * H, 0.45);
+        Sound.bloom(ax);
       }
 
       var decay = Math.pow(0.045, dt);
@@ -910,8 +981,9 @@ body.leaving main { opacity: .6; transform: scale(.985); transition: opacity .3s
             tw.cd = 0.4 + Math.random() * 0.12; tw.kick = 1;
             var len = 10 * S;
             shots.push({ x1: tw.x + Math.cos(tw.a) * len, y1: tw.y + Math.sin(tw.a) * len, x2: best.x, y2: best.y, c: tw.c, life: 0.14 });
+            if (hot) Sound.td(host);
             best.hit = 1;
-            if (--best.hp <= 0) { best.dead = true; burst(best); }
+            if (--best.hp <= 0) { best.dead = true; burst(best); if (hot) Sound.tdPop(host); }
           }
         } else {
           tw.a += dt * 0.5;
@@ -1038,7 +1110,7 @@ body.leaving main { opacity: .6; transform: scale(.985); transition: opacity .3s
   function enter(door, x, y) {
     if (leaving) return;
     leaving = true;
-    Sound.go(door.getAttribute('data-color'));
+    Sound.go(door);
     var href = door.getAttribute('href');
     if (calm) { location.href = href; return; }
     wipe.style.setProperty('--x', x + 'px');
@@ -1077,6 +1149,7 @@ body.leaving main { opacity: .6; transform: scale(.985); transition: opacity .3s
     door.addEventListener('focus', function () { if (door.matches(':focus-visible')) Sound.hover(door); });
     door.addEventListener('pointerleave', function () {
       ev = null;
+      Sound.leave(door);
       door.classList.remove('tilting');
       ['--px', '--py', '--rx', '--ry'].forEach(function (k) { door.style.removeProperty(k); });
     });
@@ -1163,7 +1236,7 @@ body.leaving main { opacity: .6; transform: scale(.985); transition: opacity .3s
     var b = el.querySelector('b'), was = el.hidden;
     b.textContent = text;
     el.hidden = false;
-    if (was) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; }
+    if (was) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; Sound.badge(el); }
   }
   function stats() {
     if (!window.fetch || location.protocol === 'file:') return;
@@ -1179,6 +1252,7 @@ body.leaving main { opacity: .6; transform: scale(.985); transition: opacity .3s
   setInterval(function () { if (!document.hidden) stats(); }, 20000);
 
   // ── the opening: the drop lands and a ripple runs out from the mark ──
+  if (!calm) Sound.intro(full);
   if (!calm) {
     var mark = document.querySelector('.mark-wrap');
     setTimeout(function () {
