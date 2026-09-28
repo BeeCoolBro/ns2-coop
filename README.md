@@ -92,6 +92,18 @@ popup wait until the door has opened. The game's opening is in
 `neon-siege-2.html` like everything else, so `build-coop.py` carries it into
 the co-op build.
 
+The three openings have sound, synthesized in the page. The vault's dial
+ratchets, each number clacks home with a chime, the bolts rattle back and the
+door swings open with a rumble. The game's CRT thunks on, a synth pad rises
+with the sun, "presents" types out, the letters punch in and the neon hits
+with a flicker of hum. In ROTFALL the ember catches, a heart beats twice, a
+drone creeps in with the eyes, the shot booms and every letter lands with a
+thud. A browser only plays sound once the visitor has done something on the
+site: coming from the BeeSide front page counts in Chrome, and otherwise the
+opening is silent. They are always silent when BeeSide's sound switch is off.
+The vault also listens to its own SFX switch, and the game is silent inside
+the vault, where the vault's music is playing.
+
 ## What the free plan means
 
 Checked against Render's docs, not assumed:
