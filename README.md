@@ -418,6 +418,23 @@ first save, wrong or empty key refused, `DEV_KEY` unset refuses everything,
 retried and both survive, a restart reads the list back, a repeat remove makes
 no empty commit, oversized bodies are refused, and hostile names render inert.
 
+## Muting a game (vault)
+
+The game window's dock has a **Mute** button that silences the game while the
+vault's music keeps playing. It is remembered for the next game. The games are
+framed from another site (realwork.netlify.app, built from the
+`BeeCoolBro/seraph` fork), and a page can't reach into another site's frame. So
+the vault asks with `postMessage({type: 'vault-audio', muted})`, and the game
+page mutes itself with `storage/js/vault-audio.js` in that fork.
+
+That script suspends every Web Audio context the game uses (and holds it if
+the game tries to resume) and mutes audio and video elements. It handles game
+frames inside the page too. `cloak.js`, which 521 of the 530 pages load, loads
+it; the three game pages that don't load `cloak.js` load it directly. A game
+answers `{type: 'vault-audio', ready: true}` when it loads. One that never
+answers, like a game from any other site, gets "This game can't be muted from
+here" instead of a silent failure.
+
 ## The vault's Ideas tab
 
 A small tab after Chat where anyone can send the owner an idea, marked as a

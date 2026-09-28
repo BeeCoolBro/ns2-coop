@@ -4038,6 +4038,15 @@ body.potato-mode { transition: none; }
 @keyframes gd-pop { from { transform:scale(0.4); opacity:0; } }
 @media (hover: none) { #game-dock { opacity:0.92; } }
 @media (max-width: 520px) { #game-dock { top:10px; right:10px; } .gd-title { display:none; } .gd-sep { display:none; } }
+/* ── muting the game ── */
+.gd-sound .gd-sound-off { display:none; }
+.gd-sound.muted .gd-sound-on { display:none; }
+.gd-sound.muted .gd-sound-off { display:block; }
+.gd-sound .gd-label { right:0; }
+#game-dock.peek .gd-sound .gd-label { opacity:0; }
+.gd-sound:hover { background:color-mix(in srgb, var(--accent3) 16%, transparent); border-color:color-mix(in srgb, var(--accent3) 50%, transparent); color:var(--accent3); }
+.gd-sound.muted { background:color-mix(in srgb, var(--accent3) 18%, transparent); border-color:color-mix(in srgb, var(--accent3) 55%, transparent); color:var(--accent3); }
+.gd-sound.muted .gd-label { color:var(--accent3); }
 /* ── the chat, in a game ── */
 .gd-chat:hover, .gd-chat.on { background:color-mix(in srgb, var(--accent2) 18%, transparent); border-color:color-mix(in srgb, var(--accent2) 55%, transparent); color:var(--accent2); }
 .gd-chat .gd-label { right:0; }
@@ -4232,6 +4241,11 @@ animation: launch-flash-anim 0.4s var(--ease-out);
 <div id="game-dock" role="toolbar" aria-label="Game controls">
 <span class="gd-title"><i class="gd-dot" aria-hidden="true"></i><span id="gd-name">Playing</span></span>
 <span class="gd-sep" aria-hidden="true"></span>
+<button type="button" class="gd-btn gd-sound" id="game-sound-tab" title="Mute the game (the music keeps playing)" aria-label="Mute the game" aria-pressed="false">
+<svg class="gd-sound-on" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+<svg class="gd-sound-off" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m16 9 6 6M22 9l-6 6"/></svg>
+<span class="gd-label">Mute</span>
+</button>
 <button type="button" class="gd-btn gd-chat" id="game-chat-tab" title="Chat" aria-label="Open the chat" aria-expanded="false">
 <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h16v10.5H10.5L6 19.5V16H4Z"/><path d="M8.5 10.8h.01M12 10.8h.01M15.5 10.8h.01"/></svg>
 <span class="gd-label">Chat</span>
@@ -8840,6 +8854,59 @@ function renderChat() {
   plDraw();
   if (!CH.started) { CH.started = true; chatConnect(); }
 }
+
+// ===== MUTING THE GAME =====
+// The games come from another site, which a page can't reach into, so the
+// vault asks and the game mutes itself: the games site loads
+// storage/js/vault-audio.js (the seraph fork), which answers
+// {type: 'vault-audio', ready: true} when a game loads and mutes on
+// {type: 'vault-audio', muted: true}. The music player isn't touched. The
+// choice holds for the next game too.
+const GS = { muted: false, ready: false };
+try { GS.muted = localStorage.getItem('gameMuted') === '1'; } catch (e) {}
+
+function gsFrame() { return document.getElementById('game-overlay-frame'); }
+
+function gsSend() {
+  const f = gsFrame();
+  try { if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'vault-audio', muted: GS.muted }, '*'); } catch (e) {}
+}
+
+function gsDraw() {
+  const b = document.getElementById('game-sound-tab');
+  if (!b) return;
+  b.classList.toggle('muted', GS.muted);
+  b.setAttribute('aria-pressed', GS.muted ? 'true' : 'false');
+  b.setAttribute('aria-label', GS.muted ? 'Unmute the game' : 'Mute the game');
+  b.title = GS.muted ? 'Unmute the game' : 'Mute the game (the music keeps playing)';
+  b.querySelector('.gd-label').textContent = GS.muted ? 'Unmute' : 'Mute';
+}
+
+(function () {
+  const b = document.getElementById('game-sound-tab');
+  const frame = gsFrame();
+  if (!b || !frame) return;
+  gsDraw();
+  b.addEventListener('click', function () {
+    GS.muted = !GS.muted;
+    try { localStorage.setItem('gameMuted', GS.muted ? '1' : '0'); } catch (e) {}
+    gsDraw();
+    gsSend();
+    playSound(GS.muted ? 'toggle-off' : 'toggle-on');
+    if (!GS.ready) showToast(GS.muted ? 'This game can\u2019t be muted from here \u2014 try its own sound settings' : 'Game sound on');
+    else showToast(GS.muted ? '\u2713 Game muted \u2014 the music keeps playing' : '\u2713 Game sound on');
+  });
+  // a new page in the frame hasn't said it can be muted yet
+  frame.addEventListener('load', function () { GS.ready = false; gsSend(); });
+  window.addEventListener('message', function (e) {
+    if (e.source !== frame.contentWindow) return;
+    const d = e.data;
+    if (!d || typeof d !== 'object' || d.type !== 'vault-audio' || !d.ready) return;
+    GS.ready = true;
+    // the game told us its state: bring it in line with the button
+    if (d.muted !== GS.muted) gsSend();
+  });
+})();
 
 // ===== CHAT IN A GAME =====
 // The Chat tab can't be seen with a game open, so the game window has its own
