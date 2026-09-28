@@ -1223,6 +1223,12 @@ position: relative; top: 1px;
 .tab-btn.credits-tab.active { color: var(--accent3); border-bottom-color: var(--accent3); text-shadow: 0 0 10px #ffe600cc, 0 0 20px #ffe60066; }
 .tab-btn.active::after { content: ''; position: absolute; left: 0; right: 0; bottom: -2px; height: 2px; background: currentColor; filter: blur(4px); opacity: 0.8; }
 .tab-btn.dev-tab { display: none; }
+/* Ideas: a smaller tab, a little apart from the main ones */
+.tab-btn.tab-mini { font-size: 0.62rem; letter-spacing: 0.12em; padding: 15px 14px 13px; opacity: 0.85; }
+.tab-btn.tab-mini:hover, .tab-btn.tab-mini.active { opacity: 1; }
+.tab-btn.tab-mini .bv-icon { width: 1.05em; height: 1.05em; }
+.tab-btn.ideas-tab.active { color: var(--accent3); border-bottom-color: var(--accent3); text-shadow: 0 0 10px color-mix(in srgb, var(--accent3) 70%, transparent); }
+@media (max-width: 560px) { .tab-btn.tab-mini { font-size: 0.58rem; padding: 14px 8px 12px; letter-spacing: 0.08em; } }
 .tab-btn.dev-tab.unlocked { display: inline-block; }
 .tab-btn.dev-tab.unlocked.active { color: #00ff88; border-bottom-color: #00ff88; text-shadow: 0 0 10px #00ff8899; }
 .tab-btn.dev-tab.unlocked:hover { color: #00ff88; }
@@ -1575,6 +1581,56 @@ transform: translateX(4px);
 .lnk-del:hover, .lnk-del.arm { color: #ff5d73; }
 .lnk-empty { padding: 40px 20px; text-align: center; color: var(--muted); font-size: 0.8rem; border: 1px dashed var(--border); font-family: 'Share Tech Mono', monospace; }
 .lnk-retry { margin-top: 12px; }
+/* ===== IDEAS TAB ===== */
+#ideas-view { width: 100%; }
+.idea-wrap { max-width: 680px; margin: 26px 24px 40px; display: flex; flex-direction: column; gap: 22px; }
+.idea-card { padding: 20px 22px; background: var(--card); border: 1px solid var(--border); border-left: 2px solid var(--accent3); border-radius: 2px;
+  display: flex; flex-direction: column; gap: 12px; animation: bv-row-in 420ms var(--ease-out) backwards; }
+.idea-title { font-family: 'Orbitron', sans-serif; font-size: 0.8rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent3); }
+.idea-sub { margin: 0; font-size: 0.78rem; line-height: 1.5; color: var(--muted); }
+.idea-kinds { display: flex; flex-wrap: wrap; gap: 6px; }
+.idea-kind { background: none; border: 1px solid var(--border); color: var(--muted); padding: 6px 12px; border-radius: 999px; cursor: pointer;
+  font-family: 'Share Tech Mono', monospace; font-size: 0.72rem; transition: all var(--dur-2) var(--ease-out); }
+.idea-kind:hover { color: var(--text); border-color: color-mix(in srgb, var(--accent3) 50%, var(--border)); }
+.idea-kind.on { color: #111; background: var(--accent3); border-color: var(--accent3); }
+.idea-text { width: 100%; box-sizing: border-box; min-height: 110px; resize: vertical; background: var(--bg2); border: 1px solid var(--border); color: var(--text);
+  padding: 11px 12px; font-family: 'Share Tech Mono', monospace; font-size: 0.82rem; line-height: 1.5; border-radius: 2px; }
+.idea-text:focus { outline: none; border-color: var(--accent3); box-shadow: 0 0 10px color-mix(in srgb, var(--accent3) 22%, transparent); }
+.idea-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.idea-send { background: color-mix(in srgb, var(--accent3) 14%, transparent); border: 1px solid var(--accent3); color: var(--accent3); cursor: pointer;
+  font-family: 'Orbitron', sans-serif; font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase; padding: 9px 16px; transition: all var(--dur-2) var(--ease-out); }
+.idea-send:hover { background: color-mix(in srgb, var(--accent3) 26%, transparent); box-shadow: 0 0 14px color-mix(in srgb, var(--accent3) 30%, transparent); }
+.idea-send:disabled { opacity: 0.5; cursor: wait; }
+.idea-count { font-family: 'Share Tech Mono', monospace; font-size: 0.66rem; color: var(--muted); margin-left: auto; }
+.idea-count.full { color: #ff6b86; }
+.idea-msg { min-height: 1em; font-family: 'Share Tech Mono', monospace; font-size: 0.74rem; color: var(--muted); }
+.idea-msg.good { color: #00ff88; }
+.idea-msg.bad { color: #ff5d73; }
+.idea-note { font-size: 0.68rem; line-height: 1.5; color: var(--muted); }
+.idea-note b { color: var(--text); font-weight: normal; }
+.idea-inbox { display: flex; flex-direction: column; gap: 8px; }
+.idea-inbox[hidden] { display: none; }
+.idea-inbox-head { display: flex; align-items: center; gap: 10px; min-height: 26px; }
+.idea-inbox-title { font-family: 'Orbitron', sans-serif; font-size: 0.6rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent3); }
+.idea-inbox-count { font-family: 'Share Tech Mono', monospace; font-size: 0.68rem; font-weight: normal; color: var(--muted); }
+.idea-clear { margin-left: auto; background: none; border: 1px solid var(--border); color: var(--muted); font-family: 'Share Tech Mono', monospace; font-size: 0.66rem; padding: 4px 9px; cursor: pointer; }
+.idea-clear:hover, .idea-clear.arm { color: #ff5d73; border-color: #ff5d73; }
+.idea-clear[hidden] { display: none; }
+.idea-none { padding: 12px 14px; border: 1px dashed var(--border); color: var(--muted); font-family: 'Share Tech Mono', monospace; font-size: 0.74rem;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.idea-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 14px; align-items: start; padding: 12px 14px;
+  background: var(--card); border: 1px solid var(--border); border-left: 2px solid color-mix(in srgb, var(--accent3) 60%, var(--border)); border-radius: 2px;
+  animation: bv-row-in 360ms var(--ease-out) backwards; }
+.idea-item-text { font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; line-height: 1.5; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
+.idea-item-meta { grid-column: 1; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-family: 'Share Tech Mono', monospace; font-size: 0.64rem; color: var(--muted); }
+.idea-tag { padding: 1px 7px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--accent3) 45%, transparent); color: var(--accent3); }
+.idea-done { grid-column: 2; grid-row: 1 / span 2; align-self: center; background: none; border: 1px solid color-mix(in srgb, #00ff88 45%, var(--border)); color: #00ff88; cursor: pointer;
+  font-family: 'Orbitron', sans-serif; font-size: 0.55rem; letter-spacing: 0.14em; text-transform: uppercase; padding: 8px 12px; transition: all var(--dur-2) var(--ease-out); }
+.idea-done:hover { background: color-mix(in srgb, #00ff88 14%, transparent); border-color: #00ff88; }
+.idea-done:disabled { opacity: 0.45; cursor: wait; }
+body.theme-ultrabasic .idea-done { color: #0a8a4a; border-color: #0a8a4a; }
+@media (max-width: 560px) { .idea-wrap { margin: 16px 12px 32px; } .idea-item { grid-template-columns: 1fr; } .idea-done { grid-column: 1; grid-row: auto; justify-self: start; } }
+
 /* ── suggesting a link ── */
 .lnk-head-btns { margin-left: auto; display: flex; gap: 8px; align-items: center; }
 .lnk-head-btns .lnk-refresh { margin-left: 0; }
@@ -2434,6 +2490,9 @@ body.theme-ultrabasic .bee-q:hover .bee-q-num { animation: none !important; }
 .dev-input:focus { border-color:var(--accent);box-shadow:var(--glow); }
 .dev-input::placeholder { color:var(--muted); }
 .dev-error { color:var(--accent2);font-size:0.7rem;letter-spacing:0.1em;margin-bottom:10px;min-height:1em; }
+.dev-error.name-ask, .bv-name-ask { color:var(--accent3);letter-spacing:0.03em;line-height:1.55;text-transform:none; }
+.bv-name-ask { font-size:0.7rem;margin-top:8px; }
+.bv-name-ask[hidden] { display:none; }
 .owner-key-text { font-size:0.78rem;line-height:1.65;letter-spacing:0.02em;color:var(--text);margin-bottom:16px; }
 .owner-key-text b { color:var(--accent);font-weight:normal;font-family:'Share Tech Mono',monospace; }
 .owner-key-note { font-size:0.66rem;line-height:1.55;color:var(--muted);margin-top:12px; }
@@ -3672,6 +3731,7 @@ body.potato-mode { transition: none; }
 <input id="bv-name-input" maxlength="20" placeholder="Your name" spellcheck="false" autocomplete="off">
 <button type="button" id="bv-name-save">Save</button>
 </div>
+<div class="bv-name-ask" id="bv-name-ask" hidden></div>
 <div class="bv-motion-hint">Shown in the header and used in the chat.</div>
 </div>
 <div class="setting-group">
@@ -4220,6 +4280,7 @@ animation: launch-flash-anim 0.4s var(--ease-out);
 <button class="tab-btn apps-tab" data-tab="apps"><svg class="bv-icon" aria-hidden="true"><use href="#bv-apps"/></svg> Apps</button>
 <button class="tab-btn links-tab" data-tab="links"><svg class="bv-icon" aria-hidden="true"><use href="#bv-link"/></svg> Links<span class="chat-badge" id="links-badge" title="Link suggestions waiting" hidden></span></button>
 <button class="tab-btn chat-tab" data-tab="chat"><svg class="bv-icon" aria-hidden="true"><use href="#bv-chat"/></svg> Chat<span class="chat-badge" id="chat-badge" hidden></span></button>
+<button class="tab-btn ideas-tab tab-mini" data-tab="ideas" title="Send the owner an idea"><svg class="bv-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.2h5c0-.9.4-1.7 1.1-2.2A6 6 0 0 0 12 3Z"/></svg> Ideas<span class="chat-badge" id="ideas-badge" title="Ideas waiting" hidden></span></button>
 <button class="tab-btn credits-tab" data-tab="credits" style="display:none"><svg class="bv-icon" aria-hidden="true"><use href="#bv-credits"/></svg> Credits</button>
 <button class="tab-btn dev-tab" data-tab="dev" id="dev-tab-btn"><svg class="bv-icon" aria-hidden="true"><use href="#bv-dev"/></svg> Dev</button>
 <button class="tab-btn allsongs-tab" data-tab="allsongs" id="allsongs-tab-btn"><svg class="bv-icon" aria-hidden="true"><use href="#bv-music"/></svg> All Songs</button>
@@ -4363,6 +4424,7 @@ animation: launch-flash-anim 0.4s var(--ease-out);
 <div id="app-grid" style="display:none"></div>
 <div id="allsongs-view" style="display:none"></div>
 <div id="links-view" style="display:none"></div>
+<div id="ideas-view" style="display:none"></div>
 <div id="chat-view" style="display:none"></div>
 <div id="chat-pings" aria-live="polite"></div>
 <div id="dev-panel" style="display:none"></div>
@@ -6351,6 +6413,7 @@ const SFX = {
   'tab-dev':      (v, a, seq, N) => v({ freq: N.Cs6, decay: 0.05, gain: 0.06, partials: [[2, 0.22], [3, 0.06]], wet: 0.06 }),
   'tab-allsongs': (v, a, seq, N) => v({ freq: N.E6, decay: 0.05, gain: 0.06, partials: [[2, 0.22], [3, 0.06]], wet: 0.06 }),
   'tab-chat':     (v, a, seq, N) => v({ freq: N.Fs6, decay: 0.05, gain: 0.06, partials: [[2, 0.22], [3, 0.06]], wet: 0.06 }),
+  'tab-ideas':    (v, a, seq, N) => v({ freq: N.Gs6, decay: 0.05, gain: 0.06, partials: [[2, 0.22], [3, 0.06]], wet: 0.06 }),
   'filter':       (v, a, seq, N) => v({ freq: N.Fs5, to: N.Gs5, glide: 0.03, decay: 0.035, gain: 0.05, type: 'triangle', partials: [[2, 0.18]] }),
   'nav-back':     (v, a, seq, N) => seq([N.B5, N.Fs5], 0.045, { decay: 0.035, gain: 0.045, partials: [[2, 0.15]] }),
   'ui-mode':      (v, a, seq, N) => seq([N.Gs5, N.Cs6, N.Gs5], 0.04, { decay: 0.028, gain: 0.04, partials: [[2, 0.15]] }),
@@ -6490,7 +6553,7 @@ const SFX = {
 // 100 ms, RMS). The trims that land them there are measured, not guessed.
 const SFX_TIER = {};
 [
- [['pl-close', 'tab-chat', 'chat-send', 'chat-in', 'tab-games', 'tab-apps', 'tab-links', 'tab-credits', 'tab-dev', 'tab-allsongs', 'filter', 'nav-back', 'ui-mode',
+ [['pl-close', 'tab-chat', 'chat-send', 'chat-in', 'tab-games', 'tab-apps', 'tab-links', 'tab-credits', 'tab-dev', 'tab-allsongs', 'tab-ideas', 'filter', 'nav-back', 'ui-mode',
   'tour-next', 'tour-back', 'sfx-on', 'sfx-off', 'vfx-on', 'vfx-off', 'motion-on', 'motion-off', 'compact-on',
   'compact-off', 'scene-on', 'scene-off', 'blob-on', 'blob-off', 'potato-on', 'potato-off', 'music-on', 'music-off',
   'np-playlist', 'onboard-theme', 'onboard-ui', 'links-open', 'links-refresh', 'links-retry', 'links-arm',
@@ -6508,7 +6571,7 @@ const SFX_TRIM = {
   // -33 dB
   'pl-close': 2.455,
   'tab-chat': 1.429, 'chat-send': 2.287, 'chat-in': 1.28,
-  'tab-games': 1.437, 'tab-apps': 1.438, 'tab-links': 1.436, 'tab-credits': 1.433, 'tab-dev': 1.421,
+  'tab-games': 1.437, 'tab-apps': 1.438, 'tab-links': 1.436, 'tab-ideas': 1.429, 'tab-credits': 1.433, 'tab-dev': 1.421,
   'tab-allsongs': 1.418, 'filter': 2.834, 'nav-back': 1.273, 'ui-mode': 1.153, 'tour-next': 1.142,
   'tour-back': 1.424, 'sfx-on': 0.971, 'sfx-off': 2.591, 'vfx-on': 1.155, 'vfx-off': 1.806,
   'motion-on': 1.147, 'motion-off': 1.365, 'compact-on': 1.508, 'compact-off': 1.526, 'scene-on': 0.623,
@@ -6791,13 +6854,22 @@ function render() {
   if (linksView) linksView.style.display = 'none';
   const chatView = document.getElementById('chat-view');
   if (chatView) chatView.style.display = 'none';
+  const ideasView = document.getElementById('ideas-view');
+  if (ideasView) ideasView.style.display = 'none';
 
   // Sidebar visibility
-  sidebar.style.display = (activeTab === 'dev' || activeTab === 'allsongs' || activeTab === 'links' || activeTab === 'chat' || uiMode === 'old') ? 'none' : 'flex';
+  sidebar.style.display = (activeTab === 'dev' || activeTab === 'allsongs' || activeTab === 'links' || activeTab === 'chat' || activeTab === 'ideas' || uiMode === 'old') ? 'none' : 'flex';
 
   if (activeTab === 'chat') {
     chatView.style.display = 'block';
     renderChat();
+    return;
+  }
+
+  if (activeTab === 'ideas') {
+    ideasView.style.display = 'block';
+    renderIdeas();
+    if (linksIsDev() && linksKey() && Date.now() - ID.fetchedAt > 20000) ideasLoad();
     return;
   }
 
@@ -7741,10 +7813,11 @@ function renderLinks() {
     const r = unlock.apply(this, arguments);
     if (activeTab === 'links') renderLinks();
     if (activeTab === 'chat') renderChat();
-    if (linksKey()) linksLoad();
+    if (linksKey()) { linksLoad(); ideasLoad(); }
     // after the unlock toast -- and on a first unlock, after every theme it
     // unlocks has had its popup
     else ownerKeyAskSoon(first ? DEV_THEME_FNS.length * 300 + 500 : 450);
+    if (activeTab === 'ideas') renderIdeas();
     return r;
   };
 })();
@@ -7830,6 +7903,7 @@ async function ownerKeySave() {
   // everything that uses the key picks it up now: the links and suggestions,
   // the chat (which marks this vault as the owner's), and the muted list
   linksLoad();
+  ideasLoad();
   if (CH.connected) chatHello();
   if (activeTab === 'chat') renderChat();
   chatMutedAsk(true);
@@ -7858,6 +7932,210 @@ async function ownerKeySave() {
   if (linksIsDev() && !linksKey() && !skipped) ownerKeyAskSoon(2500);
 })();
 
+// ===== IDEAS =====
+// A small tab where anyone can send the owner an idea: a game to add, a
+// feature, a fix. Only the owner key reads them -- in dev mode the inbox sits
+// under the form, with a count on the tab and a notice when one arrives.
+const IDEA_KINDS = [['game', 'A game to add'], ['feature', 'A feature'], ['fix', 'Something to fix'], ['other', 'Something else']];
+const ID = { list: null, n: 0, busy: false, sending: false, refused: false, kind: 'game', fetchedAt: 0 };
+
+function ideasBadge() {
+  const b = document.getElementById('ideas-badge');
+  if (!b) return;
+  const n = linksIsDev() ? ID.n : 0;
+  b.hidden = n <= 0;
+  b.textContent = n <= 0 ? '' : n > 9 ? '9+' : String(n);
+}
+
+function ideasSay(text, kind) {
+  const m = document.querySelector('#ideas-view .idea-msg');
+  if (!m) return;
+  m.textContent = text || '';
+  m.className = 'idea-msg' + (kind ? ' ' + kind : '');
+}
+
+async function ideasLoad() {
+  const key = linksKey();
+  if (!linksIsDev() || !key || ID.busy) return;
+  ID.busy = true;
+  try {
+    const { status, body } = await linksFetch('/api/ideas', { headers: { 'X-Dev-Key': key } });
+    if (status === 200 && Array.isArray(body.ideas)) { ID.list = body.ideas; ID.n = body.ideas.length; ID.refused = false; ID.fetchedAt = Date.now(); }
+    else if (status === 403) { ID.refused = true; ID.list = null; ID.n = 0; }
+  } catch (e) {}
+  ID.busy = false;
+  ideasBadge();
+  if (activeTab === 'ideas') renderIdeas();
+}
+
+// the chat socket says one came in, or was done on another machine
+function ideasPush(n) {
+  n = Math.max(0, +n || 0);
+  if (!linksIsDev()) return;
+  const had = ID.n;
+  ID.n = n;
+  ideasBadge();
+  if (n > had) { showToast('\u2726 New idea for the vault' + (n > 1 ? ' \u00b7 ' + n + ' waiting' : '')); playSound('chat-in'); }
+  if (!ID.list || ID.list.length !== n) { if (activeTab === 'ideas') ideasLoad(); else ID.fetchedAt = 0; }
+}
+
+async function ideasOwner(payload, done) {
+  const key = linksKey();
+  if (!key) { ownerKeyNeed(function () { ideasOwner(payload, done); }); return false; }
+  let res = null;
+  try {
+    res = await linksFetch('/api/ideas', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Dev-Key': key }, body: JSON.stringify(payload) });
+  } catch (e) { res = null; }
+  if (res && res.status === 200 && res.body.ok) {
+    if (Array.isArray(res.body.ideas)) { ID.list = res.body.ideas; ID.n = ID.list.length; }
+    ideasBadge();
+    renderIdeas();
+    showToast('\u2713 ' + done);
+    playSound('links-removed');
+    return true;
+  }
+  if (res && res.status === 403) { ID.refused = true; renderIdeas(); }
+  showToast((res && res.body.error) || 'Couldn\u2019t reach the server.');
+  playSound('links-refused');
+  return false;
+}
+
+function ideasItem(it) {
+  const row = lnkEl('div', 'idea-item');
+  row.appendChild(lnkEl('div', 'idea-item-text', String(it.text || '')));
+  const meta = lnkEl('div', 'idea-item-meta');
+  const kind = IDEA_KINDS.filter(function (k) { return k[0] === it.kind; })[0];
+  meta.appendChild(lnkEl('span', 'idea-tag', kind ? kind[1] : 'Something else'));
+  meta.appendChild(lnkEl('span', '', (it.from ? 'from ' + it.from + ' \u00b7 ' : '') + linksAgo(it.at)));
+  row.appendChild(meta);
+  const done = lnkEl('button', 'idea-done', '\u2713 Done');
+  done.type = 'button';
+  done.title = 'Take it off the list';
+  done.addEventListener('click', async function () {
+    done.disabled = true;
+    if (!(await ideasOwner({ op: 'done', id: it.id }, 'Idea done.'))) done.disabled = false;
+  });
+  row.appendChild(done);
+  return row;
+}
+
+function buildIdeasShell(view) {
+  // static markup only -- ideas go on the page as text
+  view.innerHTML = `<div class="idea-wrap">
+    <form class="idea-card" autocomplete="off" novalidate>
+      <div class="idea-title">Got an idea?</div>
+      <p class="idea-sub">A game to add, something new, something that\u2019s broken \u2014 send it straight to the owner.</p>
+      <div class="idea-kinds" role="radiogroup" aria-label="What kind of idea"></div>
+      <textarea class="idea-text" maxlength="500" placeholder="Describe your idea\u2026" aria-label="Your idea"></textarea>
+      <div class="idea-actions"><button type="submit" class="idea-send">Send to the owner</button><span class="idea-count"></span></div>
+      <div class="idea-msg" aria-live="polite"></div>
+      <div class="idea-note">Sent as <b class="idea-as"></b>. Only the owner sees ideas here, but they\u2019re kept in the site\u2019s public GitHub repo, so leave out anything personal.</div>
+    </form>
+    <section class="idea-inbox" hidden aria-label="Ideas sent to you">
+      <div class="idea-inbox-head"><span class="idea-inbox-title">Inbox</span><b class="idea-inbox-count"></b><button type="button" class="idea-clear" hidden>Clear all</button></div>
+      <div class="idea-list"></div>
+    </section>
+  </div>`;
+  const kinds = view.querySelector('.idea-kinds');
+  IDEA_KINDS.forEach(function (k) {
+    const b = lnkEl('button', 'idea-kind' + (k[0] === ID.kind ? ' on' : ''), k[1]);
+    b.type = 'button';
+    b.setAttribute('role', 'radio');
+    b.setAttribute('aria-checked', k[0] === ID.kind ? 'true' : 'false');
+    b.addEventListener('click', function () {
+      ID.kind = k[0];
+      [].forEach.call(kinds.children, function (c) { const on = c === b; c.classList.toggle('on', on); c.setAttribute('aria-checked', on ? 'true' : 'false'); });
+      playSound('filter');
+    });
+    kinds.appendChild(b);
+  });
+  const form = view.querySelector('.idea-card');
+  const text = view.querySelector('.idea-text');
+  const count = view.querySelector('.idea-count');
+  text.addEventListener('input', function () {
+    const n = text.value.length;
+    count.textContent = n ? n + '/500' : '';
+    count.classList.toggle('full', n >= 500);
+  });
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    if (ID.sending) return;
+    const idea = text.value.replace(/\s+/g, ' ').trim();
+    if (idea.length < 3) { ideasSay('Write a little more than that.', 'bad'); text.focus(); playSound('links-refused'); return; }
+    const send = view.querySelector('.idea-send');
+    ID.sending = true;
+    send.disabled = true;
+    ideasSay('Sending\u2026');
+    let res = null;
+    try {
+      res = await linksFetch('/api/idea', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: idea, kind: ID.kind, from: CH.me || chatName() }) });
+    } catch (x) { res = null; }
+    ID.sending = false;
+    send.disabled = false;
+    if (!res) { ideasSay('Couldn\u2019t reach the server.', 'bad'); playSound('links-offline'); return; }
+    if (res.status === 200 && res.body.ok) {
+      text.value = '';
+      text.dispatchEvent(new Event('input'));
+      ideasSay('Thanks! It\u2019s on its way to the owner.', 'good');
+      showToast('\u2713 Idea sent');
+      playSound('links-added');
+      return;
+    }
+    ideasSay(res.body.error || ('Couldn\u2019t send that (' + res.status + ').'), 'bad');
+    playSound('links-refused');
+  });
+  const clear = view.querySelector('.idea-clear');
+  clear.addEventListener('click', function () {
+    if (!clear.classList.contains('arm')) {
+      clear.classList.add('arm');
+      clear.textContent = 'Clear all ' + (ID.list ? ID.list.length : '') + '?';
+      clearTimeout(clear._t);
+      clear._t = setTimeout(function () { clear.classList.remove('arm'); clear.textContent = 'Clear all'; }, 3000);
+      playSound('links-arm');
+      return;
+    }
+    clearTimeout(clear._t);
+    clear.classList.remove('arm');
+    clear.textContent = 'Clear all';
+    ideasOwner({ op: 'clear' }, 'All ideas cleared.');
+  });
+}
+
+function renderIdeas() {
+  const view = document.getElementById('ideas-view');
+  if (!view) return;
+  if (!view.dataset.built) { buildIdeasShell(view); view.dataset.built = '1'; }
+  document.getElementById('header-label').textContent = 'Ideas';
+  const dev = linksIsDev();
+  document.getElementById('total-count').textContent = dev && ID.list ? ID.list.length : '\u2726';
+  view.querySelector('.idea-as').textContent = CH.me || chatName();
+  const inbox = view.querySelector('.idea-inbox');
+  inbox.hidden = !dev;
+  if (!dev) return;
+  const list = view.querySelector('.idea-list');
+  const n = ID.list ? ID.list.length : 0;
+  view.querySelector('.idea-inbox-count').textContent = n ? n + ' waiting' : '';
+  view.querySelector('.idea-clear').hidden = n < 2;
+  list.textContent = '';
+  if (!linksKey() || ID.refused) {
+    const none = lnkEl('div', 'idea-none', ID.refused ? 'That owner key was refused.' : 'Your owner key opens the inbox.');
+    const btn = lnkEl('button', 'idea-clear', 'Enter owner key');
+    btn.type = 'button';
+    btn.style.marginLeft = 'auto';
+    btn.addEventListener('click', function () { ownerKeyNeed(ideasLoad); });
+    none.appendChild(btn);
+    list.appendChild(none);
+    return;
+  }
+  if (ID.list === null) { list.appendChild(lnkEl('div', 'idea-none', ID.busy ? 'Loading ideas\u2026' : 'Ideas couldn\u2019t be loaded yet.')); return; }
+  if (!n) { list.appendChild(lnkEl('div', 'idea-none', 'No ideas waiting.')); return; }
+  ID.list.slice().reverse().forEach(function (it) { list.appendChild(ideasItem(it)); });
+}
+
+// the owner's vault fetches the count on load, for the tab's badge
+if (linksIsDev() && linksKey()) setTimeout(ideasLoad, 1800);
+
 // ===== YOUR NAME =====
 // Until now the name could only be set once, at first run. Settings can change
 // it; the header, the chat's label and the name the chat room shows all follow.
@@ -7868,9 +8146,24 @@ async function ownerKeySave() {
   const fill = function () { try { input.value = localStorage.getItem('player-name') || ''; } catch (e) {} };
   fill();
   document.getElementById('settings-open-btn').addEventListener('click', fill);
+  const ask = document.getElementById('bv-name-ask');
+  const unask = function () { delete input.dataset.asked; if (ask) ask.hidden = true; save.textContent = 'Save'; };
+  input.addEventListener('input', function () { if (input.dataset.asked && input.value.trim() !== input.dataset.asked) unask(); });
   const commit = function () {
     const name = input.value.replace(/\s+/g, ' ').trim().slice(0, 20);
     if (!name) { input.focus(); playSound('chat-slow'); return; }
+    // one question for a name that looks like a keyboard mash; Save again means yes
+    let current = '';
+    try { current = localStorage.getItem('player-name') || ''; } catch (e) {}
+    if (name !== current && nameLooksMashed(name) && input.dataset.asked !== name) {
+      input.dataset.asked = name;
+      if (ask) { ask.textContent = NAME_ASK; ask.hidden = false; }
+      save.textContent = 'Use anyway';
+      input.focus();
+      playSound('chat-slow');
+      return;
+    }
+    unask();
     let was = '';
     try { was = localStorage.getItem('player-name') || ''; localStorage.setItem('player-name', name); } catch (e) {}
     input.value = name;
@@ -8052,6 +8345,7 @@ function chatOnMessage(m) {
       playSound('toggle-on');
       break;
     case 'sugg': linksSuggPush(m.n); break;
+    case 'ideas': ideasPush(m.n); break;
   }
   // after the Chat tab has taken it in, so its list is already up to date
   gcOnMessage(m);
@@ -9612,12 +9906,49 @@ function applyUIMode() {
   }
 }
 
+// ===== NAMES THAT LOOK LIKE A KEYBOARD MASH =====
+// "hihrhiegrhi" is nobody's name. It gets one question before it's used --
+// the name is what everyone else in the vault sees. Tested against 76 real
+// names and nicknames (Mimi, Rhys, Siobhan, Dj Khaled...) that must pass
+// and 29 mashes that must not.
+const NAME_ASK = 'Is this what you want to be called? It\u2019s the name everyone sees in chat, so pick one your friends will recognise \u2014 a nickname is fine, you don\u2019t need your full name.';
+function nameLooksMashed(name) {
+  const s = String(name || '').toLowerCase();
+  const letters = s.replace(/[^a-z]/g, '');
+  if (!letters) return /\S/.test(s);                                        // no letters at all: "12345"
+  const words = s.split(/[^a-z]+/).filter(Boolean);
+  if (words.some(function (w) { return w.length >= 4 && !/[aeiouy]/.test(w); })) return true;       // a word with no vowel
+  if (words.some(function (w) { return /[bcdfghjklmnpqrstvwxz]{5,}/.test(w); })) return true;       // five consonants running
+  if (/(.)\1{3,}/.test(letters)) return true;                               // one letter four times running
+  const rows = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
+  const both = rows.concat(rows.map(function (r) { return r.split('').reverse().join(''); })).join(' ');
+  for (let i = 0; i + 5 <= letters.length; i++) if (both.includes(letters.slice(i, i + 5))) return true;  // along a keyboard row
+  if (letters.length >= 8 && new Set(letters).size / letters.length < 0.5) return true;          // a few letters over and over
+  if (/^(.{3,})\1+$/.test(letters) || /^(.{1,3})\1{2,}.?$/.test(letters)) return true;          // one bit repeated
+  // letters that hardly ever sit together in English, several times in one word
+  const ODD = /(?=(hr|rh|hg|gh(?!t)|jh|hj|fh|hf|kh|hk|dh|hd|qw|wq|xz|zx|jk|kj|fj|jf|gj|jg|vj|zj|jz|qz|zq|dj|jd|fk|kf|vh|hv|bh|hb|js|sj|q(?!u)|wh(?![aeiouy])))/g;
+  return words.some(function (w) { return (w.match(ODD) || []).length >= 3; });
+}
+
 // Step 1: name
 function submitName() {
-  const val = document.getElementById('name-input').value.trim();
+  const input = document.getElementById('name-input');
+  const err = document.getElementById('name-error');
+  const val = input.value.trim();
   if (!val) {
-    document.getElementById('name-error').textContent = '✗ Please enter a name!';
-    document.getElementById('name-input').focus();
+    err.className = 'dev-error';
+    err.textContent = '\u2717 Please enter a name!';
+    input.focus();
+    return;
+  }
+  // asked once; pressing on again with the same name means yes
+  if (nameLooksMashed(val) && input.dataset.asked !== val) {
+    input.dataset.asked = val;
+    err.className = 'dev-error name-ask';
+    err.textContent = NAME_ASK;
+    document.getElementById('name-submit').textContent = 'USE IT ANYWAY \u2192';
+    input.focus();
+    playSound('chat-slow');
     return;
   }
   pendingName = val;
@@ -9626,6 +9957,16 @@ function submitName() {
 }
 
 document.getElementById('name-submit').addEventListener('click', submitName);
+// changing the name takes the question back
+document.getElementById('name-input').addEventListener('input', function () {
+  const input = this;
+  if (!input.dataset.asked || input.value.trim() === input.dataset.asked) return;
+  delete input.dataset.asked;
+  const err = document.getElementById('name-error');
+  err.textContent = '';
+  err.className = 'dev-error';
+  document.getElementById('name-submit').textContent = 'NEXT →';
+});
 document.getElementById('name-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') submitName();
 });
@@ -10096,6 +10437,8 @@ function stopRain() {
       body: 'Who has the vault open, and what they\u2019re playing. <strong>Watch</strong> asks to watch their game live \u2014 they have to say yes. <strong>Invite</strong> asks them to play a game with you.' },
     { target: '#chat-view .chat-form', onEnter: () => goTab('chat'),
       title: 'Say hi', body: 'Swearing is filtered, and <strong>@name</strong> pings someone. Your chat name is your vault name.' },
+    { target: '.tab-btn[data-tab="ideas"]', click: true, hint: 'Tap Ideas',
+      title: 'Ideas', body: 'Got an idea \u2014 a game to add, or something to fix? Send it straight to the owner from here.' },
     { target: '#np-pull-tab', click: true, hint: 'Tap the music tab', settle: 620,
       onEnter: () => { goTab('games'); tuckPlayer(); },
       title: 'Music', body: 'That little tab on the right edge is the music player \u2014 it bounces along while something plays.' },

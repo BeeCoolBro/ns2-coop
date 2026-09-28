@@ -27,7 +27,7 @@ addresses are removed outright.
 import re
 import unicodedata
 
-__all__ = ['clean', 'is_clean']
+__all__ = ['clean', 'mask', 'is_clean']
 
 # ── seeing through disguises ─────────────────────────────────────────────
 INVISIBLE = set('­͏؜ᅟᅠ឴឵᠎​‌‍‎‏'
@@ -218,6 +218,26 @@ def clean(text):
         return '', False
     out = EMAIL.sub('[removed]', text)          # before links, or the domain goes first
     out = URL.sub('[link removed]', out)
+    changed = out != text
+    spans = _spans(out)
+    if spans:
+        chars = list(out)
+        for a, b in spans:
+            for k in range(a, b + 1):
+                if not chars[k].isspace():
+                    chars[k] = '*'
+        out = ''.join(chars)
+        changed = True
+    return out, changed
+
+
+def mask(text):
+    """(text, changed) with swearing masked and email addresses removed, but
+    links left alone -- for text only the owner reads, like ideas, where
+    "add 1v1.lol" has to survive."""
+    if not text:
+        return '', False
+    out = EMAIL.sub('[email removed]', text)
     changed = out != text
     spans = _spans(out)
     if spans:

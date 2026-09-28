@@ -418,6 +418,29 @@ first save, wrong or empty key refused, `DEV_KEY` unset refuses everything,
 retried and both survive, a restart reads the list back, a repeat remove makes
 no empty commit, oversized bodies are refused, and hostile names render inert.
 
+## The vault's Ideas tab
+
+A small tab after Chat where anyone can send the owner an idea, marked as a
+game to add, a feature, something to fix or something else. `POST /api/idea`
+needs no key, so it is rationed per address like link suggestions: one a
+minute, five an hour, forty an hour from everyone, 150 waiting at most.
+Swearing is masked and email addresses are removed before anything is
+stored, but site names stay, since "add 1v1.lol" has to survive. Ideas are
+kept as `ideas.json` on the `vault-data` branch.
+
+Only `DEV_KEY` reads them (`GET /api/ideas` with `X-Dev-Key`). In dev mode the
+inbox sits under the form, newest first, each with a **Done** button, plus
+**Clear all**. The tab shows a count, and a new idea pops up live while the
+owner's vault is open (`POST /api/ideas`: `{op: "done", id}` or
+`{op: "clear"}`).
+
+**Names:** a name that looks like a keyboard mash ("hihrhiegrhi", "asdfgh",
+"lololol") gets one question before it's used, at first run and in Settings.
+The question asks for a name friends will recognise, where a nickname is
+fine. Pressing on again uses it anyway. The check was tested against 76 real
+names and nicknames (Mimi, Rhys, Siobhan, Dj Khaled...) that must pass and
+29 mashes that must not.
+
 ## Lyrics in the vault's music player
 
 While a song with lyrics plays, each line pops up at its moment as a

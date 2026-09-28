@@ -99,6 +99,26 @@ SUGG_LOG = {}                   # address hash -> deque of when it suggested
 SUGG_ALL = collections.deque()  # when anyone suggested
 SUGG_LOCK = threading.Lock()
 
+# ── ideas ─────────────────────────────────────────────────────────
+# The vault's Ideas tab: anyone may send the owner an idea -- a game to add,
+# a feature, a fix. Kept as ideas.json on the data branch like the links, read
+# only with DEV_KEY, and rationed like link suggestions. Swearing is masked and
+# email addresses removed before anything is stored: the repo is public.
+IDEAS_PATH = 'ideas.json'
+IDEAS_TTL = 300
+IDEAS_MAX = 150                 # ideas waiting at once
+IDEA_LEN = 500
+IDEA_KINDS = ('game', 'feature', 'fix', 'other')
+IDEA_GAP = 60                   # seconds between two from one address
+IDEA_PER_HOUR = 5
+IDEA_ALL_PER_HOUR = 40
+IDEAS_BODY_MAX = 4096
+IDEAS = {'list': [], 'sha': None, 'at': 0.0, 'ok': False}
+IDEAS_LOCK = threading.Lock()
+IDEAS_WRITE = threading.Lock()
+IDEA_LOG = {}
+IDEA_ALL = collections.deque()
+
 # ── vault lyrics ──────────────────────────────────────────────────
 # Timed lyrics for the music player, typed in by the owner in the vault's
 # lyrics tool: a map from a track's address to its lines and the second each
@@ -771,10 +791,201 @@ def suggest_post(ip, raw):
 
 def sugg_notify(n):
     """Tell the owner's open vaults how many suggestions are waiting."""
+    owners_send({'t': 'sugg', 'n': n})
+
+
+def owners_send(obj):
     with CHAT_LOCK:
         owners = [p for p in CHAT['peers'] if p.owner]
     for p in owners:
-        p.send({'t': 'sugg', 'n': n})
+        p.send(obj)
+
+
+# ── ideas ─────────────────────────────────────────────────────────
+def clean_idea(x):
+    """An idea as stored, or None."""
+    if not isinstance(x, dict):
+        return None
+    text = tidy(x.get('text'), IDEA_LEN)
+    if len(text) < 3:
+        return None
+    kind = x.get('kind') if x.get('kind') in IDEA_KINDS else 'other'
+    iid = ''.join(ch for ch in str(x.get('id') or '') if ch.isalnum() or ch in '-_')[:24]
+    try:
+        at = max(0, int(x.get('at') or 0))
+    except (TypeError, ValueError):
+        at = 0
+    return {'id': iid or new_link_id(), 'kind': kind, 'text': text,
+            'from': tidy(x.get('from'), CHAT_NAME_LEN), 'at': at}
+
+
+def ideas_path():
+    return '/repos/%s/contents/%s' % (LINKS_REPO, IDEAS_PATH)
+
+
+def ideas_load(force=False):
+    """Refresh the cache from GitHub when stale; False if it could not be read."""
+    with IDEAS_LOCK:
+        if not force and IDEAS['ok'] and time.time() - IDEAS['at'] < IDEAS_TTL:
+            return True
+    st, js = gh('GET', ideas_path() + '?ref=' + urllib.parse.quote(LINKS_BRANCH, safe=''))
+    if st == 200 and isinstance(js, dict) and js.get('type') == 'file':
+        try:
+            doc = json.loads(base64.b64decode(js.get('content') or '').decode('utf-8'))
+        except Exception:
+            log('!! %s on %s is not valid JSON; keeping the cached ideas' % (IDEAS_PATH, LINKS_BRANCH))
+            return False
+        raw = doc.get('ideas', []) if isinstance(doc, dict) else []
+        items = [c for c in (clean_idea(x) for x in (raw if isinstance(raw, list) else [])) if c][:IDEAS_MAX]
+        with IDEAS_LOCK:
+            IDEAS.update(list=items, sha=js.get('sha'), at=time.time(), ok=True)
+        return True
+    if st == 404:
+        with IDEAS_LOCK:
+            IDEAS.update(list=[], sha=None, at=time.time(), ok=True)
+        return True
+    return False
+
+
+def ideas_commit(items, sha, message):
+    doc = json.dumps({'v': 1, 'ideas': items}, indent=2, ensure_ascii=False) + '\n'
+    body = {'message': message[:120], 'branch': LINKS_BRANCH,
+            'content': base64.b64encode(doc.encode('utf-8')).decode('ascii')}
+    if sha:
+        body['sha'] = sha
+    for first in (True, False):
+        st, js = gh('PUT', ideas_path(), body)
+        said = str((js or {}).get('message', '')).lower() if isinstance(js, dict) else ''
+        if st in (200, 201):
+            with IDEAS_LOCK:
+                IDEAS.update(list=items, sha=((js or {}).get('content') or {}).get('sha'), at=time.time(), ok=True)
+            return 'ok', ''
+        if st in (404, 422) and 'branch' in said and first:
+            if make_branch():
+                continue
+            return 'fail', "Couldn't create the %s branch on GitHub." % LINKS_BRANCH
+        if st == 409 or (st == 422 and 'sha' in said):
+            return 'conflict', ''
+        if st in (401, 403):
+            return 'fail', 'GitHub refused the token. It needs Contents: read and write on %s.' % LINKS_REPO
+        return 'fail', "Couldn't reach GitHub (%s). Try again." % (st or 'no answer')
+    return 'fail', "Couldn't save to GitHub."
+
+
+def ideas_mutate(change):
+    """Apply change(items) -> (new_items, message) | None on the newest list
+    and commit it; the owner's open vaults hear the new count."""
+    with IDEAS_WRITE:
+        for _ in range(3):
+            if not ideas_load(force=True):
+                return 502, {'ok': False, 'error': "Couldn't read the ideas from GitHub. Try again."}
+            with IDEAS_LOCK:
+                items = [dict(x) for x in IDEAS['list']]
+                sha = IDEAS['sha']
+            try:
+                result = change(items)
+            except ValueError as e:
+                return 400, {'ok': False, 'error': str(e)}
+            if result is None:
+                return 200, {'ok': True, 'ideas': items}
+            new_items, message = result
+            st, err = ideas_commit(new_items, sha, message)
+            if st == 'ok':
+                if len(new_items) != len(items):
+                    owners_send({'t': 'ideas', 'n': len(new_items)})
+                return 200, {'ok': True, 'ideas': new_items}
+            if st == 'fail':
+                return 502, {'ok': False, 'error': err}
+        return 409, {'ok': False, 'error': 'The ideas kept changing underneath the save. Try again.'}
+
+
+def idea_post(ip, raw):
+    """Anyone sending an idea. The reply never carries anyone's ideas."""
+    try:
+        msg = json.loads(raw.decode('utf-8'))
+    except Exception:
+        return 400, {'ok': False, 'error': 'That request was not JSON.'}
+    if not isinstance(msg, dict):
+        return 400, {'ok': False, 'error': 'That request was not an object.'}
+    if not GITHUB_TOKEN:
+        return 503, {'ok': False, 'error': 'Ideas aren\'t switched on yet.'}
+    text = tidy(msg.get('text'), IDEA_LEN)
+    frm = tidy(msg.get('from'), CHAT_NAME_LEN)
+    if len(text) < 3:
+        return 400, {'ok': False, 'error': 'Write a little more than that.'}
+    if chat_filter is not None:
+        text = chat_filter.mask(text)[0]
+        if frm and chat_filter.clean(frm)[1]:
+            frm = ''
+    if CHAT_RESERVED.search(frm):
+        frm = ''
+    now = time.time()
+    item = clean_idea({'text': text, 'kind': msg.get('kind'), 'from': frm, 'at': int(now)})
+    if not item:
+        return 400, {'ok': False, 'error': 'Write a little more than that.'}
+
+    # rationed before GitHub is touched at all
+    with SUGG_LOCK:
+        for q in list(IDEA_LOG.values()) + [IDEA_ALL]:
+            while q and now - q[0] > 3600:
+                q.popleft()
+        for k in [k for k, q in IDEA_LOG.items() if not q]:
+            del IDEA_LOG[k]
+        mine = IDEA_LOG.get(ip) or collections.deque()
+        if mine and now - mine[-1] < IDEA_GAP:
+            return 429, {'ok': False, 'error': 'Give it a minute before sending another.'}
+        if len(mine) >= IDEA_PER_HOUR:
+            return 429, {'ok': False, 'error': 'That\'s plenty for now. Try again in a while.'}
+        if len(IDEA_ALL) >= IDEA_ALL_PER_HOUR:
+            return 429, {'ok': False, 'error': 'Lots of ideas came in just now. Try again later.'}
+        mine.append(now)
+        IDEA_LOG[ip] = mine
+        IDEA_ALL.append(now)
+
+    def add(items):
+        if any(x['text'].lower() == item['text'].lower() for x in items):
+            raise ValueError('That idea is already waiting for the owner.')
+        if len(items) >= IDEAS_MAX:
+            raise ValueError('Lots of ideas are waiting already. Try again later.')
+        return items + [item], 'vault ideas: a %s idea' % item['kind']
+    code, reply = ideas_mutate(add)
+    if code == 200 and reply.get('ok'):
+        return 200, {'ok': True}
+    with SUGG_LOCK:
+        for q in (IDEA_LOG.get(ip), IDEA_ALL):
+            if q and now in q:
+                q.remove(now)
+    return code, {'ok': False, 'error': reply.get('error') or 'Couldn\'t send that. Try again.'}
+
+
+def ideas_owner_post(key, raw):
+    """The owner marking ideas done: {op: 'done', id} or {op: 'clear'}."""
+    if not owner_ok(key):
+        return 403, {'ok': False, 'error': 'That owner key was refused.'}
+    try:
+        msg = json.loads(raw.decode('utf-8'))
+    except Exception:
+        return 400, {'ok': False, 'error': 'That request was not JSON.'}
+    if not isinstance(msg, dict):
+        return 400, {'ok': False, 'error': 'That request was not an object.'}
+    if not GITHUB_TOKEN:
+        return 503, {'ok': False, 'error': 'Saving is not set up yet. Set GITHUB_TOKEN in Render -> Environment.'}
+    op = msg.get('op')
+    if op == 'done':
+        iid = str(msg.get('id') or '')
+
+        def done(items):
+            if not any(x['id'] == iid for x in items):
+                return None             # already done, maybe on another machine
+            return [x for x in items if x['id'] != iid], 'vault ideas: one done'
+        return ideas_mutate(done)
+    if op == 'clear':
+        def clear(items):
+            if not items:
+                return None
+            return [], 'vault ideas: clear %d' % len(items)
+        return ideas_mutate(clear)
+    return 400, {'ok': False, 'error': 'Unknown request.'}
 
 
 class ChatPeer(object):
@@ -1274,6 +1485,18 @@ class Handler(SimpleHTTPRequestHandler):
             # the game fetches its voice lines by relative URL, and under a
             # trailing slash those would resolve to /neon-siege/<file> and 404
             return self.redirect('/neon-siege' + self.path[len(route):])
+        if route == '/api/ideas':
+            # the owner's list; nobody else is shown anyone's ideas
+            if not owner_ok(self.headers.get('X-Dev-Key') or ''):
+                return self.send_json(403, {'ok': False, 'owner': False, 'error': 'That owner key was refused.'})
+            if not ideas_load():
+                with IDEAS_LOCK:
+                    ok = IDEAS['ok']
+                if not ok:
+                    return self.send_json(502, {'ok': False, 'owner': True, 'error': "Couldn't read the ideas from GitHub."})
+            with IDEAS_LOCK:
+                items = list(IDEAS['list'])
+            return self.send_json(200, {'ok': True, 'owner': True, 'ideas': items})
         if route == '/api/lyrics':
             fresh = lyrics_load()
             with LYRICS_LOCK:
@@ -1338,7 +1561,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.revalidate = False
-        if self.path.split('?')[0] in ('/api/links', '/api/lyrics', '/api/suggest'):
+        if self.path.split('?')[0] in ('/api/links', '/api/lyrics', '/api/suggest', '/api/idea', '/api/ideas'):
             self.send_response(204)
             self.cors()
             self.send_header('Content-Length', '0')
@@ -1351,10 +1574,11 @@ class Handler(SimpleHTTPRequestHandler):
     def do_POST(self):
         self.revalidate = False
         route = self.path.split('?')[0]
-        if route not in ('/api/links', '/api/lyrics', '/api/suggest'):
+        if route not in ('/api/links', '/api/lyrics', '/api/suggest', '/api/idea', '/api/ideas'):
             self.close_connection = True
             return self.send_json(404, {'ok': False, 'error': 'Not found.'})
-        cap = {'/api/lyrics': LYRICS_BODY_MAX, '/api/suggest': SUGG_BODY_MAX}.get(route, LINKS_BODY_MAX)
+        cap = {'/api/lyrics': LYRICS_BODY_MAX, '/api/suggest': SUGG_BODY_MAX,
+               '/api/idea': IDEAS_BODY_MAX, '/api/ideas': IDEAS_BODY_MAX}.get(route, LINKS_BODY_MAX)
         try:
             n = int(self.headers.get('Content-Length') or 0)
         except ValueError:
@@ -1364,6 +1588,12 @@ class Handler(SimpleHTTPRequestHandler):
             self.close_connection = True
             return self.send_json(413 if n > cap else 400,
                                   {'ok': False, 'error': 'Bad request size.'})
+        if route == '/api/idea':
+            code, reply = idea_post(self.client_ip(), self.rfile.read(n))
+            return self.send_json(code, reply)
+        if route == '/api/ideas':
+            code, reply = ideas_owner_post(self.headers.get('X-Dev-Key') or '', self.rfile.read(n))
+            return self.send_json(code, reply)
         if route == '/api/suggest':
             code, reply = suggest_post(self.client_ip(), self.rfile.read(n))
             return self.send_json(code, reply)
