@@ -37,15 +37,14 @@ NEON SIEGE 2's door has a small tower-defense fight running in it. Each door
 shows who is in there right now, and a ticker lists what is inside. **1** and
 **2** pick a door, and picking one opens it out into the next page.
 
-**Other Projects** (under the doors, or press **3**) opens a panel of the
-studio's smaller projects; `#projects` in the address opens it straight
-away. First is **ROTFALL** (`rotfall.html`, served at `/rotfall`), a top-down
-survival shooter whose weapons aim and fire on their own. Its card is drawn in
-the game's own look: near-black with film grain, burnt orange (#e85d00),
-Bebas Neue and glowing orbs. Behind the logo, a small live scene of the game
-plays: the swarm closes in on the orange orb, which picks them off. SURVIVE
-leaves the way the doors do. The game's menu has a BeeSide button back, shown
-only when it's played at `/rotfall`.
+**Other Projects** is a section of its own under the two doors, with the
+same kind of door. The Other Projects button under the doors takes you down to
+it, and `#projects` in the address links straight there. First is **ROTFALL**
+(`rotfall.html`, served at `/rotfall`), a top-down survival shooter, in its
+burnt orange. Behind it, like NEON SIEGE 2's door, a small live scene of the
+game plays: the swarm closes in on the orange orb, which picks them off.
+Press **3** to open it the way 1 and 2 open the others. The game's menu has a
+BeeSide button back, shown only when it's played at `/rotfall`.
 
 **Bee's Vault** opens with a vault door. Its dial cracks a combination while
 the page downloads, then the bolts pull back and the door swings open. It sits
