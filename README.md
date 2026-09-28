@@ -37,6 +37,13 @@ NEON SIEGE 2's door has a small tower-defense fight running in it. Each door
 shows who is in there right now, and a ticker lists what is inside. **1** and
 **2** pick a door, and picking one opens it out into the next page.
 
+**Sound**, on the front page and Other Projects, is synthesized in the page
+with nothing to download. Pointing at a door gives a glassy tick pitched to
+it, opening one gives a whoosh up into that door's own chord, and tapping the
+hive gives a drop of water. A browser only allows sound after the first click
+or key press, so pointing stays silent until then. The **Sound on/off**
+switch in the footer is remembered (`bs-sound` in localStorage).
+
 **The BeeSide mark** is a honey B with hexagon holes, bee wings and a drip, on
 a honeycomb tile in a metal frame. Every few seconds a drop falls from the
 drip. It is drawn inline at the top of index.html and projects.html, and the
