@@ -37,14 +37,22 @@ NEON SIEGE 2's door has a small tower-defense fight running in it. Each door
 shows who is in there right now, and a ticker lists what is inside. **1** and
 **2** pick a door, and picking one opens it out into the next page.
 
-**Other Projects** is a section of its own under the two doors, with the
-same kind of door. The Other Projects button under the doors takes you down to
-it, and `#projects` in the address links straight there. First is **ROTFALL**
-(`rotfall.html`, served at `/rotfall`), a top-down survival shooter, in its
-burnt orange. Behind it, like NEON SIEGE 2's door, a small live scene of the
-game plays: the swarm closes in on the orange orb, which picks them off.
-Press **3** to open it the way 1 and 2 open the others. The game's menu has a
-BeeSide button back, shown only when it's played at `/rotfall`.
+The front page keeps to its two main doors. **Other Projects** is a page of
+its own, **`/projects` (projects.html)**. The button under the doors (or
+**3**) opens into it the way the doors open into theirs, and an old
+`/#projects` link lands there too. It is the front page's room: the same
+honeycomb, doors and way out, with a BeeSide button back (or **Esc**). Its
+CSS and script are copied from index.html, so a change to the shared look
+belongs in both.
+
+First is **ROTFALL** (`rotfall.html`, served at `/rotfall`), a top-down
+survival shooter, in its burnt orange; **1** opens it. Behind it, like NEON
+SIEGE 2's door, a small live scene of the game plays: the swarm closes in on
+the orange orb, which picks them off. The game's menu has a PROJECTS button
+back to Other Projects, shown only when it's played at `/rotfall`. Next to it
+is an empty dashed door, "More soon", holding the place for the next one. A
+new project gets a door like ROTFALL's in its place, and the "More soon" door
+moves after it or goes.
 
 **Bee's Vault** opens with a vault door. Its dial cracks a combination while
 the page downloads, then the bolts pull back and the door swings open. It sits
@@ -835,6 +843,7 @@ priority, synergy, or how a real wave actually arrives.
 |---|---|
 | `server.py` | matchmaking + serves the pages (standard library only) |
 | `index.html` | the BeeSide Studio's front page at `/`: the hive, a door into each site with who is in there, and back -- the vault's header and the game's title screen each have a BeeSide button |
+| `projects.html` | Other Projects at `/projects`: the front page's look, a door for each of the smaller projects |
 | `rotfall.html` | ROTFALL, the first of the Other Projects, at `/rotfall` |
 | `neon-siege-2-coop.html` | the game, at `/neon-siege` |
 | `vault.html` | Bee's Vault, at `/vault` |
