@@ -4038,6 +4038,27 @@ body.potato-mode { transition: none; }
 @keyframes gd-pop { from { transform:scale(0.4); opacity:0; } }
 @media (hover: none) { #game-dock { opacity:0.92; } }
 @media (max-width: 520px) { #game-dock { top:10px; right:10px; } .gd-title { display:none; } .gd-sep { display:none; } }
+/* ── the dock folds down to Close; pointed at, the rest slide out ── */
+@media (hover: hover) and (pointer: fine) {
+  /* folded: no width, no border, and a margin that cancels its gap -- Close sits alone in the pill */
+  #game-dock .gd-fold { max-width:0; margin-left:-4px; border-width:0; opacity:0; transform:scale(0.6); pointer-events:none;
+    transition:max-width var(--dur-3) var(--ease-out), margin var(--dur-3) var(--ease-out), opacity var(--dur-2) var(--ease-out),
+               transform var(--dur-3) var(--ease-out), background var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out), border-color var(--dur-2) var(--ease-out); }
+  #game-dock:hover .gd-fold, #game-dock:focus-within .gd-fold, #game-dock.peek .gd-fold {
+    max-width:34px; margin-left:0; border-width:1px; opacity:1; transform:none; pointer-events:auto;
+    transition:max-width var(--dur-4) var(--ease-out), margin var(--dur-4) var(--ease-out), opacity var(--dur-3) var(--ease-out),
+               transform var(--dur-4) var(--ease-spring), background var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out), border-color var(--dur-2) var(--ease-out); }
+  /* out from Close, one after another */
+  #game-dock:hover .gd-invite, #game-dock:focus-within .gd-invite, #game-dock.peek .gd-invite { transition-delay:0s; }
+  #game-dock:hover .gd-chat, #game-dock:focus-within .gd-chat, #game-dock.peek .gd-chat { transition-delay:45ms; }
+  #game-dock:hover .gd-sound, #game-dock:focus-within .gd-sound, #game-dock.peek .gd-sound { transition-delay:90ms; }
+  #game-dock:not(:hover):not(:focus-within):not(.peek) .gd-sep { margin:0 -4px 0 -5px; }
+  /* folded away, their counts can't be seen: a dot says something's waiting */
+  #game-dock.news::before { content:''; position:absolute; top:-2px; left:-2px; width:10px; height:10px; border-radius:50%;
+    background:var(--accent2); box-shadow:0 0 0 2px rgba(8,8,16,0.95), 0 0 10px var(--accent2);
+    opacity:0; transform:scale(0.4); transition:opacity var(--dur-2) var(--ease-out), transform var(--dur-3) var(--ease-spring); }
+  #game-dock.news:not(:hover):not(:focus-within):not(.peek)::before { opacity:1; transform:none; }
+}
 /* ── muting the game ── */
 .gd-sound .gd-sound-off { display:none; }
 .gd-sound.muted .gd-sound-on { display:none; }
@@ -4241,17 +4262,17 @@ animation: launch-flash-anim 0.4s var(--ease-out);
 <div id="game-dock" role="toolbar" aria-label="Game controls">
 <span class="gd-title"><i class="gd-dot" aria-hidden="true"></i><span id="gd-name">Playing</span></span>
 <span class="gd-sep" aria-hidden="true"></span>
-<button type="button" class="gd-btn gd-sound" id="game-sound-tab" title="Mute the game (the music keeps playing)" aria-label="Mute the game" aria-pressed="false">
+<button type="button" class="gd-btn gd-sound gd-fold" id="game-sound-tab" title="Mute the game (the music keeps playing)" aria-label="Mute the game" aria-pressed="false">
 <svg class="gd-sound-on" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
 <svg class="gd-sound-off" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m16 9 6 6M22 9l-6 6"/></svg>
 <span class="gd-label">Mute</span>
 </button>
-<button type="button" class="gd-btn gd-chat" id="game-chat-tab" title="Chat" aria-label="Open the chat" aria-expanded="false">
+<button type="button" class="gd-btn gd-chat gd-fold" id="game-chat-tab" title="Chat" aria-label="Open the chat" aria-expanded="false">
 <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h16v10.5H10.5L6 19.5V16H4Z"/><path d="M8.5 10.8h.01M12 10.8h.01M15.5 10.8h.01"/></svg>
 <span class="gd-label">Chat</span>
 <b class="gd-count" id="game-chat-count" hidden></b>
 </button>
-<button type="button" class="gd-btn gd-invite" id="game-invite-tab" title="Invite someone to play this with you" aria-label="Invite someone to play this with you">
+<button type="button" class="gd-btn gd-invite gd-fold" id="game-invite-tab" title="Invite someone to play this with you" aria-label="Invite someone to play this with you">
 <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.6"/><path d="M2.8 20c.7-3.6 3.2-5.6 6.2-5.6s5.5 2 6.2 5.6"/><path d="M19 8v6M16 11h6"/></svg>
 <span class="gd-label">Invite</span>
 <b class="gd-count" id="game-invite-count" hidden></b>
@@ -8854,6 +8875,19 @@ function renderChat() {
   plDraw();
   if (!CH.started) { CH.started = true; chatConnect(); }
 }
+
+// ===== THE DOCK, FOLDED =====
+// Mute, Chat and Invite fold away behind Close until the dock is pointed at
+// (CSS). While they're folded, a dot on the dock stands for their counts.
+(function () {
+  const dock = document.getElementById('game-dock');
+  const counts = ['game-chat-count', 'game-invite-count'].map(function (id) { return document.getElementById(id); }).filter(Boolean);
+  if (!dock || !counts.length) return;
+  const draw = function () { dock.classList.toggle('news', counts.some(function (c) { return !c.hidden; })); };
+  const mo = new MutationObserver(draw);
+  counts.forEach(function (c) { mo.observe(c, { attributes: true, attributeFilter: ['hidden'] }); });
+  draw();
+})();
 
 // ===== MUTING THE GAME =====
 // The games come from another site, which a page can't reach into, so the

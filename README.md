@@ -418,6 +418,15 @@ first save, wrong or empty key refused, `DEV_KEY` unset refuses everything,
 retried and both survive, a restart reads the list back, a repeat remove makes
 no empty commit, oversized bodies are refused, and hostile names render inert.
 
+## The game window's dock (vault)
+
+With a mouse, the dock shows only **Close** until you point at it. Then
+**Mute**, **Chat** and **Invite** slide out to its left, one after another. It
+also opens out for a moment when a game starts, so the buttons are noticed.
+While they're folded away, a small dot on the dock means a ping or an invite is
+waiting. With a touch screen there's no pointing, so there the buttons stay
+out.
+
 ## Muting a game (vault)
 
 The game window's dock has a **Mute** button that silences the game while the
