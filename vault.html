@@ -7218,7 +7218,7 @@ document.getElementById('vfx-switch').addEventListener('click', () => { settings
 const RESET_KEYS = ['theme','sfx','vfx','emoji','music','musicVol','favs','recent','uiMode','name','hasSeenUpdate','devUnlocked','oldbeesideUnlocked','yenUnlocked','007n7Unlocked','dumbsUnlocked','shorkUnlocked'];
 // The one thing a reset keeps: that the tutorial has been done, so a reset
 // never forces it on someone again.
-const RESET_KEEP = ['seen-tour-v1', 'seen-tour-v2'];
+const RESET_KEEP = ['seen-tour-v1', 'seen-tour-v2', 'seen-tour-v3'];
 document.getElementById('data-reset-btn').addEventListener('click', () => {
   const confirm = document.getElementById('data-reset-confirm');
   const showing = confirm.style.display !== 'none';
@@ -10366,11 +10366,15 @@ function stopRain() {
 // marked done when it finishes. Data reset keeps that mark, so a reset never
 // forces the tour on someone who has done it.
 (function() {
-  const TOUR_KEY = 'seen-tour-v2';
+  // v3 brought the Ideas tab. Someone who finished v2 gets just what's new
+  // since; someone who only ever saw v1 gets the whole tour again.
+  const TOUR_KEY = 'seen-tour-v3';
+  const V2_KEY = 'seen-tour-v2';
   const OLD_KEY = 'seen-tour-v1';
-  const firstEver = (function () {
-    try { return !localStorage.getItem(TOUR_KEY) && !localStorage.getItem(OLD_KEY); } catch (e) { return false; }
-  })();
+  const TOUR_VERSION = 3;
+  function seen(k) { try { return !!localStorage.getItem(k); } catch (e) { return true; } }
+  const firstEver = !seen(TOUR_KEY) && !seen(V2_KEY) && !seen(OLD_KEY);
+  let whatsNew = false;           // this run shows only the steps added since v2
 
   const $ = id => document.getElementById(id);
   const overlay = $('tour-overlay'), ring = $('tour-spotlight-ring'), mascot = $('tour-mascot'), bubble = $('tour-bubble');
@@ -10418,7 +10422,9 @@ function stopRain() {
   // settle: how long to let the page react to that click before moving on
   const STEPS = [
     { title: () => 'Hey ' + esc(who()) + '!',
-      body: () => firstEver
+      body: () => whatsNew
+        ? 'Welcome back! Something new just landed in the vault \u2014 here\u2019s a quick look.'
+        : firstEver
         ? 'I\u2019m Bee, and I\u2019ll show you around the vault. It only takes a minute \u2014 stick with me this first time.'
         : 'Welcome back! A few new things have landed in the vault. Here\u2019s a quick look round \u2014 skip whenever you like.',
       next: 'Let\u2019s go' },
@@ -10437,8 +10443,11 @@ function stopRain() {
       body: 'Who has the vault open, and what they\u2019re playing. <strong>Watch</strong> asks to watch their game live \u2014 they have to say yes. <strong>Invite</strong> asks them to play a game with you.' },
     { target: '#chat-view .chat-form', onEnter: () => goTab('chat'),
       title: 'Say hi', body: 'Swearing is filtered, and <strong>@name</strong> pings someone. Your chat name is your vault name.' },
-    { target: '.tab-btn[data-tab="ideas"]', click: true, hint: 'Tap Ideas',
-      title: 'Ideas', body: 'Got an idea \u2014 a game to add, or something to fix? Send it straight to the owner from here.' },
+    { since: 3, target: '.tab-btn[data-tab="ideas"]', click: true, hint: 'Tap Ideas', settle: 380,
+      onEnter: () => { settingsOpen(false); tuckPlayer(); },
+      title: 'Ideas', body: 'This little tab is new. Got an idea \u2014 a game to add, or something to fix? It goes straight to the owner.' },
+    { since: 3, target: ['#ideas-view .idea-card'], wait: 1500, onEnter: () => goTab('ideas'),
+      title: 'Send an idea', body: 'Pick what kind of idea it is, write it here and hit <strong>Send to the owner</strong>. Only the owner sees ideas.' },
     { target: '#np-pull-tab', click: true, hint: 'Tap the music tab', settle: 620,
       onEnter: () => { goTab('games'); tuckPlayer(); },
       title: 'Music', body: 'That little tab on the right edge is the music player \u2014 it bounces along while something plays.' },
@@ -10454,22 +10463,23 @@ function stopRain() {
       title: 'You', body: 'This is the name friends see in chat. Further down: sounds, motion, music, and <strong>Replay tutorial</strong> if you ever want me back.' },
     { target: '#beeside-home', onEnter: () => settingsOpen(false),
       title: 'BeeSide', body: 'Back to the BeeSide Studio\u2019s front page \u2014 that\u2019s where you switch over to <strong>NEON SIEGE 2</strong>.' },
-    { title: 'You\u2019re all set!', body: () => 'That\u2019s the vault, ' + esc(who()) + '. Have fun!', next: 'Finish' }
+    { title: 'You\u2019re all set!', body: () => whatsNew ? 'That\u2019s what\u2019s new, ' + esc(who()) + '. Have fun!' : 'That\u2019s the vault, ' + esc(who()) + '. Have fun!', next: 'Finish' }
   ];
 
+  let RUN = STEPS;                // the steps this run shows
   let idx = -1, active = false, locked = false, token = 0, target = null, guardFn = null, fallbackT = null, placeRaf = 0, fresh = true, busy = false;
 
   function fill(step) {
     titleEl.innerHTML = typeof step.title === 'function' ? step.title() : step.title;
     bodyEl.innerHTML = typeof step.body === 'function' ? step.body() : step.body;
-    stepNum.textContent = (idx + 1) + ' / ' + STEPS.length;
-    progress.style.setProperty('--p', ((idx + 1) / STEPS.length * 100) + '%');
+    stepNum.textContent = (idx + 1) + ' / ' + RUN.length;
+    progress.style.setProperty('--p', ((idx + 1) / RUN.length * 100) + '%');
     backBtn.hidden = idx === 0;
     nextBtn.textContent = step.next || 'Next';
     nextBtn.hidden = !!step.click;
     hintEl.hidden = !step.click;
     hintEl.textContent = step.click ? (step.hint || 'Tap the highlighted spot') : '';
-    skipBtn.hidden = locked || idx === STEPS.length - 1;
+    skipBtn.hidden = locked || idx === RUN.length - 1;
     lockNote.hidden = !locked || idx !== 0;
   }
 
@@ -10548,7 +10558,7 @@ function stopRain() {
   }
   setInterval(() => {
     if (!active || busy) return;
-    const step = STEPS[idx];
+    const step = RUN[idx];
     if (!target) {
       // not there when the step began: keep looking, and settle onto it
       const el = step && step.target ? find(step.target) : null;
@@ -10601,15 +10611,15 @@ function stopRain() {
   }
 
   async function go(i, sound) {
-    if (!active || i < 0 || i >= STEPS.length) return;
-    const prev = STEPS[idx];
+    if (!active || i < 0 || i >= RUN.length) return;
+    const prev = RUN[idx];
     if (prev && prev.onLeave) { try { prev.onLeave(); } catch (e) {} }
     unguard();
     clearTimeout(fallbackT);
     if (sound) playSound(sound);
     const mine = ++token;
     idx = i;
-    const step = STEPS[i];
+    const step = RUN[i];
     if (step.onEnter) { try { step.onEnter(); } catch (e) {} }
     overlay.classList.toggle('interactive', !!step.click);
     busy = true;
@@ -10643,7 +10653,7 @@ function stopRain() {
 
   function next() {
     if (!active) return;
-    if (idx >= STEPS.length - 1) finish(false);
+    if (idx >= RUN.length - 1) finish(false);
     else go(idx + 1, 'tour-next');
   }
   function back() { if (active && idx > 0) go(idx - 1, 'tour-back'); }
@@ -10651,7 +10661,12 @@ function stopRain() {
   function start(replay) {
     if (active) return;
     active = true;
-    locked = firstEver && !replay && !localStorage.getItem(TOUR_KEY);
+    locked = firstEver && !replay && !seen(TOUR_KEY);
+    // done v2 but not this one: just the welcome, what's new, and goodbye
+    whatsNew = !replay && !firstEver && seen(V2_KEY) && !seen(TOUR_KEY);
+    RUN = whatsNew
+      ? STEPS.filter(function (st, i) { return i === 0 || i === STEPS.length - 1 || (st.since || 0) >= TOUR_VERSION; })
+      : STEPS;
     idx = -1;
     fresh = true;
     overlay.classList.add('active');
@@ -10664,13 +10679,13 @@ function stopRain() {
 
   function finish(skipped) {
     if (!active) return;
-    const step = STEPS[idx];
+    const step = RUN[idx];
     if (step && step.onLeave) { try { step.onLeave(); } catch (e) {} }
     active = false;
     token++;
     unguard();
     clearTimeout(fallbackT);
-    try { localStorage.setItem(TOUR_KEY, '1'); localStorage.setItem(OLD_KEY, '1'); } catch (e) {}
+    try { localStorage.setItem(TOUR_KEY, '1'); localStorage.setItem(V2_KEY, '1'); localStorage.setItem(OLD_KEY, '1'); } catch (e) {}
     overlay.classList.remove('active', 'interactive', 'spot');
     overlay.setAttribute('aria-hidden', 'true');
     bubble.classList.remove('visible');
