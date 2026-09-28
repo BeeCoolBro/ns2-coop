@@ -37,6 +37,12 @@ NEON SIEGE 2's door has a small tower-defense fight running in it. Each door
 shows who is in there right now, and a ticker lists what is inside. **1** and
 **2** pick a door, and picking one opens it out into the next page.
 
+**The BeeSide mark** is a honey B with hexagon holes, bee wings and a drip, on
+a honeycomb tile in a metal frame. Every few seconds a drop falls from the
+drip. It is drawn inline at the top of index.html and projects.html, and the
+same drawing, with the drop held still, is each page's favicon. A change to
+it goes in all four places.
+
 The front page keeps to its two main doors. **Other Projects** is a page of
 its own, **`/projects` (projects.html)**. The button under the doors (or
 **3**) opens into it the way the doors open into theirs, and an old
