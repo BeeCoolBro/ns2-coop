@@ -44,8 +44,10 @@ front page, Other Projects and the three openings. There are no sound files.
   dial ratchets round and its three cards flick out over a low hum, NEON
   SIEGE 2 plays an arcade coin and hums while you stay, and ROTFALL growls,
   with a heartbeat.
-- **Opening a door.** A riser, a drop underneath, the door's chord and a
-  shimmer.
+- **Opening a door.** A riser that peaks just as the page changes. The
+  door's chord then blooms on the page you arrive at: the leaving page notes
+  it down (`bs-hand` in sessionStorage) and the next one plays it, so the
+  page change never cuts it off.
 - **The page.** Tapping the hive drops water into it, and faint glass ticks
   follow the pointer across it. The hive's slow ripples bloom, the honey drip
   plips, live counts blip in, and the ticker stops like tape. The empty door

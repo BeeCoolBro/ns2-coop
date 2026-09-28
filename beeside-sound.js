@@ -37,8 +37,29 @@
   function wake() { if (!S.on) return; var a = make(); if (a && a.state === 'suspended') { try { a.resume(); } catch (e) {} } }
   ['pointerdown', 'keydown', 'touchend'].forEach(function (t) { document.addEventListener(t, wake, { capture: true, passive: true }); });
 
+  // A sound that starts on one page and ends on the next. The page you leave
+  // plays the rise, notes down the chord, and the page you arrive at plays
+  // the chord blooming out, so it is never cut off by the page changing.
+  var hand = null;
+  try {
+    var h = JSON.parse(sessionStorage.getItem('bs-hand') || 'null');
+    sessionStorage.removeItem('bs-hand');
+    if (h && h.c && Date.now() - h.t < 3000) hand = h.c;
+  } catch (e) {}
+  S.leave = function (chord) { try { sessionStorage.setItem('bs-hand', JSON.stringify({ c: chord, t: Date.now() })); } catch (e) {} };
+  function arrive(tries) {
+    if (!hand) return;
+    if (!S.live()) { if (tries < 20 && S.on) setTimeout(function () { arrive(tries + 1); }, 50); return; }
+    var c = hand; hand = null;
+    S.tone({ f: 70, f2: 45, dur: 0.9, vol: 0.1 });
+    for (var i = 0; i < c.length; i++) {
+      S.tone({ at: i * 0.04, f: c[i], f2: c[i] * 1.003, dur: 1.8, vol: 0.03, type: 'triangle', atk: 0.02, wet: 0.7 });
+      S.bell({ at: 0.05 + i * 0.06, f: c[i] * 2, ratio: 2.76, index: 1, dur: 1.8, vol: 0.012, pan: -0.45 + i * 0.3 });
+    }
+    S.noise({ f: 7000, dur: 1, vol: 0.018, ft: 'highpass', atk: 0.1, wet: 0.7 });
+  }
   // try at once: allowed if the visitor came here from another BeeSide page
-  S.start = function () { if (S.on) wake(); };
+  S.start = function () { if (S.on) { wake(); arrive(0); } };
   S.live = function () { return S.on && !!A && A.state === 'running'; };
   S.now = function () { return A ? A.currentTime : 0; };
   S.pan = function (x) { return Math.max(-0.9, Math.min(0.9, (x / (window.innerWidth || 1)) * 2 - 1)); };
