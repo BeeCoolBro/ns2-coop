@@ -4015,7 +4015,8 @@ body.potato-mode { transition: none; }
 .gc-note { font-size:0.66rem; padding:0 12px; color:#ff6b86; }
 .gc-note:empty { display:none; }
 .gc-note.good { color:#3ddc84; }
-.gc-form { display:flex; gap:6px; padding:8px; border-top:1px solid rgba(255,255,255,0.08); }
+.gc-form { position:relative; display:flex; gap:6px; padding:8px; border-top:1px solid rgba(255,255,255,0.08); }
+.gc-ac { left:8px; right:8px; min-width:0; bottom:calc(100% + 4px); max-height:170px; }
 .gc-input { flex:1; min-width:0; padding:8px 10px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12);
   color:#f0f0ff; font:inherit; font-size:0.78rem; }
 .gc-input:focus { outline:none; border-color:color-mix(in srgb, var(--accent) 60%, transparent); }
@@ -4191,7 +4192,7 @@ animation: launch-flash-anim 0.4s var(--ease-out);
 <button type="button" class="gc-min" title="Hide the chat" aria-label="Hide the chat"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 12h12"/></svg></button></div>
 <div class="gc-log" role="log" aria-live="polite"></div>
 <div class="gc-note" aria-live="polite"></div>
-<form class="gc-form" autocomplete="off"><input class="gc-input" maxlength="240" placeholder="Say something&hellip;" spellcheck="true" aria-label="Message"><span class="gc-count" hidden></span><button type="submit" class="gc-send">Send</button></form>
+<form class="gc-form" autocomplete="off"><div class="chat-ac gc-ac" hidden role="listbox"></div><input class="gc-input" maxlength="240" placeholder="Say something&hellip;" spellcheck="true" aria-label="Message"><span class="gc-count" hidden></span><button type="submit" class="gc-send">Send</button></form>
 </div>
 <div id="game-chat-peek" aria-hidden="true"></div>
 </div>
@@ -7894,7 +7895,7 @@ async function ownerKeySave() {
 // them; here, text only ever reaches the page through textContent.
 const CHAT_HOME_WS = 'wss://ns2-coop.onrender.com/chat';
 const CH = { ws: null, url: null, connected: false, started: false, retry: 0, retryT: null, pingT: null,
-             msgs: [], online: 0, unread: 0, mine: new Set(), me: '', roster: [], pinged: 0, ac: null,
+             msgs: [], online: 0, unread: 0, mine: new Set(), me: '', roster: [], pinged: 0,
              muted: [], mutedOpen: false, mutedAt: 0, mutedT: null };
 
 function chatName() {
@@ -7995,7 +7996,8 @@ function chatOnMessage(m) {
         const pinged = chatMentionsMe(m.m);
         // the vault joins the room on load now: plain messages stay quiet
         // until someone has actually opened the chat
-        if (pinged || CH.opened) playSound(pinged ? 'chat-mention' : 'chat-in');
+        const quietGame = GC.inGame && !GC.open;
+        if (pinged || (CH.opened && !quietGame)) playSound(pinged ? 'chat-mention' : 'chat-in');
         if (activeTab !== 'chat' && !(GC.inGame && GC.open)) { CH.unread++; chatBadge(); }
         // away from the chat, or the whole browser tab is in the background
         if (pinged && (activeTab !== 'chat' || document.hidden)) chatPing(m.m);
@@ -8301,21 +8303,49 @@ function chatAtQuery(input) {
   return { at: at, q: q };
 }
 
-function chatAutocomplete() {
-  const v = document.getElementById('chat-view');
-  if (!v || !v.dataset.built) return;
-  const input = v.querySelector('.chat-input');
-  const list = v.querySelector('.chat-ac');
+// One picker for any chat box: the list sits in `list`, its state on the box.
+const CHAT_AC_BOXES = [];
+
+function chatAcAttach(input, list) {
+  input._acList = list;
+  CHAT_AC_BOXES.push(input);
+  input.addEventListener('input', function () { chatAcDraw(input); });
+  input.addEventListener('click', function () { chatAcDraw(input); });
+  input.addEventListener('blur', function () { setTimeout(function () { list.hidden = true; input._ac = null; }, 120); });
+  input.addEventListener('keydown', function (e) {
+    const ac = input._ac;
+    if (!ac || list.hidden) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!ac.names.length) return;
+      e.preventDefault();
+      ac.sel = (ac.sel + (e.key === 'ArrowDown' ? 1 : ac.names.length - 1)) % ac.names.length;
+      [].forEach.call(list.querySelectorAll('.chat-ac-item'), function (it, i) { it.classList.toggle('sel', i === ac.sel); });
+    } else if ((e.key === 'Enter' || e.key === 'Tab') && ac.names.length) {
+      e.preventDefault();
+      chatAcPick(input, ac.names[ac.sel]);
+    } else if (e.key === 'Escape') {
+      // the list closes first; whatever else Escape does waits for the next press
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      list.hidden = true;
+      input._ac = null;
+    }
+  });
+}
+
+function chatAcDraw(input) {
+  const list = input._acList;
+  if (!list) return;
   const found = document.activeElement === input ? chatAtQuery(input) : null;
-  if (!found) { list.hidden = true; CH.ac = null; return; }
+  if (!found) { list.hidden = true; input._ac = null; return; }
   const q = found.q.toLowerCase();
   const me = (CH.me || chatName()).toLowerCase();
   const names = CH.roster.filter(function (n) { return n.toLowerCase() !== me && n.toLowerCase().indexOf(q) === 0; }).slice(0, 8);
   // a space after a finished name closes the list
-  if (!names.length && /\s$/.test(found.q)) { list.hidden = true; CH.ac = null; return; }
-  const prev = CH.ac && CH.ac.names[CH.ac.sel];
-  let sel = Math.max(0, names.indexOf(prev));
-  CH.ac = { at: found.at, q: found.q, names: names, sel: sel };
+  if (!names.length && /\s$/.test(found.q)) { list.hidden = true; input._ac = null; return; }
+  const prev = input._ac && input._ac.names[input._ac.sel];
+  const sel = Math.max(0, names.indexOf(prev));
+  input._ac = { at: found.at, q: found.q, names: names, sel: sel };
   list.textContent = '';
   if (!names.length) {
     list.appendChild(lnkEl('div', 'chat-ac-empty', CH.roster.length > 1 ? 'Nobody online by that name' : 'Nobody else is online'));
@@ -8324,26 +8354,31 @@ function chatAutocomplete() {
     const item = lnkEl('button', 'chat-ac-item' + (i === sel ? ' sel' : ''));
     item.type = 'button';
     item.append(document.createElement('i'), document.createTextNode(n));
-    item.addEventListener('mousedown', function (e) { e.preventDefault(); chatPickMention(n); });
+    item.addEventListener('mousedown', function (e) { e.preventDefault(); chatAcPick(input, n); });
     list.appendChild(item);
   });
   list.hidden = false;
 }
 
-function chatPickMention(name) {
-  const v = document.getElementById('chat-view');
-  const input = v.querySelector('.chat-input');
-  if (!CH.ac) return;
-  const before = input.value.slice(0, CH.ac.at);
-  const after = input.value.slice(CH.ac.at + 1 + CH.ac.q.length);
+function chatAcPick(input, name) {
+  const ac = input._ac;
+  if (!ac) return;
+  const before = input.value.slice(0, ac.at);
+  const after = input.value.slice(ac.at + 1 + ac.q.length);
   const insert = '@' + name + ' ';
   input.value = (before + insert + after.replace(/^\s+/, '')).slice(0, 240);
   const caret = Math.min(input.value.length, before.length + insert.length);
   input.setSelectionRange(caret, caret);
   input.focus();
   playSound('filter');
-  v.querySelector('.chat-ac').hidden = true;
-  CH.ac = null;
+  input._acList.hidden = true;
+  input._ac = null;
+  input.dispatchEvent(new Event('input'));
+}
+
+// Who is here changed: redraw the list in whichever box is being typed in.
+function chatAutocomplete() {
+  CHAT_AC_BOXES.forEach(function (input) { if (document.activeElement === input) chatAcDraw(input); });
 }
 
 function chatNearBottom(log) { return log.scrollHeight - log.scrollTop - log.clientHeight < 80; }
@@ -8449,27 +8484,8 @@ function buildChatShell(v) {
     });
   });
   const input = v.querySelector('.chat-input');
-  input.addEventListener('input', chatAutocomplete);
+  chatAcAttach(input, v.querySelector('.chat-ac'));
   chatCounter(input, v.querySelector('.chat-count'));
-  input.addEventListener('click', chatAutocomplete);
-  input.addEventListener('blur', function () { setTimeout(function () { v.querySelector('.chat-ac').hidden = true; CH.ac = null; }, 120); });
-  input.addEventListener('keydown', function (e) {
-    const ac = CH.ac;
-    if (!ac || v.querySelector('.chat-ac').hidden) return;
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      if (!ac.names.length) return;
-      e.preventDefault();
-      ac.sel = (ac.sel + (e.key === 'ArrowDown' ? 1 : ac.names.length - 1)) % ac.names.length;
-      [].forEach.call(v.querySelectorAll('.chat-ac-item'), function (it, i) { it.classList.toggle('sel', i === ac.sel); });
-    } else if ((e.key === 'Enter' || e.key === 'Tab') && ac.names.length) {
-      e.preventDefault();
-      chatPickMention(ac.names[ac.sel]);
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      v.querySelector('.chat-ac').hidden = true;
-      CH.ac = null;
-    }
-  });
   v.querySelector('.chat-form').addEventListener('submit', function (e) {
     e.preventDefault();
     const input = v.querySelector('.chat-input');
@@ -8533,12 +8549,13 @@ function renderChat() {
 
 // ===== CHAT IN A GAME =====
 // The Chat tab can't be seen with a game open, so the game window has its own
-// small chat: a Chat button in the dock with a count, a few lines that float
-// up and fade while it's closed, and a panel to read and reply in -- the same
-// room, filter and limits. Opened by hand it takes the keyboard; reopened by
-// itself for the next game (it remembers) it leaves the keyboard to the game.
+// small chat. A game is left alone: the chat stays shut unless it's opened by
+// hand, and the only thing that shows up over the game -- or makes a sound --
+// is a message that @mentions you. The Chat button counts those; opening it
+// shows everything, the same room, filter and limits.
 const GC = { open: false, inGame: false, unread: 0 };
-const GC_OPEN_KEY = 'gameChatOpen', GC_POS_KEY = 'gameChatPos';
+const GC_POS_KEY = 'gameChatPos';
+try { localStorage.removeItem('gameChatOpen'); } catch (e) {}
 function gcQ(sel) { return document.querySelector(sel); }
 
 function gcRow(m, fresh) {
@@ -8658,7 +8675,6 @@ function gcToggle(open, quiet) {
   }
   if (!quiet) {
     playSound(GC.open ? 'pl-open' : 'pl-close');
-    try { localStorage.setItem(GC_OPEN_KEY, GC.open ? '1' : '0'); } catch (e) {}
   }
 }
 
@@ -8672,7 +8688,8 @@ function gcOnMessage(m) {
     case 'msg': {
       const mine = !!(m.m.n && CH.mine.has(m.m.n));
       if (GC.open) gcAppend(m.m);
-      else if (!mine) { GC.unread++; gcBadge(); gcPeek(m.m); }
+      // shut, only a mention gets through
+      else if (!mine && chatMentionsMe(m.m)) { GC.unread++; gcBadge(); gcPeek(m.m); }
       break;
     }
     case 'del': {
@@ -8701,6 +8718,7 @@ function gcOnMessage(m) {
   panel.querySelector('.gc-min').addEventListener('click', function () { gcToggle(false); });
   const form = panel.querySelector('.gc-form');
   const input = panel.querySelector('.gc-input');
+  chatAcAttach(input, panel.querySelector('.gc-ac'));
   chatCounter(input, panel.querySelector('.gc-count'));
   form.addEventListener('submit', function (e) {
     e.preventDefault();
@@ -8757,14 +8775,10 @@ function gcOnMessage(m) {
     GC.unread = 0;
     gcBadge();
     document.getElementById('game-chat-peek').textContent = '';
-    if (on) {
-      let want = false;
-      try { want = localStorage.getItem(GC_OPEN_KEY) === '1'; } catch (e) {}
-      gcToggle(want, true);
-    } else {
-      GC.open = false;
-      panel.hidden = true;
-    }
+    // every game starts with the chat shut
+    GC.open = false;
+    panel.hidden = true;
+    document.getElementById('game-chat-tab').classList.remove('on');
   }).observe(overlay, { attributes: true, attributeFilter: ['style'] });
 })();
 
