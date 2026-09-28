@@ -26,7 +26,7 @@ you want to see who is queued. The front page reads it too: `chat` is how many
 vaults are open (each one sits in the chat room) and `matches` how many games
 of NEON SIEGE 2 are going, shown on each door when above zero.
 
-## The front page and the two openings
+## The front page and the openings
 
 **`/` (index.html):** a honeycomb drawn on a canvas that lights up around the
 pointer, with pollen drifting up through it and a ripple where you click. On
@@ -56,12 +56,20 @@ synthwave sun rises over a rushing grid while "BeeSide Studio's presents"
 types out. Then the logo slams in with its colour channels split, and it flies
 onto the title screen's own logo.
 
-All three play in full once per browser session and short after that. The
+**ROTFALL** opens in the dark with just its orange orb. The swarm's eyes open
+all round and creep in, then the orb fires a shockwave that kills them as it
+reaches them, and the name slams down letter by letter right where the menu's
+logo is. It fades into the menu with the name already in place. The opening
+waits for the page to be visible, and a key that skips it doesn't also reach
+the game.
+
+All four play in full once per browser session and short after that. The
 game's is always short inside Bee's Vault. A click, tap or key skips, reduced
-motion gets a fade, and a CSS-only failsafe hides either opening if its script
-never runs. The vault's tour and owner-key popup wait until the door has
-opened. The game's opening is in `neon-siege-2.html` like everything else, so
-`build-coop.py` carries it into the co-op build.
+motion gets a fade, and a CSS-only failsafe hides the vault's, the game's or
+ROTFALL's opening if its script never runs. The vault's tour and owner-key
+popup wait until the door has opened. The game's opening is in
+`neon-siege-2.html` like everything else, so `build-coop.py` carries it into
+the co-op build.
 
 ## What the free plan means
 
