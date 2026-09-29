@@ -1382,6 +1382,10 @@ def chat_say(peer, msg):
             m['mentions'] = mentions
         if owner:
             m['owner'] = True
+        # RONIN ALPHA: the page says its theme is Decayed Winter. Only this
+        # one title is accepted, so nobody can name themselves anything else.
+        if msg.get('title') == 'ronin':
+            m['title'] = 'ronin'
         # a random tag the sender chose, so its own page can tell which
         # messages are its own; it identifies nobody to anyone else
         tag = str(msg.get('n') or '')

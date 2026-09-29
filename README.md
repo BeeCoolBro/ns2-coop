@@ -628,6 +628,17 @@ for. All of it is checked here against `DEV_KEY`, the same key the Links tab
 uses. The owner's own messages carry an
 OWNER badge, and only the owner can use a staff-sounding name.
 
+**RONIN ALPHA.** Anyone chatting in the **Decayed Winter** theme gets a red
+RONIN ALPHA title on their messages, in the Chat tab, the in-game chat and
+mention cards. The page says so when it sends; the server accepts only that
+one title (`title: 'ronin'`) and drops anything else, so nobody can give
+themselves a different one.
+
+**Bee's Theme is dev only.** It opens with dev mode on and stays locked for
+everyone else, even for anyone who typed `beezap247` before. The phrase still
+gets the bee's reply but no longer unlocks it. Anyone on it without dev mode
+is moved back to Cyberpunk.
+
 **Privacy:** history is kept in memory only -- the last 80 messages -- and is
 gone when the service sleeps. It is never written to disk or to the repo.
 Addresses are held only as salted hashes, in memory, for the flood limits and

@@ -1851,6 +1851,18 @@ body.theme-ultrabasic .chat-msg.owner .chat-text { color: var(--text); }
   background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.85), transparent);
   transform: translateX(-160%) skewX(-18deg); animation: owner-tag-sheen 3.8s var(--ease-in-out) infinite; }
 @keyframes owner-tag-sheen { 0%, 62% { transform: translateX(-160%) skewX(-18deg); } 100% { transform: translateX(330%) skewX(-18deg); } }
+/* RONIN ALPHA: worn by anyone chatting in the Decayed Winter theme */
+.chat-ronin { position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px 2px 6px; border-radius: 999px; align-self: center;
+  background: linear-gradient(135deg, #2a0306 0%, #0a0203 70%);
+  color: #ff5a63; font-family: 'Orbitron', sans-serif; font-size: 0.5rem; font-weight: 800; letter-spacing: 0.17em;
+  box-shadow: 0 0 0 1px rgba(255, 45, 58, 0.6), 0 2px 12px rgba(255, 45, 58, 0.3), inset 0 1px 0 rgba(255, 180, 185, 0.18);
+  text-shadow: 0 0 6px rgba(255, 45, 58, 0.6); }
+.chat-ronin svg { width: 11px; height: 11px; flex-shrink: 0; fill: currentColor; }
+.chat-ronin::after { content: ''; position: absolute; top: -2px; bottom: -2px; left: 0; width: 45%;
+  background: linear-gradient(100deg, transparent, rgba(220, 235, 255, 0.55), transparent);
+  transform: translateX(-160%) skewX(-18deg); animation: owner-tag-sheen 4.6s var(--ease-in-out) infinite; }
+.gc-msg .chat-ronin { margin-right: 7px; vertical-align: 1px; }
 .chat-time { color: var(--muted); font-size: 0.6rem; }
 .chat-text { margin-top: 2px; font-size: 0.82rem; color: var(--text); line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
 .chat-mod { position: absolute; top: 4px; right: 6px; display: none; gap: 6px; }
@@ -8546,6 +8558,21 @@ function chatOwnerTag() {
   return tag;
 }
 
+// The RONIN ALPHA title, for anyone chatting in Decayed Winter.
+function chatRoninTag() {
+  const tag = lnkEl('span', 'chat-ronin');
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('viewBox', '0 0 16 16');
+  svg.setAttribute('aria-hidden', 'true');
+  const blade = document.createElementNS(svgNS, 'path');
+  blade.setAttribute('d', 'M15 1 5.6 10.4l-1-1L14 1zM4.3 9.6l2.1 2.1-.9.9-.7-.7-2.3 2.3-1-1 2.3-2.3-.7-.7z');
+  svg.appendChild(blade);
+  tag.append(svg, document.createTextNode('RONIN ALPHA'));
+  tag.title = 'Chatting in the Decayed Winter theme';
+  return tag;
+}
+
 function chatHue(name) {
   let h = 0;
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
@@ -8563,6 +8590,7 @@ function chatRow(m, fresh) {
   else name.style.color = 'hsl(' + chatHue(String(m.name || '')) + ' 70% 62%)';
   meta.appendChild(name);
   if (m.owner) meta.appendChild(chatOwnerTag());
+  if (m.title === 'ronin') meta.appendChild(chatRoninTag());
   const d = new Date(m.at || Date.now());
   meta.appendChild(lnkEl('span', 'chat-time', String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')));
   row.appendChild(meta);
@@ -8631,6 +8659,7 @@ function chatPing(m) {
   who.style.color = m.owner ? '#ffc93a' : 'hsl(' + chatHue(String(m.name || '')) + ' 70% 62%)';
   head.append(who);
   if (m.owner) { card.classList.add('owner'); head.appendChild(chatOwnerTag()); }
+  if (m.title === 'ronin') head.appendChild(chatRoninTag());
   head.appendChild(document.createTextNode(' mentioned you'));
   const text = String(m.text || '');
   const close = lnkEl('button', 'chat-ping-x', '\u2715');
@@ -8910,6 +8939,7 @@ function chatSayText(text) {
   CH.mine.add(n);
   const msg = { t: 'say', text: text, name: chatName(), n: n };
   if (linksIsDev() && linksKey()) msg.key = linksKey();
+  if (settings.theme === 'decayedwinter') msg.title = 'ronin';
   if (!chatSend(msg)) return false;
   playSound('chat-send');
   return true;
@@ -9042,7 +9072,8 @@ function gcRow(m, fresh) {
   if (!m.owner) name.style.color = 'hsl(' + chatHue(String(m.name || '')) + ' 70% 62%)';
   const text = chatTextWithMentions(m);
   text.className = 'gc-text';
-  row.append(name, text);
+  if (m.title === 'ronin') row.append(name, chatRoninTag(), text);
+  else row.append(name, text);
   return row;
 }
 
@@ -10336,11 +10367,18 @@ function stopRain() {
   let buf = [];
   const UNLOCK_KEY = 'oldbeeside-unlocked';
 
+  // dev only: open with dev mode on, locked for everyone else, even if an
+  // old code unlocked it before
+  function isDev() { return localStorage.getItem('devmode-unlocked') === '1'; }
   function applyUnlockState() {
     const sw = document.getElementById('swatch-oldbeeside');
     if (!sw) return;
-    if (localStorage.getItem(UNLOCK_KEY) === '1') {
-      sw.classList.add('unlocked');
+    sw.classList.toggle('unlocked', isDev());
+    sw.title = isDev() ? '' : 'Dev only';
+    if (!isDev() && typeof settings !== 'undefined' && settings.theme === 'oldbeeside') {
+      settings.theme = 'cyberpunk';
+      localStorage.setItem('theme', 'cyberpunk');
+      if (typeof applySettings === 'function') applySettings();
     }
   }
 
@@ -10349,14 +10387,15 @@ function stopRain() {
     const sw = document.getElementById('swatch-oldbeeside');
     if (sw && sw.contains(e.target) && !sw.classList.contains('unlocked')) {
       e.stopImmediatePropagation();
-      showToast('This theme is locked...');
+      showToast("Bee's Theme is dev only");
       playSound('theme-locked')
     }
   }, true);
 
-  // Public API so dev mode (or other features) can trigger the unlock.
+  // Dev mode calls this when it turns on; nothing else can unlock it.
   window.unlockOldbeeside = function() {
-    if (localStorage.getItem(UNLOCK_KEY) === '1') return;
+    if (!isDev()) { showToast("Bee's Theme is dev only"); playSound('theme-locked'); return; }
+    if (localStorage.getItem(UNLOCK_KEY) === '1') { applyUnlockState(); return; }
     localStorage.setItem(UNLOCK_KEY, '1');
     applyUnlockState();
     showToast("Bee's Theme unlocked!");
