@@ -30,8 +30,15 @@ of NEON SIEGE 2 are going, shown on each door when above zero.
 
 **`/` (index.html):** a honeycomb drawn on a canvas that lights up around the
 pointer, with pollen drifting up through it and a ripple where you click. On
-the first visit of a session a drop of honey falls into the logo and a ripple
-runs out through the hive as the page arrives. Each door tilts towards the
+the first visit of a session a drop of honey falls into the logo. The logo
+flips up out of the splash in 3D, rays of light break from it and drops of
+honey spray out. The honeycomb rises from a floor into a wall as a wave runs
+out through it, each cell flipping into place. Two rings spin up round the
+logo like a gyroscope, the name rises, the rule is drawn out from a spark,
+and the doors swing in from either side and light up. The whole page settles
+out of a slight tilt as it all arrives. Later visits get a shorter version,
+and Other Projects arrives the same way. Everything moves by transform,
+opacity or the canvas: nothing is blurred as it moves. Each door tilts towards the
 pointer. The vault's door turns its dial and spills out what's inside, and
 NEON SIEGE 2's door has a small tower-defense fight running in it. Each door
 shows who is in there right now, and a ticker lists what is inside. **1** and
@@ -53,13 +60,21 @@ front page, Other Projects and the three openings. There are no sound files.
   plips, live counts blip in, and the ticker stops like tape. The empty door
   knocks back, and the little fights inside the doors can be heard while you
   point at them.
-- **The front page's opening.** The honey drop whistles down and splashes,
-  the mark rings, each letter ticks in, the rule sweeps, and the doors deal
-  in with a whoosh each.
+- **The front page's opening.** The honey drop whistles down and splashes
+  with droplets pattering, the mark flips up with a whoosh as light chimes out
+  of it, glass ticks run outward as the honeycomb assembles, and the rings
+  whirr up. The name swells in and each letter ticks, and the rule sparks and
+  sweeps. The doors swing in from their own sides, land with a thud and a
+  latch, and zing as their edges light.
 
 A browser only allows sound after the first click or key press on the site.
-Arriving from another BeeSide page counts in Chrome, so pointing is silent
-only on a cold first visit. The **Sound on/off** switch in the footer is
+Arriving from another BeeSide page counts in Chrome. So on a cold first visit
+the front page holds its opening on its first frame (`intro-hold`, set before
+the first paint) and shows a drop of honey hanging on its thread over CLICK
+TO ENTER. That click switches the sound on for the whole site and the opening
+plays with it. When sound is already allowed it starts at once, with no gate.
+It never waits when the sound switch is off or under reduced motion. If the
+page's script never gets that far, the hold lets go by itself after 2.5 s. The **Sound on/off** switch in the footer is
 remembered (`bs-sound` in localStorage) and silences everything, the openings
 included.
 
