@@ -4946,6 +4946,7 @@ const GAME_COVERS = {
   "https://truffled.lol/games/raldi/index.html": "https://realwork.netlify.app/images/thumbnails/baldisbasics.jpg",  // // Raldi // Raldi
   "https://realwork.netlify.app/games/dsaf1/": "https://realwork.netlify.app/images/thumbnails/dsaf1.jpg",  // DSAF 1: its logo and Freddy, from the title screen
   "https://realwork.netlify.app/games/dsaf2/": "https://realwork.netlify.app/images/thumbnails/dsaf2.jpg",  // DSAF 2: its logo and Freddy, from the title screen
+  "https://realwork.netlify.app/games/dsaf3/": "https://realwork.netlify.app/images/thumbnails/dsaf3.jpg",  // DSAF 3: its logo and the Phone Guys, from the title screen
   "https://realwork.netlify.app/games/hexgl/": "https://cdn2.y8.com/cloudimage/45147/file/w380h285_retina_webp-f36548424c74ade3f0e4686f0cbea31f.webp",  // title art: y8 game art
   "https://realwork.netlify.app/games/houseofhazards/": "https://img.poki-cdn.com/cdn-cgi/image/q=78,scq=50,width=1200,height=1200,fit=cover,f=png/0609b0ba2889859b21cf47ca205818fe/house-of-hazards-logo.png",  // title art: poki title logo
   "https://realwork.netlify.app/games/pickcrafter/": "https://img.poki-cdn.com/cdn-cgi/image/q=78,scq=50,width=1200,height=1200,fit=cover,f=png/f89973f5d64f741f3f2cdb63c382c2d8/pickcrafter-logo.png",  // title art: poki title logo
@@ -5482,7 +5483,8 @@ const GAMES = [
   { url: "https://truffled.lol/games/pikubog/index.html", name: "PikuBog", cat: ["ports"], icon: "" },
   { url: "https://truffled.lol/games/raldi/index.html", name: "Raldi", cat: ["ports"], icon: "" },
   { url: "https://realwork.netlify.app/games/dsaf1/", name: "DSAF 1", cat: ["ports"], icon: "" },
-  { url: "https://realwork.netlify.app/games/dsaf2/", name: "DSAF 2", cat: ["ports"], icon: "" },];
+  { url: "https://realwork.netlify.app/games/dsaf2/", name: "DSAF 2", cat: ["ports"], icon: "" },
+  { url: "https://realwork.netlify.app/games/dsaf3/", name: "DSAF 3", cat: ["ports"], icon: "" },];
 
 const APPS = [
   { url: "https://realwork.netlify.app/apps/ruffle/", name: "Ruffle", icon: "", tag: "Emulator", desc: "Play Flash games & animations in your browser" },
@@ -5852,6 +5854,7 @@ const WARNED_APPS = new Set([
   'https://truffled.lol/games/raldi/index.html',
   'https://realwork.netlify.app/games/dsaf1/',
   'https://realwork.netlify.app/games/dsaf2/',
+  'https://realwork.netlify.app/games/dsaf3/',
 ]);
 
 // Custom warning messages per warned app URL. If a URL isn't in this map,
@@ -5862,11 +5865,13 @@ const WARNED_APP_MESSAGES = {
   'https://truffled.lol/games/raldi/index.html': 'This Game Runs Via A External Source Not Fully Tested',
   'https://realwork.netlify.app/games/dsaf1/': 'This game has mature content: crude humor, strong language, and some gore. It is meant for older players.',
   'https://realwork.netlify.app/games/dsaf2/': 'This game has mature content: crude humor, strong language, and some gore. It is meant for older players.',
+  'https://realwork.netlify.app/games/dsaf3/': 'This game has mature content: crude humor, strong language, and some gore. It is meant for older players.',
 };
 // A title for the warning other than the plain "Warning"
 const WARNED_APP_TITLES = {
   'https://realwork.netlify.app/games/dsaf1/': 'Mature Content Warning',
   'https://realwork.netlify.app/games/dsaf2/': 'Mature Content Warning',
+  'https://realwork.netlify.app/games/dsaf3/': 'Mature Content Warning',
 };
 let pendingWarnedApp = null;
 
