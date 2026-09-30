@@ -55,7 +55,9 @@ ROTFALL2 = 'rotfall-2.html'       # its sequel, a door of its own on the front p
 # moment" page, at its address and at its file's name; its door on the front
 # page (and on Other Projects) is greyed out; the vault's chat and the game's
 # co-op take no new connections while theirs is closed. Take the line out, or
-# put a # in front of it, and deploy to open it again.
+# put a # in front of it, and deploy to open it again. 'all' closes the whole of
+# BeeSide Studio's: the front page as well as every place (/healthz stays up,
+# so Render doesn't think the server is down).
 CLOSED_FILE = 'CLOSED'
 CLOSED_PAGE = 'closed.html'
 PLACES = {   # name in CLOSED: its address, then every file that is that place
@@ -70,6 +72,7 @@ for _name, (_route, *_files) in PLACES.items():
     ROUTE_PLACE[_route] = ROUTE_PLACE[_route + '/'] = _name
     for _f in _files:
         ROUTE_PLACE['/' + _f] = _name
+ROUTE_PLACE['/'] = ROUTE_PLACE['/' + HOME] = 'all'   # the front page closes only with everything
 
 
 def closed_places():
@@ -80,6 +83,8 @@ def closed_places():
             names = [line.split('#', 1)[0].strip().lower() for line in f]
     except OSError:
         return set()
+    if 'all' in names:
+        return set(PLACES) | {'all'}
     return {n for n in names if n in PLACES}
 
 

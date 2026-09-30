@@ -511,9 +511,11 @@ the host; and a player leaving closes the match and releases its spectators.
 ## Closing a place for a while
 
 The file `CLOSED` lists the places that are switched off, one per line:
-`vault`, `neon-siege`, `rotfall`, `rotfall-2`, `projects`. Add a name and deploy
-to close that place; take it out (or put a `#` in front) and deploy to open it
-again.
+`vault`, `neon-siege`, `rotfall`, `rotfall-2`, `projects`, or `all` for the
+whole of BeeSide Studio's, front page included. Add a name and deploy to close
+that place; take it out (or put a `#` in front) and deploy to open it again.
+The easy way is GitHub's editor: github.com/BeeCoolBro/ns2-coop/edit/main/CLOSED,
+then commit to main; Render deploys it in about a minute.
 - **At its address** (and its file's name) a closed place shows `closed.html`:
   "Closed for a moment" in its own name and colours, with a way back to
   BeeSide. The vault's keeps its Clever disguise.
@@ -521,6 +523,9 @@ again.
   CLOSED tag, and it shakes instead of opening (`/api/closed` says which).
 - **The vault's chat and the game's co-op** take no new connections while
   theirs is closed. Tabs already open keep working until they're reloaded.
+- **With `all`**, the front page shows the same closed page for BeeSide
+  Studio's itself, with no way back button (there's nowhere to go back to).
+  `/healthz` stays up, so Render still sees a healthy server.
 
 ## Bee's Vault and its Links tab
 

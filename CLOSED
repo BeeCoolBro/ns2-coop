@@ -1,5 +1,6 @@
 # Which BeeSide places are closed for now, one per line. A closed place shows
 # a short "closed for a moment" page, and its door on the front page is greyed out.
 # Places: vault, neon-siege, rotfall, rotfall-2, projects
+# all = the whole of BeeSide Studio's, the front page too
 # Take a line out (or put a # in front of it) and deploy to open it again.
 vault
