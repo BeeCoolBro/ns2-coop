@@ -101,76 +101,83 @@ is an empty dashed door, "More soon", holding the place for the next one. A
 new project gets a door like ROTFALL's in its place, and the "More soon" door
 moves after it or goes.
 
-**Bee's Vault** opens like a heist. In the dark, three overhead lamps clunk
-on one by one, the last lighting the vault door, and a security feed's frame
-comes up round the screen. A red laser sweeps the door and flashes green:
-identity confirmed. The dial cracks a combination while the page downloads,
-with a light per number that goes amber while the dial hunts and green when
-it lands. It greets you by the name you chat under (`player-name`), or says
-access granted. The bolts pull back, the seal breaks in a burst of steam, and
-the door swings open. It has real thickness: a stack of rims behind its face
-shows as it turns. Light pours out with dust hanging in it, and the camera
-pushes through into the vault before it all fades. The short version (later
-visits, or a click) goes straight to the unlock. It sits
-right after the favicon, not in `<body>`: the vault's head holds 1.7 MB of
-theme images, and until now the screen stayed blank while they arrived.
+**The openings live in `openings.js`**, and the front page plays them. The
+front page is a shell. Picking the vault, NEON SIEGE 2, Other Projects or
+ROTFALL opens that place in a frame over the front page instead of leaving it
+(`#app`; the address shows `/#vault` and so on). A browser keeps a page silent
+until someone clicks on it, and some start every new page silent again. So
+the one click that lets the front page make sound lets every place make it
+too. Its opening starts at once, over the front page, while the place loads
+in the frame underneath. For the opening's last second the place shows
+through and the opening lands on it. If the place isn't loaded by then, the
+opening holds at its last beat until it is (the vault's door keeps syncing).
+- **The tab** shows the frame's title and icon as they change, disguises
+  included.
+- **Back, or a page's own way back to BeeSide**, closes the frame. The front
+  page, loaded inside its own frame, hands straight back to the one underneath
+  (see its head).
+- **While a place is open**, the front page stops drawing and making sound
+  underneath it.
+- **Opened on its own at BeeSide's address**, `/vault`, `/neon-siege`,
+  `/projects` or `/rotfall` goes through the front page (`/#vault`). There it
+  meets the front page's one CLICK TO ENTER if the browser hasn't allowed sound
+  yet.
+- **Everywhere else** (BeeSide's single-file copy, a file on disk, the game
+  inside Bee's Vault), each page plays its own opening over itself, from the
+  same file. `combine.py` inlines it like the synth.
+- **A page in the frame** tells the shell it has arrived (`BSShell.arrive`)
+  from the top of its page. One that got there without a door on the front
+  page (Other Projects to ROTFALL, a reload) gets its opening then.
 
-**NEON SIEGE 2** opens like an arcade cabinet. The CRT powers on, and a
-synthwave sun rises over a rushing grid while "BeeSide Studio's presents"
-types out. Then the logo slams in with its colour channels split, and it flies
-onto the title screen's own logo.
+**Bee's Vault** opens down a honeycomb tunnel. Rings of hexagons rush past
+until the camera arrives at a hexagonal vault door: an iris of six steel
+blades round a gold hub, in a thick frame. The hub turns a click at a time,
+and six locks round the frame snap back one by one, each lamp going from amber
+to green in a puff of steam. It greets you by the name you chat under
+(`player-name`) or says access granted. A glint crosses the door, the iris
+twists open on a flood of light with dust hanging in it, and the camera flies
+through into the vault. Until the vault has loaded, the hub keeps spinning
+over SYNCING THE VAULT. `bvs-on` stays on the vault's page until the opening
+is over, so the tour and the owner-key popup wait for it.
 
-**ROTFALL** opens in the dark with just its orange orb. The swarm's eyes open
-all round and creep in, then the orb fires a shockwave that kills them as it
-reaches them, and the name slams down letter by letter right where the menu's
-logo is. It fades into the menu with the name already in place. The opening
-waits for the page to be visible, and a key that skips it doesn't also reach
-the game.
+**NEON SIEGE 2** opens like an arcade cabinet. The CRT powers on and the
+cabinet's boot screen checks itself. The camera races low over a 3D neon grid
+with wireframe mountains on the horizon. Towers stream past on both sides and
+laser drones out of the sky. "BeeSide Studio's presents" types out, and the
+logo slams in with its colour channels split, extruded like chrome. When the
+neon catches, the flight jumps to warp under a lens flare, and the logo flies
+onto the title screen's own logo as the title screen rises in behind it.
 
-All four play in full once per browser session and short after that. The
-game's is always short inside Bee's Vault. A click, tap or key skips, reduced
-motion gets a fade, and a CSS-only failsafe hides the vault's, the game's or
-ROTFALL's opening if its script never runs.
+**ROTFALL** opens in rain. Lightning shows the swarm all round, and their eyes
+stay lit in the dark. An ember catches in the middle, and they creep in to its
+heartbeat until it gathers itself and bursts in a shockwave. The shockwave
+turns every one of them to embers. The embers rise and gather into the name,
+letter by letter, right where the menu's name is, and the menu comes up round
+it.
 
-A browser keeps a page silent until the visitor clicks or presses a key.
-Arriving from another BeeSide page counts. So when the vault, the game or
-ROTFALL opens still silent, its opening waits for that first click instead of
-playing unheard. The door shows CLICK TO OPEN in its status line. The game's
-screen stays off in standby with CLICK TO POWER ON. ROTFALL's ember breathes
-over CLICK TO BEGIN. That click switches the sound on (the page's own game
-audio too) and starts the opening from the top. Only a later click skips it,
-and never within half a second of the first. It never waits when sound is
-already allowed, when BeeSide's sound switch or the vault's SFX switch is off,
-under reduced motion, or for the game inside Bee's Vault, which is silent
-there on purpose. While it waits, the CSS failsafe is paused and restarts once
-the opening does. The vault's tour and owner-key
-popup wait until the door has opened. The game's opening is in
-`neon-siege-2.html` like everything else, so `build-coop.py` carries it into
-the co-op build.
+Each plays in full once per browser session and short after that. The game's
+is always short, and silent, inside Bee's Vault. A click, tap or key skips
+(never in the first half second), and reduced motion gets the name and a fade.
+A CSS failsafe hides an opening whose script stops.
 
-The three openings have a sound for every step, on the same synth.
-- **Bee's Vault.** Each lamp clunks on and buzzes, from its own side, and
-  the feed chirps up. The door arrives with a heavy ring over a vault hum, and
-  the status types out. The laser whines down and back up, then chirps when it
-  confirms you. The dial ratchets, each click coming from where it
-  points. Each number drops a tumbler, chimes and fills the ring, and "access
-  granted" rings a chord. The twelve bolts slide back, each from its own side,
-  then the handle creaks and clunks. The seal breaks with a thump and a long
-  hiss of steam, the hinge groans, the door rumbles open, light pours out in
-  bells, and you whoosh inside on a shimmer.
-- **NEON SIEGE 2.** The CRT thunks on with static, a whine and the degauss
-  wobble, and stars ping. The sun rises on a pad, a riser and the grid's bass
-  pulse, and "presents" types out. Each letter punches in from left to right,
-  then the II, with glitches as the colours split. The neon hits with a
-  crash, the shockwave and a flickering hum, the light sweeps, and the logo
-  whooshes up and lands on a chime.
-- **ROTFALL.** The ember crackles and catches, and each heartbeat sends out a
-  sonar pulse. Every eye opens where it is, as a drone and breathing creep
-  in. The shot cracks and booms, and the ring sweeps out, popping each eye as
-  it passes. Each letter lands where it stands, and the glow rings out.
+Every step has its sound, on the shared synth.
+- **Bee's Vault.** A rush down the tunnel with the rings thudding past, a
+  heavy metal ring as the door arrives over a vault hum, and the hub's ratchet.
+  Each lock shunks back with a chime of its own, rising, and access rings a
+  chord. The iris whirs and hisses open as the light swells in bells, and you
+  whoosh through on a shimmer.
+- **NEON SIEGE 2.** The CRT thunks on with static and the degauss wobble. The
+  boot screen beeps its POST and ticks each line. Towers whoosh past on their
+  own side, lasers zap and drones pop. The sun rises on a pad and the grid's
+  bass pulse, and each letter punches in. The neon hits with a crash and a
+  flickering hum, the warp roars, and the logo lands on a chime.
+- **ROTFALL.** Rain and thunder, the eyes opening all round, then the ember
+  crackling alight and its heartbeat. Growls come as they creep in, a riser as
+  it gathers, and the boom of the shockwave, with every body popping. The
+  embers rise on a shimmer, each letter thumps down as it forms, and the name
+  rings out.
 
-The vault also listens to its own SFX switch, and the game is silent inside
-the vault, where the vault's music is playing.
+The vault also listens to its own SFX switch.
 
 ## What the free plan means
 
@@ -950,6 +957,7 @@ priority, synergy, or how a real wave actually arrives.
 | `projects.html` | Other Projects at `/projects`: the front page's look, a door for each of the smaller projects |
 | `rotfall.html` | ROTFALL, the first of the Other Projects, at `/rotfall` |
 | `beeside-sound.js` | the shared synth behind every sound on the front page, Other Projects and the three openings |
+| `openings.js` | the openings of Bee's Vault, NEON SIEGE 2 and ROTFALL: played by the front page over itself, or by a page over itself anywhere else |
 | `neon-siege-2-coop.html` | the game, at `/neon-siege` |
 | `vault.html` | Bee's Vault, at `/vault` |
 | `chat_filter.py` | the vault chat's word filter |

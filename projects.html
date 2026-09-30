@@ -15,6 +15,14 @@
    just come through its wipe. A plain fade for anyone who asks for less
    motion, and with no script everything is simply there. */
 (function () {
+  // opened on its own at BeeSide's address: go through the front page, which
+  // plays this opening and lets every place make sound after one click
+  try {
+    if (window.top === window && /^https?:$/.test(location.protocol) && /^\/projects\/?$/.test(location.pathname) && !location.search && !location.hash) {
+      location.replace('/#projects');
+      return;
+    }
+  } catch (e) {}
   var d = document.documentElement, mode = 'quick';
   try { if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) mode = 'calm'; } catch (e) {}
   d.className += ' js intro-' + mode;
@@ -85,7 +93,8 @@ main { position: relative; z-index: 1; flex: 1; width: 100%; max-width: 1040px; 
   padding: clamp(36px, 7vh, 64px) 16px 24px; display: flex; flex-direction: column; justify-content: center; }
 
 /* ── the brand ── */
-.brand { text-align: center; margin-bottom: clamp(28px, 5.5vh, 52px); }
+.brand { text-align: center; margin-bottom: clamp(28px, 5.5vh, 52px); overflow-x: clip; }
+/* (the light that breaks from the mark is wider than a phone; it fades out long before the sides, but it must not widen the page) */
 .mark-wrap { position: relative; width: clamp(84px, 11vw, 112px); aspect-ratio: 1 / 1; margin: 0 auto 24px; perspective: 700px; }
 /* a glint that crosses the mark once it has landed, and the light that breaks out of it */
 .mark-wrap::after { content: ''; position: absolute; inset: 0; z-index: 3; border-radius: 24%; pointer-events: none; opacity: 0;
