@@ -157,6 +157,16 @@ html.ri-land .logo-wrap{transition:opacity .35s ease;}
 .ri-skip{position:absolute;left:0;right:0;bottom:22px;text-align:center;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:600;letter-spacing:5px;color:#2e2e2e;opacity:0;}
 .ri-go .ri-skip{animation:riFade .6s ease 1.1s forwards;}
 .ri-quick .ri-skip{display:none;}
+/* before the first click the browser keeps it silent, so the opening waits for one */
+#rIntro .ri-gate{position:absolute;left:0;right:0;top:calc(50% + 40px);text-align:center;pointer-events:none;opacity:0;transition:opacity .7s ease;}
+#rIntro.ri-gated .ri-gate{opacity:1;}
+.ri-gate .g1{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:9px;color:#e85d00;text-shadow:0 0 18px rgba(232,93,0,.6);animation:riGate 2.2s ease-in-out infinite;}
+.ri-gate .g2{margin-top:10px;display:flex;gap:9px;justify-content:center;align-items:center;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:600;letter-spacing:5px;color:#4a4a4a;}
+.ri-gate svg{width:15px;height:15px;fill:none;stroke:#5a5a5a;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+@keyframes riGate{0%,100%{opacity:.5}50%{opacity:1}}
+/* the ember, not yet caught, breathing */
+.ri-gated .ri-orb{animation:riGateOrb 2.2s ease-in-out infinite;}
+@keyframes riGateOrb{0%,100%{opacity:.5;transform:scale(.45)}50%{opacity:1;transform:scale(.6)}}
 @media (prefers-reduced-motion:reduce){#rIntro *{animation-duration:.01s!important;animation-delay:0s!important;}}
 </style>
 </head>
@@ -176,6 +186,7 @@ html.ri-land .logo-wrap{transition:opacity .35s ease;}
   </div>
   <div class="ri-noise"></div>
   <div class="ri-vig"></div>
+  <div class="ri-gate"><div class="g1">CLICK TO BEGIN</div><div class="g2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 9.5a3.5 3.5 0 0 1 0 5M19 7a7 7 0 0 1 0 10"/></svg>BEST WITH SOUND ON</div></div>
   <div class="ri-skip">CLICK TO SKIP</div>
 </div>
 <canvas id="c"></canvas>
@@ -988,14 +999,14 @@ if(/^\/rotfall\/?$/.test(location.pathname))document.getElementById('toBeeside')
   var root=document.documentElement,timers=[],started=false,ending=false;
   function later(fn,ms){timers.push(setTimeout(fn,ms));}
   function done(){timers.forEach(clearTimeout);root.classList.remove('ri-on','ri-land');if(el.parentNode)el.parentNode.removeChild(el);window.removeEventListener('keydown',onKey,true);}
-  function onKey(e){if(document.getElementById('rIntro')){e.stopPropagation();skip();}}
+  function onKey(e){if(document.getElementById('rIntro')){e.stopPropagation();press();}}
   try{
     root.classList.add('ri-on');
     var calm=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
     var quick=false;
     try{quick=sessionStorage.getItem('ri-seen')==='1';sessionStorage.setItem('ri-seen','1');}catch(e){}
     if(quick)el.classList.add('ri-quick');
-    if(!(window.matchMedia&&matchMedia('(hover: hover) and (pointer: fine)').matches))el.querySelector('.ri-skip').textContent='TAP TO SKIP';
+    if(!(window.matchMedia&&matchMedia('(hover: hover) and (pointer: fine)').matches)){el.querySelector('.ri-skip').textContent='TAP TO SKIP';el.querySelector('.ri-gate .g1').textContent='TAP TO BEGIN';}
     var W=innerWidth,H=innerHeight,cx=W/2,cy=H/2;
     // the name goes exactly where the menu's logo is
     var logo=el.querySelector('.ri-logo'),real=document.querySelector('.logo-wrap');
@@ -1080,8 +1091,33 @@ if(/^\/rotfall\/?$/.test(location.pathname))document.getElementById('toBeeside')
       setTimeout(function(){void el.offsetWidth;el.classList.add('ri-out');},calm?0:120);
     }
     function skip(){if(started)end();}
+    // A browser keeps a page silent until the visitor clicks or presses a key
+    // (coming in from another BeeSide page counts). When it is still silent,
+    // the opening waits for that first click, which starts it with its sound;
+    // only a later click skips it.
+    var gated=false,armAt=0;
+    function wake(){if(SN)SN.start();try{if(typeof resumeAC==='function')resumeAC();}catch(x){}}
+    // the sound takes a moment to come up after the click; wait for it, briefly
+    function whenLive(fn){var t0=performance.now();(function w(){if(!SN||SN.live()||performance.now()-t0>600)fn();else setTimeout(w,16);})();}
+    function press(){
+      if(!started){gated=false;wake();whenLive(run);return;}
+      if(performance.now()<armAt)return;
+      skip();
+    }
     function start(){
+      if(started||gated)return;
+      if(calm||!SN||!SN.on||SN.live()){run();return;}
+      var t0=performance.now();
+      (function check(){
+        if(started)return;
+        if(SN.live()){run();return;}
+        if(performance.now()-t0<350){setTimeout(check,40);return;}
+        gated=true;el.style.animation='none';el.classList.add('ri-gated');
+      })();
+    }
+    function run(){
       if(started)return;started=true;
+      el.classList.remove('ri-gated');el.style.animation='';armAt=performance.now()+450;
       if(calm){el.classList.add('ri-go','ri-name');later(end,700);return;}
       el.classList.add('ri-go');
       sIgnite();if(!quick){sBeat(0.45);sBeat(1.35);}sCreep();
@@ -1092,7 +1128,7 @@ if(/^\/rotfall\/?$/.test(location.pathname))document.getElementById('toBeeside')
         name();later(end,at.end-at.name);
       },at.name);
     }
-    el.addEventListener('pointerdown',skip);
+    el.addEventListener('pointerdown',press);
     window.addEventListener('keydown',onKey,true);
     if(document.hidden){document.addEventListener('visibilitychange',function v(){if(document.hidden)return;document.removeEventListener('visibilitychange',v);start();});}
     else start();

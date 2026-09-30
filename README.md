@@ -106,7 +106,20 @@ the game.
 All four play in full once per browser session and short after that. The
 game's is always short inside Bee's Vault. A click, tap or key skips, reduced
 motion gets a fade, and a CSS-only failsafe hides the vault's, the game's or
-ROTFALL's opening if its script never runs. The vault's tour and owner-key
+ROTFALL's opening if its script never runs.
+
+A browser keeps a page silent until the visitor clicks or presses a key.
+Arriving from another BeeSide page counts. So when the vault, the game or
+ROTFALL opens still silent, its opening waits for that first click instead of
+playing unheard. The door shows CLICK TO OPEN in its status line. The game's
+screen stays off in standby with CLICK TO POWER ON. ROTFALL's ember breathes
+over CLICK TO BEGIN. That click switches the sound on (the page's own game
+audio too) and starts the opening from the top. Only a later click skips it,
+and never within half a second of the first. It never waits when sound is
+already allowed, when BeeSide's sound switch or the vault's SFX switch is off,
+under reduced motion, or for the game inside Bee's Vault, which is silent
+there on purpose. While it waits, the CSS failsafe is paused and restarts once
+the opening does. The vault's tour and owner-key
 popup wait until the door has opened. The game's opening is in
 `neon-siege-2.html` like everything else, so `build-coop.py` carries it into
 the co-op build.
