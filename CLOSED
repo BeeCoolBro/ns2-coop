@@ -2,7 +2,8 @@
 # "closed for a moment" page, and its door on the front page is greyed out.
 #
 # Names you can use: vault, neon-siege, rotfall, rotfall-2, projects
-#   all = the whole of BeeSide Studio's, the front page too
+#   all  = the whole of BeeSide Studio's, the front page too
+#   fake = the whole site shows a plain, ordinary-looking website instead
 #
 # To close a place, write its name on its own line under CLOSED RIGHT NOW.
 # To open it again, delete that line. Lines starting with # don't count.

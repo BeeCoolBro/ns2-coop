@@ -526,6 +526,10 @@ then commit to main; Render deploys it in about a minute.
 - **With `all`**, the front page shows the same closed page for BeeSide
   Studio's itself, with no way back button (there's nowhere to go back to).
   `/healthz` stays up, so Render still sees a healthy server.
+- **With `fake`**, every address (the front page and every place) shows
+  `fake.html` instead: a plain, made-up hobby club site with nothing on it
+  that leads back to BeeSide. Chat and co-op close as with `all`, and
+  `/api/closed` stops answering. `fake` wins over everything else in the list.
 
 ## Bee's Vault and its Links tab
 

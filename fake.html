@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- The decoy BeeSide shows at every address while 'fake' is in CLOSED (see
+     server.py): a plain little hobby-club site, made up, with nothing in it
+     that leads anywhere. -->
+<title>Hollow Creek Birding Club</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%232f6b4f'/%3E%3Cpath d='M8 19c3-6 9-8 15-6-2 1-3 2-3 4 0 3-3 5-7 5-2 0-4-1-5-3z' fill='%23f4efe3'/%3E%3Ccircle cx='19' cy='14' r='1.2' fill='%232f6b4f'/%3E%3C/svg%3E">
+<style>
+:root { --green: #2f6b4f; --green2: #3f8a66; --cream: #f7f3ea; --ink: #26312b; --muted: #5d6b63; --line: #e2dccd; --sun: #e0a93b; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--cream); color: var(--ink); font-family: Georgia, 'Times New Roman', serif; line-height: 1.6; }
+a { color: var(--green); }
+.wrap { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
+header { background: #fff; border-bottom: 1px solid var(--line); }
+header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 14px; padding-bottom: 14px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
+.brand svg { width: 38px; height: 38px; flex-shrink: 0; }
+.brand b { display: block; font-size: 19px; }
+.brand span { display: block; font: 12px/1.2 Arial, sans-serif; color: var(--muted); letter-spacing: .04em; }
+nav { display: flex; gap: 18px; flex-wrap: wrap; font: 15px Arial, sans-serif; }
+nav a { text-decoration: none; color: var(--muted); }
+nav a:hover { color: var(--green); }
+.hero { background: linear-gradient(180deg, #dfeee4, var(--cream)); padding: 56px 0 40px; }
+.hero .wrap { display: grid; grid-template-columns: 1.3fr 1fr; gap: 32px; align-items: center; }
+.hero h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.15; color: var(--green); }
+.hero p { margin-top: 14px; font-size: 17px; color: var(--muted); max-width: 520px; }
+.hero .btn { display: inline-block; margin-top: 22px; padding: 10px 20px; border-radius: 6px; background: var(--green); color: #fff; text-decoration: none; font: 15px Arial, sans-serif; }
+.hero .btn:hover { background: var(--green2); }
+.hero svg { width: 100%; height: auto; }
+section { padding: 38px 0; border-top: 1px solid var(--line); }
+h2 { font-size: 24px; color: var(--green); margin-bottom: 14px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.card { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+.card h3 { font-size: 17px; margin-bottom: 6px; }
+.card p, .card li { font-size: 15px; color: var(--muted); }
+table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); font: 15px Arial, sans-serif; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+th { background: #eef4ef; color: var(--green); font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+ul.tips { padding-left: 20px; }
+ul.tips li { margin: 6px 0; color: var(--muted); }
+footer { padding: 26px 0 34px; border-top: 1px solid var(--line); font: 13px Arial, sans-serif; color: var(--muted); }
+@media (max-width: 720px) { .hero .wrap { grid-template-columns: 1fr; } .hero svg { max-width: 320px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="brand" href="#top">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="#2f6b4f"/><path d="M8 19c3-6 9-8 15-6-2 1-3 2-3 4 0 3-3 5-7 5-2 0-4-1-5-3z" fill="#f4efe3"/><circle cx="19" cy="14" r="1.2" fill="#2f6b4f"/></svg>
+      <div><b>Hollow Creek Birding Club</b><span>Friendly walks &middot; local birds &middot; good company</span></div>
+    </a>
+    <nav><a href="#walks">Walks</a><a href="#sightings">Sightings</a><a href="#beginners">Beginners</a><a href="#about">About</a></nav>
+  </div>
+</header>
+
+<main id="top">
+  <div class="hero">
+    <div class="wrap">
+      <div>
+        <h1>Birdwatching for everyone, one quiet morning at a time</h1>
+        <p>We're a small volunteer club that meets for easy walks along the creek trail and the old orchard. No experience needed, and we always have spare binoculars.</p>
+        <a class="btn" href="#walks">See our walks</a>
+      </div>
+      <svg viewBox="0 0 320 200" aria-hidden="true">
+        <rect width="320" height="200" rx="14" fill="#cfe3d5"/>
+        <circle cx="258" cy="46" r="22" fill="#e0a93b" opacity=".85"/>
+        <path d="M0 150 C60 120 110 160 170 138 S280 118 320 136 V200 H0 Z" fill="#9cc5a8"/>
+        <path d="M0 172 C70 150 130 186 200 166 S290 158 320 168 V200 H0 Z" fill="#7aae8c"/>
+        <path d="M60 150 V92" stroke="#6b4f35" stroke-width="5"/><circle cx="60" cy="84" r="26" fill="#5f9a74"/>
+        <path d="M112 106 c10 -14 30 -18 46 -10 -6 3 -9 7 -9 12 0 9 -9 15 -20 15 -7 0 -14 -6 -17 -17z" fill="#8a5a3c"/>
+        <path d="M150 99 l14 -3 -12 8z" fill="#e0a93b"/><circle cx="146" cy="100" r="2" fill="#26312b"/>
+        <path d="M122 118 l-6 12 M132 120 l-2 12" stroke="#6b4f35" stroke-width="2"/>
+        <path d="M204 60 q8 -8 16 0 q8 -8 16 0" stroke="#26312b" stroke-width="2" fill="none"/>
+        <path d="M176 78 q6 -6 12 0 q6 -6 12 0" stroke="#26312b" stroke-width="2" fill="none"/>
+      </svg>
+    </div>
+  </div>
+
+  <section id="walks">
+    <div class="wrap">
+      <h2>Regular walks</h2>
+      <div class="cards">
+        <div class="card"><h3>Saturday Creek Walk</h3><p>Saturdays, 8:00 AM. About 2 miles on a flat, shaded trail. Meet at the footbridge by the picnic shelter.</p></div>
+        <div class="card"><h3>Orchard Evenings</h3><p>First Wednesday of the month, an hour before sunset. Good for swallows, bluebirds and the occasional owl.</p></div>
+        <div class="card"><h3>Winter Feeder Count</h3><p>December through February. Count the birds at your own feeder for fifteen minutes and send us your tally.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="sightings">
+    <div class="wrap">
+      <h2>Recent sightings</h2>
+      <table>
+        <tr><th>Bird</th><th>Where</th><th>Notes</th></tr>
+        <tr><td>Cedar waxwing</td><td>Old orchard</td><td>A flock of about twenty in the crabapples</td></tr>
+        <tr><td>Belted kingfisher</td><td>Creek, below the footbridge</td><td>Heard first, then seen diving</td></tr>
+        <tr><td>Red-tailed hawk</td><td>Meadow edge</td><td>Circling over the east field most mornings</td></tr>
+        <tr><td>Eastern bluebird</td><td>Nest boxes 4 and 7</td><td>Both boxes active again this season</td></tr>
+        <tr><td>Downy woodpecker</td><td>Picnic shelter</td><td>Regular at the suet feeder</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section id="beginners">
+    <div class="wrap">
+      <h2>New to birding?</h2>
+      <ul class="tips">
+        <li>Start with the birds at your window. Learning ten common ones makes the rare ones stand out.</li>
+        <li>Binoculars around 8x42 are a comfortable all-round choice. Borrow a pair from us before you buy.</li>
+        <li>Listen as much as you look. Most birds are heard long before they're seen.</li>
+        <li>Keep a simple notebook: date, place, weather and what you saw.</li>
+        <li>Walk slowly and stop often. The trail rewards patience.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="about">
+    <div class="wrap">
+      <h2>About the club</h2>
+      <p style="color:var(--muted);max-width:720px">Hollow Creek Birding Club started with a handful of neighbours and a shared field guide. We still keep things simple: walks are free, everyone is welcome, and we look after the nest boxes along the trail together. Families and first-timers are always welcome.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">&copy; Hollow Creek Birding Club &middot; A volunteer community group</div>
+</footer>
+</body>
+</html>

@@ -57,9 +57,12 @@ ROTFALL2 = 'rotfall-2.html'       # its sequel, a door of its own on the front p
 # co-op take no new connections while theirs is closed. Take the line out, or
 # put a # in front of it, and deploy to open it again. 'all' closes the whole of
 # BeeSide Studio's: the front page as well as every place (/healthz stays up,
-# so Render doesn't think the server is down).
+# so Render doesn't think the server is down). 'fake' does the same, but every
+# page shows fake.html instead: a plain made-up hobby site with nothing on it
+# that leads back here, and /api/closed stops answering.
 CLOSED_FILE = 'CLOSED'
 CLOSED_PAGE = 'closed.html'
+FAKE_PAGE = 'fake.html'
 PLACES = {   # name in CLOSED: its address, then every file that is that place
     'vault': ('/vault', VAULT),
     'neon-siege': ('/neon-siege', GAME, 'neon-siege-2.html'),
@@ -73,6 +76,7 @@ for _name, (_route, *_files) in PLACES.items():
     for _f in _files:
         ROUTE_PLACE['/' + _f] = _name
 ROUTE_PLACE['/'] = ROUTE_PLACE['/' + HOME] = 'all'   # the front page closes only with everything
+ROUTE_PLACE['/' + CLOSED_PAGE] = 'all'               # and with 'fake', the closed page itself hides too
 
 
 def closed_places():
@@ -83,14 +87,22 @@ def closed_places():
             names = [line.split('#', 1)[0].strip().lower() for line in f]
     except OSError:
         return set()
+    if 'fake' in names:
+        return set(PLACES) | {'all', 'fake'}
     if 'all' in names:
         return set(PLACES) | {'all'}
     return {n for n in names if n in PLACES}
 
 
-def place_closed(path):
+def shut_page(path):
+    """The page to show instead of this address, or None when it's open."""
     name = ROUTE_PLACE.get(path.split('?', 1)[0].split('#', 1)[0])
-    return bool(name) and name in closed_places()
+    if not name:
+        return None
+    shut = closed_places()
+    if name not in shut:
+        return None
+    return FAKE_PAGE if 'fake' in shut else CLOSED_PAGE
 
 QUEUE = []                      # peers waiting for a partner, longest wait first
 LOCK = threading.Lock()
@@ -1499,9 +1511,11 @@ class Handler(SimpleHTTPRequestHandler):
     revalidate = False
 
     def translate_path(self, path):
-        # A place that is switched off shows its closed page instead (see CLOSED).
-        if place_closed(path):
-            return SimpleHTTPRequestHandler.translate_path(self, '/' + CLOSED_PAGE)
+        # A place that is switched off shows its closed page instead (see CLOSED),
+        # or with 'fake' on, the decoy site.
+        page = shut_page(path)
+        if page:
+            return SimpleHTTPRequestHandler.translate_path(self, '/' + page)
         # The front door picks between the two sites; the game lives one step in.
         if path in ('/', '/index.html'):
             path = '/' + HOME
@@ -1545,8 +1559,11 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_json(503, {'ok': False, 'error': "Bee's Vault is closed for a moment."})
             return self.chat_socket()
         if route == '/api/closed':
-            # which doors the front page should grey out
-            return self.send_json(200, {'closed': sorted(closed_places())})
+            # which doors the front page should grey out; nothing to say while faking
+            shut = closed_places()
+            if 'fake' in shut:
+                return self.send_error(404)
+            return self.send_json(200, {'closed': sorted(shut)})
         if route == '/neon-siege/':
             # the game fetches its voice lines by relative URL, and under a
             # trailing slash those would resolve to /neon-siege/<file> and 404
