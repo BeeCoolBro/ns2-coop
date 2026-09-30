@@ -508,14 +508,19 @@ key is refused; a spectator joining mid-match gets the cached start and then
 live frames while the guest keeps receiving its own; an injection reaches only
 the host; and a player leaving closes the match and releases its spectators.
 
-## Closing Bee's Vault for a while
+## Closing a place for a while
 
-While a file called `VAULT_CLOSED` is in the repo, `/vault` (and
-`/vault.html`) shows `vault-closed.html` instead: "Closed for a moment", in
-the vault's look and under its Clever disguise, with a way back to BeeSide.
-The vault's chat takes no new connections. The front page's vault door still
-plays its opening and lands on that page. Vault tabs that are already open keep
-working until they're reloaded. Delete `VAULT_CLOSED` and deploy to open it again.
+The file `CLOSED` lists the places that are switched off, one per line:
+`vault`, `neon-siege`, `rotfall`, `rotfall-2`, `projects`. Add a name and deploy
+to close that place; take it out (or put a `#` in front) and deploy to open it
+again.
+- **At its address** (and its file's name) a closed place shows `closed.html`:
+  "Closed for a moment" in its own name and colours, with a way back to
+  BeeSide. The vault's keeps its Clever disguise.
+- **On the front page and Other Projects** its door is greyed out with a
+  CLOSED tag, and it shakes instead of opening (`/api/closed` says which).
+- **The vault's chat and the game's co-op** take no new connections while
+  theirs is closed. Tabs already open keep working until they're reloaded.
 
 ## Bee's Vault and its Links tab
 

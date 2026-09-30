@@ -276,6 +276,18 @@ h1 .ch { display: inline-block; transform-origin: 50% 100%; }
 .rotfall .rf-noise { position: absolute; inset: 0; opacity: .045; background-size: 200px;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 
+/* ── a place switched off for now (server.py: CLOSED): its door greys out and won't open ── */
+.door.closed { filter: grayscale(.9) brightness(.62); cursor: not-allowed; }
+.door.closed .go { opacity: .45; }
+.door.closed .new-tag, .door.closed .live { display: none; }
+.closed-tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 3px; border-radius: 999px;
+  font: 900 11px/1.2 'Orbitron', sans-serif; letter-spacing: .14em; color: #fff; background: rgba(255, 45, 90, .85);
+  box-shadow: 0 0 14px rgba(255, 45, 90, .45); }
+.closed-tag svg { width: 11px; height: 11px; }
+.more-btn.closed { filter: grayscale(.9) brightness(.7); cursor: not-allowed; }
+.door.deny, .more-btn.deny { animation: deny .42s ease; }
+@keyframes deny { 20%, 60% { translate: -7px 0; } 40%, 80% { translate: 7px 0; } }
+
 /* ── the next one: an empty door, waiting ── */
 .door.soon { --a: #5d6390; --b: #2a2f4d; cursor: default; background: rgba(10, 12, 22, .38);
   border: 1px dashed #2a2f4d; box-shadow: none; }
@@ -1119,11 +1131,54 @@ body.leaving main { opacity: .6; transform: scale(.985); transition: opacity .3s
 
   // ── the doors: tilt, light, leaving ──────────────────────────────
   var leaving = false;
+  // ── places switched off for now (server.py: CLOSED) ───────────────
+  // Their doors grey out and won't open; the server shows their closed page
+  // to anyone who gets there another way.
+  var Closed = (function () {
+    var set = {};
+    var KEY = { '/vault': 'vault', '/neon-siege': 'neon-siege', '/rotfall': 'rotfall', '/rotfall-2': 'rotfall-2', '/projects': 'projects' };
+    function keyOf(el) { return KEY[String(el.getAttribute('href') || '').replace(/\/+$/, '')] || ''; }
+    function mark() {
+      Array.prototype.forEach.call(document.querySelectorAll('.door[href], .more-btn[href]'), function (el) {
+        var shut = !!set[keyOf(el)];
+        el.classList.toggle('closed', shut);
+        el.setAttribute('aria-disabled', shut ? 'true' : 'false');
+        var tag = el.querySelector('.closed-tag');
+        if (shut && !tag && el.classList.contains('door')) {
+          var top = el.querySelector('.top');
+          if (top) top.insertAdjacentHTML('beforeend', '<span class="closed-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>CLOSED</span>');
+        } else if (!shut && tag) tag.remove();
+      });
+    }
+    if (/^https?:$/.test(location.protocol) && !window.BS_ROUTE) {
+      try {
+        fetch('/api/closed', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+          if (!j || !j.closed) return;
+          set = {};
+          j.closed.forEach(function (k) { set[k] = true; });
+          mark();
+        }).catch(function () {});
+      } catch (e) {}
+    }
+    return {
+      has: function (k) { return !!set[k]; },
+      door: function (el) { return !!set[keyOf(el)]; },
+      // a click on a closed door: it shakes, and a low double buzz
+      deny: function (el) {
+        el.classList.remove('deny'); void el.offsetWidth; el.classList.add('deny');
+        setTimeout(function () { el.classList.remove('deny'); }, 450);
+        var SN = window.BSND;
+        if (SN && SN.live()) { SN.tone({ f: 220, f2: 170, dur: 0.12, vol: 0.02, type: 'square', cut: 1200 }); SN.tone({ at: 0.13, f: 180, f2: 140, dur: 0.16, vol: 0.02, type: 'square', cut: 1200 }); }
+      }
+    };
+  })();
+
   var doors = Array.prototype.slice.call(document.querySelectorAll('.door[href]'));
   var wipe = document.getElementById('wipe');
 
   function enter(door, x, y) {
     if (leaving) return;
+    if (Closed.door(door)) { Closed.deny(door); return; }
     leaving = true;
     Sound.go(door);
     var href = door.getAttribute('href');

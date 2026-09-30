@@ -49,15 +49,43 @@ VAULT = 'vault.html'
 PROJECTS = 'projects.html'        # Other Projects: the smaller ones
 ROTFALL = 'rotfall.html'          # the first of them: a survival shooter
 ROTFALL2 = 'rotfall-2.html'       # its sequel, a door of its own on the front page
-# Bee's Vault's off switch: while a file called VAULT_CLOSED is in the repo,
-# /vault shows a short 'closed for a moment' page instead and the vault's
-# chat takes no new connections. Delete the file and deploy to open it again.
-VAULT_CLOSED = 'VAULT_CLOSED'
-VAULT_CLOSED_PAGE = 'vault-closed.html'
+# ── The off switches ──────────────────────────────────────────────
+# Each place can be closed for a while: list its name in the file CLOSED (one
+# per line) and deploy. A closed place shows closed.html, a short "closed for a
+# moment" page, at its address and at its file's name; its door on the front
+# page (and on Other Projects) is greyed out; the vault's chat and the game's
+# co-op take no new connections while theirs is closed. Take the line out, or
+# put a # in front of it, and deploy to open it again.
+CLOSED_FILE = 'CLOSED'
+CLOSED_PAGE = 'closed.html'
+PLACES = {   # name in CLOSED: its address, then every file that is that place
+    'vault': ('/vault', VAULT),
+    'neon-siege': ('/neon-siege', GAME, 'neon-siege-2.html'),
+    'rotfall': ('/rotfall', ROTFALL),
+    'rotfall-2': ('/rotfall-2', ROTFALL2),
+    'projects': ('/projects', PROJECTS),
+}
+ROUTE_PLACE = {}
+for _name, (_route, *_files) in PLACES.items():
+    ROUTE_PLACE[_route] = ROUTE_PLACE[_route + '/'] = _name
+    for _f in _files:
+        ROUTE_PLACE['/' + _f] = _name
 
 
-def vault_closed():
-    return os.path.exists(os.path.join(HERE, VAULT_CLOSED))
+def closed_places():
+    """The places switched off right now. Read on every request, so it is only
+    ever as old as the deploy."""
+    try:
+        with open(os.path.join(HERE, CLOSED_FILE), encoding='utf-8') as f:
+            names = [line.split('#', 1)[0].strip().lower() for line in f]
+    except OSError:
+        return set()
+    return {n for n in names if n in PLACES}
+
+
+def place_closed(path):
+    name = ROUTE_PLACE.get(path.split('?', 1)[0].split('#', 1)[0])
+    return bool(name) and name in closed_places()
 
 QUEUE = []                      # peers waiting for a partner, longest wait first
 LOCK = threading.Lock()
@@ -1466,6 +1494,9 @@ class Handler(SimpleHTTPRequestHandler):
     revalidate = False
 
     def translate_path(self, path):
+        # A place that is switched off shows its closed page instead (see CLOSED).
+        if place_closed(path):
+            return SimpleHTTPRequestHandler.translate_path(self, '/' + CLOSED_PAGE)
         # The front door picks between the two sites; the game lives one step in.
         if path in ('/', '/index.html'):
             path = '/' + HOME
@@ -1474,8 +1505,8 @@ class Handler(SimpleHTTPRequestHandler):
         # Bee's Vault rides along as its own page. It is nothing to do with the
         # game and shares none of its state; it is here because this is the
         # host that is already wired to the repo.
-        elif path in ('/vault', '/vault/', '/' + VAULT):
-            path = '/' + (VAULT_CLOSED_PAGE if vault_closed() else VAULT)
+        elif path in ('/vault', '/vault/'):
+            path = '/' + VAULT
         # Other Projects, a page of their own off the front door
         elif path in ('/projects', '/projects/'):
             path = '/' + PROJECTS
@@ -1501,11 +1532,16 @@ class Handler(SimpleHTTPRequestHandler):
         self.revalidate = False
         route = self.path.split('?')[0]
         if route == '/ws':
+            if 'neon-siege' in closed_places():
+                return self.send_json(503, {'ok': False, 'error': 'NEON SIEGE 2 is closed for a moment.'})
             return self.websocket()
         if route == '/chat':
-            if vault_closed():
+            if 'vault' in closed_places():
                 return self.send_json(503, {'ok': False, 'error': "Bee's Vault is closed for a moment."})
             return self.chat_socket()
+        if route == '/api/closed':
+            # which doors the front page should grey out
+            return self.send_json(200, {'closed': sorted(closed_places())})
         if route == '/neon-siege/':
             # the game fetches its voice lines by relative URL, and under a
             # trailing slash those would resolve to /neon-siege/<file> and 404

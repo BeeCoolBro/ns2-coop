@@ -292,6 +292,18 @@ h1 .ch { display: inline-block; transform-origin: 50% 100%; }
   animation: new-pulse 1.7s var(--ease-in-out) infinite; }
 @keyframes new-pulse { 50% { transform: scale(1.07) rotate(-2deg); box-shadow: 0 0 26px rgba(255, 90, 31, .95), inset 0 1px 0 rgba(255, 255, 255, .55); } }
 
+/* ── a place switched off for now (server.py: CLOSED): its door greys out and won't open ── */
+.door.closed { filter: grayscale(.9) brightness(.62); cursor: not-allowed; }
+.door.closed .go { opacity: .45; }
+.door.closed .new-tag, .door.closed .live { display: none; }
+.closed-tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 3px; border-radius: 999px;
+  font: 900 11px/1.2 'Orbitron', sans-serif; letter-spacing: .14em; color: #fff; background: rgba(255, 45, 90, .85);
+  box-shadow: 0 0 14px rgba(255, 45, 90, .45); }
+.closed-tag svg { width: 11px; height: 11px; }
+.more-btn.closed { filter: grayscale(.9) brightness(.7); cursor: not-allowed; }
+.door.deny, .more-btn.deny { animation: deny .42s ease; }
+@keyframes deny { 20%, 60% { translate: -7px 0; } 40%, 80% { translate: 7px 0; } }
+
 /* the corner of each door: its number, and who is in there right now */
 .top { position: absolute; top: 20px; left: 24px; display: flex; align-items: center; gap: 10px; z-index: 1; }
 .idx { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 13px; letter-spacing: .22em;
@@ -1510,6 +1522,48 @@ body.leaving main { opacity: .6; transform: scale(.985); transition: opacity .3s
   var rfDoor = document.querySelector('.door.rotfall');
   if (rfDoor) RotfallScene(rfDoor.querySelector('.rf-scene'), rfDoor);
 
+  // ── places switched off for now (server.py: CLOSED) ───────────────
+  // Their doors grey out and won't open; the server shows their closed page
+  // to anyone who gets there another way.
+  var Closed = (function () {
+    var set = {};
+    var KEY = { '/vault': 'vault', '/neon-siege': 'neon-siege', '/rotfall': 'rotfall', '/rotfall-2': 'rotfall-2', '/projects': 'projects' };
+    function keyOf(el) { return KEY[String(el.getAttribute('href') || '').replace(/\/+$/, '')] || ''; }
+    function mark() {
+      Array.prototype.forEach.call(document.querySelectorAll('.door[href], .more-btn[href]'), function (el) {
+        var shut = !!set[keyOf(el)];
+        el.classList.toggle('closed', shut);
+        el.setAttribute('aria-disabled', shut ? 'true' : 'false');
+        var tag = el.querySelector('.closed-tag');
+        if (shut && !tag && el.classList.contains('door')) {
+          var top = el.querySelector('.top');
+          if (top) top.insertAdjacentHTML('beforeend', '<span class="closed-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>CLOSED</span>');
+        } else if (!shut && tag) tag.remove();
+      });
+    }
+    if (/^https?:$/.test(location.protocol) && !window.BS_ROUTE) {
+      try {
+        fetch('/api/closed', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+          if (!j || !j.closed) return;
+          set = {};
+          j.closed.forEach(function (k) { set[k] = true; });
+          mark();
+        }).catch(function () {});
+      } catch (e) {}
+    }
+    return {
+      has: function (k) { return !!set[k]; },
+      door: function (el) { return !!set[keyOf(el)]; },
+      // a click on a closed door: it shakes, and a low double buzz
+      deny: function (el) {
+        el.classList.remove('deny'); void el.offsetWidth; el.classList.add('deny');
+        setTimeout(function () { el.classList.remove('deny'); }, 450);
+        var SN = window.BSND;
+        if (SN && SN.live()) { SN.tone({ f: 220, f2: 170, dur: 0.12, vol: 0.02, type: 'square', cut: 1200 }); SN.tone({ at: 0.13, f: 180, f2: 140, dur: 0.16, vol: 0.02, type: 'square', cut: 1200 }); }
+      }
+    };
+  })();
+
   // ── the shell: the other places open inside this page ─────────────
   // A browser keeps a page silent until someone clicks on it, and some start
   // every new page silent again. So the vault, the game, Other Projects and
@@ -1588,6 +1642,14 @@ body.leaving main { opacity: .6; transform: scale(.985); transition: opacity .3s
       w.__bsArrived = key;
       if (!playing) play(key, frame);
     }
+    // a place that turned out to be closed (its door wasn't greyed out yet):
+    // no opening, just its closed page
+    function closed(w) {
+      if (!frame || w !== frame.contentWindow) return;
+      if (playing) { playing.cancel(); playing = null; }
+      show(frame);
+      focusIn();
+    }
     // open a place over the page: its opening plays at once, over the door's wipe
     function open(href, now) {
       if (!can || !keyOf(href)) return false;
@@ -1627,14 +1689,14 @@ body.leaving main { opacity: .6; transform: scale(.985); transition: opacity .3s
       if (onHome) onHome();
     }
     if (can) {
-      window.BSShell = { home: home, arrive: arrive };
+      window.BSShell = { home: home, arrive: arrive, closed: closed };
       // Back past the place's own pages closes it
       window.addEventListener('popstate', function () { if (isOpen && !ROUTES[location.hash.slice(1)]) home(); });
     }
     return {
       can: can, open: open, home: home,
       isOpen: function () { return isOpen; },
-      route: function (h) { return can ? ROUTES[String(h || '').replace(/^#/, '')] || '' : ''; },
+      route: function (h) { h = String(h || '').replace(/^#/, ''); return can && !Closed.has(h) ? ROUTES[h] || '' : ''; },
       onHome: function (fn) { onHome = fn; }
     };
   })();
@@ -1646,6 +1708,7 @@ body.leaving main { opacity: .6; transform: scale(.985); transition: opacity .3s
 
   function enter(door, x, y) {
     if (leaving) return;
+    if (Closed.door(door)) { Closed.deny(door); return; }
     leaving = true;
     Sound.go(door);
     var href = door.getAttribute('href');

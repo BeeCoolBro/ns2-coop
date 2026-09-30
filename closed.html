@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Closed for a moment</title>
+<script>
+// A BeeSide place that is switched off (server.py: CLOSED) shows this page at
+// its own address. Which one it is comes from the address.
+var PLACE = (function () {
+  var P = {
+    '/vault': { key: 'vault', name: "Bee's Vault", a: '#00ffe7', b: '#ff2d78', title: 'Clever', icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAADw0lEQVR42u2dzUtUYRxG78zcdEZHRZupIOjDcjHQoijMRUVGCG1c2CZaRB/Sh7sCCfoHWgbtwtqIFraplbUqKCmCwCKqRVCIbULtw8l01JlpNdvnGbiKC8/ZnoHxzpy5wo/3fW8s01suBwJtgyAe175Y1H5uUfuWeu23bdS+Pqn9z7/aT86Yv39B+3QqiIT7/GMx7TNjOf39BbCuIQACAAIAAgACAAIAAoB1RWgHPWbQUDCDnDoziOnr0v7kQe13b9E+uUH7/Lz2Hya1H36p/cPX2rtBTiKhvfv+uAMAAQABAAEAAQABAAEAAUCF0A0iFpe1zzRqf/ei9p171vYDaE5rfyQXzXe0ad8/rH2pZH7Bce4AQABAAEAAQABAAEAAQABQHWHUrUe3zmgfddAzOq79iFlxM5PXfmdW+7NHtd/fqv25Tu3//NP+xoj26VruAEAAQABAAEAAQABAAEAAQABQBeFcQb+gp1377gPau0njwDPtrw1qv2QOoQpN4k/NkrdHb7UfvKK92xv5/JP2taH5fLkDAAEAAQABAAEAAQABAAFAldi9gSf2ae8GPd+mtL/5WPuESTSdjPb3NZjrd4dInb+jvdtb6U4rb0hFuz7uAEAAQABAAEAAQABAAEAAUCFMmdO03WPZHONftZ+e1T5l9r4tmxVBbtBVNocw1brTxs1j48zbB0112hdL0a6POwAQABAAEAAQABAAEAAQAFQI3Qsizhkib11ac8rRPp+ogxruAEAAQABAAEAAQABAAEAAsFKEC0v6BZMz0d5g7w7tWxq0d6dpJ82KHXsauvkJLCxq32i2bhWWo10fW8OAfwFAAEAAQABAAEAAQACwUoRFM0hwj207fUj7XZu1v96tff+Q9m5QEya0L5hBWLZR+4FL2qdqtHdnJL35on0iwR0ACAAIAAgACAAIAAgACACqI3TPnx99p/0TMyhyh033dWm/tVn7B6+0/zWnvTsD6cIx7Tvaon0B7ye0f/FZ+3oGQUAAQABAAEAAQABAAEAAQABQDbFsr95d5h57tqlJ+3tmydTh3OpeoN0buMqHON0f0/7qoPbuNPS4+QlnxnLcAYAAgACAAIAAgACAAIAAIAiCIAhLZlBSY84T//Fb+1O3tb98XPuedu1bzd5D91i8/Lz2H79r7wY9Q8a7QZXb28ghUUAAQABAAEAAQABAAEAAUC2xjFkR5AYNbkWKW9Eybw55yqS1357V3p22PZ3XfmJK+9kF7d3ey7hZkVSKuKKJFUFAAEAAQABAAEAAQABAAFDhP+evvoTGZzz4AAAAAElFTkSuQmCC' },
+    '/neon-siege': { key: 'neon-siege', name: 'NEON SIEGE 2', a: '#22e6ff', b: '#a855f7' },
+    '/rotfall': { key: 'rotfall', name: 'ROTFALL', a: '#e85d00', b: '#ff2200' },
+    '/rotfall-2': { key: 'rotfall-2', name: 'ROTFALL 2', a: '#e85d00', b: '#ff2200' },
+    '/projects': { key: 'projects', name: 'Other Projects', a: '#ff9f1c', b: '#ffd633' }
+  };
+  var FILES = { '/vault.html': '/vault', '/neon-siege-2-coop.html': '/neon-siege', '/neon-siege-2.html': '/neon-siege',
+    '/rotfall.html': '/rotfall', '/rotfall-2.html': '/rotfall-2', '/projects.html': '/projects' };
+  var p = location.pathname.replace(/\/+$/, '') || '/';
+  return P[FILES[p] || p] || { key: '', name: 'This place', a: '#ffd633', b: '#ff2d78' };
+})();
+document.title = PLACE.title || PLACE.name + ' - closed for a moment';
+if (PLACE.icon) { var ic = document.createElement('link'); ic.rel = 'icon'; ic.type = 'image/png'; ic.href = PLACE.icon; document.head.appendChild(ic); }
+document.documentElement.style.setProperty('--a', PLACE.a);
+document.documentElement.style.setProperty('--b', PLACE.b);
+// Inside the front page: show this page straight away, with no opening
+try {
+  if (window.parent !== window && parent.BSShell && parent.location.host === location.host) {
+    window.__bsOpeningDone = function () {};
+    if (parent.BSShell.closed) parent.BSShell.closed(window);
+    else if (PLACE.key) parent.BSShell.arrive(PLACE.key, window);
+  }
+} catch (e) {}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root { --a: #ffd633; --b: #ff2d78; --bg: #05060c; --panel: #0f1020; --border: #1f2140; --text: #dcdcf2; --muted: #6b6f98; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--text); }
+html { overflow: hidden; }
+body { overflow: auto; display: flex; align-items: center; justify-content: center; padding: 24px 16px; font-family: 'Share Tech Mono', monospace;
+  background: radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--a) 8%, transparent), transparent 60%), var(--bg); }
+.card { width: min(460px, 100%); text-align: center; padding: 36px 28px 30px; border: 1px solid var(--border); border-radius: 14px;
+  background: linear-gradient(180deg, #121324, var(--panel)); box-shadow: 0 20px 60px rgba(0, 0, 0, .5); position: relative; overflow: hidden; }
+.card::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: linear-gradient(90deg, var(--a), var(--b)); }
+.name { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 24px; letter-spacing: .1em; color: var(--a);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--a) 50%, transparent); }
+.lock { width: 64px; height: 64px; margin: 24px auto 18px; display: grid; place-items: center; border-radius: 16px; color: var(--a);
+  border: 1px solid color-mix(in srgb, var(--a) 40%, transparent); background: color-mix(in srgb, var(--a) 6%, transparent);
+  box-shadow: 0 0 26px color-mix(in srgb, var(--a) 16%, transparent); }
+.lock svg { width: 30px; height: 30px; }
+h1 { font-family: 'Orbitron', sans-serif; font-size: 17px; letter-spacing: .14em; color: #fff; text-transform: uppercase; }
+p { margin-top: 12px; font-size: 14px; line-height: 1.6; color: var(--muted); }
+a.home { display: inline-flex; align-items: center; gap: 8px; margin-top: 26px; padding: 10px 18px; border-radius: 8px; text-decoration: none;
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: .16em; color: var(--a);
+  border: 1px solid color-mix(in srgb, var(--a) 45%, transparent); background: color-mix(in srgb, var(--a) 7%, transparent); transition: background .2s, box-shadow .2s; }
+a.home:hover, a.home:focus-visible { background: color-mix(in srgb, var(--a) 14%, transparent); box-shadow: 0 0 24px color-mix(in srgb, var(--a) 28%, transparent); outline: none; }
+a.home svg { width: 14px; height: 14px; }
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="name" id="name"></div>
+  <div class="lock" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.3" fill="currentColor"/></svg></div>
+  <h1>Closed for a moment</h1>
+  <p><span id="who"></span> is taking a short break.<br>Check back soon.</p>
+  <a class="home" href="/"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H4M7.5 4 3.5 8l4 4"/></svg>BEESIDE</a>
+</main>
+<script>
+document.getElementById('name').textContent = PLACE.name;
+document.getElementById('who').textContent = PLACE.name;
+</script>
+</body>
+</html>
