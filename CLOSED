@@ -1,6 +1,10 @@
-# Which BeeSide places are closed for now, one per line. A closed place shows
-# a short "closed for a moment" page, and its door on the front page is greyed out.
-# Places: vault, neon-siege, rotfall, rotfall-2, projects
-# all = the whole of BeeSide Studio's, the front page too
-# Take a line out (or put a # in front of it) and deploy to open it again.
-vault
+# Which BeeSide places are closed for now. A closed place shows a short
+# "closed for a moment" page, and its door on the front page is greyed out.
+#
+# Names you can use: vault, neon-siege, rotfall, rotfall-2, projects
+#   all = the whole of BeeSide Studio's, the front page too
+#
+# To close a place, write its name on its own line under CLOSED RIGHT NOW.
+# To open it again, delete that line. Lines starting with # don't count.
+
+# ===== CLOSED RIGHT NOW (nothing listed = everything open) =====
