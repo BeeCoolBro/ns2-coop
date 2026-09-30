@@ -508,6 +508,15 @@ key is refused; a spectator joining mid-match gets the cached start and then
 live frames while the guest keeps receiving its own; an injection reaches only
 the host; and a player leaving closes the match and releases its spectators.
 
+## Closing Bee's Vault for a while
+
+While a file called `VAULT_CLOSED` is in the repo, `/vault` (and
+`/vault.html`) shows `vault-closed.html` instead: "Closed for a moment", in
+the vault's look and under its Clever disguise, with a way back to BeeSide.
+The vault's chat takes no new connections. The front page's vault door still
+plays its opening and lands on that page. Vault tabs that are already open keep
+working until they're reloaded. Delete `VAULT_CLOSED` and deploy to open it again.
+
 ## Bee's Vault and its Links tab
 
 `vault.html` is served at `/vault`. It has nothing to do with the game and

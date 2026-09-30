@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clever</title>
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAADw0lEQVR42u2dzUtUYRxG78zcdEZHRZupIOjDcjHQoijMRUVGCG1c2CZaRB/Sh7sCCfoHWgbtwtqIFraplbUqKCmCwCKqRVCIbULtw8l01JlpNdvnGbiKC8/ZnoHxzpy5wo/3fW8s01suBwJtgyAe175Y1H5uUfuWeu23bdS+Pqn9z7/aT86Yv39B+3QqiIT7/GMx7TNjOf39BbCuIQACAAIAAgACAAIAAoB1RWgHPWbQUDCDnDoziOnr0v7kQe13b9E+uUH7/Lz2Hya1H36p/cPX2rtBTiKhvfv+uAMAAQABAAEAAQABAAEAAUCF0A0iFpe1zzRqf/ei9p171vYDaE5rfyQXzXe0ad8/rH2pZH7Bce4AQABAAEAAQABAAEAAQABQHWHUrUe3zmgfddAzOq79iFlxM5PXfmdW+7NHtd/fqv25Tu3//NP+xoj26VruAEAAQABAAEAAQABAAEAAQABQBeFcQb+gp1377gPau0njwDPtrw1qv2QOoQpN4k/NkrdHb7UfvKK92xv5/JP2taH5fLkDAAEAAQABAAEAAQABAAFAldi9gSf2ae8GPd+mtL/5WPuESTSdjPb3NZjrd4dInb+jvdtb6U4rb0hFuz7uAEAAQABAAEAAQABAAEAAUCFMmdO03WPZHONftZ+e1T5l9r4tmxVBbtBVNocw1brTxs1j48zbB0112hdL0a6POwAQABAAEAAQABAAEAAQAFQI3Qsizhkib11ac8rRPp+ogxruAEAAQABAAEAAQABAAEAAsFKEC0v6BZMz0d5g7w7tWxq0d6dpJ82KHXsauvkJLCxq32i2bhWWo10fW8OAfwFAAEAAQABAAEAAQACwUoRFM0hwj207fUj7XZu1v96tff+Q9m5QEya0L5hBWLZR+4FL2qdqtHdnJL35on0iwR0ACAAIAAgACAAIAAgACACqI3TPnx99p/0TMyhyh033dWm/tVn7B6+0/zWnvTsD6cIx7Tvaon0B7ye0f/FZ+3oGQUAAQABAAEAAQABAAEAAQABQDbFsr95d5h57tqlJ+3tmydTh3OpeoN0buMqHON0f0/7qoPbuNPS4+QlnxnLcAYAAgACAAIAAgACAAIAAIAiCIAhLZlBSY84T//Fb+1O3tb98XPuedu1bzd5D91i8/Lz2H79r7wY9Q8a7QZXb28ghUUAAQABAAEAAQABAAEAAUC2xjFkR5AYNbkWKW9Eybw55yqS1357V3p22PZ3XfmJK+9kF7d3ey7hZkVSKuKKJFUFAAEAAQABAAEAAQABAAFDhP+evvoTGZzz4AAAAAElFTkSuQmCC">
+<script>
+// Bee's Vault is switched off (server.py: VAULT_CLOSED). Inside the front page,
+// the vault's opening is waiting for this page to say it has arrived.
+try {
+  if (window.parent !== window && parent.BSShell && parent.location.host === location.host) {
+    window.__bsOpeningDone = function () {};
+    parent.BSShell.arrive('vault', window);
+  }
+} catch (e) {}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root { --bg: #050508; --panel: #0f0f1a; --border: #1e1e36; --accent: #00ffe7; --accent2: #ff2d78; --text: #d8d8f0; --muted: #6a6a90; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--text); }
+html { overflow: hidden; }
+body { overflow: auto; }
+body { display: flex; align-items: center; justify-content: center; padding: 24px 16px; font-family: 'Share Tech Mono', monospace;
+  background: radial-gradient(ellipse at 50% 40%, rgba(0, 255, 231, .06), transparent 60%), var(--bg); }
+.card { width: min(460px, 100%); text-align: center; padding: 36px 28px 30px; border: 1px solid var(--border); border-radius: 14px;
+  background: linear-gradient(180deg, #11111d, var(--panel)); box-shadow: 0 20px 60px rgba(0, 0, 0, .5); position: relative; overflow: hidden; }
+.card::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+.logo { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 26px; letter-spacing: .12em; }
+.logo b { color: var(--accent); font-weight: 900; text-shadow: 0 0 18px rgba(0, 255, 231, .5); }
+.logo i { color: var(--accent2); font-style: normal; text-shadow: 0 0 18px rgba(255, 45, 120, .5); }
+.lock { width: 64px; height: 64px; margin: 26px auto 18px; display: grid; place-items: center; border-radius: 16px;
+  border: 1px solid rgba(0, 255, 231, .35); background: rgba(0, 255, 231, .05); box-shadow: 0 0 26px rgba(0, 255, 231, .15); }
+.lock svg { width: 30px; height: 30px; }
+h1 { font-family: 'Orbitron', sans-serif; font-size: 17px; letter-spacing: .14em; color: #fff; text-transform: uppercase; }
+p { margin-top: 12px; font-size: 14px; line-height: 1.6; color: var(--muted); }
+a.home { display: inline-flex; align-items: center; gap: 8px; margin-top: 26px; padding: 10px 18px; border-radius: 8px; text-decoration: none;
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: .16em; color: var(--accent);
+  border: 1px solid rgba(0, 255, 231, .4); background: rgba(0, 255, 231, .06); transition: background .2s, box-shadow .2s; }
+a.home:hover, a.home:focus-visible { background: rgba(0, 255, 231, .12); box-shadow: 0 0 24px rgba(0, 255, 231, .25); outline: none; }
+a.home svg { width: 14px; height: 14px; }
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="logo"><b>BEE'S</b><i>VAULT</i></div>
+  <div class="lock" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#00ffe7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.3" fill="#00ffe7"/></svg></div>
+  <h1>Closed for a moment</h1>
+  <p>Bee's Vault is taking a short break.<br>Check back soon.</p>
+  <a class="home" href="/"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H4M7.5 4 3.5 8l4 4"/></svg>BEESIDE</a>
+</main>
+</body>
+</html>

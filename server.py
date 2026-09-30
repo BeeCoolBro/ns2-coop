@@ -49,6 +49,15 @@ VAULT = 'vault.html'
 PROJECTS = 'projects.html'        # Other Projects: the smaller ones
 ROTFALL = 'rotfall.html'          # the first of them: a survival shooter
 ROTFALL2 = 'rotfall-2.html'       # its sequel, a door of its own on the front page
+# Bee's Vault's off switch: while a file called VAULT_CLOSED is in the repo,
+# /vault shows a short 'closed for a moment' page instead and the vault's
+# chat takes no new connections. Delete the file and deploy to open it again.
+VAULT_CLOSED = 'VAULT_CLOSED'
+VAULT_CLOSED_PAGE = 'vault-closed.html'
+
+
+def vault_closed():
+    return os.path.exists(os.path.join(HERE, VAULT_CLOSED))
 
 QUEUE = []                      # peers waiting for a partner, longest wait first
 LOCK = threading.Lock()
@@ -1465,8 +1474,8 @@ class Handler(SimpleHTTPRequestHandler):
         # Bee's Vault rides along as its own page. It is nothing to do with the
         # game and shares none of its state; it is here because this is the
         # host that is already wired to the repo.
-        elif path in ('/vault', '/vault/'):
-            path = '/' + VAULT
+        elif path in ('/vault', '/vault/', '/' + VAULT):
+            path = '/' + (VAULT_CLOSED_PAGE if vault_closed() else VAULT)
         # Other Projects, a page of their own off the front door
         elif path in ('/projects', '/projects/'):
             path = '/' + PROJECTS
@@ -1494,6 +1503,8 @@ class Handler(SimpleHTTPRequestHandler):
         if route == '/ws':
             return self.websocket()
         if route == '/chat':
+            if vault_closed():
+                return self.send_json(503, {'ok': False, 'error': "Bee's Vault is closed for a moment."})
             return self.chat_socket()
         if route == '/neon-siege/':
             # the game fetches its voice lines by relative URL, and under a
