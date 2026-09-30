@@ -5478,7 +5478,8 @@ const GAMES = [
   { url: "https://epsteinclicker.github.io/", name: "Epstein Clicker", cat: ["idle"], icon: "" },
   { url: "https://truffled.lol/games/Cuphead/index.html", name: "Cuphead", cat: ["ports"], icon: "" },
   { url: "https://truffled.lol/games/pikubog/index.html", name: "PikuBog", cat: ["ports"], icon: "" },
-  { url: "https://truffled.lol/games/raldi/index.html", name: "Raldi", cat: ["ports"], icon: "" },];
+  { url: "https://truffled.lol/games/raldi/index.html", name: "Raldi", cat: ["ports"], icon: "" },
+  { url: "https://realwork.netlify.app/games/dsaf2/", name: "DSAF 2", cat: ["ports"], icon: "" },];
 
 const APPS = [
   { url: "https://realwork.netlify.app/apps/ruffle/", name: "Ruffle", icon: "", tag: "Emulator", desc: "Play Flash games & animations in your browser" },
@@ -5846,6 +5847,7 @@ const WARNED_APPS = new Set([
   'https://truffled.lol/games/Cuphead/index.html',
   'https://truffled.lol/games/pikubog/index.html',
   'https://truffled.lol/games/raldi/index.html',
+  'https://realwork.netlify.app/games/dsaf2/',
 ]);
 
 // Custom warning messages per warned app URL. If a URL isn't in this map,
@@ -5854,6 +5856,11 @@ const WARNED_APP_MESSAGES = {
   'https://truffled.lol/games/Cuphead/index.html': 'This Game Runs Via A External Source Not Fully Tested',
   'https://truffled.lol/games/pikubog/index.html': 'This Game Runs Via A External Source Not Fully Tested',
   'https://truffled.lol/games/raldi/index.html': 'This Game Runs Via A External Source Not Fully Tested',
+  'https://realwork.netlify.app/games/dsaf2/': 'This game has mature content: crude and sexual humor, strong language, and some gore. It is meant for older players.',
+};
+// A title for the warning other than the plain "Warning"
+const WARNED_APP_TITLES = {
+  'https://realwork.netlify.app/games/dsaf2/': 'Mature Content Warning',
 };
 let pendingWarnedApp = null;
 
@@ -5967,6 +5974,8 @@ function showContentWarning(appName) {
   const modal = document.getElementById('content-warn-modal');
   const nameEl = document.getElementById('content-warn-name');
   if (nameEl) nameEl.textContent = appName;
+  const titleEl = document.getElementById('content-warn-title-text');
+  if (titleEl) titleEl.textContent = (pendingWarnedApp && WARNED_APP_TITLES[pendingWarnedApp.url]) || 'Warning';
   // Use custom warning message if this URL has one, otherwise use the default text
   const msgEl = document.getElementById('content-warn-message');
   if (msgEl && pendingWarnedApp) {
