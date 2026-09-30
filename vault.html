@@ -6010,6 +6010,7 @@ const APPS = [
   { url: "https://winxp.netlify.app/", name: "Windows XP", icon: "", tag: "OS Sim", desc: "Windows XP nostalgia simulator" },
   { url: "https://pointerpointer.com/", name: "Pointer Pointer", icon: "", tag: "Toy", desc: "Always points at your cursor — somehow" },
   { url: "https://www.cloudmoonapp.com/", name: "CloudMoon", icon: "", tag: "Cloud", desc: "Games That Usually Dont Run On The Web" },
+  { url: "https://xcloud.adijaya.id/", name: "X-Cloud", icon: "", tag: "Cloud", desc: "A full cloud desktop in your browser (opens in a new tab)" },
 ];
 
 // ===== CATEGORY CONFIG =====
@@ -6338,6 +6339,12 @@ const EXTERNAL_GAMES = new Set([
 // Pending external game awaiting double confirmation
 let pendingExternalGame = null;
 
+// Apps that refuse to be framed (X-Frame-Options / frame-ancestors), even
+// from an about:blank page: they open straight in a new tab
+const NEWTAB_APPS = new Set([
+  'https://xcloud.adijaya.id/',
+]);
+
 // Apps that require a content warning before opening
 const WARNED_APPS = new Set([
   'https://www.cloudmoonapp.com/',
@@ -6362,6 +6369,12 @@ function openGame(url, name, cardEl) {
     setTimeout(() => { cardEl.style.animation = ''; }, 10);
   }
   trackRecent(url);
+  if (NEWTAB_APPS.has(url)) {
+    playSound('launch');
+    window.open(url, '_blank', 'noopener,noreferrer');
+    showToast(`> Opened ${name} in new tab`);
+    return;
+  }
   // Frame-busting games require double confirmation before opening externally
   if (EXTERNAL_GAMES.has(url)) {
     pendingExternalGame = { url, name };
