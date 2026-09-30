@@ -101,8 +101,17 @@ is an empty dashed door, "More soon", holding the place for the next one. A
 new project gets a door like ROTFALL's in its place, and the "More soon" door
 moves after it or goes.
 
-**Bee's Vault** opens with a vault door. Its dial cracks a combination while
-the page downloads, then the bolts pull back and the door swings open. It sits
+**Bee's Vault** opens like a heist. In the dark, three overhead lamps clunk
+on one by one, the last lighting the vault door, and a security feed's frame
+comes up round the screen. A red laser sweeps the door and flashes green:
+identity confirmed. The dial cracks a combination while the page downloads,
+with a light per number that goes amber while the dial hunts and green when
+it lands. It greets you by the name you chat under (`player-name`), or says
+access granted. The bolts pull back, the seal breaks in a burst of steam, and
+the door swings open. It has real thickness: a stack of rims behind its face
+shows as it turns. Light pours out with dust hanging in it, and the camera
+pushes through into the vault before it all fades. The short version (later
+visits, or a click) goes straight to the unlock. It sits
 right after the favicon, not in `<body>`: the vault's head holds 1.7 MB of
 theme images, and until now the screen stayed blank while they arrived.
 
@@ -140,12 +149,15 @@ popup wait until the door has opened. The game's opening is in
 the co-op build.
 
 The three openings have a sound for every step, on the same synth.
-- **Bee's Vault.** The door arrives with a heavy ring over a vault hum, and
-  the status types out. The dial ratchets, each click coming from where it
+- **Bee's Vault.** Each lamp clunks on and buzzes, from its own side, and
+  the feed chirps up. The door arrives with a heavy ring over a vault hum, and
+  the status types out. The laser whines down and back up, then chirps when it
+  confirms you. The dial ratchets, each click coming from where it
   points. Each number drops a tumbler, chimes and fills the ring, and "access
   granted" rings a chord. The twelve bolts slide back, each from its own side,
-  then the handle creaks and clunks. The seal hisses, the hinge groans, the
-  door rumbles open, light pours out in bells, and you whoosh inside.
+  then the handle creaks and clunks. The seal breaks with a thump and a long
+  hiss of steam, the hinge groans, the door rumbles open, light pours out in
+  bells, and you whoosh inside on a shimmer.
 - **NEON SIEGE 2.** The CRT thunks on with static, a whine and the degauss
   wobble, and stars ping. The sun rises on a pad, a riser and the grid's bass
   pulse, and "presents" types out. Each letter punches in from left to right,
