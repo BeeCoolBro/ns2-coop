@@ -1211,8 +1211,8 @@ const lvMult=l=>1+(l-1)*0.28;
 const evolved=w=>w.lvl>=MAXLV;
 function wName(w){return evolved(w)?WDEFS[w.type].evo.name:WDEFS[w.type].name;}
 const canEvolve=w=>w.lvl===STARS&&(G.p.ups[PAIR[w.type]]|0)>0;
-// experience for the next level: a slow curve upward, times 1.2
-const xpFor=l=>Math.round((10+l*8+l*l*0.4)*1.2);
+// experience for the next level: a slow curve upward, times 1.1
+const xpFor=l=>Math.round((10+l*8+l*l*0.4)*1.1);
 
 // ── GADGETS & TRAITS ──────────────────────────────────────
 const PASSIVES=[

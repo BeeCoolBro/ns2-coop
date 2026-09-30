@@ -213,7 +213,7 @@ It plays like Survivor.io, with ROTFALL's guns, supports, survivors and dead:
 - **The rest.** Meat heals 30%, a magnet pulls everything in, a bomb clears the
   screen, and gold goes home with you for TALENTS (damage, health, armour,
   speed, reach, gold, refreshes). The first time you fall you get one free
-  revive. The experience for each level climbs on a gentle curve, times 1.2.
+  revive. The experience for each level climbs on a gentle curve, times 1.1.
 
 ## What the free plan means
 
