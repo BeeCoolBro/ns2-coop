@@ -35,14 +35,18 @@ flips up out of the splash in 3D, rays of light break from it and drops of
 honey spray out. The honeycomb rises from a floor into a wall as a wave runs
 out through it, each cell flipping into place. Two rings spin up round the
 logo like a gyroscope, the name rises, the rule is drawn out from a spark,
-and the doors swing in from either side and light up. The whole page settles
+and the three doors swing in (the outer two from either side, the middle one
+straight up) and light up. The whole page settles
 out of a slight tilt as it all arrives. Later visits get a shorter version,
 and Other Projects arrives the same way. Everything moves by transform,
 opacity or the canvas: nothing is blurred as it moves. Each door tilts towards the
 pointer. The vault's door turns its dial and spills out what's inside, and
-NEON SIEGE 2's door has a small tower-defense fight running in it. Each door
-shows who is in there right now, and a ticker lists what is inside. **1** and
-**2** pick a door, and picking one opens it out into the next page.
+NEON SIEGE 2's door has a small tower-defense fight running in it. ROTFALL
+2's door sits between them, tagged NEW!!!, with the same live swarm scene as
+ROTFALL's door on Other Projects. The vault's and the game's doors show who
+is in there right now, and a ticker lists what is inside. **1**, **2** and
+**3** pick a door, **4** is Other Projects, and picking one opens it out into
+the next page.
 
 **Sound** is on everything, synthesized by `beeside-sound.js`: one small
 shared synth with a reverb hall, stereo panning and bell tones, used by the
@@ -102,8 +106,8 @@ new project gets a door like ROTFALL's in its place, and the "More soon" door
 moves after it or goes.
 
 **The openings live in `openings.js`**, and the front page plays them. The
-front page is a shell. Picking the vault, NEON SIEGE 2, Other Projects or
-ROTFALL opens that place in a frame over the front page instead of leaving it
+front page is a shell. Picking the vault, ROTFALL 2, NEON SIEGE 2, Other
+Projects or ROTFALL opens that place in a frame over the front page instead of leaving it
 (`#app`; the address shows `/#vault` and so on). A browser keeps a page silent
 until someone clicks on it, and some start every new page silent again. So
 the one click that lets the front page make sound lets every place make it
@@ -119,7 +123,7 @@ opening holds at its last beat until it is (the vault's door keeps syncing).
 - **While a place is open**, the front page stops drawing and making sound
   underneath it.
 - **Opened on its own at BeeSide's address**, `/vault`, `/neon-siege`,
-  `/projects` or `/rotfall` goes through the front page (`/#vault`). There it
+  `/projects`, `/rotfall` or `/rotfall-2` goes through the front page (`/#vault`). There it
   meets the front page's one CLICK TO ENTER if the browser hasn't allowed sound
   yet.
 - **Everywhere else** (BeeSide's single-file copy, a file on disk, the game
@@ -128,6 +132,9 @@ opening holds at its last beat until it is (the vault's door keeps syncing).
 - **A page in the frame** tells the shell it has arrived (`BSShell.arrive`)
   from the top of its page. One that got there without a door on the front
   page (Other Projects to ROTFALL, a reload) gets its opening then.
+- **ROTFALL 2** has no opening in `openings.js`: it plays its own, inside the
+  frame. Its CLICK TO BEGIN lets itself through when sound is already allowed,
+  so after the front page's one click it plays straight through.
 
 **Bee's Vault** opens down a honeycomb tunnel. Rings of hexagons rush past
 until the camera arrives at a hexagonal vault door: an iris of six steel
@@ -178,6 +185,35 @@ Every step has its sound, on the shared synth.
   rings out.
 
 The vault also listens to its own SFX switch.
+
+## ROTFALL 2
+
+`rotfall-2.html` (at `/rotfall-2`) is built, not written by hand: its sources
+are kept outside this repo in `rotfall2-src`, and `python build.py` there
+writes the page here. Edit the sources and rebuild; don't edit the page.
+
+It plays like Survivor.io, with ROTFALL's guns, supports, survivors and dead:
+- **Chapters.** Five of them, fifteen minutes each and harder each time
+  (tougher, harder-hitting, faster, more of them, their own ground). Clearing
+  one opens the next.
+- **The script.** Marked elites carry chests. The horde rings you in, a
+  stampede of runners cuts straight across, and the blood moon rises at 12:00.
+  Each comes with a warning a few seconds ahead.
+- **The Maws.** At 5:00, 10:00 and 15:00 an electric fence goes up round you
+  and a Maw. The clock stops, the ordinary dead stop coming, and touching the
+  wire hurts. The first two drop a Maw's hoard (three upgrades); the last one
+  ends the chapter.
+- **Skills.** Three cards a level (REFRESH deals new ones): a new weapon or
+  support, or another star on one you carry. Six weapons and six supports at
+  most, five stars each. Each weapon has a partner support (shown on the
+  cards and in the Armory). A weapon at five stars with its partner evolves
+  from the next chest. When everything is full, the cards offer food or gold.
+- **Chests.** One upgrade, three if you're lucky, five if you're very lucky,
+  with an evolution first whenever one is ready.
+- **The rest.** Meat heals 30%, a magnet pulls everything in, a bomb clears the
+  screen, and gold goes home with you for TALENTS (damage, health, armour,
+  speed, reach, gold, refreshes). The first time you fall you get one free
+  revive. The experience for each level climbs on a gentle curve, times 1.2.
 
 ## What the free plan means
 
@@ -956,6 +992,7 @@ priority, synergy, or how a real wave actually arrives.
 | `index.html` | the BeeSide Studio's front page at `/`: the hive, a door into each site with who is in there, and back -- the vault's header and the game's title screen each have a BeeSide button |
 | `projects.html` | Other Projects at `/projects`: the front page's look, a door for each of the smaller projects |
 | `rotfall.html` | ROTFALL, the first of the Other Projects, at `/rotfall` |
+| `rotfall-2.html` | ROTFALL 2, on the front page at `/rotfall-2`; built from `rotfall2-src` (see ROTFALL 2 above) |
 | `beeside-sound.js` | the shared synth behind every sound on the front page, Other Projects and the three openings |
 | `openings.js` | the openings of Bee's Vault, NEON SIEGE 2 and ROTFALL: played by the front page over itself, or by a page over itself anywhere else |
 | `neon-siege-2-coop.html` | the game, at `/neon-siege` |

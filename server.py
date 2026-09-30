@@ -48,6 +48,7 @@ GAME = 'neon-siege-2-coop.html'
 VAULT = 'vault.html'
 PROJECTS = 'projects.html'        # Other Projects: the smaller ones
 ROTFALL = 'rotfall.html'          # the first of them: a survival shooter
+ROTFALL2 = 'rotfall-2.html'       # its sequel, a door of its own on the front page
 
 QUEUE = []                      # peers waiting for a partner, longest wait first
 LOCK = threading.Lock()
@@ -1471,6 +1472,8 @@ class Handler(SimpleHTTPRequestHandler):
             path = '/' + PROJECTS
         elif path in ('/rotfall', '/rotfall/'):
             path = '/' + ROTFALL
+        elif path in ('/rotfall-2', '/rotfall-2/'):
+            path = '/' + ROTFALL2
         return SimpleHTTPRequestHandler.translate_path(self, path)
 
     def end_headers(self):
