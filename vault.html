@@ -975,11 +975,6 @@ position: relative; top: 1px;
 @media (max-width: 560px) { .tab-btn { font-size: 0.74rem; padding: 14px 12px 12px; letter-spacing: 0.12em; } }
 .tab-btn:hover { color: var(--text); }
 .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 80%, transparent), 0 0 20px color-mix(in srgb, var(--accent) 40%, transparent); }
-.tab-btn.cloud-tab.active { color: #38bdf8; border-bottom-color: #38bdf8; text-shadow: 0 0 10px #38bdf8cc, 0 0 20px #38bdf866; }
-.tab-btn .tab-short { display: none; }
-@media (max-width: 560px) { .tab-btn .tab-long { display: none; } .tab-btn .tab-short { display: inline; }
-  /* six tabs now: a little tighter, so they still share one line */
-  .tabs { padding: 0 6px; } .tab-btn { padding-left: 7px; padding-right: 7px; letter-spacing: 0.06em; } }
 .tab-btn.apps-tab.active { color: var(--accent2); border-bottom-color: var(--accent2); text-shadow: 0 0 10px #ff2d78cc, 0 0 20px #ff2d7866; }
 .tab-btn.credits-tab.active { color: var(--accent3); border-bottom-color: var(--accent3); text-shadow: 0 0 10px #ffe600cc, 0 0 20px #ffe60066; }
 .tab-btn.active::after { content: ''; position: absolute; left: 0; right: 0; bottom: -2px; height: 2px; background: currentColor; filter: blur(4px); opacity: 0.8; }
@@ -3124,29 +3119,6 @@ try { if (localStorage.getItem('fullMotion') === 'true') document.documentElemen
               color var(--dur-3) var(--ease-out), opacity var(--dur-2) var(--ease-out);
 }
 .tabs:has(.apps-tab.active) .tab-ink { color: var(--accent2); }
-.tabs:has(.cloud-tab.active) .tab-ink { color: #38bdf8; }
-/* ===== CLOUD GAMES: Cherri's games page, in a frame under a slim bar ===== */
-#cloud-view { padding: 14px 24px 0; }
-.cloud-bar { display: flex; align-items: center; gap: 14px 18px; flex-wrap: wrap; padding: 10px 14px; margin-bottom: 12px;
-  border: 1px solid color-mix(in srgb, #38bdf8 30%, var(--border)); border-radius: 10px;
-  background: linear-gradient(90deg, color-mix(in srgb, #38bdf8 9%, var(--panel)), var(--panel)); }
-.cloud-title { display: flex; align-items: center; gap: 9px; font-family: Orbitron, sans-serif; font-weight: 700; font-size: 0.9rem;
-  letter-spacing: 0.14em; text-transform: uppercase; color: #38bdf8; text-shadow: 0 0 12px #38bdf866; white-space: nowrap; }
-.cloud-title .bv-icon { width: 18px; height: 18px; }
-.cloud-title small { font-family: 'Share Tech Mono', monospace; font-weight: 400; font-size: 0.7rem; letter-spacing: 0.08em; color: var(--muted); text-transform: none; text-shadow: none; }
-.cloud-hint { flex: 1; min-width: 220px; font-family: 'Share Tech Mono', monospace; font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
-.cloud-hint b { color: var(--text); font-weight: 700; }
-.cloud-actions { display: flex; gap: 8px; }
-.cloud-actions button { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 7px; cursor: pointer;
-  font-family: Orbitron, sans-serif; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-  color: #38bdf8; background: color-mix(in srgb, #38bdf8 7%, transparent); border: 1px solid color-mix(in srgb, #38bdf8 40%, transparent);
-  transition: background var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out); }
-.cloud-actions button:hover, .cloud-actions button:focus-visible { background: color-mix(in srgb, #38bdf8 15%, transparent); box-shadow: 0 0 16px #38bdf840; outline: none; }
-.cloud-stage { position: relative; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: #0d0a0d; }
-.cloud-stage iframe { display: block; width: 100%; height: 100%; border: 0; background: #0d0a0d; }
-.cloud-loading { position: absolute; inset: 0; display: grid; place-items: center; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--muted); pointer-events: none; transition: opacity .4s; }
-.cloud-stage.ready .cloud-loading { opacity: 0; }
-@media (max-width: 560px) { #cloud-view { padding: 10px 10px 0; } .cloud-actions { width: 100%; } .cloud-actions button { flex: 1; justify-content: center; } }
 .tabs:has(.links-tab.active) .tab-ink,
 .tabs:has(.credits-tab.active) .tab-ink,
 .tabs:has(.allsongs-tab.active) .tab-ink { color: var(--accent3); }
@@ -3372,10 +3344,6 @@ body.potato-mode { transition: none; }
 <circle cx="10" cy="9.2" r="0.85" fill="currentColor"/>
 <circle cx="12" cy="9.2" r="0.85" fill="currentColor"/>
 <circle cx="11" cy="10.9" r="0.85" fill="currentColor"/>
-</symbol>
-<symbol id="bv-cloud" viewBox="0 0 16 16">
-<path d="M4.6 12.5h7a3 3 0 00.4-6 4.2 4.2 0 00-8.1.9A2.6 2.6 0 004.6 12.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
-<path d="M7.3 8.1v2.6l2.2-1.3z" fill="currentColor"/>
 </symbol>
 <symbol id="bv-apps" viewBox="0 0 16 16">
 <path d="M13 2.5a3.5 3.5 0 00-4.5 3.5L2 12.5a1.5 1.5 0 002 2l6.5-6.5A3.5 3.5 0 0013 2.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
@@ -4112,7 +4080,6 @@ animation: launch-flash-anim 0.4s var(--ease-out);
 </header>
 <div class="tabs">
 <button class="tab-btn active" data-tab="games"><svg class="bv-icon" aria-hidden="true"><use href="#bv-gamepad"/></svg> Games</button>
-<button class="tab-btn cloud-tab" data-tab="cloud"><svg class="bv-icon" aria-hidden="true"><use href="#bv-cloud"/></svg> <span class="tab-long">Cloud Games</span><span class="tab-short">Cloud</span></button>
 <button class="tab-btn apps-tab" data-tab="apps"><svg class="bv-icon" aria-hidden="true"><use href="#bv-apps"/></svg> Apps</button>
 <button class="tab-btn links-tab" data-tab="links"><svg class="bv-icon" aria-hidden="true"><use href="#bv-link"/></svg> Links<span class="chat-badge" id="links-badge" title="Link suggestions waiting" hidden></span></button>
 <button class="tab-btn chat-tab" data-tab="chat"><svg class="bv-icon" aria-hidden="true"><use href="#bv-chat"/></svg> Chat<span class="chat-badge" id="chat-badge" hidden></span></button>
@@ -4259,7 +4226,6 @@ animation: launch-flash-anim 0.4s var(--ease-out);
 </div>
 <div id="app-grid" style="display:none"></div>
 <div id="allsongs-view" style="display:none"></div>
-<div id="cloud-view" style="display:none"></div>
 <div id="links-view" style="display:none"></div>
 <div id="ideas-view" style="display:none"></div>
 <div id="chat-view" style="display:none"></div>
@@ -6278,7 +6244,6 @@ const SFX = {
   // ── navigation ──
   'tab-games':    (v, a, seq, N) => v({ freq: N.E5, decay: 0.05, gain: 0.06, partials: [[2, 0.22], [3, 0.06]], wet: 0.06 }),
   'tab-apps':     (v, a, seq, N) => v({ freq: N.Gs5, decay: 0.05, gain: 0.06, partials: [[2, 0.22], [3, 0.06]], wet: 0.06 }),
-  'tab-cloud':    (v, a, seq, N) => v({ freq: N.Fs5, decay: 0.05, gain: 0.06, partials: [[2, 0.22], [3, 0.06]], wet: 0.06 }),
   'tab-links':    (v, a, seq, N) => v({ freq: N.B5, decay: 0.05, gain: 0.06, partials: [[2, 0.22], [3, 0.06]], wet: 0.06 }),
   'tab-credits':  (v, a, seq, N) => v({ freq: N.B4, decay: 0.05, gain: 0.06, partials: [[2, 0.22], [3, 0.06]], wet: 0.06 }),
   'tab-dev':      (v, a, seq, N) => v({ freq: N.Cs6, decay: 0.05, gain: 0.06, partials: [[2, 0.22], [3, 0.06]], wet: 0.06 }),
@@ -6424,7 +6389,7 @@ const SFX = {
 // 100 ms, RMS). The trims that land them there are measured, not guessed.
 const SFX_TIER = {};
 [
- [['pl-close', 'tab-chat', 'chat-send', 'chat-in', 'tab-games', 'tab-cloud', 'tab-apps', 'tab-links', 'tab-credits', 'tab-dev', 'tab-allsongs', 'tab-ideas', 'filter', 'nav-back', 'ui-mode',
+ [['pl-close', 'tab-chat', 'chat-send', 'chat-in', 'tab-games', 'tab-apps', 'tab-links', 'tab-credits', 'tab-dev', 'tab-allsongs', 'tab-ideas', 'filter', 'nav-back', 'ui-mode',
   'tour-next', 'tour-back', 'sfx-on', 'sfx-off', 'vfx-on', 'vfx-off', 'motion-on', 'motion-off', 'compact-on',
   'compact-off', 'scene-on', 'scene-off', 'blob-on', 'blob-off', 'potato-on', 'potato-off', 'music-on', 'music-off',
   'np-playlist', 'onboard-theme', 'onboard-ui', 'links-open', 'links-refresh', 'links-retry', 'links-arm',
@@ -6442,7 +6407,7 @@ const SFX_TRIM = {
   // -33 dB
   'pl-close': 2.455,
   'tab-chat': 1.429, 'chat-send': 2.287, 'chat-in': 1.28,
-  'tab-games': 1.437, 'tab-cloud': 1.437, 'tab-apps': 1.438, 'tab-links': 1.436, 'tab-ideas': 1.429, 'tab-credits': 1.433, 'tab-dev': 1.421,
+  'tab-games': 1.437, 'tab-apps': 1.438, 'tab-links': 1.436, 'tab-ideas': 1.429, 'tab-credits': 1.433, 'tab-dev': 1.421,
   'tab-allsongs': 1.418, 'filter': 2.834, 'nav-back': 1.273, 'ui-mode': 1.153, 'tour-next': 1.142,
   'tour-back': 1.424, 'sfx-on': 0.971, 'sfx-off': 2.591, 'vfx-on': 1.155, 'vfx-off': 1.806,
   'motion-on': 1.147, 'motion-off': 1.365, 'compact-on': 1.508, 'compact-off': 1.526, 'scene-on': 0.623,
@@ -6723,15 +6688,13 @@ function render() {
   if (allSongsView) allSongsView.style.display = 'none';
   const linksView = document.getElementById('links-view');
   if (linksView) linksView.style.display = 'none';
-  const cloudView = document.getElementById('cloud-view');
-  if (cloudView) cloudView.style.display = 'none';
   const chatView = document.getElementById('chat-view');
   if (chatView) chatView.style.display = 'none';
   const ideasView = document.getElementById('ideas-view');
   if (ideasView) ideasView.style.display = 'none';
 
   // Sidebar visibility
-  sidebar.style.display = (activeTab === 'dev' || activeTab === 'allsongs' || activeTab === 'cloud' || activeTab === 'links' || activeTab === 'chat' || activeTab === 'ideas' || uiMode === 'old') ? 'none' : 'flex';
+  sidebar.style.display = (activeTab === 'dev' || activeTab === 'allsongs' || activeTab === 'links' || activeTab === 'chat' || activeTab === 'ideas' || uiMode === 'old') ? 'none' : 'flex';
 
   if (activeTab === 'chat') {
     chatView.style.display = 'block';
@@ -6743,12 +6706,6 @@ function render() {
     ideasView.style.display = 'block';
     renderIdeas();
     if (linksIsDev() && linksKey() && Date.now() - ID.fetchedAt > 20000) ideasLoad();
-    return;
-  }
-
-  if (activeTab === 'cloud') {
-    cloudView.style.display = 'block';
-    renderCloud();
     return;
   }
 
@@ -6965,58 +6922,6 @@ document.addEventListener('keydown', e => {
     document.getElementById('search').select();
   }
 });
-
-// ===== CLOUD GAMES =====
-// Cherri's games page (cherrion.top/g) in a frame. Its Cloud section streams
-// big PC and console games; that part is Cherri's own -- its site, its servers,
-// its rules -- shown here rather than copied. The frame loads the first time
-// the tab is opened and stays loaded, so a game keeps going while you look at
-// another tab. Cherri can't be opened straight onto Cloud, hence the hint.
-const CLOUD_URL = 'https://cherrion.top/g';
-function renderCloud() {
-  const view = document.getElementById('cloud-view');
-  document.getElementById('header-label').textContent = 'Cloud Games';
-  document.getElementById('total-count').textContent = '—';
-  if (!view.dataset.inited) {
-    view.dataset.inited = '1';
-    view.innerHTML =
-      '<div class="cloud-bar">' +
-        '<div class="cloud-title"><svg class="bv-icon" aria-hidden="true"><use href="#bv-cloud"/></svg>Cloud Games <small>via Cherri</small></div>' +
-        '<div class="cloud-hint">In the menu at the top right (it starts on <b>Lumin</b>), pick <b>Cloud</b> for streamed PC and console games.</div>' +
-        '<div class="cloud-actions">' +
-          '<button type="button" id="cloud-reload" title="Load Cherri again">Reload</button>' +
-          '<button type="button" id="cloud-full" title="Fill the screen">Fullscreen</button>' +
-          '<button type="button" id="cloud-newtab" title="Open Cherri in a new tab">New tab</button>' +
-        '</div>' +
-      '</div>' +
-      '<div class="cloud-stage" id="cloud-stage"><div class="cloud-loading">Loading Cherri...</div>' +
-        '<iframe id="cloud-frame" title="Cloud Games" src="' + CLOUD_URL + '" allow="autoplay; fullscreen; gamepad; pointer-lock; keyboard-map; clipboard-read; clipboard-write" allowfullscreen referrerpolicy="no-referrer"></iframe>' +
-      '</div>';
-    const stage = document.getElementById('cloud-stage');
-    const frame = document.getElementById('cloud-frame');
-    frame.addEventListener('load', function () { stage.classList.add('ready'); });
-    document.getElementById('cloud-reload').addEventListener('click', function () {
-      playSound('click'); stage.classList.remove('ready'); frame.src = CLOUD_URL;
-    });
-    document.getElementById('cloud-full').addEventListener('click', function () {
-      playSound('click');
-      const el = frame.requestFullscreen ? frame : stage;
-      try { (el.requestFullscreen || el.webkitRequestFullscreen).call(el); } catch (e) {}
-    });
-    document.getElementById('cloud-newtab').addEventListener('click', function () {
-      playSound('click'); window.open(CLOUD_URL, '_blank', 'noopener,noreferrer');
-    });
-    window.addEventListener('resize', cloudFit);
-  }
-  cloudFit();
-}
-// the frame fills the window below the bar
-function cloudFit() {
-  const stage = document.getElementById('cloud-stage');
-  if (!stage || !stage.offsetParent) return;
-  const top = stage.getBoundingClientRect().top;
-  stage.style.height = Math.max(320, window.innerHeight - top - 14) + 'px';
-}
 
 // ===== TABS =====
 document.querySelectorAll('.tab-btn').forEach(btn => {
