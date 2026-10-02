@@ -602,6 +602,17 @@ first save, wrong or empty key refused, `DEV_KEY` unset refuses everything,
 retried and both survive, a restart reads the list back, a repeat remove makes
 no empty commit, oversized bodies are refused, and hostile names render inert.
 
+## The vault's Cloud Games tab
+
+Between Games and Apps. It shows Cherri's games page (`cherrion.top/g`) in a
+frame, loaded the first time the tab is opened and kept loaded while you look
+at other tabs. Cherri's Cloud section (its game source menu, which starts on
+"Lumin") streams big PC and console games; that streaming is Cherri's own, on
+its servers, and the vault only shows its page, not a copy of its backend.
+Cherri can't be opened straight onto Cloud, so a one-line hint says where to
+pick it. The bar above has Reload, Fullscreen and New tab. On a phone the tab
+is just "Cloud" and the tabs sit a little tighter so all six share one line.
+
 ## The game window's dock (vault)
 
 With a mouse, the dock shows only **Close** until you point at it. Then
