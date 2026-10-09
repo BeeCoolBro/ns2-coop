@@ -679,8 +679,9 @@ next to the page, which never worked).
   `games/ugs/covers/` on the games site); a Pokemon ROM hack gets the box of
   the game it is built on. 297 more have a screenshot of their title screen
   (also in `games/ugs/covers/`), and 360 have the letter tile.
-- Ports of PC games (ULTRAKILL, Doki Doki Literature Club!, Deltarune,
-  Buckshot Roulette, Undertale Yellow, ...) are in Ported Games.
+- Well-known ports of PC games (ULTRAKILL, Doki Doki Literature Club!,
+  Deltarune, Buckshot Roulette, Undertale Yellow, ...) are in Ported Games;
+  lesser-known ones are with the other games.
 
 ## Categories and genres (vault)
 
