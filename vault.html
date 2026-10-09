@@ -1361,6 +1361,11 @@ transform: translateX(4px);
 .idea-text { width: 100%; box-sizing: border-box; min-height: 110px; resize: vertical; background: var(--bg2); border: 1px solid var(--border); color: var(--text);
   padding: 11px 12px; font-family: 'Share Tech Mono', monospace; font-size: 0.82rem; line-height: 1.5; border-radius: 2px; }
 .idea-text:focus { outline: none; border-color: var(--accent3); box-shadow: 0 0 10px color-mix(in srgb, var(--accent3) 22%, transparent); }
+.idea-game { width: 100%; box-sizing: border-box; background: var(--bg2); border: 1px solid var(--border); color: var(--text); padding: 10px 12px;
+  font-family: 'Share Tech Mono', monospace; font-size: 0.82rem; border-radius: 2px; }
+.idea-game[hidden] { display: none; }
+.idea-game:focus { outline: none; border-color: var(--accent3); box-shadow: 0 0 10px color-mix(in srgb, var(--accent3) 22%, transparent); }
+.idea-tag.broken { color: #ff8a8a; border-color: #ff8a8a66; }
 .idea-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .idea-send { background: color-mix(in srgb, var(--accent3) 14%, transparent); border: 1px solid var(--accent3); color: var(--accent3); cursor: pointer;
   font-family: 'Orbitron', sans-serif; font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase; padding: 9px 16px; transition: all var(--dur-2) var(--ease-out); }
@@ -4232,7 +4237,7 @@ animation: launch-flash-anim 0.4s var(--ease-out);
 <button class="tab-btn apps-tab" data-tab="apps"><svg class="bv-icon" aria-hidden="true"><use href="#bv-apps"/></svg> Apps</button>
 <button class="tab-btn links-tab" data-tab="links"><svg class="bv-icon" aria-hidden="true"><use href="#bv-link"/></svg> Links<span class="chat-badge" id="links-badge" title="Link suggestions waiting" hidden></span></button>
 <button class="tab-btn chat-tab" data-tab="chat"><svg class="bv-icon" aria-hidden="true"><use href="#bv-chat"/></svg> Chat<span class="chat-badge" id="chat-badge" hidden></span></button>
-<button class="tab-btn ideas-tab tab-mini" data-tab="ideas" title="Send the owner an idea"><svg class="bv-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.2h5c0-.9.4-1.7 1.1-2.2A6 6 0 0 0 12 3Z"/></svg> Ideas<span class="chat-badge" id="ideas-badge" title="Ideas waiting" hidden></span></button>
+<button class="tab-btn ideas-tab tab-mini" data-tab="ideas" title="Report a game that doesn't work, or suggest an idea"><svg class="bv-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg> Report<span class="chat-badge" id="ideas-badge" title="Reports waiting" hidden></span></button>
 <button class="tab-btn credits-tab" data-tab="credits" style="display:none"><svg class="bv-icon" aria-hidden="true"><use href="#bv-credits"/></svg> Credits</button>
 <button class="tab-btn dev-tab" data-tab="dev" id="dev-tab-btn"><svg class="bv-icon" aria-hidden="true"><use href="#bv-dev"/></svg> Dev</button>
 <button class="tab-btn allsongs-tab" data-tab="allsongs" id="allsongs-tab-btn"><svg class="bv-icon" aria-hidden="true"><use href="#bv-music"/></svg> All Songs</button>
@@ -10487,12 +10492,20 @@ async function ownerKeySave() {
   if (linksIsDev() && !linksKey() && !skipped) ownerKeyAskSoon(2500);
 })();
 
-// ===== IDEAS =====
-// A small tab where anyone can send the owner an idea: a game to add, a
+// ===== REPORT (was Ideas) =====
+// A small tab where anyone can tell the owner about a game that doesn't work --
+// which game, and what happens -- or suggest something: a game to add, a
 // feature, a fix. Only the owner key reads them -- in dev mode the inbox sits
 // under the form, with a count on the tab and a notice when one arrives.
-const IDEA_KINDS = [['game', 'A game to add'], ['feature', 'A feature'], ['fix', 'Something to fix'], ['other', 'Something else']];
-const ID = { list: null, n: 0, busy: false, sending: false, refused: false, kind: 'game', fetchedAt: 0 };
+const IDEA_KINDS = [['broken', 'A game that doesn\u2019t work'], ['game', 'A game to add'], ['feature', 'An idea'], ['fix', 'Something else broken'], ['other', 'Something else']];
+const ID = { list: null, n: 0, busy: false, sending: false, refused: false, kind: 'broken', fetchedAt: 0 };
+const IDEA_HINT = {
+  broken: 'What happens? (It won\u2019t load, a black screen, no sound, it freezes\u2026)',
+  game: 'Which game should be in the vault?',
+  feature: 'Describe your idea\u2026',
+  fix: 'What\u2019s broken, and where?',
+  other: 'Tell the owner\u2026'
+};
 
 function ideasBadge() {
   const b = document.getElementById('ideas-badge');
@@ -10530,7 +10543,7 @@ function ideasPush(n) {
   const had = ID.n;
   ID.n = n;
   ideasBadge();
-  if (n > had) { showToast('\u2726 New idea for the vault' + (n > 1 ? ' \u00b7 ' + n + ' waiting' : '')); playSound('chat-in'); }
+  if (n > had) { showToast('\u2726 New report or idea for the vault' + (n > 1 ? ' \u00b7 ' + n + ' waiting' : '')); playSound('chat-in'); }
   if (!ID.list || ID.list.length !== n) { if (activeTab === 'ideas') ideasLoad(); else ID.fetchedAt = 0; }
 }
 
@@ -10560,7 +10573,7 @@ function ideasItem(it) {
   row.appendChild(lnkEl('div', 'idea-item-text', String(it.text || '')));
   const meta = lnkEl('div', 'idea-item-meta');
   const kind = IDEA_KINDS.filter(function (k) { return k[0] === it.kind; })[0];
-  meta.appendChild(lnkEl('span', 'idea-tag', kind ? kind[1] : 'Something else'));
+  meta.appendChild(lnkEl('span', 'idea-tag' + (it.kind === 'broken' ? ' broken' : ''), kind ? kind[1] : 'Something else'));
   meta.appendChild(lnkEl('span', '', (it.from ? 'from ' + it.from + ' \u00b7 ' : '') + linksAgo(it.at)));
   row.appendChild(meta);
   const done = lnkEl('button', 'idea-done', '\u2713 Done');
@@ -10568,7 +10581,7 @@ function ideasItem(it) {
   done.title = 'Take it off the list';
   done.addEventListener('click', async function () {
     done.disabled = true;
-    if (!(await ideasOwner({ op: 'done', id: it.id }, 'Idea done.'))) done.disabled = false;
+    if (!(await ideasOwner({ op: 'done', id: it.id }, 'Done.'))) done.disabled = false;
   });
   row.appendChild(done);
   return row;
@@ -10578,20 +10591,31 @@ function buildIdeasShell(view) {
   // static markup only -- ideas go on the page as text
   view.innerHTML = `<div class="idea-wrap">
     <form class="idea-card" autocomplete="off" novalidate>
-      <div class="idea-title">Got an idea?</div>
-      <p class="idea-sub">A game to add, something new, something that\u2019s broken \u2014 send it straight to the owner.</p>
-      <div class="idea-kinds" role="radiogroup" aria-label="What kind of idea"></div>
-      <textarea class="idea-text" maxlength="500" placeholder="Describe your idea\u2026" aria-label="Your idea"></textarea>
+      <div class="idea-title">Report or suggest</div>
+      <p class="idea-sub">Found a game that doesn\u2019t work? Tell the owner which one and what happens, so it can be fixed or taken out. Got an idea for the vault, or a game to add? Send that here too.</p>
+      <div class="idea-kinds" role="radiogroup" aria-label="What are you sending"></div>
+      <input class="idea-game" list="idea-games" maxlength="80" placeholder="Which game? (start typing its name)" aria-label="Which game" autocomplete="off">
+      <datalist id="idea-games"></datalist>
+      <textarea class="idea-text" maxlength="420" placeholder="" aria-label="What happens"></textarea>
       <div class="idea-actions"><button type="submit" class="idea-send">Send to the owner</button><span class="idea-count"></span></div>
       <div class="idea-msg" aria-live="polite"></div>
-      <div class="idea-note">Sent as <b class="idea-as"></b>. Only the owner sees ideas here, but they\u2019re kept in the site\u2019s public GitHub repo, so leave out anything personal.</div>
+      <div class="idea-note">Sent as <b class="idea-as"></b>. Only the owner sees these here, but they\u2019re kept in the site\u2019s public GitHub repo, so leave out anything personal.</div>
     </form>
-    <section class="idea-inbox" hidden aria-label="Ideas sent to you">
+    <section class="idea-inbox" hidden aria-label="Reports and ideas sent to you">
       <div class="idea-inbox-head"><span class="idea-inbox-title">Inbox</span><b class="idea-inbox-count"></b><button type="button" class="idea-clear" hidden>Clear all</button></div>
       <div class="idea-list"></div>
     </section>
   </div>`;
   const kinds = view.querySelector('.idea-kinds');
+  const gameIn = view.querySelector('.idea-game');
+  const textIn = view.querySelector('.idea-text');
+  const list = view.querySelector('#idea-games');
+  GAMES.forEach(function (g) { const o = document.createElement('option'); o.value = g.name; list.appendChild(o); });
+  function forKind() {
+    gameIn.hidden = ID.kind !== 'broken';
+    textIn.placeholder = IDEA_HINT[ID.kind] || 'Tell the owner\u2026';
+  }
+  forKind();
   IDEA_KINDS.forEach(function (k) {
     const b = lnkEl('button', 'idea-kind' + (k[0] === ID.kind ? ' on' : ''), k[1]);
     b.type = 'button';
@@ -10600,6 +10624,7 @@ function buildIdeasShell(view) {
     b.addEventListener('click', function () {
       ID.kind = k[0];
       [].forEach.call(kinds.children, function (c) { const on = c === b; c.classList.toggle('on', on); c.setAttribute('aria-checked', on ? 'true' : 'false'); });
+      forKind();
       playSound('filter');
     });
     kinds.appendChild(b);
@@ -10609,14 +10634,18 @@ function buildIdeasShell(view) {
   const count = view.querySelector('.idea-count');
   text.addEventListener('input', function () {
     const n = text.value.length;
-    count.textContent = n ? n + '/500' : '';
-    count.classList.toggle('full', n >= 500);
+    count.textContent = n ? n + '/420' : '';
+    count.classList.toggle('full', n >= 420);
   });
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
     if (ID.sending) return;
-    const idea = text.value.replace(/\s+/g, ' ').trim();
-    if (idea.length < 3) { ideasSay('Write a little more than that.', 'bad'); text.focus(); playSound('links-refused'); return; }
+    let idea = text.value.replace(/\s+/g, ' ').trim();
+    const game = gameIn.value.replace(/\s+/g, ' ').trim();
+    if (ID.kind === 'broken') {
+      if (!game) { ideasSay('Which game doesn\u2019t work?', 'bad'); gameIn.focus(); playSound('links-refused'); return; }
+      idea = game + ' \u2014 ' + (idea || 'doesn\u2019t work');
+    } else if (idea.length < 3) { ideasSay('Write a little more than that.', 'bad'); text.focus(); playSound('links-refused'); return; }
     const send = view.querySelector('.idea-send');
     ID.sending = true;
     send.disabled = true;
@@ -10631,9 +10660,10 @@ function buildIdeasShell(view) {
     if (!res) { ideasSay('Couldn\u2019t reach the server.', 'bad'); playSound('links-offline'); return; }
     if (res.status === 200 && res.body.ok) {
       text.value = '';
+      gameIn.value = '';
       text.dispatchEvent(new Event('input'));
-      ideasSay('Thanks! It\u2019s on its way to the owner.', 'good');
-      showToast('\u2713 Idea sent');
+      ideasSay(ID.kind === 'broken' ? 'Thanks for the report! The owner will take a look.' : 'Thanks! It\u2019s on its way to the owner.', 'good');
+      showToast(ID.kind === 'broken' ? '\u2713 Report sent' : '\u2713 Sent to the owner');
       playSound('links-added');
       return;
     }
@@ -10653,7 +10683,7 @@ function buildIdeasShell(view) {
     clearTimeout(clear._t);
     clear.classList.remove('arm');
     clear.textContent = 'Clear all';
-    ideasOwner({ op: 'clear' }, 'All ideas cleared.');
+    ideasOwner({ op: 'clear' }, 'All cleared.');
   });
 }
 
@@ -10661,7 +10691,7 @@ function renderIdeas() {
   const view = document.getElementById('ideas-view');
   if (!view) return;
   if (!view.dataset.built) { buildIdeasShell(view); view.dataset.built = '1'; }
-  document.getElementById('header-label').textContent = 'Ideas';
+  document.getElementById('header-label').textContent = 'Report';
   const dev = linksIsDev();
   document.getElementById('total-count').textContent = dev && ID.list ? ID.list.length : '\u2726';
   view.querySelector('.idea-as').textContent = CH.me || chatName();
@@ -10684,7 +10714,7 @@ function renderIdeas() {
     return;
   }
   if (ID.list === null) { list.appendChild(lnkEl('div', 'idea-none', ID.busy ? 'Loading ideas\u2026' : 'Ideas couldn\u2019t be loaded yet.')); return; }
-  if (!n) { list.appendChild(lnkEl('div', 'idea-none', 'No ideas waiting.')); return; }
+  if (!n) { list.appendChild(lnkEl('div', 'idea-none', 'Nothing waiting.')); return; }
   ID.list.slice().reverse().forEach(function (it) { list.appendChild(ideasItem(it)); });
 }
 
@@ -13148,11 +13178,11 @@ function stopRain() {
       body: 'Who has the vault open, and what they\u2019re playing. <strong>Watch</strong> asks to watch their game live \u2014 they have to say yes. <strong>Invite</strong> asks them to play a game with you.' },
     { target: '#chat-view .chat-form', onEnter: () => goTab('chat'),
       title: 'Say hi', body: 'Swearing is filtered, and <strong>@name</strong> pings someone. Your chat name is your vault name.' },
-    { since: 3, target: '.tab-btn[data-tab="ideas"]', click: true, hint: 'Tap Ideas', settle: 380,
+    { since: 3, target: '.tab-btn[data-tab="ideas"]', click: true, hint: 'Tap Report', settle: 380,
       onEnter: () => { settingsOpen(false); tuckPlayer(); },
-      title: 'Ideas', body: 'This little tab is new. Got an idea \u2014 a game to add, or something to fix? It goes straight to the owner.' },
+      title: 'Report', body: 'A game that doesn\u2019t work? An idea for the vault? This little tab sends it straight to the owner.' },
     { since: 3, target: ['#ideas-view .idea-card'], wait: 1500, onEnter: () => goTab('ideas'),
-      title: 'Send an idea', body: 'Pick what kind of idea it is, write it here and hit <strong>Send to the owner</strong>. Only the owner sees ideas.' },
+      title: 'Send a report', body: 'Pick what it is \u2014 for a broken game, say which one and what happens \u2014 and hit <strong>Send to the owner</strong>. Only the owner sees these.' },
     { target: '#np-pull-tab', click: true, hint: 'Tap the music tab', settle: 620,
       onEnter: () => { goTab('games'); tuckPlayer(); },
       title: 'Music', body: 'That little tab on the right edge is the music player \u2014 it bounces along while something plays.' },

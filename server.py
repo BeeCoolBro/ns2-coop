@@ -167,7 +167,7 @@ IDEAS_PATH = 'ideas.json'
 IDEAS_TTL = 300
 IDEAS_MAX = 150                 # ideas waiting at once
 IDEA_LEN = 500
-IDEA_KINDS = ('game', 'feature', 'fix', 'other')
+IDEA_KINDS = ('broken', 'game', 'feature', 'fix', 'other')   # broken: a game that doesn't work
 IDEA_GAP = 60                   # seconds between two from one address
 IDEA_PER_HOUR = 5
 IDEA_ALL_PER_HOUR = 40
@@ -1132,7 +1132,7 @@ def idea_post(ip, raw):
     if not isinstance(msg, dict):
         return 400, {'ok': False, 'error': 'That request was not an object.'}
     if not GITHUB_TOKEN:
-        return 503, {'ok': False, 'error': 'Ideas aren\'t switched on yet.'}
+        return 503, {'ok': False, 'error': 'Reports aren\'t switched on yet.'}
     text = tidy(msg.get('text'), IDEA_LEN)
     frm = tidy(msg.get('from'), CHAT_NAME_LEN)
     if len(text) < 3:
@@ -1161,7 +1161,7 @@ def idea_post(ip, raw):
         if len(mine) >= IDEA_PER_HOUR:
             return 429, {'ok': False, 'error': 'That\'s plenty for now. Try again in a while.'}
         if len(IDEA_ALL) >= IDEA_ALL_PER_HOUR:
-            return 429, {'ok': False, 'error': 'Lots of ideas came in just now. Try again later.'}
+            return 429, {'ok': False, 'error': 'Lots of reports came in just now. Try again later.'}
         mine.append(now)
         IDEA_LOG[ip] = mine
         IDEA_ALL.append(now)

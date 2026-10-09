@@ -709,10 +709,13 @@ Mute, Chat, Invite, Close -- on a stand-in game (a `srcdoc` page in the game
 frame, `demoGame()` in the tour), so nothing real is opened, counted or added
 to Recently Played. The dock is held open (`peek`) for those steps.
 
-## The vault's Ideas tab
+## The vault's Report tab (was Ideas)
 
-A small tab after Chat where anyone can send the owner an idea, marked as a
-game to add, a feature, something to fix or something else. `POST /api/idea`
+A small tab after Chat where anyone can report a game that doesn't work (the
+form asks which game, suggesting the vault's game names, and what happens;
+kind `broken`) or send the owner an idea, marked as a game to add, a feature,
+something to fix or something else. Inside it's still the ideas feature
+(`data-tab="ideas"`, `ideas.json`). `POST /api/idea`
 needs no key, so it is rationed per address like link suggestions: one a
 minute, five an hour, forty an hour from everyone, 150 waiting at most.
 Swearing is masked and email addresses are removed before anything is
