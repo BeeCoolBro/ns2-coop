@@ -658,11 +658,12 @@ here" instead of a silent failure.
 
 The old Bee's Games page listed 1,937 games from the Ultimate Game Stash
 (`bubbls/ugs-singlefile` on GitHub, 1.6 GB): each is one small HTML file that
-pulls the game itself from other public repos. On 2026-10-08 the vault took in
-1,266 of them -- the ones that aren't in the vault already (302 were, by file name
-or under a slightly different name) and that loaded in a test (334 didn't: a
-file they need is gone, or they look for files next to the page, which never
-worked).
+pulls the game itself from other public repos. The vault has 1,204 of them --
+the ones that aren't in the vault already (364 were: by file name, under a
+slightly different name, or as another version of the same game, like Papa
+Donut for Papa's Donuteria or Castlevania 3 for Castlevania III) and that
+loaded in a test (334 didn't: a file they need is gone, or they look for files
+next to the page, which never worked).
 
 - They open as `https://realwork.netlify.app/games/ugs/?g=<file>`. That one
   page on the games site (`games/ugs/index.html` in `BeeCoolBro/seraph`)
@@ -670,9 +671,27 @@ worked).
   turns into it, so each game runs on the games site, apart from the vault.
   It writes `vault-audio.js` in first, so the vault's mute works.
 - In `GAMES` they come after DSAF 3, named from each page's title when that
-  names the game, otherwise from the file name split into words, and sorted
-  into the usual categories by what's in the name (most are Browser Games or
-  Retro Classics). Recently Added takes them all with one `from:` line.
+  names the game, otherwise from the file name split into words. Recently
+  Added takes them all with one `from:` line.
+- Cover art, in `GAME_COVERS` like the vault's own games: 547 have a real
+  picture -- Wikipedia box art, Steam, CrazyGames or Poki (linked, as the
+  originals are), or a Flashpoint logo or libretro box art (copied, small, into
+  `games/ugs/covers/` on the games site); a Pokemon ROM hack gets the box of
+  the game it is built on. 297 more have a screenshot of their title screen
+  (also in `games/ugs/covers/`), and 360 have the letter tile.
+- Ports of PC games (ULTRAKILL, Doki Doki Literature Club!, Deltarune,
+  Buckshot Roulette, Undertale Yellow, ...) are in Ported Games.
+
+## Categories and genres (vault)
+
+Besides the first ones, the sidebar has, under Categories, FNF Mods, a category
+for each console (NES, SNES, Game Boy, Nintendo 64, Nintendo DS, Sega,
+PlayStation, Other Consoles), Flash Games and PICO-8; and under Genres, Horror,
+Strategy, Simulation, Arcade, 2 Player and Card & Board. A game's console comes
+from the emulator core its page starts (`EJS_core` / `core:`), for the original
+games read from their pages in `BeeCoolBro/seraph`. The new genres, FNF Mods,
+Flash Games and PICO-8 are found from the game's name or what its page loads.
+Each category is also a row on All Games.
 
 ## The tour's price for skipping
 
@@ -683,6 +702,11 @@ me the tour" as the only way out early. After it, a TOUR SKIPPER sticker sits
 by the logo until a tour is finished. Skipping a tour started from Settings
 costs nothing. The time-out survives a reload and a data reset
 (`tour-timeout-until`, `tour-skipped` in localStorage).
+
+Since tour v5 (`seen-tour-v5`), Bee also shows the game window's controls --
+Mute, Chat, Invite, Close -- on a stand-in game (a `srcdoc` page in the game
+frame, `demoGame()` in the tour), so nothing real is opened, counted or added
+to Recently Played. The dock is held open (`peek`) for those steps.
 
 ## The vault's Ideas tab
 
