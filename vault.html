@@ -1607,10 +1607,11 @@ body.theme-ultrabasic .chat-msg.owner .chat-text { color: var(--text); }
 .chat-bell.on { color: var(--accent3); border-color: var(--accent3); }
 .chat-bell[hidden] { display: none; }
 /* ===== CHAT, redesigned: one room card, bubbles, and a People card ===== */
-#chat-view .chat-wrap.cx { max-width: 1180px; margin: 18px 24px 28px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
-@media (min-width: 1000px) { #chat-view .chat-wrap.cx { grid-template-columns: minmax(0, 1fr) 290px; } }
+#chat-view .chat-wrap.cx { max-width: none; margin: 16px 24px 16px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (min-width: 1000px) { #chat-view .chat-wrap.cx { grid-template-columns: minmax(0, 1fr) 300px; } }
+@media (min-width: 1500px) { #chat-view .chat-wrap.cx { grid-template-columns: minmax(0, 1fr) 340px; } }
 #chat-view .chat-wrap.cx > * { grid-column: auto; grid-row: auto; }
-#chat-view .cx-room { display: flex; flex-direction: column; min-width: 0; height: min(76vh, 780px); min-height: 440px; overflow: hidden;
+#chat-view .cx-room { display: flex; flex-direction: column; min-width: 0; height: var(--cx-h, min(76vh, 780px)); min-height: 420px; overflow: hidden;
   background: color-mix(in srgb, var(--panel) 92%, transparent); border: 1px solid var(--border); border-radius: 18px;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35); }
 #chat-view .cx-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 16px; flex-shrink: 0;
@@ -1645,7 +1646,7 @@ body.theme-ultrabasic .chat-msg.owner .chat-text { color: var(--text); }
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35); }
 #chat-view .chat-msg.owner .cx-av { background: linear-gradient(135deg, #fff1a0, #ffc93a 50%, #e8901a); color: #3b2700; box-shadow: 0 0 14px rgba(255, 196, 50, 0.45); }
 #chat-view .chat-msg.cont .cx-av { visibility: hidden; height: 0; }
-#chat-view .cx-body { min-width: 0; max-width: min(620px, 82%); display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+#chat-view .cx-body { min-width: 0; max-width: min(760px, 78%); display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
 #chat-view .chat-msg.cont .chat-meta { display: none; }
 #chat-view .chat-meta { gap: 7px; align-items: center; flex-wrap: wrap; padding: 0 4px; }
 #chat-view .cx-bubble { margin: 0; padding: 8px 13px; border-radius: 4px 16px 16px 16px; font-size: 0.86rem; line-height: 1.45;
@@ -1693,7 +1694,7 @@ body.theme-ultrabasic .chat-msg.owner .chat-text { color: var(--text); }
 /* People here */
 #chat-view .pl-box { border-radius: 18px; padding: 14px; gap: 10px; background: color-mix(in srgb, var(--panel) 92%, transparent);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.3); }
-@media (min-width: 1000px) { #chat-view .pl-box { max-height: min(76vh, 780px); position: sticky; top: 12px; } #chat-view .pl-box .pl-list { max-height: none; flex: 1; min-height: 0; } }
+@media (min-width: 1000px) { #chat-view .pl-box { height: var(--cx-h, min(76vh, 780px)); max-height: none; position: sticky; top: 12px; } #chat-view .pl-box .pl-list { max-height: none; flex: 1; min-height: 0; } }
 #chat-view .pl-box-head { font-size: 0.62rem; color: var(--text); }
 #chat-view .pl-box-head b { padding: 2px 9px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 16%, transparent); }
 #chat-view .pl-row { border-radius: 12px; padding: 8px 9px; }
@@ -11613,10 +11614,23 @@ function chatCounter(input, el) {
   draw();
 }
 
+// The room reaches the bottom of the window, whatever the screen.
+function chatFit() {
+  const v = document.getElementById('chat-view');
+  const room = v && v.querySelector('.cx-room');
+  if (!room || !room.offsetParent) return;
+  const top = room.getBoundingClientRect().top;
+  const wide = window.innerWidth > 640;
+  const h = Math.max(420, Math.round(window.innerHeight - top - (wide ? 16 : 12)));
+  v.querySelector('.chat-wrap').style.setProperty('--cx-h', (wide ? h : Math.min(h, Math.round(window.innerHeight * 0.78))) + 'px');
+}
+window.addEventListener('resize', function () { if (activeTab === 'chat') chatFit(); });
+
 function renderChat() {
   const v = document.getElementById('chat-view');
   if (!v) return;
   if (!v.dataset.built) { buildChatShell(v); v.dataset.built = '1'; chatDrawAll(); }
+  requestAnimationFrame(chatFit);
   document.getElementById('header-label').textContent = 'Online';
   document.getElementById('total-count').textContent = CH.connected ? CH.online : '\u2014';
   v.querySelector('.chat-as b').textContent = CH.me || chatName();
