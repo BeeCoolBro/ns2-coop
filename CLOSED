@@ -1,7 +1,8 @@
 # Which BeeSide places are closed for now. A closed place shows a short
 # "closed for a moment" page, and its door on the front page is greyed out.
 #
-# Names you can use: vault, neon-siege, rotfall, rotfall-2, projects
+# Names you can use: vault, neon-siege, rotfall, rotfall-2, neon-siege-1, projects
+#   (neon-siege-1 is the first NEON SIEGE, in Bee's Projects in the vault)
 #   all  = the whole of BeeSide Studio's, the front page too
 #   fake = the whole site shows a plain, ordinary-looking website instead
 #

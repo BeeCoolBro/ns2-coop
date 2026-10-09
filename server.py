@@ -49,6 +49,7 @@ VAULT = 'vault.html'
 PROJECTS = 'projects.html'        # Other Projects: the smaller ones
 ROTFALL = 'rotfall.html'          # the first of them: a survival shooter
 ROTFALL2 = 'rotfall-2.html'       # its sequel, a door of its own on the front page
+NEONSIEGE1 = 'neon-siege-1.html'  # the first NEON SIEGE, from BeeCoolBro/Neon-Siege (its Vercel site is off)
 # ── The off switches ──────────────────────────────────────────────
 # Each place can be closed for a while: list its name in the file CLOSED (one
 # per line) and deploy. A closed place shows closed.html, a short "closed for a
@@ -68,6 +69,7 @@ PLACES = {   # name in CLOSED: its address, then every file that is that place
     'neon-siege': ('/neon-siege', GAME, 'neon-siege-2.html'),
     'rotfall': ('/rotfall', ROTFALL),
     'rotfall-2': ('/rotfall-2', ROTFALL2),
+    'neon-siege-1': ('/neon-siege-1', NEONSIEGE1),
     'projects': ('/projects', PROJECTS),
 }
 ROUTE_PLACE = {}
@@ -224,6 +226,26 @@ RQ_WHY = ('blocked', 'unsupported', 'cancelled', 'missing', 'busy', 'timeout')
 RQ = {}                         # rid -> {'frm', 'to', 'kind', 'game', 'at'}
 SESS = {}                       # sid -> {'sharer', 'viewer'}
 CHAT_LOCK = threading.Lock()
+
+# ── Popular: how often each vault game gets opened ──────────────────
+# The vault tells us when someone opens a game (POST /api/play) and asks for
+# the most played ones (GET /api/popular). A play fades with time -- it counts
+# half as much two weeks later -- so the list follows what people play now.
+# Counts are kept on the vault-data branch as plays.json, saved every few
+# minutes when something changed, and read back when the server starts.
+# Addresses are only ever hashed, never stored, and each one counts a game
+# once per half hour, up to PLAYS_PER_HOUR games an hour.
+PLAYS_PATH = 'plays.json'
+PLAYS_HALF_LIFE = 14 * 86400
+PLAYS_SAVE_EVERY = 300          # seconds between saves when something changed
+PLAYS_KEEP = 2000               # games remembered
+PLAYS_GAP = 1800                # one address counts a game once per this
+PLAYS_PER_HOUR = 40             # games one address can count in an hour
+PLAYS_BODY_MAX = 1024
+PLAYS_LOCK = threading.Lock()
+PLAYS = {'map': {}, 'sha': None, 'loaded': False, 'dirty': False, 'saved_at': 0.0}
+PLAY_SEEN = {}                  # (address hash, game) -> when it last counted
+PLAY_IP = {}                    # address hash -> deque of when it counted
 # names nobody but the owner may take
 CHAT_RESERVED = re.compile(r'owner|admin|moderator|\bmod\b|staff|official|developer|\bdev\b|system|server|beecoolbro',
                            re.I)
@@ -490,6 +512,151 @@ def links_load(force=False):
             LINKS.update(list=[], sugg=[], sha=None, at=time.time(), ok=True)
         return True
     return False
+
+
+def plays_score(entry, now):
+    """A game's play score as of now, with every play faded by its age."""
+    return entry['s'] * 0.5 ** (max(0.0, now - entry['t']) / PLAYS_HALF_LIFE)
+
+
+def plays_key(raw):
+    """The game a play is for: its address, or 'name:' and its name for a game
+    that lives inside the vault itself. None if it's neither."""
+    if not isinstance(raw, str):
+        return None
+    k = raw.strip()
+    if not (1 <= len(k) <= 300) or any(ord(c) < 32 for c in k):
+        return None
+    if k.startswith(('https://', 'http://', 'name:')):
+        return k
+    return None
+
+
+def plays_path():
+    return '/repos/%s/contents/%s' % (LINKS_REPO, PLAYS_PATH)
+
+
+def plays_load():
+    """Read the counts saved on GitHub, adding them to any made since start."""
+    if not GITHUB_TOKEN:
+        with PLAYS_LOCK:
+            PLAYS['loaded'] = True
+        return
+    st, js = gh('GET', plays_path() + '?ref=' + urllib.parse.quote(LINKS_BRANCH, safe=''))
+    saved = {}
+    if st == 200 and isinstance(js, dict) and js.get('type') == 'file':
+        try:
+            doc = json.loads(base64.b64decode(js.get('content') or '').decode('utf-8'))
+            for k, e in (doc.get('plays') or {}).items():
+                if plays_key(k) and isinstance(e, dict):
+                    saved[k] = {'s': float(e.get('s') or 0), 't': float(e.get('t') or 0), 'n': int(e.get('n') or 0)}
+        except Exception:
+            log('!! %s on %s is not valid JSON; starting the counts over' % (PLAYS_PATH, LINKS_BRANCH))
+    elif st not in (200, 404):
+        log('!! could not read %s (%s); counting from zero for now' % (PLAYS_PATH, st))
+    now = time.time()
+    with PLAYS_LOCK:
+        mine = PLAYS['map']
+        for k, e in saved.items():
+            if k in mine:          # counted since start: add the two together
+                m = mine[k]
+                m['s'] = plays_score(m, now) + plays_score(e, now)
+                m['t'] = now
+                m['n'] += e['n']
+            else:
+                mine[k] = e
+        PLAYS['sha'] = js.get('sha') if st == 200 and isinstance(js, dict) else None
+        PLAYS['loaded'] = True
+
+
+def plays_save():
+    """Write the counts to GitHub if they changed. Runs on its own thread."""
+    with PLAYS_LOCK:
+        if not (PLAYS['dirty'] and PLAYS['loaded'] and GITHUB_TOKEN):
+            return
+        now = time.time()
+        items = sorted(PLAYS['map'].items(), key=lambda kv: -plays_score(kv[1], now))[:PLAYS_KEEP]
+        doc = {'v': 1, 'half_life_days': PLAYS_HALF_LIFE / 86400,
+               'plays': {k: {'s': round(e['s'], 4), 't': int(e['t']), 'n': e['n']} for k, e in items}}
+        sha = PLAYS['sha']
+        PLAYS['dirty'] = False
+    body = {'message': 'Vault play counts', 'branch': LINKS_BRANCH,
+            'content': base64.b64encode((json.dumps(doc, separators=(',', ':')) + '\n').encode('utf-8')).decode('ascii')}
+    if sha:
+        body['sha'] = sha
+    st, js = gh('PUT', plays_path(), body)
+    with PLAYS_LOCK:
+        if st in (200, 201):
+            PLAYS['sha'] = ((js or {}).get('content') or {}).get('sha')
+            PLAYS['saved_at'] = time.time()
+        else:
+            PLAYS['dirty'] = True          # try again next time
+            if st in (409, 422):
+                PLAYS['sha'] = None        # someone else wrote it: fetch its sha below
+    if st in (409, 422):
+        st2, js2 = gh('GET', plays_path() + '?ref=' + urllib.parse.quote(LINKS_BRANCH, safe=''))
+        if st2 == 200 and isinstance(js2, dict):
+            with PLAYS_LOCK:
+                PLAYS['sha'] = js2.get('sha')
+    elif st not in (200, 201):
+        log('!! saving %s failed (%s)' % (PLAYS_PATH, st))
+
+
+def plays_loop():
+    plays_load()
+    while True:
+        time.sleep(PLAYS_SAVE_EVERY)
+        try:
+            plays_save()
+        except Exception as e:          # pragma: no cover
+            log('!! plays save: %s' % e)
+
+
+def play_post(ip, raw):
+    """Someone opened a game in the vault."""
+    try:
+        msg = json.loads(raw.decode('utf-8'))
+    except Exception:
+        return 400, {'ok': False}
+    key = plays_key(msg.get('u') if isinstance(msg, dict) else None)
+    if not key:
+        return 400, {'ok': False}
+    who = hashlib.sha256(('plays|' + ip).encode('utf-8')).hexdigest()[:16]
+    now = time.time()
+    with PLAYS_LOCK:
+        last = PLAY_SEEN.get((who, key))
+        if last and now - last < PLAYS_GAP:
+            return 200, {'ok': True, 'counted': False}
+        q = PLAY_IP.setdefault(who, collections.deque())
+        while q and now - q[0] > 3600:
+            q.popleft()
+        if len(q) >= PLAYS_PER_HOUR:
+            return 200, {'ok': True, 'counted': False}
+        q.append(now)
+        PLAY_SEEN[(who, key)] = now
+        e = PLAYS['map'].get(key)
+        if e:
+            e['s'] = plays_score(e, now) + 1
+            e['t'] = now
+            e['n'] += 1
+        else:
+            PLAYS['map'][key] = {'s': 1.0, 't': now, 'n': 1}
+        PLAYS['dirty'] = True
+        # forget old entries so these two can't grow without end
+        if len(PLAY_SEEN) > 20000:
+            for k in [k for k, t in PLAY_SEEN.items() if now - t > PLAYS_GAP]:
+                del PLAY_SEEN[k]
+        if len(PLAY_IP) > 5000:
+            for k in [k for k, d in PLAY_IP.items() if not d or now - d[-1] > 3600]:
+                del PLAY_IP[k]
+    return 200, {'ok': True, 'counted': True}
+
+
+def popular_list(limit=60):
+    now = time.time()
+    with PLAYS_LOCK:
+        ranked = sorted(((k, plays_score(e, now), e['n']) for k, e in PLAYS['map'].items()), key=lambda x: -x[1])
+    return [{'u': k, 'score': round(sc, 3), 'n': n} for k, sc, n in ranked[:limit] if sc >= 0.05]
 
 
 def make_branch():
@@ -1533,6 +1700,8 @@ class Handler(SimpleHTTPRequestHandler):
             path = '/' + ROTFALL
         elif path in ('/rotfall-2', '/rotfall-2/'):
             path = '/' + ROTFALL2
+        elif path in ('/neon-siege-1', '/neon-siege-1/'):
+            path = '/' + NEONSIEGE1
         return SimpleHTTPRequestHandler.translate_path(self, path)
 
     def end_headers(self):
@@ -1558,6 +1727,9 @@ class Handler(SimpleHTTPRequestHandler):
             if 'vault' in closed_places():
                 return self.send_json(503, {'ok': False, 'error': "Bee's Vault is closed for a moment."})
             return self.chat_socket()
+        if route == '/api/popular':
+            # the vault's Popular tab: the most played games, freshest plays counting most
+            return self.send_json(200, {'popular': popular_list(), 'ready': PLAYS['loaded']})
         if route == '/api/closed':
             # which doors the front page should grey out; nothing to say while faking
             shut = closed_places()
@@ -1644,7 +1816,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.revalidate = False
-        if self.path.split('?')[0] in ('/api/links', '/api/lyrics', '/api/suggest', '/api/idea', '/api/ideas'):
+        if self.path.split('?')[0] in ('/api/links', '/api/lyrics', '/api/suggest', '/api/idea', '/api/ideas', '/api/play'):
             self.send_response(204)
             self.cors()
             self.send_header('Content-Length', '0')
@@ -1657,6 +1829,16 @@ class Handler(SimpleHTTPRequestHandler):
     def do_POST(self):
         self.revalidate = False
         route = self.path.split('?')[0]
+        if route == '/api/play':
+            try:
+                n = int(self.headers.get('Content-Length') or 0)
+            except ValueError:
+                n = -1
+            if n <= 0 or n > PLAYS_BODY_MAX:
+                self.close_connection = True
+                return self.send_json(400, {'ok': False})
+            code, reply = play_post(self.client_ip(), self.rfile.read(n))
+            return self.send_json(code, reply)
         if route not in ('/api/links', '/api/lyrics', '/api/suggest', '/api/idea', '/api/ideas'):
             self.close_connection = True
             return self.send_json(404, {'ok': False, 'error': 'Not found.'})
@@ -1998,6 +2180,7 @@ def main():
         'on' if (DEV_KEY and GITHUB_TOKEN) else
         'OFF (set %s)' % ' and '.join(k for k, v in (('DEV_KEY', DEV_KEY), ('GITHUB_TOKEN', GITHUB_TOKEN)) if not v)))
     threading.Thread(target=links_load, daemon=True).start()
+    threading.Thread(target=plays_loop, daemon=True).start()
     if not os.environ.get('RENDER'):
         log('  you:        http://localhost:%d' % args.port)
         log('  same wifi:  http://%s:%d' % (lan_ip(), args.port))

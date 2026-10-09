@@ -511,7 +511,7 @@ the host; and a player leaving closes the match and releases its spectators.
 ## Closing a place for a while
 
 The file `CLOSED` lists the places that are switched off, one per line:
-`vault`, `neon-siege`, `rotfall`, `rotfall-2`, `projects`, or `all` for the
+`vault`, `neon-siege`, `rotfall`, `rotfall-2`, `neon-siege-1`, `projects`, or `all` for the
 whole of BeeSide Studio's, front page included. Add a name and deploy to close
 that place; take it out (or put a `#` in front) and deploy to open it again.
 The easy way is GitHub's editor: github.com/BeeCoolBro/ns2-coop/edit/main/CLOSED,
@@ -627,6 +627,40 @@ it; the three game pages that don't load `cloak.js` load it directly. A game
 answers `{type: 'vault-audio', ready: true}` when it loads. One that never
 answers, like a game from any other site, gets "This game can't be muted from
 here" instead of a silent failure.
+
+## Bee's Projects, Popular and Recently Added (vault)
+
+- **Bee's Projects**, a tab of its own, has a big card for each of BeeSide's own games: ROTFALL 2,
+  ROTFALL, NEON SIEGE (`/neon-siege-1`), NEON SIEGE Multiplayer and NEON SIEGE 2.
+  They open in the vault's game window with `#bv=1`, which tells ROTFALL and
+  ROTFALL 2 to hide their own way back to BeeSide. The covers are screenshots
+  of each title screen, in the page as small JPEGs (`BV_PROJECT_COVERS`).
+- **Popular** and **Recently Added** are categories in Games: each is a sidebar
+  filter (beside Favorites and Recently Played) and one of the first two rows
+  of All Games, with View All -- the way in on a phone, where the sidebar is
+  hidden. Random picks from them too.
+- **Popular** ranks games by how often they're opened. The vault sends
+  `POST /api/play` with `{"u": address}` (or `"name:<name>"` for a project or a
+  game built into the page) when a game actually opens -- after its warning, if
+  it has one. The server counts a game once per half hour per address (hashed,
+  never stored), at most 40 games an hour, and a play counts half as much
+  every 14 days. `GET /api/popular` returns the top 60. The counts live in
+  `plays.json` on the `vault-data` branch, saved every 5 minutes when they
+  changed. Until 24 games have counts, a hand-picked list (`POPULAR_PICKS`)
+  fills the rest.
+- **Recently Added** lists `VAULT_ADDED` in the vault, newest first, by day. When a game
+  goes in, add a line at the top of it; anything not listed is shown as having
+  been there since the vault opened (August 28, 2026).
+
+## The tour's price for skipping
+
+Bee's tour can always be skipped. Skipping one that started by itself asks
+once more ("Sure? Time-out!"), then puts up a time-out: 30 seconds (15
+for a what's-new run) when nothing on the page can be used, with "Fine, show
+me the tour" as the only way out early. After it, a TOUR SKIPPER sticker sits
+by the logo until a tour is finished. Skipping a tour started from Settings
+costs nothing. The time-out survives a reload and a data reset
+(`tour-timeout-until`, `tour-skipped` in localStorage).
 
 ## The vault's Ideas tab
 
@@ -1016,6 +1050,7 @@ priority, synergy, or how a real wave actually arrives.
 | `projects.html` | Other Projects at `/projects`: the front page's look, a door for each of the smaller projects |
 | `rotfall.html` | ROTFALL, the first of the Other Projects, at `/rotfall` |
 | `rotfall-2.html` | ROTFALL 2, on the front page at `/rotfall-2`; built from `rotfall2-src` (see ROTFALL 2 above) |
+| `neon-siege-1.html` | the first NEON SIEGE, at `/neon-siege-1`, for the vault's Bee's Projects: a copy of BeeCoolBro/Neon-Siege's `index.html` (its Vercel site is off) |
 | `beeside-sound.js` | the shared synth behind every sound on the front page, Other Projects and the three openings |
 | `openings.js` | the openings of Bee's Vault, NEON SIEGE 2 and ROTFALL: played by the front page over itself, or by a page over itself anywhere else |
 | `neon-siege-2-coop.html` | the game, at `/neon-siege` |

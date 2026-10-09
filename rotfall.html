@@ -913,7 +913,8 @@ function endGame(){
 
 document.getElementById('playBtn').addEventListener('click',startGame);
 // the way back shows when this is played on the BeeSide site
-if(/^\/rotfall\/?$/.test(location.pathname))document.getElementById('toBeeside').hidden=false;
+// the way back to BeeSide, except inside Bee's Vault (#bv=1), which has its own close button
+if(/^\/rotfall\/?$/.test(location.pathname)&&!/(^|[#&])bv=1(&|$)/.test(location.hash))document.getElementById('toBeeside').hidden=false;
 </script>
 <script src="beeside-sound.js"></script>
 <script src="openings.js"></script>

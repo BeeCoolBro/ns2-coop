@@ -4035,7 +4035,8 @@ requestAnimationFrame(loop);
   document.addEventListener('pointerdown',go);document.addEventListener('keydown',go);window.addEventListener('ri-done',go);
   if(AC.state==='running'&&!document.getElementById('rIntro'))go();})();
 // the way back shows when this is played on the BeeSide site
-if(/^\/rotfall-2\/?$/.test(location.pathname))$('toBeeside').hidden=false;
+// the way back to BeeSide, except inside Bee's Vault (#bv=1), which has its own close button
+if(/^\/rotfall-2\/?$/.test(location.pathname)&&!/(^|[#&])bv=1(&|$)/.test(location.hash))$('toBeeside').hidden=false;
 </script>
 <script src="beeside-sound.js"></script>
 <script>

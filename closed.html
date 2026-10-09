@@ -14,10 +14,11 @@ var PLACE = (function () {
     '/neon-siege': { key: 'neon-siege', name: 'NEON SIEGE 2', a: '#22e6ff', b: '#a855f7' },
     '/rotfall': { key: 'rotfall', name: 'ROTFALL', a: '#e85d00', b: '#ff2200' },
     '/rotfall-2': { key: 'rotfall-2', name: 'ROTFALL 2', a: '#e85d00', b: '#ff2200' },
+    '/neon-siege-1': { key: 'neon-siege-1', name: 'NEON SIEGE', a: '#00e5ff', b: '#ff2d78' },
     '/projects': { key: 'projects', name: 'Other Projects', a: '#ff9f1c', b: '#ffd633' }
   };
   var FILES = { '/index.html': '/', '/vault.html': '/vault', '/neon-siege-2-coop.html': '/neon-siege', '/neon-siege-2.html': '/neon-siege',
-    '/rotfall.html': '/rotfall', '/rotfall-2.html': '/rotfall-2', '/projects.html': '/projects' };
+    '/rotfall.html': '/rotfall', '/rotfall-2.html': '/rotfall-2', '/neon-siege-1.html': '/neon-siege-1', '/projects.html': '/projects' };
   var p = location.pathname.replace(/\/+$/, '') || '/';
   return P[FILES[p] || p] || { key: '', name: 'This place', a: '#ffd633', b: '#ff2d78' };
 })();
