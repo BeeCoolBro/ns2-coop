@@ -76,10 +76,10 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Clever</title>
+<title>Bee's Vault</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAADw0lEQVR42u2dzUtUYRxG78zcdEZHRZupIOjDcjHQoijMRUVGCG1c2CZaRB/Sh7sCCfoHWgbtwtqIFraplbUqKCmCwCKqRVCIbULtw8l01JlpNdvnGbiKC8/ZnoHxzpy5wo/3fW8s01suBwJtgyAe175Y1H5uUfuWeu23bdS+Pqn9z7/aT86Yv39B+3QqiIT7/GMx7TNjOf39BbCuIQACAAIAAgACAAIAAoB1RWgHPWbQUDCDnDoziOnr0v7kQe13b9E+uUH7/Lz2Hya1H36p/cPX2rtBTiKhvfv+uAMAAQABAAEAAQABAAEAAUCF0A0iFpe1zzRqf/ei9p171vYDaE5rfyQXzXe0ad8/rH2pZH7Bce4AQABAAEAAQABAAEAAQABQHWHUrUe3zmgfddAzOq79iFlxM5PXfmdW+7NHtd/fqv25Tu3//NP+xoj26VruAEAAQABAAEAAQABAAEAAQABQBeFcQb+gp1377gPau0njwDPtrw1qv2QOoQpN4k/NkrdHb7UfvKK92xv5/JP2taH5fLkDAAEAAQABAAEAAQABAAFAldi9gSf2ae8GPd+mtL/5WPuESTSdjPb3NZjrd4dInb+jvdtb6U4rb0hFuz7uAEAAQABAAEAAQABAAEAAUCFMmdO03WPZHONftZ+e1T5l9r4tmxVBbtBVNocw1brTxs1j48zbB0112hdL0a6POwAQABAAEAAQABAAEAAQAFQI3Qsizhkib11ac8rRPp+ogxruAEAAQABAAEAAQABAAEAAsFKEC0v6BZMz0d5g7w7tWxq0d6dpJ82KHXsauvkJLCxq32i2bhWWo10fW8OAfwFAAEAAQABAAEAAQACwUoRFM0hwj207fUj7XZu1v96tff+Q9m5QEya0L5hBWLZR+4FL2qdqtHdnJL35on0iwR0ACAAIAAgACAAIAAgACACqI3TPnx99p/0TMyhyh033dWm/tVn7B6+0/zWnvTsD6cIx7Tvaon0B7ye0f/FZ+3oGQUAAQABAAEAAQABAAEAAQABQDbFsr95d5h57tqlJ+3tmydTh3OpeoN0buMqHON0f0/7qoPbuNPS4+QlnxnLcAYAAgACAAIAAgACAAIAAIAiCIAhLZlBSY84T//Fb+1O3tb98XPuedu1bzd5D91i8/Lz2H79r7wY9Q8a7QZXb28ghUUAAQABAAEAAQABAAEAAUC2xjFkR5AYNbkWKW9Eybw55yqS1357V3p22PZ3XfmJK+9kF7d3ey7hZkVSKuKKJFUFAAEAAQABAAEAAQABAAFDhP+evvoTGZzz4AAAAAElFTkSuQmCC">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect x=%222%22 y=%222%22 width=%2260%22 height=%2260%22 rx=%2214%22 fill=%22%230b0b16%22/%3E%3Crect x=%223%22 y=%223%22 width=%2258%22 height=%2258%22 rx=%2213%22 fill=%22none%22 stroke=%22%2300ffe7%22 stroke-opacity=%22.35%22 stroke-width=%222%22/%3E%3Ccircle cx=%2232%22 cy=%2232%22 r=%2219%22 fill=%22none%22 stroke=%22%2300ffe7%22 stroke-width=%224%22/%3E%3Cpath d=%22M32 17v8M32 39v8M17 32h8M39 32h8M21.4 21.4l5.6 5.6M37 37l5.6 5.6M42.6 21.4 37 27M27 37l-5.6 5.6%22 stroke=%22%2300ffe7%22 stroke-width=%223%22 stroke-linecap=%22round%22/%3E%3Ccircle cx=%2232%22 cy=%2232%22 r=%225.5%22 fill=%22%23ff2d78%22/%3E%3C/svg%3E">
 <!-- ===== THE OPENING: openings.js, shared with the front page ===== -->
 <script src="beeside-sound.js"></script>
 <script src="openings.js"></script>
@@ -6044,7 +6044,7 @@ function openGame(url, name, cardEl) {
   trackRecent(url);
   if (NEWTAB_APPS.has(url)) {
     playSound('launch');
-    bvCountPlay(url, name);
+    bvPlayStart(url, name, true);
     window.open(url, '_blank', 'noopener,noreferrer');
     showToast(`> Opened ${name} in new tab`);
     return;
@@ -6064,7 +6064,7 @@ function openGame(url, name, cardEl) {
   }
   // Play the launch sound and open the game directly
   playSound('launch');
-  bvCountPlay(url, name);
+  bvPlayStart(url, name, false);
   const overlay = document.getElementById('game-overlay');
   const frame = document.getElementById('game-overlay-frame');
   if (BLOB_MODE) {
@@ -6122,7 +6122,7 @@ function advanceToStep2() {
 function confirmOpenExternal() {
   if (!pendingExternalGame) return;
   const { url, name } = pendingExternalGame;
-  bvCountPlay(url, name);
+  bvPlayStart(url, name, true);
   window.open(url, '_blank', 'noopener,noreferrer');
   showToast(`> Opened ${name} in new tab`);
   closeExternalWarning();
@@ -6168,7 +6168,7 @@ function confirmWarnedApp() {
   const { url, name } = pendingWarnedApp;
   closeContentWarning();
   playSound('launch');
-  bvCountPlay(url, name);
+  bvPlayStart(url, name, false);
   const overlay = document.getElementById('game-overlay');
   const frame = document.getElementById('game-overlay-frame');
   if (BLOB_MODE) {
@@ -7192,14 +7192,39 @@ function bvPlayKey(url, name) {
   return url.startsWith('data:') ? 'name:' + name : url;
 }
 
-// One play: the server counts each game once per half hour per person
-function bvCountPlay(url, name) {
+// A game scores once it has been played for over a minute: a minute with its
+// window open in the vault while the vault is on screen, or -- for a game that
+// opened in a tab of its own -- a minute with the vault out of sight (coming
+// back sooner calls it off). Closing the game or opening another starts over.
+// The server then counts it once per half hour per person.
+const BV_PLAY_MS = 60000;
+let bvPlaying = null;
+function bvPlayStart(url, name, newTab) {
+  const k = bvPlayKey(url, name);
+  bvPlaying = k && k.length <= 300 ? { key: k, newTab: !!newTab, ms: 0, last: Date.now(), t0: Date.now(), wasHidden: document.hidden } : null;
+}
+function bvPlayTick() {
+  const p = bvPlaying;
+  if (!p) return;
+  const now = Date.now(), dt = now - p.last;
+  p.last = now;
+  if (!p.newTab && document.getElementById('game-overlay').style.display !== 'block') { bvPlaying = null; return; }
+  // the time since the last look counts if the vault was the right way round
+  // for it: on screen for a game in its window, out of sight for one in its
+  // own tab (a tab out of sight gets its timers slowed, so go by the clock)
+  if (p.wasHidden === p.newTab) p.ms += p.newTab ? dt : Math.min(dt, 2000);
+  p.wasHidden = document.hidden;
+  if (p.ms > BV_PLAY_MS) { bvPlaying = null; bvSendPlay(p.key); return; }
+  // back on the vault before a game in its own tab has had its minute
+  if (p.newTab && !document.hidden && now - p.t0 > 3000) bvPlaying = null;
+}
+setInterval(bvPlayTick, 1000);
+document.addEventListener('visibilitychange', bvPlayTick);
+function bvSendPlay(k) {
   try {
-    const k = bvPlayKey(url, name);
-    if (!k || k.length > 300) return;
     fetch(bvSite() + '/api/play', { method: 'POST', body: JSON.stringify({ u: k }), headers: { 'Content-Type': 'text/plain' },
       keepalive: true, credentials: 'omit' }).catch(function () {});
-    if (Date.now() - bvPop.at > 30000) setTimeout(bvPopularLoad, 1500);
+    setTimeout(bvPopularLoad, 1500);
   } catch (e) {}
 }
 
@@ -7350,7 +7375,7 @@ function bvFillGrid(grid, which, q) {
     shown = top.length + picks.length;
     if (!q) {
       if (bvPop.err) html += '<div class="bvx-note" style="--c:#ff6a3d"><span>The play counts couldn\u2019t be reached just now, so these are the favourites.</span><button type="button" class="bvx-btn" data-bvx-act="pop-retry">Try again</button></div>';
-      else html += '<div class="bvx-note"><span>Every game opened in the vault counts, and a play counts half as much two weeks on, so this follows what\u2019s played now.</span></div>';
+      else html += '<div class="bvx-note"><span>A game scores when someone plays it for over a minute, and a play counts half as much two weeks on, so this follows what\u2019s played now.</span></div>';
     }
   } else {
     const rows = bvNewItems().filter(function (r) { return match(r.it); });
@@ -8920,14 +8945,14 @@ function chatPing(m) {
   box.appendChild(card);
   if (document.hidden) {
     CH.pinged++;
-    document.title = '(@' + CH.pinged + ') Clever';
+    document.title = '(@' + CH.pinged + ') Bee\'s Vault';
     chatDesktopAlert(m);
   }
 }
 
 // The browser tab's title carries the count while it is in the background.
 document.addEventListener('visibilitychange', function () {
-  if (!document.hidden && CH.pinged) { CH.pinged = 0; document.title = 'Clever'; }
+  if (!document.hidden && CH.pinged) { CH.pinged = 0; document.title = 'Bee\'s Vault'; }
 });
 
 // Desktop alerts: only when asked for, only on secure pages, only while the
@@ -9863,7 +9888,7 @@ function plCard(m) {
   playSound('rq-in');
   if (document.hidden) {
     CH.pinged++;
-    document.title = '(@' + CH.pinged + ') Clever';
+    document.title = '(@' + CH.pinged + ') Bee\'s Vault';
     if (chatAlertsOn()) {
       try {
         const n = new Notification(who + (watch ? ' wants to watch you play' : ' invited you to play'), { body: gname, tag: 'vault-rq' });
@@ -10334,7 +10359,7 @@ let uiMode = localStorage.getItem(UI_KEY) || 'new';
 
 function applyPlayerName(name) {
   document.getElementById('header-subtitle').textContent = `Welcome, ${name}`;
-  document.title = `Clever`;
+  document.title = `Bee's Vault`;
   // the chat goes by the vault's name, and hears about a change straight away
   if (typeof chatSyncName === 'function') chatSyncName();
 }
@@ -10890,7 +10915,7 @@ function stopRain() {
       body: 'Hundreds of games, sorted into categories. Click a card to play, <strong>search</strong> or hit <strong>Random</strong>, and <strong>\u2605 star</strong> your favourites. In a game, the little bar in the corner ' + DOCK + ' invites a friend or closes it.' },
     { since: 4, target: ['.sidebar-filter[data-cat="popular"]', '#categories-view [data-bvx-row="popular"]'],
       onEnter: () => { settingsOpen(false); tuckPlayer(); goTab('games'); },
-      title: 'Popular', body: 'New in Games: what everyone on the vault is playing. Every game opened counts, and old plays fade, so it shows what\u2019s played <strong>now</strong>.' },
+      title: 'Popular', body: 'New in Games: what everyone on the vault is playing. A game scores when someone plays it for over a minute, and old plays fade, so it shows what\u2019s played <strong>now</strong>.' },
     { since: 4, target: ['.sidebar-filter[data-cat="new"]', '#categories-view [data-bvx-row="new"]'], onEnter: () => goTab('games'),
       title: 'Recently Added', body: 'Also new: the newest games in the vault, newest first.' },
     { since: 4, target: '.tab-btn[data-tab="projects"]', click: true, hint: () => 'Tap ' + tabName('projects'), settle: 420,

@@ -518,7 +518,7 @@ The easy way is GitHub's editor: github.com/BeeCoolBro/ns2-coop/edit/main/CLOSED
 then commit to main; Render deploys it in about a minute.
 - **At its address** (and its file's name) a closed place shows `closed.html`:
   "Closed for a moment" in its own name and colours, with a way back to
-  BeeSide. The vault's keeps its Clever disguise.
+  BeeSide.
 - **On the front page and Other Projects** its door is greyed out with a
   CLOSED tag, and it shakes instead of opening (`/api/closed` says which).
 - **The vault's chat and the game's co-op** take no new connections while
@@ -639,10 +639,12 @@ here" instead of a silent failure.
   filter (beside Favorites and Recently Played) and one of the first two rows
   of All Games, with View All -- the way in on a phone, where the sidebar is
   hidden. Random picks from them too.
-- **Popular** ranks games by how often they're opened. The vault sends
-  `POST /api/play` with `{"u": address}` (or `"name:<name>"` for a project or a
-  game built into the page) when a game actually opens -- after its warning, if
-  it has one. The server counts a game once per half hour per address (hashed,
+- **Popular** ranks games by how often they're played for over a minute. The
+  vault sends `POST /api/play` with `{"u": address}` (or `"name:<name>"` for a
+  project or a game built into the page) once a game has been open in its window
+  for a minute while the vault is on screen -- or, for a game that opens in a
+  tab of its own, once the vault has been out of sight for a minute after it
+  opened. Closing the game sooner, or opening another, starts over. The server counts a game once per half hour per address (hashed,
   never stored), at most 40 games an hour, and a play counts half as much
   every 14 days. `GET /api/popular` returns the top 60. The counts live in
   `plays.json` on the `vault-data` branch, saved every 5 minutes when they
