@@ -658,27 +658,44 @@ here" instead of a silent failure.
 
 The old Bee's Games page listed 1,937 games from the Ultimate Game Stash
 (`bubbls/ugs-singlefile` on GitHub, 1.6 GB): each is one small HTML file that
-pulls the game itself from other public repos. The vault has 1,204 of them --
+pulls the game itself from other public repos. The vault has 1,035 of them --
 the ones that aren't in the vault already (364 were: by file name, under a
 slightly different name, or as another version of the same game, like Papa
-Donut for Papa's Donuteria or Castlevania 3 for Castlevania III) and that
-loaded in a test (334 didn't: a file they need is gone, or they look for files
-next to the page, which never worked).
+Donut for Papa's Donuteria or Castlevania 3 for Castlevania III), that loaded
+in a test (334 didn't: a file they need is gone, or they look for files next
+to the page, which never worked), and that have a picture.
+- A second test (October 2026) loaded every game in full. Of the 359 it
+  flagged, most only missed things they play fine without (a `$1` left in the
+  Flash template, old Flash ad and stats servers), the loader fixes below
+  brought back about 30, and screenshots with time to load showed 15 that
+  still don't run; those were taken out (Class of '09, Quake 64, Crazy Cars,
+  Doom Zio, Pixel Warfare, ...). 152 more were taken out for having no
+  picture, as the owner asked.
 
 - They open as `https://realwork.netlify.app/games/ugs/?g=<file>`. That one
   page on the games site (`games/ugs/index.html` in `BeeCoolBro/seraph`)
   fetches the file -- from jsDelivr, else raw GitHub, at a fixed commit -- and
   turns into it, so each game runs on the games site, apart from the vault.
-  It writes `vault-audio.js` in first, so the vault's mute works.
+  It writes `vault-audio.js` in first, so the vault's mute works, and mends
+  three hosts that went bad: game files behind githack (which now refuses
+  the emulator's first size check) come from Bitbucket or GitHub;
+  statically.io links (down to about 1 KB/s) go to jsDelivr, or to GitHub for
+  files over jsDelivr's 20 MB, with a fetch/XHR patch for a moved folder's
+  big `.wasm`/`.pck` files; and an `upgrade-insecure-requests` meta asks
+  for `http://` files over https.
 - In `GAMES` they come after DSAF 3, named from each page's title when that
   names the game, otherwise from the file name split into words. Recently
   Added takes them all with one `from:` line.
-- Cover art, in `GAME_COVERS` like the vault's own games: 547 have a real
+- Cover art, in `GAME_COVERS` like the vault's own games: 678 have a real
   picture -- Wikipedia box art, Steam, CrazyGames or Poki (linked, as the
-  originals are), or a Flashpoint logo or libretro box art (copied, small, into
-  `games/ugs/covers/` on the games site); a Pokemon ROM hack gets the box of
-  the game it is built on. 297 more have a screenshot of their title screen
-  (also in `games/ugs/covers/`), and 360 have the letter tile.
+  originals are), or a Flashpoint logo, a GameBanana banner (the FNF mods) or
+  libretro box art (copied, small, into `games/ugs/covers/` on the games
+  site); a Pokemon ROM hack gets the box of the game it is built on. libretro
+  box art is found in libretro's own listings (thumbnails.libretro.com), by
+  the No-Intro name of the ROM a game loads or its written-out title. The
+  other 357 have a screenshot of their title screen (also in
+  `games/ugs/covers/`). None has the letter tile: a game with no picture was
+  taken out.
 - Well-known ports of PC games (ULTRAKILL, Doki Doki Literature Club!,
   Buckshot Roulette, Undertale Yellow, ...) are in Ported Games; lesser-known
   ones are with the other games. Deltarune was taken out: it didn't work.
