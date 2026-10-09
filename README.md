@@ -700,7 +700,9 @@ Bee's tour can always be skipped. Skipping one that started by itself asks
 once more ("Sure? Time-out!"), then puts up a time-out: 30 seconds (15
 for a what's-new run) when nothing on the page can be used, with "Fine, show
 me the tour" as the only way out early. After it, a TOUR SKIPPER sticker sits
-by the logo until a tour is finished. Skipping a tour started from Settings
+by the logo -- and as a TOUR SKIPPER tag by their name in chat (on messages
+and in People here; the page sends `skipper: true`) -- until a tour is
+finished. Skipping a tour started from Settings
 costs nothing. The time-out survives a reload and a data reset
 (`tour-timeout-until`, `tour-skipped` in localStorage).
 

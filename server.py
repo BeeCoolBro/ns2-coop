@@ -1236,6 +1236,7 @@ class ChatPeer(object):
         self.rq_last = {}               # target id -> when it was last asked
         self.rtc_log = collections.deque()
         self.owner = False              # said the owner key; told about suggestions
+        self.skipper = False            # skipped Bee's tour: wears TOUR SKIPPER
 
     def shown(self):
         return self.name or self.guest
@@ -1290,7 +1291,7 @@ def chat_people():
     playing. `names` stays alongside for pages from before this existed."""
     with CHAT_LOCK:
         peers = list(CHAT['peers'])
-    people = [{'id': p.id, 'name': p.shown(), 'game': p.game['name'] if p.game else None, 'share': p.share}
+    people = [{'id': p.id, 'name': p.shown(), 'game': p.game['name'] if p.game else None, 'share': p.share, 'skipper': p.skipper}
               for p in peers]
     people.sort(key=lambda x: (x['name'].lower(), x['id']))
     return people
@@ -1526,15 +1527,21 @@ def chat_rename(peer, msg):
     actually shown, which may be a guest name."""
     now = time.time()
     peer.owner = owner_ok(msg.get('key'))
+    # the page says it skipped Bee's tour -- a tag anyone may wear, against themselves
+    skip = msg.get('skipper') is True
+    skip_changed = skip != peer.skipper
+    peer.skipper = skip
     if peer.name is not None and now - peer.named_at < CHAT_RENAME_GAP:
         peer.send({'t': 'you', 'name': peer.shown(), 'id': peer.id})
+        if skip_changed:
+            chat_roster()
         return
     wanted = tidy(msg.get('name'), CHAT_NAME_LEN)
     name = chat_name(wanted, peer, peer.owner)
     changed = name != peer.shown() or peer.name is None
     peer.name, peer.named_at = name, now
     peer.send({'t': 'you', 'name': name, 'asked': wanted, 'id': peer.id})
-    if changed:
+    if changed or skip_changed:
         chat_roster()
 
 
@@ -1608,6 +1615,9 @@ def chat_say(peer, msg):
         # one title is accepted, so nobody can name themselves anything else.
         if msg.get('title') == 'ronin':
             m['title'] = 'ronin'
+        # TOUR SKIPPER: the page says it skipped Bee's tour
+        if msg.get('skipper') is True:
+            m['skipper'] = True
         # a random tag the sender chose, so its own page can tell which
         # messages are its own; it identifies nobody to anyone else
         tag = str(msg.get('n') or '')

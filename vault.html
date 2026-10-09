@@ -1555,6 +1555,12 @@ body.theme-ultrabasic .chat-msg.owner .chat-text { color: var(--text); }
   background: linear-gradient(100deg, transparent, rgba(220, 235, 255, 0.55), transparent);
   transform: translateX(-160%) skewX(-18deg); animation: owner-tag-sheen 4.6s var(--ease-in-out) infinite; }
 .gc-msg .chat-ronin { margin-right: 7px; vertical-align: 1px; }
+/* TOUR SKIPPER: worn by anyone who skipped Bee's tour, until they finish one */
+.chat-skipper { display: inline-flex; align-items: center; padding: 2px 7px 1px; border-radius: 3px; align-self: center; rotate: -3deg;
+  font-family: 'Orbitron', sans-serif; font-size: 0.48rem; font-weight: 900; letter-spacing: 0.14em; color: #1a1300; white-space: nowrap;
+  background: repeating-linear-gradient(-45deg, #ffd23f 0 6px, #ffb800 6px 12px); box-shadow: 0 1px 0 #7a5a00; }
+.gc-msg .chat-skipper { margin-right: 7px; vertical-align: 1px; }
+.pl-line .chat-skipper { margin-left: 6px; }
 .chat-time { color: var(--muted); font-size: 0.6rem; }
 .chat-text { margin-top: 2px; font-size: 0.82rem; color: var(--text); line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
 .chat-mod { position: absolute; top: 4px; right: 6px; display: none; gap: 6px; }
@@ -10863,6 +10869,7 @@ function chatRetryLater() {
 // Say who we are: on connecting, and whenever the vault's name changes.
 function chatHello() {
   const msg = { t: 'hi', name: chatName() };
+  if (chatIsSkipper()) msg.skipper = true;
   if (linksIsDev() && linksKey()) msg.key = linksKey();
   chatSend(msg);
 }
@@ -10872,6 +10879,7 @@ function chatSyncName() {
   if (v && v.dataset.built) v.querySelector('.chat-as b').textContent = chatName();
   if (CH.connected) {
     const msg = { t: 'name', name: chatName() };
+    if (chatIsSkipper()) msg.skipper = true;
     if (linksIsDev() && linksKey()) msg.key = linksKey();
     chatSend(msg);
   }
@@ -11046,6 +11054,14 @@ function chatOwnerTag() {
   return tag;
 }
 
+// TOUR SKIPPER, for anyone who skipped Bee's tour and hasn't finished one since.
+function chatSkipperTag() {
+  const tag = lnkEl('span', 'chat-skipper', 'TOUR SKIPPER');
+  tag.title = 'Skipped Bee\u2019s tour';
+  return tag;
+}
+function chatIsSkipper() { try { return localStorage.getItem('tour-skipped') === '1'; } catch (e) { return false; } }
+
 // The RONIN ALPHA title, for anyone chatting in Decayed Winter.
 function chatRoninTag() {
   const tag = lnkEl('span', 'chat-ronin');
@@ -11079,6 +11095,7 @@ function chatRow(m, fresh) {
   meta.appendChild(name);
   if (m.owner) meta.appendChild(chatOwnerTag());
   if (m.title === 'ronin') meta.appendChild(chatRoninTag());
+  if (m.skipper) meta.appendChild(chatSkipperTag());
   const d = new Date(m.at || Date.now());
   meta.appendChild(lnkEl('span', 'chat-time', String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')));
   row.appendChild(meta);
@@ -11148,6 +11165,7 @@ function chatPing(m) {
   head.append(who);
   if (m.owner) { card.classList.add('owner'); head.appendChild(chatOwnerTag()); }
   if (m.title === 'ronin') head.appendChild(chatRoninTag());
+  if (m.skipper) head.appendChild(chatSkipperTag());
   head.appendChild(document.createTextNode(' mentioned you'));
   const text = String(m.text || '');
   const close = lnkEl('button', 'chat-ping-x', '\u2715');
@@ -11428,6 +11446,7 @@ function chatSayText(text) {
   const msg = { t: 'say', text: text, name: chatName(), n: n };
   if (linksIsDev() && linksKey()) msg.key = linksKey();
   if (settings.theme === 'decayedwinter') msg.title = 'ronin';
+  if (chatIsSkipper()) msg.skipper = true;
   if (!chatSend(msg)) return false;
   playSound('chat-send');
   return true;
@@ -11560,8 +11579,10 @@ function gcRow(m, fresh) {
   if (!m.owner) name.style.color = 'hsl(' + chatHue(String(m.name || '')) + ' 70% 62%)';
   const text = chatTextWithMentions(m);
   text.className = 'gc-text';
-  if (m.title === 'ronin') row.append(name, chatRoninTag(), text);
-  else row.append(name, text);
+  row.append(name);
+  if (m.title === 'ronin') row.append(chatRoninTag());
+  if (m.skipper) row.append(chatSkipperTag());
+  row.append(text);
   return row;
 }
 
@@ -11857,6 +11878,7 @@ function plRow(p, mode) {
   const nm = lnkEl('span', 'pl-name', p.name);
   nm.style.color = plHue(p.name);
   line.appendChild(nm);
+  if (p.skipper) line.appendChild(chatSkipperTag());
   if (me) line.appendChild(lnkEl('span', 'pl-you', 'you'));
   const st = lnkEl('div', 'pl-status' + (p.game ? ' on' : ''), p.game ? '\u25B6 ' + p.game : 'In the vault');
   if (p.game) st.title = 'Playing ' + p.game;
@@ -13509,6 +13531,7 @@ function stopRain() {
   }
   function forgive() {
     try { localStorage.removeItem(SKIPPED_KEY); } catch (e) {}
+    if (typeof chatSyncName === 'function') chatSyncName();
     sticker.hidden = true;
     playSound('tour-forgive');
     showToast('\u2713 Tour done \u2014 sticker peeled off. Bee forgives you.');
@@ -13518,6 +13541,7 @@ function stopRain() {
   function punish(sec) {
     const until = Date.now() + sec * 1000;
     try { localStorage.setItem(TIMEOUT_KEY, String(until)); localStorage.setItem(SKIPPED_KEY, '1'); } catch (e) {}
+    if (typeof chatSyncName === 'function') chatSyncName();
     playSound('tour-timeout');
     showTimeout(until, sec);
   }
