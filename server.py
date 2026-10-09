@@ -1693,24 +1693,27 @@ class Handler(SimpleHTTPRequestHandler):
         page = shut_page(path)
         if page:
             return SimpleHTTPRequestHandler.translate_path(self, '/' + page)
+        # Matched without the ?query or #fragment: a shared link often carries
+        # one (?fbclid=..., ?ref=...), and /vault?ref=x is still the vault.
+        route = path.split('?', 1)[0].split('#', 1)[0]
         # The front door picks between the two sites; the game lives one step in.
-        if path in ('/', '/index.html'):
+        if route in ('/', '/index.html'):
             path = '/' + HOME
-        elif path == '/neon-siege':
+        elif route == '/neon-siege':
             path = '/' + GAME
         # Bee's Vault rides along as its own page. It is nothing to do with the
         # game and shares none of its state; it is here because this is the
         # host that is already wired to the repo.
-        elif path in ('/vault', '/vault/'):
+        elif route in ('/vault', '/vault/'):
             path = '/' + VAULT
         # Other Projects, a page of their own off the front door
-        elif path in ('/projects', '/projects/'):
+        elif route in ('/projects', '/projects/'):
             path = '/' + PROJECTS
-        elif path in ('/rotfall', '/rotfall/'):
+        elif route in ('/rotfall', '/rotfall/'):
             path = '/' + ROTFALL
-        elif path in ('/rotfall-2', '/rotfall-2/'):
+        elif route in ('/rotfall-2', '/rotfall-2/'):
             path = '/' + ROTFALL2
-        elif path in ('/neon-siege-1', '/neon-siege-1/'):
+        elif route in ('/neon-siege-1', '/neon-siege-1/'):
             path = '/' + NEONSIEGE1
         return SimpleHTTPRequestHandler.translate_path(self, path)
 
