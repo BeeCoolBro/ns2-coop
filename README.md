@@ -654,6 +654,26 @@ here" instead of a silent failure.
   goes in, add a line at the top of it; anything not listed is shown as having
   been there since the vault opened (August 28, 2026).
 
+## The Game Stash games (vault)
+
+The old Bee's Games page listed 1,937 games from the Ultimate Game Stash
+(`bubbls/ugs-singlefile` on GitHub, 1.6 GB): each is one small HTML file that
+pulls the game itself from other public repos. On 2026-10-08 the vault took in
+1,266 of them -- the ones that aren't in the vault already (302 were, by file name
+or under a slightly different name) and that loaded in a test (334 didn't: a
+file they need is gone, or they look for files next to the page, which never
+worked).
+
+- They open as `https://realwork.netlify.app/games/ugs/?g=<file>`. That one
+  page on the games site (`games/ugs/index.html` in `BeeCoolBro/seraph`)
+  fetches the file -- from jsDelivr, else raw GitHub, at a fixed commit -- and
+  turns into it, so each game runs on the games site, apart from the vault.
+  It writes `vault-audio.js` in first, so the vault's mute works.
+- In `GAMES` they come after DSAF 3, named from each page's title when that
+  names the game, otherwise from the file name split into words, and sorted
+  into the usual categories by what's in the name (most are Browser Games or
+  Retro Classics). Recently Added takes them all with one `from:` line.
+
 ## The tour's price for skipping
 
 Bee's tour can always be skipped. Skipping one that started by itself asks
