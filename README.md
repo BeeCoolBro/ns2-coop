@@ -658,7 +658,7 @@ here" instead of a silent failure.
 
 The old Bee's Games page listed 1,937 games from the Ultimate Game Stash
 (`bubbls/ugs-singlefile` on GitHub, 1.6 GB): each is one small HTML file that
-pulls the game itself from other public repos. The vault has 1,035 of them --
+pulls the game itself from other public repos. The vault has 1,031 of them --
 the ones that aren't in the vault already (364 were: by file name, under a
 slightly different name, or as another version of the same game, like Papa
 Donut for Papa's Donuteria or Castlevania 3 for Castlevania III), that loaded
@@ -670,7 +670,9 @@ to the page, which never worked), and that have a picture.
   brought back about 30, and screenshots with time to load showed 15 that
   still don't run; those were taken out (Class of '09, Quake 64, Crazy Cars,
   Doom Zio, Pixel Warfare, ...). 152 more were taken out for having no
-  picture, as the owner asked.
+  picture, as the owner asked. Later Dr Weed Gaster (the owner: it doesn't
+  work), Pokemon FireRed and LeafGreen Plus Edition (it doesn't start) and the
+  Alt copies of Poke Black and Poke White 2 (the same games again) went too.
 
 - They open as `https://realwork.netlify.app/games/ugs/?g=<file>`. That one
   page on the games site (`games/ugs/index.html` in `BeeCoolBro/seraph`)
@@ -686,16 +688,20 @@ to the page, which never worked), and that have a picture.
 - In `GAMES` they come after DSAF 3, named from each page's title when that
   names the game, otherwise from the file name split into words. Recently
   Added takes them all with one `from:` line.
-- Cover art, in `GAME_COVERS` like the vault's own games: 678 have a real
+- Cover art, in `GAME_COVERS` like the vault's own games: 649 have a real
   picture -- Wikipedia box art, Steam, CrazyGames or Poki (linked, as the
   originals are), or a Flashpoint logo, a GameBanana banner (the FNF mods) or
   libretro box art (copied, small, into `games/ugs/covers/` on the games
-  site); a Pokemon ROM hack gets the box of the game it is built on. libretro
-  box art is found in libretro's own listings (thumbnails.libretro.com), by
-  the No-Intro name of the ROM a game loads or its written-out title. The
-  other 357 have a screenshot of their title screen (also in
-  `games/ugs/covers/`). None has the letter tile: a game with no picture was
-  taken out.
+  site). libretro box art is found in libretro's own listings
+  (thumbnails.libretro.com), by the No-Intro name of the ROM a game loads or
+  its written-out title. The other 382 have a screenshot of their title
+  screen (also in `games/ugs/covers/`). None has the letter tile: a game with
+  no picture was taken out.
+- A Pokemon ROM hack shows its own title screen, not the box of the game it is
+  built on: a dozen hacks of Emerald or FireRed had all shown the same box.
+  A hack that kept the original title screen shows a frame of its intro
+  instead, so no two Pokemon games share a picture. These were caught with
+  each game in a window of its own (a hidden tab's emulator is paused).
 - Well-known ports of PC games (ULTRAKILL, Doki Doki Literature Club!,
   Buckshot Roulette, Undertale Yellow, ...) are in Ported Games; lesser-known
   ones are with the other games. Deltarune was taken out: it didn't work.
