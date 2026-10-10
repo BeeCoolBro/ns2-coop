@@ -48,6 +48,16 @@ is in there right now, and a ticker lists what is inside. **1**, **2** and
 **3** pick a door, **4** is Other Projects, and picking one opens it out into
 the next page.
 
+**No glow.** Nothing on the front page, Other Projects, the vault or the
+closed page lights itself up: no coloured halos (`0 0 12px <colour>`
+shadows), no glowing text, no gold-pink-cyan rainbow strokes, no pulsing
+glows. Depth comes from plain dark shadows and emphasis from a crisp edge or a
+solid fill. In the vault that edge is `--glow` / `--glow-strong`, a hairline
+ring in the theme's own accent, declared once on `body` so it works for every
+theme. Light stays where something really is a light: the hive's lit cells,
+the LEDs on the vault's door, and the games themselves (NEON SIEGE's neon is
+the game's own), which are left as they are.
+
 **Sound** is on everything, synthesized by `beeside-sound.js`: one small
 shared synth with a reverb hall, stereo panning and bell tones, used by the
 front page, Other Projects and the three openings. There are no sound files.
@@ -517,7 +527,7 @@ that place; take it out (or put a `#` in front) and deploy to open it again.
 The easy way is GitHub's editor: github.com/BeeCoolBro/ns2-coop/edit/main/CLOSED,
 then commit to main; Render deploys it in about a minute.
 - **At its address** (and its file's name) a closed place shows `closed.html`:
-  "Closed for a moment" in its own name and colours, with a way back to
+  "Closed for a moment" in its own name and colour, with a way back to
   BeeSide.
 - **On the front page and Other Projects** its door is greyed out with a
   CLOSED tag, and it shakes instead of opening (`/api/closed` says which).
