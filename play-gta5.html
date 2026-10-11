@@ -75,9 +75,23 @@ iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; bac
 
   document.getElementById('fs').addEventListener('click', function () {
     if (document.fullscreenElement) document.exitFullscreen();
-    else if (f.requestFullscreen) f.requestFullscreen().then(function () { f.focus(); }).catch(function () {});
+    else if (f.requestFullscreen) f.requestFullscreen().catch(function () {});
   });
-  f.addEventListener('load', function () { try { f.focus(); } catch (e) {} });
+  // The keyboard only reaches the game while its frame has focus. Give it focus
+  // when it loads, and take it back whenever it ends up on this page instead
+  // (a click on the bar, a button, the note): a key pressed here is passed on
+  // as focus, so at most that one key is lost.
+  function toGame() { try { f.focus(); f.contentWindow && f.contentWindow.focus(); } catch (e) {} }
+  f.addEventListener('load', toGame);
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'Tab' || e.target.closest && e.target.closest('a, button') && (e.key === 'Enter' || e.key === ' ')) return;
+    toGame();
+  });
+  document.addEventListener('click', function (e) {
+    if (e.target.closest && e.target.closest('a[href]:not(#hide)')) return;
+    setTimeout(toGame, 0);
+  });
+  document.addEventListener('fullscreenchange', function () { setTimeout(toGame, 50); });
 })();
 </script>
 </body>
