@@ -643,8 +643,12 @@ here" instead of a silent failure.
 - **Bee's Projects**, a tab of its own, has a big card for each of BeeSide's own games: ROTFALL 2,
   ROTFALL, NEON SIEGE (`/neon-siege-1`), NEON SIEGE Multiplayer and NEON SIEGE 2.
   They open in the vault's game window with `#bv=1`, which tells ROTFALL and
-  ROTFALL 2 to hide their own way back to BeeSide. The covers are screenshots
-  of each title screen, in the page as small JPEGs (`BV_PROJECT_COVERS`).
+  ROTFALL 2 to hide their own way back to BeeSide. Each has a cover made for
+  it: a moment of real play, drawn by the game itself (staged with the game's
+  own code, nothing painted on), with the game's own title over it. All five
+  share one layout: the title centred, the same size, clear of the top-left
+  corner where the vault puts NEW and rank badges and of the fade at the
+  bottom. They are 960x540 JPEGs in the page (`BV_PROJECT_COVERS`).
 - **Popular** and **Recently Added** are categories in Games: each is a sidebar
   filter (beside Favorites and Recently Played) and one of the first two rows
   of All Games, with View All -- the way in on a phone, where the sidebar is
