@@ -46,6 +46,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 HOME = 'index.html'              # BeeSide Studio's: the way into both
 GAME = 'neon-siege-2-coop.html'
 VAULT = 'vault.html'
+# GTA 5 needs cross-origin isolation (WASM threads), which it cannot have inside
+# the vault's game window: the vault and the front page around it are not
+# isolated, and cannot be without breaking every other game. So it gets a page
+# of its own that is: /play/gta-5, sent with COOP/COEP (see ISOLATED).
+GTA5 = 'play-gta5.html'
+ISOLATED = {'/play/gta-5', '/play/gta-5/', '/' + GTA5}
 PROJECTS = 'projects.html'        # Other Projects: the smaller ones
 ROTFALL = 'rotfall.html'          # the first of them: a survival shooter
 ROTFALL2 = 'rotfall-2.html'       # its sequel, a door of its own on the front page
@@ -77,6 +83,8 @@ for _name, (_route, *_files) in PLACES.items():
     ROUTE_PLACE[_route] = ROUTE_PLACE[_route + '/'] = _name
     for _f in _files:
         ROUTE_PLACE['/' + _f] = _name
+for _r in ISOLATED:
+    ROUTE_PLACE[_r] = 'vault'                         # part of the vault: closes with it
 ROUTE_PLACE['/'] = ROUTE_PLACE['/' + HOME] = 'all'   # the front page closes only with everything
 ROUTE_PLACE['/' + CLOSED_PAGE] = 'all'               # and with 'fake', the closed page itself hides too
 
@@ -1704,6 +1712,8 @@ class Handler(SimpleHTTPRequestHandler):
         # Bee's Vault rides along as its own page. It is nothing to do with the
         # game and shares none of its state; it is here because this is the
         # host that is already wired to the repo.
+        elif route in ('/play/gta-5', '/play/gta-5/'):
+            path = '/' + GTA5
         elif route in ('/vault', '/vault/'):
             path = '/' + VAULT
         # Other Projects, a page of their own off the front door
@@ -1718,6 +1728,10 @@ class Handler(SimpleHTTPRequestHandler):
         return SimpleHTTPRequestHandler.translate_path(self, path)
 
     def end_headers(self):
+        # the GTA 5 page is cross-origin isolated, and so may be the game in it
+        if getattr(self, 'isolate', False):
+            self.send_header('Cross-Origin-Opener-Policy', 'same-origin')
+            self.send_header('Cross-Origin-Embedder-Policy', 'require-corp')
         # The game is a single HTML file and it changes every deploy. Without a
         # directive the browser caches it heuristically off Last-Modified and
         # can serve a days-old copy, which is how one player ends up reporting
@@ -1731,6 +1745,7 @@ class Handler(SimpleHTTPRequestHandler):
         # Reset per request: a keep-alive connection reuses this instance, and
         # the flag belongs to the file being served, not to the socket.
         self.revalidate = False
+        self.isolate = False
         route = self.path.split('?')[0]
         if route == '/ws':
             if 'neon-siege' in closed_places():
@@ -1800,6 +1815,7 @@ class Handler(SimpleHTTPRequestHandler):
             self.wfile.write(body)
             return
         self.revalidate = True
+        self.isolate = route in ISOLATED and not shut_page(route)
         return SimpleHTTPRequestHandler.do_GET(self)
 
     def redirect(self, where):
@@ -1829,6 +1845,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.revalidate = False
+        self.isolate = False
         if self.path.split('?')[0] in ('/api/links', '/api/lyrics', '/api/suggest', '/api/idea', '/api/ideas', '/api/play'):
             self.send_response(204)
             self.cors()
@@ -1841,6 +1858,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         self.revalidate = False
+        self.isolate = False
         route = self.path.split('?')[0]
         if route == '/api/play':
             try:

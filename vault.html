@@ -8216,11 +8216,16 @@ const EXTERNAL_GAMES = new Set([
 let pendingExternalGame = null;
 
 // Apps that refuse to be framed (X-Frame-Options / frame-ancestors), even
-// from an about:blank page, or that play better full size: they open
-// straight in a new tab
+// from an about:blank page: they open straight in a new tab
 const NEWTAB_APPS = new Set([
   'https://xcloud.adijaya.id/',
-  'https://gta2.deloskiyt.pl/',   // GTA 5
+]);
+
+// Games that need cross-origin isolation, which the game window can't give
+// them (the vault isn't isolated, and the front page around it isn't either):
+// each plays on an isolated page of BeeSide's own, in this tab (server.py)
+const ISOLATED_GAMES = new Map([
+  ['https://gta2.deloskiyt.pl/', '/play/gta-5'],
 ]);
 
 // Apps that require a content warning before opening
@@ -8259,6 +8264,14 @@ function openGame(url, name, cardEl) {
     setTimeout(() => { cardEl.style.animation = ''; }, 10);
   }
   trackRecent(url);
+  if (ISOLATED_GAMES.has(url)) {
+    playSound('launch');
+    const to = bvSite() + ISOLATED_GAMES.get(url);
+    // the whole tab goes, not just this page: inside the front page's frame
+    // the isolated page would be no better off than the game window
+    try { window.top.location.href = to; } catch (e) { location.href = to; }
+    return;
+  }
   if (NEWTAB_APPS.has(url)) {
     playSound('launch');
     bvPlayStart(url, name, true);
