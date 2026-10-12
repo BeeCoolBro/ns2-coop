@@ -1,4 +1,12 @@
 {
   "v": 1,
-  "ideas": []
+  "ideas": [
+    {
+      "id": "sqdP2fwc",
+      "kind": "broken",
+      "text": "Ultrakill — gave an error message with some code in it and it played the death screen then went black",
+      "from": "telefragger",
+      "at": 1791842620
+    }
+  ]
 }
