@@ -46,12 +46,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 HOME = 'index.html'              # BeeSide Studio's: the way into both
 GAME = 'neon-siege-2-coop.html'
 VAULT = 'vault.html'
-# GTA 5 needs cross-origin isolation (WASM threads), which it cannot have inside
+# A game that needs cross-origin isolation (WASM threads) can't have it inside
 # the vault's game window: the vault and the front page around it are not
-# isolated, and cannot be without breaking every other game. So it gets a page
-# of its own that is: /play/gta-5, sent with COOP/COEP (see ISOLATED).
-GTA5 = 'play-gta5.html'
-ISOLATED = {'/play/gta-5', '/play/gta-5/', '/' + GTA5}
+# isolated, and can't be without breaking every other game. Such a game gets a
+# page of its own, listed here, sent with COOP/COEP. None is now (GTA 5 was,
+# until the owner had it taken out).
+ISOLATED = set()
 PROJECTS = 'projects.html'        # Other Projects: the smaller ones
 ROTFALL = 'rotfall.html'          # the first of them: a survival shooter
 ROTFALL2 = 'rotfall-2.html'       # its sequel, a door of its own on the front page
@@ -1712,8 +1712,6 @@ class Handler(SimpleHTTPRequestHandler):
         # Bee's Vault rides along as its own page. It is nothing to do with the
         # game and shares none of its state; it is here because this is the
         # host that is already wired to the repo.
-        elif route in ('/play/gta-5', '/play/gta-5/'):
-            path = '/' + GTA5
         elif route in ('/vault', '/vault/'):
             path = '/' + VAULT
         # Other Projects, a page of their own off the front door
@@ -1728,7 +1726,7 @@ class Handler(SimpleHTTPRequestHandler):
         return SimpleHTTPRequestHandler.translate_path(self, path)
 
     def end_headers(self):
-        # the GTA 5 page is cross-origin isolated, and so may be the game in it
+        # an ISOLATED page is cross-origin isolated, and so may be the game in it
         if getattr(self, 'isolate', False):
             self.send_header('Cross-Origin-Opener-Policy', 'same-origin')
             self.send_header('Cross-Origin-Embedder-Policy', 'require-corp')

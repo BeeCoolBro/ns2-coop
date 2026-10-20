@@ -1160,7 +1160,6 @@ priority, synergy, or how a real wave actually arrives.
 | `openings.js` | the openings of Bee's Vault, NEON SIEGE 2 and ROTFALL: played by the front page over itself, or by a page over itself anywhere else |
 | `neon-siege-2-coop.html` | the game, at `/neon-siege` |
 | `vault.html` | Bee's Vault, at `/vault` |
-| `play-gta5.html` | the vault's GTA 5, at `/play/gta-5`: the game needs cross-origin isolation (WASM threads), which the vault's game window can't give it, so `server.py` sends this page with COOP/COEP and clicking GTA 5 in the vault takes the whole tab here. If the game's server won't let an isolated page frame it, `?mode=c` uses Chrome's credentialless frame instead (Chrome and Edge; the game may download again each visit) |
 | `chat_filter.py` | the vault chat's word filter |
 | `render.yaml` | Render blueprint |
 
