@@ -4211,6 +4211,24 @@ animation: launch-flash-anim 0.4s var(--ease-out);
 30% { opacity: 0.8; }
 100% { opacity: 0; }
 }
+
+/* ===== No neon glow =====
+   The owner asked for the neon glow to go: it made the site look generated.
+   Gone, in every theme: the glowing grid and the scanlines behind the page, the
+   blurred colour in the corners and the drifting orbs, the shimmer across the
+   section titles, the rainbow line under the header (a plain line now),
+   pulsing dots and labels, the blurred line under the open tab, and coloured
+   glow rings (plain dark shadows instead). Shadows that give depth stay, and
+   the search box still shows a clear ring while you type. */
+body::after { display: none !important; }
+body.theme-cyberpunk .theme-overlay, body.theme-matrix .theme-overlay, body.theme-nerdmode .theme-overlay { display: none !important; }
+.corner-glow, .bg-orb, .blackhole-glow, .launch-spinner-glow, .launch-scanlines { display: none !important; }
+header::after { background: var(--border) !important; opacity: 1 !important; animation: none !important; }
+.cat-section-title, .filtered-title { background: none !important; -webkit-text-fill-color: currentColor !important; animation: none !important; }
+.cat-section-title span, .subtitle, .sidebar-section-label, .theme-swatch.active .swatch-icon { animation: none !important; }
+.tab-btn.active::after { filter: none !important; }
+body { --glow: 0 6px 18px rgba(0, 0, 0, 0.35) !important; --glow-strong: 0 8px 24px rgba(0, 0, 0, 0.45) !important; }
+#search:focus { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent) !important; }
 </style>
 </div>
 <div id="game-overlay">

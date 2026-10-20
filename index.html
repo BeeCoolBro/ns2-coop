@@ -552,6 +552,16 @@ body.leaving main { opacity: .6; transform: scale(.985); transition: opacity .3s
   .name { font-size: 24px; }
   .top { top: 16px; left: 20px; }
 }
+
+/* ===== No glow =====
+   The owner asked for the glow to go: it made the site look generated. Gone:
+   the drifting light behind the page and the halo behind the mark, the light
+   sweeping over the title and running along the line under it, the light that
+   followed the pointer over a door, and the drop's halo on the way in. The
+   plain shadows that give the doors depth stay. */
+.bg .o1, .bg .o2, .bg .o3, .rays, .mark-wrap::before, .rule::after, .rule::before,
+.door::after, .door .sheen, #gate .g-drop::after { display: none !important; }
+h1 .bee { background: none !important; color: var(--gold) !important; -webkit-text-fill-color: var(--gold) !important; }
 </style>
 </head>
 <body>
@@ -1467,7 +1477,7 @@ body.leaving main { opacity: .6; transform: scale(.985); transition: opacity .3s
       FX.forEach(function (p) { ctx.globalAlpha = Math.max(0, p.life * 1.6); ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.2832); ctx.fill(); });
       ctx.globalAlpha = 1;
       O.forEach(function (x) {
-        ctx.fillStyle = '#fb923c'; ctx.shadowColor = '#e85d00'; ctx.shadowBlur = 6;
+        ctx.fillStyle = '#fb923c'; ctx.shadowColor = '#e85d00'; ctx.shadowBlur = 0;
         ctx.beginPath(); ctx.arc(x.x, x.y, 2.4 + Math.sin(x.age * 6) * .5, 0, 6.2832); ctx.fill();
       });
       ctx.shadowBlur = 0;
@@ -1491,11 +1501,11 @@ body.leaving main { opacity: .6; transform: scale(.985); transition: opacity .3s
         });
       });
       // the player: an orange orb with a crosshair
-      ctx.shadowColor = '#e85d00'; ctx.shadowBlur = 16;
+      ctx.shadowColor = '#e85d00'; ctx.shadowBlur = 0;
       var pg = ctx.createRadialGradient(P.x - 2, P.y - 2, 0, P.x, P.y, P.r);
       pg.addColorStop(0, '#ff6d00'); pg.addColorStop(1, '#1c0800');
       ctx.fillStyle = pg; ctx.beginPath(); ctx.arc(P.x, P.y, P.r, 0, 6.2832); ctx.fill();
-      ctx.shadowBlur = 6; ctx.strokeStyle = '#e85d00'; ctx.lineWidth = 1.6; ctx.beginPath();
+      ctx.shadowBlur = 0; ctx.strokeStyle = '#e85d00'; ctx.lineWidth = 1.6; ctx.beginPath();
       ctx.moveTo(P.x, P.y - 4); ctx.lineTo(P.x, P.y + 4); ctx.moveTo(P.x - 4, P.y); ctx.lineTo(P.x + 4, P.y); ctx.stroke();
       ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(232,93,0,.5)'; ctx.beginPath();
       ctx.moveTo(P.x + Math.cos(P.aim) * P.r, P.y + Math.sin(P.aim) * P.r);

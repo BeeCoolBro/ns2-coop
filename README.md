@@ -196,6 +196,22 @@ Every step has its sound, on the shared synth.
 
 The vault also listens to its own SFX switch.
 
+## No glow (front page, Other Projects, vault)
+
+The owner had the neon glow taken out of the site's own pages: it made them
+look generated. A "No glow" block at the end of the styles of `index.html` and
+`projects.html`, and a "No neon glow" block at the end of the vault's own
+styles, switch it off. On the front page and Other Projects that's the
+drifting light behind the page, the halo behind the mark, the sheen over the
+title and the glint along the line under it, and the light that followed the
+pointer over a door; the door art's canvas sparks draw without blur
+(`shadowBlur = 0`). In the vault, in every theme, it's the glowing grid and
+the scanlines behind the page, the corner glows and drifting orbs, the shimmer
+across section titles, the rainbow line under the header (a plain line now),
+pulsing dots and labels, and coloured glow rings (`--glow` and
+`--glow-strong` are plain dark shadows). Shadows that give depth stay. Keep
+new parts of the site glow-free too. The games themselves are untouched.
+
 ## ROTFALL 2
 
 `rotfall-2.html` (at `/rotfall-2`) is built, not written by hand: its sources
