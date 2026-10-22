@@ -146,16 +146,19 @@ opening holds at its last beat until it is (the vault's door keeps syncing).
   frame. Its CLICK TO BEGIN lets itself through when sound is already allowed,
   so after the front page's one click it plays straight through.
 
-**Bee's Vault** opens down a honeycomb tunnel. Rings of hexagons rush past
-until the camera arrives at a hexagonal vault door: an iris of six steel
-blades round a gold hub, in a thick frame. The hub turns a click at a time,
-and six locks round the frame snap back one by one, each lamp going from amber
-to green in a puff of steam. It greets you by the name you chat under
-(`player-name`) or says access granted. A glint crosses the door, the iris
-twists open on a flood of light with dust hanging in it, and the camera flies
-through into the vault. Until the vault has loaded, the hub keeps spinning
-over SYNCING THE VAULT. `bvs-on` stays on the vault's page until the opening
-is over, so the tour and the owner-key popup wait for it.
+**Bee's Vault** opens as its card from the front page. The Bee's Vault card
+you clicked lifts out of its place and grows into the middle of the screen
+(opened any other way, it rises there): the same dark card with the gold vault
+dial in its corner, the vault icon, "Bee's Vault" and "Games, apps, links &
+chat". Where the card has its Enter button, a gold pill says what the vault is
+doing, with six lamps. The dial turns to each of six locks and a lamp fills
+for each; it greets you by the name you chat under (`player-name`) or says
+access granted, the dial clicks a quarter turn, and a game, music and chat
+spill out of the vault as they do when you point at the card. Then the card
+swings past you and the vault shows through. Until the vault has loaded, the
+dial keeps turning over SYNCING THE VAULT. Gold on ink, like the card, with no
+glare. `bvs-on` stays on the vault's page until the opening is over, so the
+tour and the owner-key popup wait for it.
 
 **NEON SIEGE 2** opens like an arcade cabinet. The CRT powers on and the
 cabinet's boot screen checks itself. The camera races low over a 3D neon grid
@@ -178,11 +181,10 @@ is always short, and silent, inside Bee's Vault. A click, tap or key skips
 A CSS failsafe hides an opening whose script stops.
 
 Every step has its sound, on the shared synth.
-- **Bee's Vault.** A rush down the tunnel with the rings thudding past, a
-  heavy metal ring as the door arrives over a vault hum, and the hub's ratchet.
-  Each lock shunks back with a chime of its own, rising, and access rings a
-  chord. The iris whirs and hisses open as the light swells in bells, and you
-  whoosh through on a shimmer.
+- **Bee's Vault.** A soft rush as the card comes forward, a heavy ring as it
+  lands over a vault hum. Each lock shunks back with a chime of its own,
+  rising, and access rings a chord. The card opens with a low whir and bells,
+  and you whoosh through on a shimmer.
 - **NEON SIEGE 2.** The CRT thunks on with static and the degauss wobble. The
   boot screen beeps its POST and ticks each line. Towers whoosh past on their
   own side, lasers zap and drones pop. The sun rises on a pad and the grid's

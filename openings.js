@@ -4,7 +4,7 @@
    the front page, while the place loads in the front page's frame underneath.
    For the opening's last second the place shows through, and the opening
    lands on it: NEON SIEGE 2's logo on its title screen, ROTFALL's name on its
-   menu's name, the vault's camera through its door. Opened any other way
+   menu's name, the vault's card swinging past you into it. Opened any other way
    (BeeSide's single-file copy, a file on disk, the game inside Bee's Vault) a
    page plays its own opening over itself, from this same file.
 
@@ -87,92 +87,127 @@
   }
 
   // ════════════════════════════════════════════════════════════════════
-  //  BEE'S VAULT: down a honeycomb tunnel to a hexagonal iris door. Six locks
-  //  spin open one by one, it greets you by name, the iris twists open on a
-  //  flood of light, and the camera flies through it into the vault.
+  //  BEE'S VAULT: the front page's Bee's Vault card comes forward. It lifts
+  //  out of its place on the front page (or rises in the middle, opened any
+  //  other way), its gold dial turns to each of six locks while the lamps in
+  //  its pill light up, it greets you by name, the vault spills out what is
+  //  inside as it does when you point at the card, and the card swings past
+  //  you into the vault. Gold on ink, like the card: no glare.
   // ════════════════════════════════════════════════════════════════════
   var VAULT_CSS = [
-    '#bsoVault{position:fixed;inset:0;z-index:2147483000;overflow:hidden;background:#04060a;cursor:pointer;-webkit-user-select:none;user-select:none;',
-    '  font-family:Orbitron,"Arial Black",Arial,sans-serif;color:#d8dde6;-webkit-tap-highlight-color:transparent;animation:bsoFailsafe .4s linear 30s forwards}',
+    '#bsoVault{position:fixed;inset:0;z-index:2147483000;overflow:hidden;cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;',
+    '  color:#eef0ff;font-family:Rajdhani,Montserrat,system-ui,sans-serif;animation:bsoFailsafe .4s linear 30s forwards}',
     '@keyframes bsoFailsafe{to{opacity:0;visibility:hidden;pointer-events:none}}',
-    '#bsoVault.out{opacity:0;pointer-events:none;transition:opacity .95s cubic-bezier(.4,0,.2,1)}',
-    '#bsoVault canvas{position:absolute;inset:0;width:100%;height:100%;display:block}',
-    '#bsoVault .bv-txt{position:absolute;left:0;right:0;text-align:center;pointer-events:none}',
-    '#bsoVault .bv-word{font-weight:900;font-size:clamp(20px,4.4vmin,36px);letter-spacing:.16em;padding-left:.16em;color:#c9d1dc;white-space:nowrap;opacity:0;',
-    '  text-shadow:0 2px 10px rgba(0,0,0,.6)}',
-    '#bsoVault .bv-word span{color:#86c4bd}',
-    '#bsoVault.bv-named .bv-word{opacity:1;animation:bvWord 1s cubic-bezier(.16,1,.3,1) backwards}',
-    '@keyframes bvWord{from{opacity:0;letter-spacing:.6em;padding-left:.6em}}',
-    '#bsoVault .bv-status{margin-top:14px;display:flex;align-items:center;justify-content:center;gap:14px;font-family:"Share Tech Mono",ui-monospace,monospace;',
-    '  font-size:12.5px;letter-spacing:.26em;color:#5c6270;opacity:0;transition:opacity .4s ease}',
-    '#bsoVault.bv-named .bv-status{opacity:1}',
-    '#bsoVault .bv-leds{display:flex;gap:6px}',
-    '#bsoVault .bv-leds i{width:6px;height:6px;border-radius:50%;background:#23262e;box-shadow:inset 0 0 0 1px #343944;transition:background .15s,box-shadow .15s}',
-    '#bsoVault .bv-leds i.ok{background:#7ee0a8;box-shadow:0 0 8px rgba(126,224,168,.9)}',
-    '#bsoVault .bv-msg{transition:color .2s}',
-    '#bsoVault.bv-sync .bv-msg{animation:bvPulse 1.4s ease-in-out infinite;color:#9ad1c9}',
-    '@keyframes bvPulse{0%,100%{opacity:.45}50%{opacity:1}}',
-    '#bsoVault.bv-granted .bv-msg{color:#8cc9a4}',
+    '#bsoVault .bv-bg{position:absolute;inset:0;background:radial-gradient(ellipse 80% 70% at 50% 46%,#0b0d18,#05060c 70%);opacity:0;transition:opacity .35s ease}',
+    '#bsoVault .bv-bg::after{content:"";position:absolute;inset:-60px;background-image:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'56\' height=\'100\'%3E%3Cpath d=\'M28 66 0 50V16L28 0l28 16v34L28 66v34M28 0v34L0 50v34l28 16 28-16V50L28 34\' fill=\'none\' stroke=\'%23ffd633\' stroke-opacity=\'.07\' stroke-width=\'1\'/%3E%3C/svg%3E");',
+    '  background-size:56px 100px;-webkit-mask-image:radial-gradient(ellipse 55% 50% at 50% 46%,#000 20%,transparent 75%);mask-image:radial-gradient(ellipse 55% 50% at 50% 46%,#000 20%,transparent 75%)}',
+    '#bsoVault.bv-on .bv-bg{opacity:1}',
+    '#bsoVault.out{opacity:0;pointer-events:none;transition:opacity .8s cubic-bezier(.4,0,.2,1)}',
+    // the card: the front page's Bee's Vault door, larger
+    '#bsoVault .bv-card{position:absolute;left:50%;top:46%;width:clamp(300px,40vw,540px);min-height:clamp(290px,44vh,400px);box-sizing:border-box;margin:0;',
+    '  translate:-50% -50%;display:flex;flex-direction:column;justify-content:flex-end;gap:8px;padding:30px 30px 28px;border-radius:24px;overflow:hidden;isolation:isolate;',
+    '  background:linear-gradient(160deg,#0a0c16,#070810 70%);border:1px solid #1b1f33;box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 30px 70px rgba(0,0,0,.6);',
+    '  opacity:0;transform-origin:50% 50%}',
+    '#bsoVault .bv-card::before{content:"";position:absolute;inset:0;z-index:-3;background:radial-gradient(120% 90% at 100% 0%,rgba(255,214,51,.16),transparent 60%),radial-gradient(90% 70% at 0% 100%,rgba(255,159,28,.10),transparent 65%)}',
+    '#bsoVault .bv-card::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;padding:1px;pointer-events:none;background:linear-gradient(135deg,#ffd633,transparent 40%,transparent 60%,#ff9f1c);',
+    '  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);opacity:.55}',
+    '#bsoVault .bv-idx{position:absolute;top:24px;left:30px;font-family:Orbitron,"Arial Black",sans-serif;font-weight:900;font-size:14px;letter-spacing:.22em;color:rgba(255,214,51,.55)}',
+    '#bsoVault .bv-art{position:absolute;width:76%;aspect-ratio:1;right:-17%;top:-17%;z-index:-2;opacity:.6;transition:opacity .5s ease}',
+    '#bsoVault .bv-art svg{width:100%;height:100%;display:block;overflow:visible}',
+    '#bsoVault .bv-ring{transform-origin:100px 100px;animation:bvSpin 40s linear infinite}',
+    '@keyframes bvSpin{to{transform:rotate(360deg)}}',
+    '#bsoVault .bv-dial,#bsoVault .bv-dial-in{transform-origin:100px 100px;transform-box:view-box}',
+    '#bsoVault .bv-dial{transition:transform .9s cubic-bezier(.16,1,.3,1)}',
+    '#bsoVault .bv-dial-in{transition:transform .2s cubic-bezier(.34,1.56,.64,1)}',
+    '#bsoVault.bv-named .bv-art{opacity:.9}',
+    '#bsoVault.bv-granted .bv-dial{transform:rotate(90deg)}',
+    '#bsoVault .bv-icon{width:54px;height:54px;border-radius:15px;display:grid;place-items:center;margin-bottom:12px;background:#1a1810;border:1px solid rgba(255,214,51,.4);box-shadow:0 4px 12px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.08)}',
+    '#bsoVault .bv-icon svg{width:28px;height:28px}',
+    '#bsoVault .bv-name{font-family:Orbitron,"Arial Black",sans-serif;font-weight:900;font-size:clamp(24px,3vw,34px);letter-spacing:.03em;line-height:1.1;color:#ffd633}',
+    '#bsoVault .bv-sub{font-size:clamp(16px,1.5vw,19px);font-weight:600;color:#8a90b8;letter-spacing:.02em}',
+    // the pill where the card has its Enter button: what the vault is doing, and six lamps
+    '#bsoVault .bv-pill{margin-top:16px;align-self:flex-start;display:inline-flex;align-items:center;gap:12px;padding:10px 16px 10px 20px;border-radius:999px;',
+    '  font-family:Orbitron,"Arial Black",sans-serif;font-weight:700;font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:#05060c;white-space:nowrap;',
+    '  background:linear-gradient(135deg,#ffe680,#ffd633);box-shadow:0 4px 12px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.5),inset 0 -2px 0 rgba(0,0,0,.14)}',
+    '#bsoVault .bv-msg{min-width:0;overflow:hidden;text-overflow:ellipsis}',
+    '#bsoVault .bv-leds{display:flex;gap:5px}',
+    '#bsoVault .bv-leds i{width:7px;height:7px;border-radius:50%;background:rgba(5,6,12,.22);box-shadow:inset 0 1px 1px rgba(0,0,0,.25);transition:background .15s}',
+    '#bsoVault .bv-leds i.ok{background:#05060c}',
+    '#bsoVault.bv-sync .bv-msg{animation:bvPulse 1.4s ease-in-out infinite}',
+    '@keyframes bvPulse{0%,100%{opacity:.5}50%{opacity:1}}',
+    // what spills out of the vault: a game, music and chat, as on the front page
+    '#bsoVault .bv-fan{position:absolute;right:21%;top:21%;width:0;height:0;z-index:0}',
+    '#bsoVault .bv-fc{position:absolute;width:52px;height:64px;left:-26px;top:-32px;border-radius:12px;display:grid;place-items:center;',
+    '  background:linear-gradient(160deg,#11131f,#0a0b14);border:1px solid var(--c);box-shadow:0 8px 18px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.07);',
+    '  opacity:0;transform:scale(.5);transition:transform .7s cubic-bezier(.34,1.56,.64,1) var(--dl),opacity .35s ease var(--dl)}',
+    '#bsoVault .bv-fc svg{width:26px;height:26px}',
+    '#bsoVault.bv-granted .bv-fc{opacity:1;transform:translate(var(--tx),var(--ty)) rotate(var(--r)) scale(1)}',
     '#bsoVault .bso-skip{position:absolute;left:0;right:0;bottom:max(20px,env(safe-area-inset-bottom));text-align:center;font-family:"Share Tech Mono",ui-monospace,monospace;',
-    '  font-size:11px;letter-spacing:.3em;color:#393d47;opacity:0;animation:bvFade .6s ease-out 1.2s forwards}',
+    '  font-size:11px;letter-spacing:.3em;color:#3d4256;opacity:0;animation:bvFade .6s ease-out 1.2s forwards}',
     '#bsoVault.bv-quick .bso-skip,#bsoVault.bv-through .bso-skip{display:none}',
     '@keyframes bvFade{to{opacity:1}}',
-    '#bsoVault .bv-flash{position:absolute;inset:0;pointer-events:none;opacity:0;',
-    '  background:radial-gradient(circle at 50% 44%,rgba(240,252,252,.97),rgba(170,220,220,.55) 34%,rgba(20,30,35,0) 74%)}',
-    '#bsoVault.bv-through .bv-flash{opacity:1;transition:opacity .55s ease .1s}',
-    '#bsoVault.bv-through .bv-txt{opacity:0;transition:opacity .3s ease}'
+    '@media (max-width:560px){#bsoVault .bv-card{width:88vw;padding:24px 22px 22px}#bsoVault .bv-idx{left:22px;top:18px}}'
   ].join('\n');
 
   O.vault = function (o) {
     var host = o.host || document;
     css(host, 'bso-vault-css', VAULT_CSS);
+    var G = '#ffd633';
     var R = Run(o, 'bsoVault',
-      '<canvas></canvas><div class="bv-txt"><div class="bv-word">BEE\'S<span>VAULT</span></div>' +
-      '<div class="bv-status"><span class="bv-leds"><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="bv-msg"></span></div></div>' +
-      '<div class="bso-skip"></div><div class="bv-flash"></div>');
-    var el = R.el, win = R.win, SN = R.SN, cv = el.querySelector('canvas'), g = cv.getContext('2d');
-    var txt = el.querySelector('.bv-txt'), msg = el.querySelector('.bv-msg'), leds = el.querySelectorAll('.bv-leds i');
+      '<div class="bv-bg"></div>' +
+      '<div class="bv-card">' +
+        '<div class="bv-art"><svg viewBox="0 0 200 200" fill="none" stroke="' + G + '">' +
+          '<circle cx="100" cy="100" r="92" stroke-opacity=".22" stroke-width="2"/>' +
+          '<circle class="bv-ring" cx="100" cy="100" r="74" stroke-opacity=".3" stroke-width="6" stroke-dasharray="4 10"/>' +
+          '<g class="bv-dial"><g class="bv-dial-in">' +
+            '<circle cx="100" cy="100" r="46" stroke-opacity=".45" stroke-width="3"/>' +
+            '<path d="M100 54v92M54 100h92M67.5 67.5l65 65M132.5 67.5l-65 65" stroke-opacity=".36" stroke-width="3" stroke-linecap="round"/>' +
+            '<circle cx="100" cy="100" r="14" stroke-opacity=".6" stroke-width="4"/>' +
+          '</g></g></svg></div>' +
+        '<div class="bv-fan">' +
+          '<span class="bv-fc" style="--c:rgba(255,214,51,.55);--tx:-170px;--ty:30px;--r:-16deg;--dl:.04s"><svg viewBox="0 0 24 24" fill="none" stroke="#ffd633" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 8h11a4 4 0 0 1 3.9 4.9l-1 4.4a2.2 2.2 0 0 1-3.8 1l-2.1-2.3H9.5l-2.1 2.3a2.2 2.2 0 0 1-3.8-1l-1-4.4A4 4 0 0 1 6.5 8Z"/><path d="M8 11v3M6.5 12.5h3"/><circle cx="15.5" cy="11.6" r=".6" fill="#ffd633"/><circle cx="17.2" cy="13.4" r=".6" fill="#ffd633"/></svg></span>' +
+          '<span class="bv-fc" style="--c:rgba(255,45,120,.55);--tx:-122px;--ty:88px;--r:-5deg;--dl:.1s"><svg viewBox="0 0 24 24" fill="none" stroke="#ff2d78" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5.5l11-2v12.5"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg></span>' +
+          '<span class="bv-fc" style="--c:rgba(34,230,255,.55);--tx:-62px;--ty:128px;--r:9deg;--dl:.16s"><svg viewBox="0 0 24 24" fill="none" stroke="#22e6ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h16v10H10l-4.5 3.5v-3.5H4Z"/><path d="M8 10.5h.01M12 10.5h.01M16 10.5h.01"/></svg></span>' +
+        '</div>' +
+        '<div class="bv-idx">01</div>' +
+        '<div class="bv-icon"><svg viewBox="0 0 24 24" fill="none" stroke="' + G + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="12" cy="12" r="4.2"/><path d="M12 7.8v1.4M12 14.8v1.4M7.8 12h1.4M14.8 12h1.4"/><path d="M6.5 20v1.5M17.5 20v1.5"/></svg></div>' +
+        '<div class="bv-name">Bee\'s Vault</div>' +
+        '<div class="bv-sub">Games, apps, links &amp; chat</div>' +
+        '<div class="bv-pill"><span class="bv-msg">Bee\'s Vault</span><span class="bv-leds"><i></i><i></i><i></i><i></i><i></i><i></i></span></div>' +
+      '</div>' +
+      '<div class="bso-skip"></div>');
+    var el = R.el, win = R.win, doc = R.doc, SN = R.SN;
+    var card = el.querySelector('.bv-card'), dialIn = el.querySelector('.bv-dial-in'), msg = el.querySelector('.bv-msg'), leds = el.querySelectorAll('.bv-leds i');
     if (R.quick) el.classList.add('bv-quick');
     var who = '';
     try { who = (win.localStorage.getItem('player-name') || '').replace(/\s+/g, ' ').trim().slice(0, 16).toUpperCase(); } catch (e) {}
-    var W, H, DPR, cx, cy, RD;
-    function size() {
-      W = win.innerWidth; H = win.innerHeight; DPR = Math.min(2, win.devicePixelRatio || 1);
-      cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
-      cx = W / 2; cy = H * 0.43; RD = Math.min(W * 0.36, H * 0.27);
-      txt.style.top = (cy + RD * 1.3 + 18) + 'px';
-    }
-    size(); win.addEventListener('resize', size);
+    function setMsg(m) { msg.textContent = m; }
+    function cardX() { var r = card.getBoundingClientRect(); return (r.left + r.width * 0.79) / (win.innerWidth || 1) * 1.6 - 0.8; }
 
     // ── its sound
     var hum = null;
     function live() { return R.live(); }
-    function pn(x) { return SN.pan(x); }
     function sDive() {
       if (!live()) return;
-      SN.noise({ f: 180, f2: 2600, dur: 1.05, vol: 0.055, q: 0.8, atk: 0.7, wet: 0.4 });
-      SN.tone({ f: 70, f2: 150, dur: 1.05, vol: 0.05, atk: 0.5, wet: 0.3 });
-      for (var k = 0; k < 9; k++) SN.tone({ at: 0.12 + k * k * 0.011, f: 90 - k * 3, f2: 50, dur: 0.12, vol: 0.035, pan: k % 2 ? 0.6 : -0.6, wet: 0.2 });
+      SN.noise({ f: 180, f2: 2600, dur: 0.8, vol: 0.045, q: 0.8, atk: 0.5, wet: 0.4 });
+      SN.tone({ f: 70, f2: 150, dur: 0.8, vol: 0.04, atk: 0.4, wet: 0.3 });
     }
     function sArrive() {
       if (!live()) return;
-      SN.tone({ f: 56, f2: 30, dur: 0.9, vol: 0.3 });
-      SN.noise({ f: 500, f2: 90, dur: 0.7, vol: 0.12, ft: 'lowpass', wet: 0.5 });
+      SN.tone({ f: 56, f2: 30, dur: 0.9, vol: 0.26 });
+      SN.noise({ f: 500, f2: 90, dur: 0.6, vol: 0.1, ft: 'lowpass', wet: 0.5 });
       SN.bell({ f: 146.83, ratio: 2.4, index: 3, dur: 2.4, vol: 0.05, wet: 0.7 });
       SN.bell({ at: 0.02, f: 220, ratio: 1.8, index: 2, dur: 1.8, vol: 0.02, wet: 0.7 });
-      hum = SN.drone({ fs: [55, 110, 165.5], type: 'sawtooth', vol: 0.018, cut: 150, cut2: 320, rise: 1, wet: 0.3 });
+      hum = SN.drone({ fs: [55, 110, 165.5], type: 'sawtooth', vol: 0.016, cut: 150, cut2: 320, rise: 1, wet: 0.3 });
     }
-    var tickAt = 0;
     function sTick(p) {
       if (!live()) return;
-      var n = Date.now(); if (n - tickAt < 24) return; tickAt = n;
       SN.noise({ f: 3600, dur: 0.018, vol: 0.04, q: 6, pan: p, wet: 0.1 });
       SN.bell({ f: 2300, ratio: 1.41, index: 0.8, dur: 0.1, vol: 0.006, pan: p, wet: 0.2 });
     }
     var CHIME = [523.25, 587.33, 659.25, 783.99, 880, 1046.5];
-    function sLock(k, x) {
+    function sLock(k, p) {
       if (!live()) return;
-      var p = pn(x);
       SN.noise({ f: 1600, f2: 480, dur: 0.09, vol: 0.1, q: 1.5, pan: p, wet: 0.2 });
       SN.tone({ f: 150, f2: 70, dur: 0.12, vol: 0.1, type: 'square', cut: 700, pan: p });
       SN.bell({ at: 0.03, f: CHIME[k], ratio: 3.01, index: 1.1, dur: 1.1, vol: 0.03, pan: p, wet: 0.6 });
@@ -182,241 +217,118 @@
       SN.chord([659.26, 830.61, 987.77, 1318.51], { bell: true, dur: 1.8, vol: 0.028, spread: 0.06, ratio: 3.01, index: 1 });
       SN.noise({ at: 0.1, f: 4000, f2: 9000, dur: 0.6, vol: 0.015, q: 2, atk: 0.2, wet: 0.5 });
     }
-    function sIris() {
+    function sOpen() {
       if (!live()) return;
-      SN.tone({ type: 'sawtooth', f: 90, f2: 260, dur: 0.95, vol: 0.035, cut: 600, cut2: 2200, vib: [18, 10], wet: 0.4 });
-      SN.noise({ f: 7000, f2: 1800, dur: 1.1, vol: 0.065, ft: 'highpass', atk: 0.02, wet: 0.45 });
-      SN.tone({ f: 48, f2: 34, dur: 1.2, vol: 0.18, type: 'sawtooth', cut: 150 });
-      SN.chord([523.25, 659.25, 783.99, 987.77], { at: 0.25, dur: 2.4, vol: 0.02, atk: 0.6, wet: 0.9, spread: 0.08 });
-      [1318.51, 1760, 2637.02, 3135.96].forEach(function (f, k) { SN.bell({ at: 0.35 + k * 0.08, f: f, ratio: 2, index: 0.7, dur: 1.4, vol: 0.011, pan: -0.4 + k * 0.27 }); });
-      if (hum) { hum.stop(1.2); hum = null; }
+      SN.tone({ type: 'sawtooth', f: 90, f2: 260, dur: 0.8, vol: 0.03, cut: 600, cut2: 2200, vib: [18, 10], wet: 0.4 });
+      SN.tone({ f: 48, f2: 34, dur: 1, vol: 0.14, type: 'sawtooth', cut: 150 });
+      SN.chord([523.25, 659.25, 783.99, 987.77], { at: 0.2, dur: 2, vol: 0.018, atk: 0.5, wet: 0.9, spread: 0.08 });
+      if (hum) { hum.stop(1.1); hum = null; }
     }
     function sThrough() {
       if (!live()) return;
-      SN.noise({ f: 400, f2: 3000, dur: 0.9, vol: 0.065, q: 0.9, atk: 0.35, wet: 0.5 });
-      SN.chord([523.25, 783.99, 1046.5, 1567.98], { bell: true, at: 0.25, dur: 1.8, vol: 0.013, spread: 0.05, ratio: 2, index: 0.6 });
+      SN.noise({ f: 400, f2: 3000, dur: 0.8, vol: 0.055, q: 0.9, atk: 0.3, wet: 0.5 });
+      SN.chord([523.25, 783.99, 1046.5, 1567.98], { bell: true, at: 0.2, dur: 1.6, vol: 0.012, spread: 0.05, ratio: 2, index: 0.6 });
     }
 
-    // ── the scene
-    var P = R.quick ? { dive: 0, arrive: 0.05, lock0: 0.35, lockStep: 0.11 } : { dive: 1.05, arrive: 1.05, lock0: 1.6, lockStep: 0.24 };
-    var t = 0, last = 0, phase = R.calm ? 'calm' : R.quick ? 'locks' : 'dive', phaseT = 0;
-    var locks = [0, 0, 0, 0, 0, 0], lockAt = [], hubA = 0, hubT = 0, iris = 0, irisT = -1, through = 0, throughT = -1, shake = 0, glint = -1;
-    var puffs = [], motes = [], sync = false;
-    for (var i = 0; i < 6; i++) lockAt.push(P.lock0 + i * P.lockStep);
-    for (i = 0; i < 40; i++) motes.push({ a: Math.random() * TAU, r: Math.random(), s: rnd(0.2, 0.9), p: Math.random() * 6 });
-    function hexPath(r, rot) { g.beginPath(); for (var k = 0; k < 6; k++) { var a = rot + k * Math.PI / 3; k ? g.lineTo(Math.cos(a) * r, Math.sin(a) * r) : g.moveTo(Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); }
-    function scaleNow() {
-      if (phase === 'calm') return 1;
-      if (t < P.dive) { var k = eout(t / P.dive); return 1 / (10 - 9 * k); }
-      if (throughT >= 0) return 1 + ein(Math.min(1, (t - throughT) / 0.95)) * 7;
-      return 1;
-    }
-    function drawTunnel(camZ) {
-      // hexagonal rings of the honeycomb corridor, rushing past
-      g.save(); g.translate(cx, cy); g.lineJoin = 'round';
-      for (var k = 1; k <= 14; k++) {
-        var z = 10 - k * 0.72, d = z - camZ; if (d <= 0.05) continue;
-        var r = RD * 1.35 / d, al = clamp(1 - (r - RD * 1.3) / (Math.max(W, H) * 1.4), 0, 1) * clamp((10 - z) / 3, 0, 1);
-        if (r > Math.max(W, H) * 2) continue;
-        hexPath(r, 0.08 * k); g.strokeStyle = 'rgba(127,191,184,' + (0.5 * al).toFixed(3) + ')'; g.lineWidth = Math.max(1, 6 / d); g.stroke();
-        // lit cells along the walls
-        for (var c = 0; c < 6; c++) { var a = 0.08 * k + c * Math.PI / 3 + Math.PI / 6, rr = r * 0.93; if ((k + c) % 3) continue;
-          g.fillStyle = 'rgba(255,214,51,' + (0.35 * al).toFixed(3) + ')'; hexPath2(Math.cos(a) * rr, Math.sin(a) * rr, Math.max(2, 22 / d)); g.fill(); }
+    // ── the card comes forward: out of its place on the front page if it is there
+    function enter(ms) {
+      var from = null;
+      try {
+        var door = doc.querySelector('.door.vault'), r = door && door.getBoundingClientRect();
+        if (r && r.width > 60 && r.height > 60 && r.bottom > 0 && r.top < win.innerHeight) from = r;
+      } catch (e) {}
+      var to = card.getBoundingClientRect();
+      card.style.transition = 'none';
+      if (from && to.width) {
+        var dx = (from.left + from.width / 2) - (to.left + to.width / 2), dy = (from.top + from.height / 2) - (to.top + to.height / 2);
+        card.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(' + (from.width / to.width) + ',' + (from.height / to.height) + ')';
+        card.style.opacity = '1';
+      } else {
+        card.style.transform = 'translateY(24px) scale(.92)';
+        card.style.opacity = '0';
       }
-      g.restore();
-    }
-    function hexPath2(x, y, r) { g.beginPath(); for (var k = 0; k < 6; k++) { var a = k * Math.PI / 3; k ? g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r) : g.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } g.closePath(); }
-    function drawDoor(s) {
-      var rf = RD * 1.24, ap = RD * Math.cos(Math.PI / 6);
-      g.save(); g.translate(cx + rnd(-shake, shake), cy + rnd(-shake, shake)); g.scale(s, s);
-      // the light behind the iris, once it opens
-      if (iris > 0) {
-        var lg = g.createRadialGradient(0, 0, 0, 0, 0, RD * 1.05);
-        lg.addColorStop(0, 'rgba(245,255,255,' + (0.98 * iris).toFixed(3) + ')'); lg.addColorStop(0.4, 'rgba(175,225,222,' + (0.8 * iris).toFixed(3) + ')'); lg.addColorStop(1, 'rgba(60,110,120,' + (0.5 * iris).toFixed(3) + ')');
-        hexPath(RD, 0); g.fillStyle = lg; g.fill();
-        // dust hanging in it
-        g.fillStyle = 'rgba(255,255,255,' + (0.8 * iris).toFixed(3) + ')';
-        for (var m = 0; m < motes.length; m++) { var mo = motes[m], mr = mo.r * RD * 0.85, ma = mo.a + t * 0.12 * mo.s; g.fillRect(Math.cos(ma) * mr + Math.sin(t + mo.p) * 4, Math.sin(ma) * mr + Math.cos(t * 0.8 + mo.p) * 4, 1.6, 1.6); }
-      }
-      // the iris: six blades, sliding out into the frame and twisting as it opens
-      g.save(); hexPath(RD, 0); g.clip();
-      for (var b = 0; b < 6; b++) {
-        var a0 = b * Math.PI / 3, a1 = a0 + Math.PI / 3, mid = a0 + Math.PI / 6, q = eio(iris);
-        g.save();
-        g.rotate(q * 0.35);
-        g.translate(Math.cos(mid) * q * ap * 1.25, Math.sin(mid) * q * ap * 1.25);
-        g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(a0) * RD * 1.02, Math.sin(a0) * RD * 1.02); g.lineTo(Math.cos(a1) * RD * 1.02, Math.sin(a1) * RD * 1.02); g.closePath();
-        var bg = g.createLinearGradient(0, 0, Math.cos(mid) * RD, Math.sin(mid) * RD);
-        bg.addColorStop(0, '#5a6371'); bg.addColorStop(0.5, '#353c48'); bg.addColorStop(1, '#1d2129');
-        g.fillStyle = bg; g.fill();
-        // the light falls from the top left, so each blade is its own shade
-        g.fillStyle = 'rgba(200,225,235,' + (0.1 + 0.08 * Math.cos(mid + 2.3)).toFixed(3) + ')'; g.fill();
-        g.strokeStyle = 'rgba(0,0,0,.75)'; g.lineWidth = 2.6; g.stroke();
-        // an engraved chevron, and a bright leading edge
-        g.beginPath(); g.moveTo(Math.cos(a0) * RD * 0.55, Math.sin(a0) * RD * 0.55); g.lineTo(Math.cos(mid) * RD * 0.62, Math.sin(mid) * RD * 0.62); g.lineTo(Math.cos(a1) * RD * 0.55, Math.sin(a1) * RD * 0.55);
-        g.strokeStyle = 'rgba(127,191,184,.18)'; g.lineWidth = 1.2; g.stroke();
-        g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(a0) * RD, Math.sin(a0) * RD); g.strokeStyle = 'rgba(215,235,245,.42)'; g.lineWidth = 1.2; g.stroke();
-        g.beginPath(); g.arc(Math.cos(mid) * RD * 0.78, Math.sin(mid) * RD * 0.78, RD * 0.02, 0, TAU); g.fillStyle = '#9aa2b0'; g.fill();
-        g.restore();
-      }
-      g.restore();
-      // the hub, until the iris takes it apart
-      if (iris < 0.5) {
-        var hs = 1 - iris * 2;
-        g.save(); g.rotate(hubA); g.scale(hs, hs);
-        var hg = g.createRadialGradient(-RD * 0.07, -RD * 0.08, 0, 0, 0, RD * 0.26);
-        hg.addColorStop(0, '#e6d8a8'); hg.addColorStop(0.45, '#b39a55'); hg.addColorStop(1, '#5e4812');
-        hexPath(RD * 0.24, Math.PI / 6); g.fillStyle = hg; g.fill(); g.strokeStyle = '#3f3210'; g.lineWidth = 2; g.stroke();
-        hexPath(RD * 0.13, Math.PI / 6); g.strokeStyle = 'rgba(63,50,16,.9)'; g.lineWidth = 1.6; g.stroke();
-        for (var sp = 0; sp < 3; sp++) { var sa = sp * TAU / 3 - Math.PI / 2; g.beginPath(); g.moveTo(Math.cos(sa) * RD * 0.13, Math.sin(sa) * RD * 0.13); g.lineTo(Math.cos(sa) * RD * 0.22, Math.sin(sa) * RD * 0.22); g.stroke(); }
-        g.restore();
-      }
-      // the frame: a thick hexagon of steel with a bevel and rivets
-      g.beginPath(); for (var k = 0; k < 6; k++) { var fa = k * Math.PI / 3; k ? g.lineTo(Math.cos(fa) * rf, Math.sin(fa) * rf) : g.moveTo(Math.cos(fa) * rf, Math.sin(fa) * rf); } g.closePath();
-      for (k = 5; k >= 0; k--) { fa = k * Math.PI / 3; k === 5 ? g.moveTo(Math.cos(fa) * RD, Math.sin(fa) * RD) : 0; g.lineTo(Math.cos(fa) * RD, Math.sin(fa) * RD); } g.closePath();
-      var fg = g.createLinearGradient(0, -rf, 0, rf); fg.addColorStop(0, '#3d4450'); fg.addColorStop(0.5, '#1a1d24'); fg.addColorStop(1, '#2c313b');
-      g.fillStyle = fg; g.fill('evenodd');
-      hexPath(rf, 0); g.strokeStyle = '#0a0c10'; g.lineWidth = 3; g.stroke();
-      hexPath(rf - 3, 0); g.strokeStyle = 'rgba(140,165,185,.28)'; g.lineWidth = 1.2; g.stroke();
-      hexPath(RD, 0); g.strokeStyle = 'rgba(127,191,184,' + (0.35 + 0.5 * iris) + ')'; g.lineWidth = 2; g.stroke();
-      for (k = 0; k < 6; k++) { fa = k * Math.PI / 3; var rx = Math.cos(fa) * (RD + rf) / 2, ry = Math.sin(fa) * (RD + rf) / 2;
-        g.beginPath(); g.arc(rx, ry, RD * 0.028, 0, TAU); g.fillStyle = '#8b93a1'; g.fill(); g.strokeStyle = '#2b2f37'; g.lineWidth = 1; g.stroke(); }
-      // the six locks: bolts across the edge of the iris, each with its lamp
-      for (k = 0; k < 6; k++) {
-        var la = Math.PI / 6 + k * Math.PI / 3, ex = locks[k], inr = ap - RD * 0.14 * (1 - ex) + RD * 0.02 * ex;
-        g.save(); g.rotate(la);
-        g.fillStyle = '#9aa2b0'; g.strokeStyle = '#3d424d'; g.lineWidth = 1.2;
-        g.beginPath(); g.rect(inr, -RD * 0.045, RD * 0.16, RD * 0.09); g.fill(); g.stroke();
-        g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(inr + RD * 0.12, -RD * 0.045, RD * 0.04, RD * 0.09);
-        var lampR = (ap + rf * Math.cos(Math.PI / 6)) / 2 + RD * 0.03;
-        g.beginPath(); g.arc(lampR, 0, RD * 0.022, 0, TAU);
-        g.fillStyle = ex > 0.5 ? '#7ee0a8' : '#e8a53a'; g.shadowColor = g.fillStyle; g.shadowBlur = 10; g.fill(); g.shadowBlur = 0;
-        g.restore();
-      }
-      // a glint across the whole door once it is unlocked
-      if (glint >= 0 && t - glint < 0.7) {
-        var gk = (t - glint) / 0.7, gx = -rf + gk * rf * 2.4;
-        g.save(); hexPath(rf, 0); g.clip();
-        var sg = g.createLinearGradient(gx - RD * 0.3, 0, gx + RD * 0.3, 0);
-        sg.addColorStop(0, 'rgba(255,255,255,0)'); sg.addColorStop(0.5, 'rgba(220,240,240,.22)'); sg.addColorStop(1, 'rgba(255,255,255,0)');
-        g.fillStyle = sg; g.fillRect(-rf, -rf, rf * 2, rf * 2); g.restore();
-      }
-      g.restore();
-    }
-    function drawLight(s) {
-      if (iris <= 0) return;
-      // light pouring out of the open door, and its rays
-      g.save(); g.translate(cx, cy); g.globalCompositeOperation = 'lighter';
-      var bl = g.createRadialGradient(0, 0, RD * 0.3 * s, 0, 0, RD * 2.4 * s);
-      bl.addColorStop(0, 'rgba(160,220,215,' + (0.45 * iris).toFixed(3) + ')'); bl.addColorStop(1, 'rgba(60,120,120,0)');
-      g.fillStyle = bl; g.fillRect(-W, -H, W * 2, H * 2);
-      g.rotate(t * 0.08);
-      for (var k = 0; k < 18; k++) {
-        var a = k * TAU / 18, w = 0.07;
-        g.beginPath(); g.moveTo(Math.cos(a - w) * RD * 0.9 * s, Math.sin(a - w) * RD * 0.9 * s); g.lineTo(Math.cos(a) * Math.max(W, H) * 1.2, Math.sin(a) * Math.max(W, H) * 1.2); g.lineTo(Math.cos(a + w) * RD * 0.9 * s, Math.sin(a + w) * RD * 0.9 * s); g.closePath();
-        g.fillStyle = 'rgba(170,215,215,' + (0.05 * iris).toFixed(3) + ')'; g.fill();
-      }
-      g.restore();
-    }
-    function drawPuffs(dt) {
-      for (var p = puffs.length - 1; p >= 0; p--) {
-        var f = puffs[p]; f.life -= dt; if (f.life <= 0) { puffs.splice(p, 1); continue; }
-        var k = 1 - f.life / f.max; f.x += f.vx * dt; f.y += f.vy * dt;
-        var r = RD * (0.08 + k * 0.35), a = Math.sin(Math.PI * Math.min(1, k * 1.4)) * 0.5;
-        var pg = g.createRadialGradient(f.x, f.y, 0, f.x, f.y, r); pg.addColorStop(0, 'rgba(225,238,242,' + a.toFixed(3) + ')'); pg.addColorStop(1, 'rgba(200,220,230,0)');
-        g.fillStyle = pg; g.beginPath(); g.arc(f.x, f.y, r, 0, TAU); g.fill();
-      }
-    }
-    function background() {
-      var bg = g.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.8);
-      bg.addColorStop(0, '#0c1016'); bg.addColorStop(0.6, '#06080c'); bg.addColorStop(1, '#030407');
-      g.fillStyle = bg; g.fillRect(0, 0, W, H);
-    }
-    function frame(now) {
-      if (R.over) { win.removeEventListener('resize', size); return; }
-      win.requestAnimationFrame(frame);
-      var dt = last ? Math.min(0.05, (now - last) / 1000) : 0.016; last = now; t += dt;
-      step(dt);
-      g.setTransform(DPR, 0, 0, DPR, 0, 0);
-      background();
-      var s = scaleNow();
-      if (t < P.dive) drawTunnel(9 * eout(t / P.dive));
-      drawDoor(s);
-      drawLight(s);
-      g.setTransform(DPR, 0, 0, DPR, 0, 0); g.save(); g.translate(cx, cy); drawPuffs(dt); g.restore();
-      shake *= Math.pow(0.004, dt); if (shake < 0.3) shake = 0;
+      void card.offsetWidth;
+      card.style.transition = 'transform ' + ms + 'ms cubic-bezier(.16,1,.3,1), opacity ' + Math.round(ms * 0.6) + 'ms ease';
+      card.style.transform = 'none';
+      card.style.opacity = '1';
+      el.classList.add('bv-on');
     }
 
     // ── the steps
-    function setMsg(m) { msg.textContent = m; }
-    function step(dt) {
-      if (phase === 'dive' && t >= P.arrive) { phase = 'locks'; arrive(); }
-      if (phase === 'locks') {
-        // the hub turns a click at a time towards each lock, and the lock gives
-        hubA += Math.sin(t * 5) * dt * 2.2; if (Math.floor(t * 18) !== hubT) { hubT = Math.floor(t * 18); sTick((cx + Math.cos(hubA) * RD * 0.2) / W * 1.6 - 0.8); }
-        for (var k = 0; k < 6; k++) if (!locks[k] && t >= lockAt[k]) { locks[k] = 0.001; unlock(k); }
-        if (locks[5] && t >= lockAt[5] + 0.15) { phase = 'wait'; waitReady(); }
-      }
-      for (k = 0; k < 6; k++) if (locks[k] > 0 && locks[k] < 1) locks[k] = Math.min(1, locks[k] + dt * 6);
-      if (sync) { hubA += dt * 3.2; if (Math.floor(t * 12) !== hubT) { hubT = Math.floor(t * 12); sTick(0); } }
-      if (irisT >= 0) iris = Math.min(1, (t - irisT) / (R.quick ? 0.7 : 0.95));
-    }
+    var P = R.quick ? { enter: 380, arrive: 200, lock0: 320, lockStep: 75, open: 220, through: 380 }
+                    : { enter: 750, arrive: 720, lock0: 1000, lockStep: 210, open: 520, through: 560 };
+    var ANG = [52, -31, 96, -64, 138, 0];
+    var lockT = [], done = 0, opened = false, sync = null;
     function arrive() {
       el.classList.add('bv-named');
-      setMsg('UNLOCKING');
-      shake = R.quick ? 3 : 9;
+      setMsg('Unlocking');
       sArrive();
     }
-    function unlock(k) {
+    function lock(k) {
+      if (R.over || leds[k].className === 'ok') return;
+      dialIn.style.transform = 'rotate(' + ANG[k] + 'deg)';
       leds[k].className = 'ok';
-      var a = Math.PI / 6 + k * Math.PI / 3, x = Math.cos(a) * RD * 1.1, y = Math.sin(a) * RD * 1.1;
-      sLock(k, cx + x);
-      puffs.push({ x: x, y: y, vx: Math.cos(a) * 60, vy: Math.sin(a) * 60 - 20, life: 0.9, max: 0.9 });
+      sLock(k, cardX());
+      done++;
+      if (done === 6) R.later(waitReady, 150);
+    }
+    function schedule(from) {
+      lockT.forEach(clearTimeout); lockT = [];
+      for (var k = 0; k < 6; k++) (function (k) { lockT.push(R.later(function () { lock(k); }, from + k * P.lockStep)); })(k);
     }
     function waitReady() {
-      if (!R.ready()) { sync = true; el.classList.add('bv-sync'); setMsg('SYNCING THE VAULT'); }
+      if (!R.ready()) {
+        el.classList.add('bv-sync'); setMsg('Syncing the vault');
+        var a = 0; sync = win.setInterval(function () { a += 30; dialIn.style.transform = 'rotate(' + a + 'deg)'; sTick(cardX()); }, 260);
+      }
       R.whenReady(granted, 15000);
     }
     function granted() {
-      sync = false; el.classList.remove('bv-sync'); el.classList.add('bv-granted');
-      for (var k = 0; k < 6; k++) { leds[k].className = 'ok'; if (!locks[k]) locks[k] = 1; }
-      setMsg(who ? 'WELCOME BACK, ' + who : 'ACCESS GRANTED');
-      glint = t;
+      if (sync) { win.clearInterval(sync); sync = null; }
+      el.classList.remove('bv-sync'); el.classList.add('bv-granted');
+      for (var k = 0; k < 6; k++) leds[k].className = 'ok';
+      dialIn.style.transform = 'rotate(0deg)';
+      setMsg(who ? 'Welcome back, ' + who : 'Access granted');
       sGranted();
-      if (!R.calm) R.later(openIris, R.quick ? 220 : 420);
+      if (!R.calm) R.later(openUp, P.open + 260);
     }
-    function openIris() {
-      irisT = t; shake = R.quick ? 3 : 7; sIris();
-      for (var k = 0; k < 12; k++) { var a = k * TAU / 12 + rnd(-0.2, 0.2); puffs.push({ x: Math.cos(a) * RD * 1.05, y: Math.sin(a) * RD * 1.05, vx: Math.cos(a) * 80, vy: Math.sin(a) * 80 - 15, life: rnd(0.9, 1.3), max: 1.3 }); }
-      R.later(goThrough, R.quick ? 420 : 620);
-    }
-    // the last second: the place shows through as the camera flies in
-    function goThrough() {
-      throughT = t;
-      el.classList.add('bv-through');
-      sThrough();
-      R.reveal();
-      R.later(function () { el.classList.add('out'); }, 180);
-      R.later(R.end, 1100);
+    // the card swings past you, into the vault, as the vault shows through
+    function openUp() {
+      if (opened) return; opened = true;
+      sOpen();
+      card.style.transition = 'transform .32s cubic-bezier(.16,1,.3,1)';
+      card.style.transform = 'scale(1.035)';
+      R.later(function () {
+        el.classList.add('bv-through');
+        sThrough();
+        R.reveal();
+        card.style.transition = 'transform .85s cubic-bezier(.55,0,.8,.2), opacity .6s ease .2s';
+        card.style.transform = 'perspective(900px) rotateX(10deg) scale(4.2)';
+        card.style.opacity = '0';
+        el.classList.add('out');
+        R.later(R.end, 1000);
+      }, P.through);
     }
     R.onSkip(function () {
-      if (phase === 'calm' || throughT >= 0 || irisT >= 0) return;
+      if (R.calm || opened || el.classList.contains('bv-granted')) return;
       // straight to the unlock (still waiting for the vault, if it is not here yet)
-      if (phase === 'dive') { t = P.arrive; phase = 'locks'; arrive(); }
-      for (var k = 0; k < 6; k++) { lockAt[k] = Math.min(lockAt[k], t + k * 0.05); }
+      if (!el.classList.contains('bv-named')) arrive();
+      P.lockStep = 50;
+      schedule(0);
     });
 
     if (R.calm) {
-      el.classList.add('bv-named');
-      setMsg('UNLOCKING');
-      locks = [1, 1, 1, 1, 1, 1];
-      R.whenReady(function () { granted(); R.later(function () { R.reveal(); el.classList.add('out'); R.later(R.end, 1000); }, 600); }, 15000);
-      g.setTransform(DPR, 0, 0, DPR, 0, 0); background(); drawDoor(1);
+      card.style.opacity = '1'; el.classList.add('bv-on', 'bv-named');
+      setMsg('Unlocking');
+      R.whenReady(function () { granted(); R.later(function () { R.reveal(); el.classList.add('out'); R.later(R.end, 900); }, 700); }, 15000);
       return R.api;
     }
-    if (!R.quick) sDive();
-    else arrive();
-    win.requestAnimationFrame(frame);
+    win.requestAnimationFrame(function () {
+      enter(P.enter);
+      if (!R.quick) sDive();
+      R.later(arrive, P.arrive);
+      schedule(P.lock0);
+    });
     return R.api;
   };
 
