@@ -56,6 +56,7 @@ PROJECTS = 'projects.html'        # Other Projects: the smaller ones
 ROTFALL = 'rotfall.html'          # the first of them: a survival shooter
 ROTFALL2 = 'rotfall-2.html'       # its sequel, a door of its own on the front page
 NEONSIEGE1 = 'neon-siege-1.html'  # the first NEON SIEGE, from BeeCoolBro/Neon-Siege (its Vercel site is off)
+BRAWL = 'bounce-brawl.html'       # Bounce Brawl: balls that fight on their own, a door of its own
 # ── The off switches ──────────────────────────────────────────────
 # Each place can be closed for a while: list its name in the file CLOSED (one
 # per line) and deploy. A closed place shows closed.html, a short "closed for a
@@ -76,6 +77,7 @@ PLACES = {   # name in CLOSED: its address, then every file that is that place
     'rotfall': ('/rotfall', ROTFALL),
     'rotfall-2': ('/rotfall-2', ROTFALL2),
     'neon-siege-1': ('/neon-siege-1', NEONSIEGE1),
+    'bounce-brawl': ('/bounce-brawl', BRAWL),
     'projects': ('/projects', PROJECTS),
 }
 ROUTE_PLACE = {}
@@ -1685,6 +1687,304 @@ def chat_mod(peer, msg):
         peer.send({'t': 'muted', 'rows': chat_mute_rows(now)})
 
 
+# ── Bounce Brawl ──────────────────────────────────────────────────
+# The game's lobby at /bb. Each open game keeps a small "presence": its ball,
+# trophies, and whether it is looking for a fight. This server only cleans
+# those up and hands them to everyone else; the games pair themselves off
+# (each names the other) and then both play the same fight, worked out from a
+# shared seed, in their own browser. Nothing about a fight goes through here.
+# Afterwards each game posts its result in its presence; when both players'
+# results agree, the winner's trophies go up on the leaderboard (brawl.json on
+# the vault-data branch, saved like the play counts). Names go through
+# chat_filter like the chat's.
+BB_PER_IP = 8                   # lobby sockets one address may hold open
+BB_MAX = 400                    # sockets in all
+BB_FRAME_MAX = 4096
+BB_BURST = 30                   # presence updates allowed at once...
+BB_REFILL = 0.1                 # ...then one every this many seconds
+BB_STAKES = (50, 200, 800, 3000)
+BB_RESULT_TTL = 600             # seconds a half-reported fight is remembered
+BB_ALONE_AFTER = 180            # seconds after which one report stands, if the other player left
+BB_PATH = 'brawl.json'
+BB_SAVE_EVERY = 300
+BB_KEEP = 500                   # players kept on the board
+BB_WIN, BB_LOSS = 30, 20
+BB_LOCK = threading.Lock()
+BB = {'peers': set(), 'fights': {}, 'board': {}, 'sha': None, 'loaded': False, 'dirty': False}
+BB_PEER_RE = re.compile(r'[0-9a-f]{6,16}')
+BB_MID_RE = re.compile(r'[0-9a-z~]{6,100}')
+BB_UID_RE = re.compile(r'[0-9a-z]{8,32}')
+
+
+class BrawlPeer(object):
+    """One lobby socket. Sends are serialised the same way the chat's are."""
+
+    def __init__(self, handler, ip):
+        self.h = handler
+        self.lock = threading.Lock()
+        self.alive = True
+        self.ip = ip
+        self.id = os.urandom(5).hex()
+        self.p = {}                     # its presence, cleaned
+        self.tokens = float(BB_BURST)
+        self.refilled = time.time()
+        self.held = False               # an update waiting for the budget to refill
+
+    def send(self, obj):
+        data = json.dumps(obj, separators=(',', ':'), ensure_ascii=False).encode('utf-8')
+        with self.lock:
+            if not self.alive:
+                return
+            try:
+                self.h.wfile.write(ws_frame(data))
+                self.h.wfile.flush()
+            except Exception:
+                self.alive = False
+
+    def allow(self):
+        now = time.time()
+        self.tokens = min(float(BB_BURST), self.tokens + (now - self.refilled) / BB_REFILL)
+        self.refilled = now
+        if self.tokens < 1:
+            return False
+        self.tokens -= 1
+        return True
+
+
+def brawl_online():
+    with BB_LOCK:
+        return sum(1 for p in BB['peers'] if p.p.get('app') == 'bb')
+
+
+def brawl_int(v, lo, hi):
+    if isinstance(v, bool) or not isinstance(v, (int, float)) or v != v:
+        return None
+    v = int(v)
+    return v if lo <= v <= hi else None
+
+
+def brawl_name(v):
+    name = tidy(v, 16)
+    if not name or chat_filter is None or chat_filter.clean(name)[1] or CHAT_RESERVED.search(name):
+        return None
+    return name
+
+
+def brawl_clean(raw):
+    """A presence update with only the fields the game uses, each checked;
+    anything else is dropped. None means "remove this field"."""
+    out = {}
+    for k, v in raw.items():
+        if v is None:
+            out[k] = None
+        elif k == 'app':
+            out[k] = 'bb' if v == 'bb' else None
+        elif k == 'v':
+            out[k] = brawl_int(v, 0, 999)
+        elif k == 'nick':
+            out[k] = brawl_name(v)
+        elif k == 'ball':
+            out[k] = v if isinstance(v, str) and re.fullmatch(r'[a-z]{1,16}', v) else None
+        elif k == 'lvl':
+            out[k] = brawl_int(v, 0, 7)
+        elif k == 'tro':
+            out[k] = brawl_int(v, 0, 10 ** 7)
+        elif k == 'st':
+            out[k] = v if v in ('idle', 'q', 'm') else 'idle'
+        elif k == 'stake':
+            out[k] = v if v in BB_STAKES else None
+        elif k == 'qt':
+            out[k] = brawl_int(v, 1, 10 ** 14)
+        elif k in ('want', 'vs'):
+            out[k] = v if isinstance(v, str) and BB_PEER_RE.fullmatch(v) else None
+        elif k == 'mid':
+            out[k] = v if isinstance(v, str) and BB_MID_RE.fullmatch(v) else None
+        elif k == 'uid':
+            out[k] = v if isinstance(v, str) and BB_UID_RE.fullmatch(v) else None
+        elif k == 'res':
+            if isinstance(v, dict) and isinstance(v.get('mid'), str) and BB_MID_RE.fullmatch(v['mid']) \
+                    and v.get('w') in (-1, 0, 1) and isinstance(v.get('h'), str) and re.fullmatch(r'[0-9a-z]{1,16}', v['h']):
+                out[k] = {'mid': v['mid'], 'w': v['w'], 'h': v['h']}
+            else:
+                out[k] = None
+    return out
+
+
+def brawl_broadcast(obj, skip=None):
+    with BB_LOCK:
+        peers = list(BB['peers'])
+    for p in peers:
+        if p is not skip:
+            p.send(obj)
+
+
+def brawl_fight(mid):
+    f = BB['fights'].get(mid)
+    if not f:
+        f = BB['fights'][mid] = {'at': time.time(), 'seen': {}, 'rep': {}, 'done': False}
+    return f
+
+
+def brawl_note(peer):
+    """Remember who joined which fight, and take in a posted result. BB_LOCK held."""
+    p = peer.p
+    mid = p.get('mid')
+    if mid and p.get('st') == 'm':
+        parts = mid.split('~')
+        if len(parts) == 4 and peer.id in parts[:2]:
+            side = parts.index(peer.id)
+            brawl_fight(mid)['seen'][side] = {'uid': p.get('uid'), 'nick': p.get('nick'), 'ball': p.get('ball'), 'lvl': p.get('lvl')}
+    res = p.get('res')
+    if not res:
+        return
+    parts = res['mid'].split('~')
+    if len(parts) != 4 or peer.id not in parts[:2]:
+        return
+    f = BB['fights'].get(res['mid'])
+    side = parts.index(peer.id)
+    if not f or side not in f['seen'] or f['done']:
+        return
+    f['rep'][side] = {'w': res['w'], 'h': res['h']}
+    if len(f['rep']) == 2:
+        brawl_settle(f)
+
+
+def brawl_settle(f, alone=False):
+    """Both results are in (or one, and the other player is long gone). BB_LOCK held."""
+    f['done'] = True
+    if len(f['seen']) != 2:
+        return
+    a, b = f['seen'][0], f['seen'][1]
+    if not a.get('uid') or not b.get('uid') or a['uid'] == b['uid']:
+        return                          # a friendly between someone's own tabs
+    r = f['rep']
+    if alone:
+        side, rep = next(iter(r.items()))
+        winner = (1 - side) if rep['h'] == 'quit' else rep['w']
+    elif r[0]['h'] == 'quit' and r[1]['h'] == 'quit':
+        return
+    elif r[0]['h'] == 'quit':
+        winner = 1
+    elif r[1]['h'] == 'quit':
+        winner = 0
+    elif r[0]['w'] == r[1]['w'] and r[0]['h'] == r[1]['h']:
+        winner = r[0]['w']
+    else:
+        return                          # the two games disagree: it never happened
+    now = time.time()
+    for side, who in ((0, a), (1, b)):
+        e = BB['board'].get(who['uid'])
+        if not e:
+            e = BB['board'][who['uid']] = {'n': None, 'tro': 0, 'w': 0, 'l': 0, 'd': 0, 'ball': None, 'lvl': 1, 't': now}
+        e['n'] = who.get('nick') or e['n']
+        e['ball'] = who.get('ball') or e['ball']
+        e['lvl'] = who.get('lvl') or e['lvl']
+        e['t'] = now
+        if winner == -1:
+            e['d'] += 1
+        elif winner == side:
+            e['w'] += 1
+            e['tro'] += BB_WIN
+        else:
+            e['l'] += 1
+            e['tro'] = max(0, e['tro'] - BB_LOSS)
+    BB['dirty'] = True
+
+
+def brawl_sweep():
+    """Settle fights where only one player reported before the other left, and
+    forget old ones. BB_LOCK held."""
+    now = time.time()
+    for mid, f in list(BB['fights'].items()):
+        if not f['done'] and len(f['rep']) == 1 and now - f['at'] > BB_ALONE_AFTER:
+            brawl_settle(f, alone=True)
+        if now - f['at'] > BB_RESULT_TTL:
+            del BB['fights'][mid]
+
+
+def brawl_board(limit=20):
+    with BB_LOCK:
+        rows = sorted(BB['board'].items(), key=lambda kv: (-kv[1]['tro'], -kv[1]['w'], kv[1]['t']))[:limit]
+        return [{'id': k[:8], 'name': e['n'] or 'Player', 'tro': e['tro'], 'w': e['w'], 'l': e['l'],
+                 'ball': e['ball'], 'lvl': e['lvl']} for k, e in rows]
+
+
+def brawl_path():
+    return '/repos/%s/contents/%s' % (LINKS_REPO, BB_PATH)
+
+
+def brawl_load():
+    if not GITHUB_TOKEN:
+        with BB_LOCK:
+            BB['loaded'] = True
+        return
+    st, js = gh('GET', brawl_path() + '?ref=' + urllib.parse.quote(LINKS_BRANCH, safe=''))
+    saved = {}
+    if st == 200 and isinstance(js, dict) and js.get('type') == 'file':
+        try:
+            doc = json.loads(base64.b64decode(js.get('content') or '').decode('utf-8'))
+            for k, e in (doc.get('board') or {}).items():
+                if isinstance(k, str) and BB_UID_RE.fullmatch(k) and isinstance(e, dict):
+                    saved[k] = {'n': brawl_name(e.get('n')), 'tro': brawl_int(e.get('tro'), 0, 10 ** 7) or 0,
+                                'w': brawl_int(e.get('w'), 0, 10 ** 7) or 0, 'l': brawl_int(e.get('l'), 0, 10 ** 7) or 0,
+                                'd': brawl_int(e.get('d'), 0, 10 ** 7) or 0, 'lvl': brawl_int(e.get('lvl'), 0, 7) or 1,
+                                'ball': e.get('ball') if isinstance(e.get('ball'), str) and re.fullmatch(r'[a-z]{1,16}', e.get('ball')) else None,
+                                't': float(e.get('t') or 0)}
+        except Exception:
+            log('!! %s on %s is not valid JSON; starting the board over' % (BB_PATH, LINKS_BRANCH))
+    elif st not in (200, 404):
+        log('!! could not read %s (%s); the board starts empty for now' % (BB_PATH, st))
+    with BB_LOCK:
+        for k, e in saved.items():
+            BB['board'].setdefault(k, e)
+        BB['sha'] = js.get('sha') if st == 200 and isinstance(js, dict) else None
+        BB['loaded'] = True
+
+
+def brawl_save():
+    with BB_LOCK:
+        if not (BB['dirty'] and BB['loaded'] and GITHUB_TOKEN):
+            return
+        items = sorted(BB['board'].items(), key=lambda kv: -kv[1]['tro'])[:BB_KEEP]
+        doc = {'v': 1, 'board': {k: {kk: (round(vv) if kk == 't' else vv) for kk, vv in e.items()} for k, e in items}}
+        sha = BB['sha']
+        BB['dirty'] = False
+    body = {'message': 'Bounce Brawl leaderboard', 'branch': LINKS_BRANCH,
+            'content': base64.b64encode((json.dumps(doc, separators=(',', ':')) + '\n').encode('utf-8')).decode('ascii')}
+    if sha:
+        body['sha'] = sha
+    st, js = gh('PUT', brawl_path(), body)
+    with BB_LOCK:
+        if st in (200, 201):
+            BB['sha'] = ((js or {}).get('content') or {}).get('sha')
+        else:
+            BB['dirty'] = True
+            if st in (409, 422):
+                BB['sha'] = None
+    if st in (409, 422):
+        st2, js2 = gh('GET', brawl_path() + '?ref=' + urllib.parse.quote(LINKS_BRANCH, safe=''))
+        if st2 == 200 and isinstance(js2, dict):
+            with BB_LOCK:
+                BB['sha'] = js2.get('sha')
+    elif st not in (200, 201):
+        log('!! saving %s failed (%s)' % (BB_PATH, st))
+
+
+def brawl_loop():
+    brawl_load()
+    last = time.time()
+    while True:
+        time.sleep(15)
+        with BB_LOCK:
+            brawl_sweep()
+        if time.time() - last >= BB_SAVE_EVERY:
+            last = time.time()
+            try:
+                brawl_save()
+            except Exception as e:          # pragma: no cover
+                log('!! brawl save: %s' % e)
+
+
 class Handler(SimpleHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
 
@@ -1723,6 +2023,8 @@ class Handler(SimpleHTTPRequestHandler):
             path = '/' + ROTFALL2
         elif route in ('/neon-siege-1', '/neon-siege-1/'):
             path = '/' + NEONSIEGE1
+        elif route in ('/bounce-brawl', '/bounce-brawl/'):
+            path = '/' + BRAWL
         return SimpleHTTPRequestHandler.translate_path(self, path)
 
     def end_headers(self):
@@ -1753,6 +2055,13 @@ class Handler(SimpleHTTPRequestHandler):
             if 'vault' in closed_places():
                 return self.send_json(503, {'ok': False, 'error': "Bee's Vault is closed for a moment."})
             return self.chat_socket()
+        if route == '/bb':
+            if 'bounce-brawl' in closed_places():
+                return self.send_json(503, {'ok': False, 'error': 'Bounce Brawl is closed for a moment.'})
+            return self.brawl_socket()
+        if route == '/api/brawl':
+            # Bounce Brawl's leaderboard: trophies from player-vs-player fights both players agreed on
+            return self.send_json(200, {'board': brawl_board(), 'online': brawl_online(), 'ready': BB['loaded']})
         if route == '/api/popular':
             # the vault's Popular tab: the most played games, freshest plays counting most
             return self.send_json(200, {'popular': popular_list(), 'ready': PLAYS['loaded']})
@@ -1805,7 +2114,8 @@ class Handler(SimpleHTTPRequestHandler):
             with LOCK:
                 body = json.dumps({'ok': True, 'waiting': len(QUEUE),
                                    'live': STATS['live'], 'paired': STATS['paired'],
-                                   'matches': len(MATCHES), 'chat': len(CHAT['peers'])}).encode()
+                                   'matches': len(MATCHES), 'chat': len(CHAT['peers']),
+                                   'brawl': brawl_online()}).encode()
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Content-Length', str(len(body)))
@@ -1993,6 +2303,77 @@ class Handler(SimpleHTTPRequestHandler):
                 chat_rtc(peer, msg)
             elif t == 'rtc-end':
                 chat_end(peer, msg)
+
+    def brawl_socket(self):
+        ip = self.client_ip()
+        with BB_LOCK:
+            held = sum(1 for p in BB['peers'] if p.ip == ip)
+            full = len(BB['peers']) >= BB_MAX
+        if not self.ws_accept():
+            return
+        peer = BrawlPeer(self, ip)
+        if held >= BB_PER_IP or full:
+            peer.send({'t': 'err', 'code': 'busy', 'msg': 'Too many games open from here.'})
+            return
+        with BB_LOCK:
+            others = [{'peer': p.id, 'p': p.p} for p in BB['peers'] if p.p]
+            BB['peers'].add(peer)
+        peer.send({'t': 'hello', 'id': peer.id, 'peers': others})
+        try:
+            self.brawl_pump(peer)
+        except Exception:
+            pass
+        finally:
+            peer.alive = False
+            with BB_LOCK:
+                BB['peers'].discard(peer)
+            brawl_broadcast({'t': 'bye', 'peer': peer.id})
+
+    def brawl_pump(self, peer):
+        while True:
+            frame = ws_read(self.rfile)
+            if frame is None:
+                return
+            opcode, payload = frame
+            if opcode == 0x8 or len(payload) > BB_FRAME_MAX:
+                return
+            if opcode == 0x9:
+                with peer.lock:
+                    self.wfile.write(ws_frame(payload, 0xA))
+                    self.wfile.flush()
+                continue
+            if opcode != 0x1:
+                continue
+            try:
+                msg = json.loads(payload.decode('utf-8'))
+            except Exception:
+                continue
+            if not isinstance(msg, dict):
+                continue
+            t = msg.get('t')
+            if t == 'p' and isinstance(msg.get('p'), dict):
+                patch = brawl_clean(msg['p'])
+                with BB_LOCK:
+                    for k, v in patch.items():
+                        if v is None:
+                            peer.p.pop(k, None)
+                        else:
+                            peer.p[k] = v
+                    brawl_note(peer)
+                    whole = dict(peer.p)
+                # over its budget, an update is kept and goes out with the next one
+                if peer.allow():
+                    brawl_broadcast({'t': 'p', 'peer': peer.id, 'p': whole}, skip=peer)
+                    peer.held = False
+                else:
+                    peer.held = True
+            elif t == 'ping':
+                peer.send({'t': 'pong'})
+                if peer.held and peer.allow():
+                    peer.held = False
+                    with BB_LOCK:
+                        whole = dict(peer.p)
+                    brawl_broadcast({'t': 'p', 'peer': peer.id, 'p': whole}, skip=peer)
 
     def websocket(self):
         if not self.ws_accept():
@@ -2210,6 +2591,7 @@ def main():
         'OFF (set %s)' % ' and '.join(k for k, v in (('DEV_KEY', DEV_KEY), ('GITHUB_TOKEN', GITHUB_TOKEN)) if not v)))
     threading.Thread(target=links_load, daemon=True).start()
     threading.Thread(target=plays_loop, daemon=True).start()
+    threading.Thread(target=brawl_loop, daemon=True).start()
     if not os.environ.get('RENDER'):
         log('  you:        http://localhost:%d' % args.port)
         log('  same wifi:  http://%s:%d' % (lan_ip(), args.port))

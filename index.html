@@ -175,8 +175,9 @@ h1 .ch { display: inline-block; transform-origin: 50% 100%; }
 .tagline span { display: inline-block; }
 .tagline b { color: var(--text); font-weight: 700; }
 
-/* ── the three doors ── */
-.doors { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(14px, 2.2vw, 24px); }
+/* ── the four doors ── */
+.doors { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(14px, 2vw, 22px); }
+@media (max-width: 1000px) { .doors { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 720px) { .doors { grid-template-columns: 1fr; } }
 
 .door {
@@ -282,6 +283,11 @@ h1 .ch { display: inline-block; transform-origin: 50% 100%; }
           mask-image: radial-gradient(ellipse 72% 92% at 72% 38%, #000 42%, transparent 84%); }
 .rotfall .rf-noise { position: absolute; inset: 0; opacity: .045; background-size: 200px;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+/* Bounce Brawl: two balls fighting it out in a little box */
+.door.brawl { --a: #ff2d78; --b: #b46bff; }
+.brawl .name { color: #ff2d78; }
+.brawl .bb-scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.brawl .new-tag { color: #1a0010; background: linear-gradient(135deg, #ffb3cf, #ff2d78 55%, #b0124f); }
 /* the newest door says so */
 .new-tag { display: inline-flex; align-items: center; padding: 4px 10px 3px; border-radius: 999px;
   font: 900 11px/1.2 'Orbitron', sans-serif; letter-spacing: .14em; color: #1a0600;
@@ -380,6 +386,7 @@ h1 .ch { display: inline-block; transform-origin: 50% 100%; }
 .it.v { --k: var(--gold); }
 .it.n { --k: var(--cyan); }
 .it.r { --k: #ff5a1f; }
+.it.b { --k: #ff2d78; }
 
 /* ── the foot ── */
 .foot { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap;
@@ -462,10 +469,12 @@ body.leaving main { opacity: .6; transform: scale(.985); transition: opacity .3s
 @keyframes dial-in { from { transform: rotate(-240deg); } }
 @keyframes glow-in { from { opacity: 0; } }
 /* each door swings in from its own side, the middle one straight up; stacked, they come up from below */
-.door.vault { --dx: -80px; --dry: 26deg; }
-.door.rotfall { --dx: 0px; --dry: 0deg; }
-.door.ns2 { --dx: 80px; --dry: -26deg; }
-@media (max-width: 720px) { .door.vault, .door.ns2 { --dx: 0px; --dry: 0deg; } }
+.door.vault { --dx: -90px; --dry: 26deg; }
+.door.rotfall { --dx: -30px; --dry: 9deg; }
+.door.ns2 { --dx: 30px; --dry: -9deg; }
+.door.brawl { --dx: 90px; --dry: -26deg; }
+@media (max-width: 1000px) { .door.vault, .door.ns2 { --dx: -60px; --dry: 18deg; } .door.rotfall, .door.brawl { --dx: 60px; --dry: -18deg; } }
+@media (max-width: 720px) { .door.vault, .door.ns2, .door.rotfall, .door.brawl { --dx: 0px; --dry: 0deg; } }
 
 .intro-full #hive, .intro-quick #hive { opacity: 0; }
 #hive.rise { animation: hive-rise 1.7s var(--ease-out) both; }
@@ -647,7 +656,7 @@ h1 .bee { background: none !important; color: var(--gold) !important; -webkit-te
         <canvas class="rf-scene"></canvas>
         <span class="rf-noise"></span>
       </span>
-      <span class="top"><span class="idx" aria-hidden="true">02</span><span class="new-tag">NEW!!!</span></span>
+      <span class="top"><span class="idx" aria-hidden="true">02</span></span>
       <span class="icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="#e85d00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="6.5"/><path d="M12 3v3.2M12 17.8V21M3 12h3.2M17.8 12H21"/><circle cx="12" cy="12" r="1.6" fill="#e85d00" stroke="none"/>
@@ -681,10 +690,30 @@ h1 .bee { background: none !important; color: var(--gold) !important; -webkit-te
         <kbd aria-hidden="true">3</kbd>
       </span>
     </a>
+
+    <a class="door brawl" href="/bounce-brawl" data-key="4" data-color="#ff2d78" style="--i:3">
+      <span class="edge" aria-hidden="true"></span>
+      <span class="sheen" aria-hidden="true"></span>
+      <span class="art-wrap" aria-hidden="true">
+        <canvas class="bb-scene"></canvas>
+      </span>
+      <span class="top"><span class="idx" aria-hidden="true">04</span><span class="new-tag">NEW!!!</span><span class="live" hidden><i aria-hidden="true"></i><b></b></span></span>
+      <span class="icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ff2d78" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="14" r="5.5"/><path d="M13 10l6.5-6.5M17 3.5h2.5V6"/><path d="M12 7.5l4.5 4.5"/><circle cx="18.5" cy="17.5" r="2.5"/>
+        </svg>
+      </span>
+      <span class="name">Bounce Brawl</span>
+      <span class="sub">Ball fights &middot; bet against players</span>
+      <span class="go">Brawl
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h9M8.5 4 12.5 8l-4 4"/></svg>
+        <kbd aria-hidden="true">4</kbd>
+      </span>
+    </a>
   </nav>
 
   <div class="more-row">
-    <a class="more-btn" href="/projects" id="more-go" data-key="4" data-color="#ff9f1c">
+    <a class="more-btn" href="/projects" id="more-go" data-key="5" data-color="#ff9f1c">
       <svg class="grid-ic" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.5" y="1.5" width="5.2" height="5.2" rx="1.3"/><rect x="9.3" y="1.5" width="5.2" height="5.2" rx="1.3"/><rect x="1.5" y="9.3" width="5.2" height="5.2" rx="1.3"/><rect x="9.3" y="9.3" width="5.2" height="5.2" rx="1.3" stroke-dasharray="2 1.6"/></svg>
       <span>Other Projects</span>
       <b class="more-n" aria-label="1 project">1</b>
@@ -694,8 +723,8 @@ h1 .bee { background: none !important; color: var(--gold) !important; -webkit-te
 
   <div class="ticker" aria-hidden="true">
     <div class="track">
-      <span class="it v">500+ browser games</span><span class="it n">12 sectors</span><span class="it r">ROTFALL 2 is out</span><span class="it v">Live chat</span><span class="it n">22 towers</span><span class="it v">Watch friends play</span><span class="it n">Co-op with a friend</span><span class="it v">Music player &amp; lyrics</span><span class="it n">Endless mode</span><span class="it r">20 weapons, 20 evolutions</span><span class="it v">Apps &amp; tools</span><span class="it n">Sector bosses</span><span class="it v">Links from the owner</span><span class="it n">Sandbox</span><span class="it r">Maw boss fights</span>
-      <span class="it v">500+ browser games</span><span class="it n">12 sectors</span><span class="it r">ROTFALL 2 is out</span><span class="it v">Live chat</span><span class="it n">22 towers</span><span class="it v">Watch friends play</span><span class="it n">Co-op with a friend</span><span class="it v">Music player &amp; lyrics</span><span class="it n">Endless mode</span><span class="it r">20 weapons, 20 evolutions</span><span class="it v">Apps &amp; tools</span><span class="it n">Sector bosses</span><span class="it v">Links from the owner</span><span class="it n">Sandbox</span><span class="it r">Maw boss fights</span>
+      <span class="it v">500+ browser games</span><span class="it n">12 sectors</span><span class="it b">Bounce Brawl is out</span><span class="it r">ROTFALL 2 is out</span><span class="it v">Live chat</span><span class="it n">22 towers</span><span class="it v">Watch friends play</span><span class="it n">Co-op with a friend</span><span class="it v">Music player &amp; lyrics</span><span class="it n">Endless mode</span><span class="it r">20 weapons, 20 evolutions</span><span class="it v">Apps &amp; tools</span><span class="it n">Sector bosses</span><span class="it v">Links from the owner</span><span class="it n">Sandbox</span><span class="it r">Maw boss fights</span><span class="it b">30 balls to collect</span>
+      <span class="it v">500+ browser games</span><span class="it n">12 sectors</span><span class="it b">Bounce Brawl is out</span><span class="it r">ROTFALL 2 is out</span><span class="it v">Live chat</span><span class="it n">22 towers</span><span class="it v">Watch friends play</span><span class="it n">Co-op with a friend</span><span class="it v">Music player &amp; lyrics</span><span class="it n">Endless mode</span><span class="it r">20 weapons, 20 evolutions</span><span class="it v">Apps &amp; tools</span><span class="it n">Sector bosses</span><span class="it v">Links from the owner</span><span class="it n">Sandbox</span><span class="it r">Maw boss fights</span><span class="it b">30 balls to collect</span>
     </div>
   </div>
 </main>
@@ -707,7 +736,7 @@ h1 .bee { background: none !important; color: var(--gold) !important; -webkit-te
   <span class="dot" aria-hidden="true"></span>
   <button class="snd" id="snd" type="button" aria-pressed="true" title="Sound effects"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6h2.2L8 3.2v9.6L4.7 10H2.5Z" fill="currentColor" fill-opacity=".18"/><path class="w" d="M10.6 5.6a3.4 3.4 0 0 1 0 4.8M12.6 3.8a6 6 0 0 1 0 8.4"/><path class="x" d="m10.5 6.2 3.6 3.6m0-3.6-3.6 3.6"/></svg><span>Sound on</span></button>
   <span class="dot keys" aria-hidden="true"></span>
-  <span class="keys">Press <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> or <kbd>4</kbd></span>
+  <span class="keys">Press <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> or <kbd>5</kbd></span>
 </footer>
 
 <div id="wipe" aria-hidden="true"></div>
@@ -774,6 +803,11 @@ h1 .bee { background: none !important; color: var(--gold) !important; -webkit-te
         SN.tone({ at: 0.02, f: 90, f2: 70, dur: 0.6, vol: 0.05, type: 'sawtooth', cut: 380, q: 4, vib: [11, 6], pan: p, wet: 0.4 });
         SN.tone({ at: 0.35, f: 58, f2: 34, dur: 0.28, vol: 0.12, pan: p }); SN.tone({ at: 0.54, f: 50, f2: 32, dur: 0.26, vol: 0.09, pan: p });
         hum(el, { fs: [55, 55.7], type: 'sawtooth', vol: 0.02, cut: 160, cut2: 260, rise: 1.5, pan: p });
+      } else if (d.contains('brawl')) {
+        // a ball boinging off the wall, then two blades meeting
+        SN.tone({ at: 0.02, f: 170, f2: 520, dur: 0.12, vol: 0.05, pan: p }); SN.tone({ at: 0.14, f: 520, f2: 150, dur: 0.16, vol: 0.04, pan: p });
+        [1250, 1870, 2630].forEach(function (f, k) { SN.tone({ at: 0.3, f: f, dur: 0.38, vol: 0.012 - k * 0.003, type: 'triangle', pan: p, wet: 0.4 }); });
+        hum(el, { fs: [98, 146.83], type: 'triangle', vol: 0.014, cut: 700, rise: 1.0, pan: p });
       }
     };
     function hum(el, o) { if (!el.__hum) el.__hum = SN.drone(o); }
@@ -816,6 +850,7 @@ h1 .bee { background: none !important; color: var(--gold) !important; -webkit-te
     api.td = function (host) { if (!SN.live() || !gap('td', 0.07)) return; SN.tone({ f: 1800 * (0.9 + Math.random() * 0.2), f2: 600, dur: 0.05, vol: 0.008, type: 'square', cut: 4000, pan: SN.panOf(host) + 0.2, wet: 0.15 }); };
     api.tdPop = function (host) { if (!SN.live() || !gap('tdp', 0.05)) return; var p = SN.panOf(host) + 0.2; SN.noise({ f: 1200, f2: 300, dur: 0.08, vol: 0.014, pan: p }); SN.tone({ f: 440, f2: 110, dur: 0.07, vol: 0.008, type: 'square', cut: 2000, pan: p }); };
     api.rfShot = function (host) { if (!SN.live() || !gap('rfs', 0.1)) return; var p = SN.panOf(host) + 0.2; SN.noise({ ft: 'highpass', f: 2500, dur: 0.03, vol: 0.012, pan: p }); SN.tone({ f: 300, f2: 100, dur: 0.05, vol: 0.008, type: 'square', cut: 2500, pan: p }); };
+    api.bbHit = function (host) { if (!SN.live() || !gap('bbh', 0.12)) return; var p = SN.panOf(host) + 0.2; SN.noise({ ft: 'highpass', f: 3200, dur: 0.04, vol: 0.012, pan: p }); SN.tone({ f: 1500, f2: 950, dur: 0.07, vol: 0.009, type: 'triangle', pan: p }); };
     api.rfPop = function (host) { if (!SN.live() || !gap('rfp', 0.06)) return; var p = SN.panOf(host) + 0.2; SN.noise({ f: 800, f2: 200, dur: 0.1, vol: 0.016, pan: p }); SN.tone({ f: 160, f2: 60, dur: 0.1, vol: 0.012, pan: p }); };
 
     // the page's own opening
@@ -1530,12 +1565,114 @@ h1 .bee { background: none !important; color: var(--gold) !important; -webkit-te
   var rfDoor = document.querySelector('.door.rotfall');
   if (rfDoor) RotfallScene(rfDoor.querySelector('.rf-scene'), rfDoor);
 
+  // Bounce Brawl's door: a small box at its top right, a sword ball and a
+  // dice ball bouncing about in it and hitting each other
+  function BrawlScene(cv, host) {
+    var ctx = cv.getContext('2d');
+    var W = 0, H = 0, dpr = 1, t = 0, hot = false, seen = true, box = { x: 0, y: 0, s: 1 };
+    var B = [{ x: .3, y: .35, vx: .42, vy: .31, col: '#4f86e8', sword: true }, { x: .7, y: .62, vx: -.36, vy: -.28, col: '#f3efe4', dice: true }];
+    var FX = [], ang = 0, cd = 0;
+    function size() {
+      if (!cv.clientWidth || !cv.clientHeight) return;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = cv.clientWidth; H = cv.clientHeight;
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+      // on a phone the door is short and wide: a smaller box, clear of the name
+      var s = Math.min(W * 0.46, H * (W < 440 ? 0.36 : 0.52));
+      box = { x: W - s - 20, y: W < 440 ? 16 : 22, s: s };
+    }
+    function step(dt) {
+      t += dt; ang += dt * 5.2; cd -= dt;
+      var r = 0.11;
+      B.forEach(function (b) {
+        b.x += b.vx * dt; b.y += b.vy * dt;
+        if (b.x < r) { b.x = r; b.vx = Math.abs(b.vx); } else if (b.x > 1 - r) { b.x = 1 - r; b.vx = -Math.abs(b.vx); }
+        if (b.y < r) { b.y = r; b.vy = Math.abs(b.vy); } else if (b.y > 1 - r) { b.y = 1 - r; b.vy = -Math.abs(b.vy); }
+      });
+      var a = B[0], c = B[1], dx = c.x - a.x, dy = c.y - a.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
+      if (d < r * 2) {
+        var nx = dx / d, ny = dy / d, vn = (c.vx - a.vx) * nx + (c.vy - a.vy) * ny;
+        if (vn < 0) { a.vx += vn * nx; a.vy += vn * ny; c.vx -= vn * nx; c.vy -= vn * ny; }
+        var o = (r * 2 - d) / 2; a.x -= nx * o; a.y -= ny * o; c.x += nx * o; c.y += ny * o;
+      }
+      // the sword's tip against the dice ball
+      var tx = a.x + Math.cos(ang) * r * 2.6, ty = a.y + Math.sin(ang) * r * 2.6;
+      if (cd <= 0 && (tx - c.x) * (tx - c.x) + (ty - c.y) * (ty - c.y) < r * r * 1.2) {
+        cd = 0.4;
+        c.vx += (c.x - a.x) * 0.9; c.vy += (c.y - a.y) * 0.9;
+        var sp = Math.sqrt(c.vx * c.vx + c.vy * c.vy); if (sp > .7) { c.vx *= .7 / sp; c.vy *= .7 / sp; }
+        for (var i = 0; i < 7; i++) { var q = Math.random() * 6.28, v = .25 + Math.random() * .4; FX.push({ x: tx, y: ty, vx: Math.cos(q) * v, vy: Math.sin(q) * v, life: .35 }); }
+        FX.push({ num: 1, x: c.x, y: c.y - r * 1.6, life: .8, n: 2 + Math.floor(Math.random() * 9) });
+        if (hot) Sound.bbHit(host);
+      }
+      FX.forEach(function (f) { f.life -= dt; if (!f.num) { f.x += f.vx * dt; f.y += f.vy * dt; } else f.y -= dt * .12; });
+      FX = FX.filter(function (f) { return f.life > 0; });
+    }
+    function ball(b, px, py, pr) {
+      ctx.beginPath(); ctx.arc(px + pr * .12, py + pr * .2, pr, 0, 6.2832); ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fill();
+      ctx.beginPath(); ctx.arc(px, py, pr, 0, 6.2832); ctx.fillStyle = b.col; ctx.fill();
+      ctx.lineWidth = Math.max(1.5, pr * .09); ctx.strokeStyle = '#0f1724'; ctx.stroke();
+      if (b.dice) {
+        ctx.fillStyle = '#0f1724';
+        [[-.32, -.32], [.32, -.32], [0, 0], [-.32, .32], [.32, .32]].forEach(function (q) { ctx.beginPath(); ctx.arc(px + q[0] * pr, py + q[1] * pr, pr * .12, 0, 6.2832); ctx.fill(); });
+      }
+      ctx.beginPath(); ctx.ellipse(px - pr * .42, py - pr * .5, pr * .22, pr * .12, -.6, 0, 6.2832); ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.fill();
+    }
+    function draw() {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+      var X = box.x, Y = box.y, S = box.s, k = function (v) { return v * S; };
+      ctx.fillStyle = 'rgba(10,10,13,.85)'; ctx.fillRect(X, Y, S, S);
+      ctx.strokeStyle = 'rgba(255,255,255,.04)'; ctx.lineWidth = 1; ctx.beginPath();
+      for (var g = 1; g < 8; g++) { ctx.moveTo(X + S * g / 8, Y); ctx.lineTo(X + S * g / 8, Y + S); ctx.moveTo(X, Y + S * g / 8); ctx.lineTo(X + S, Y + S * g / 8); }
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.strokeRect(X + .5, Y + .5, S - 1, S - 1);
+      ctx.strokeStyle = '#ff2d78'; ctx.lineWidth = 2.5; ctx.beginPath();
+      [[0, 0, 1, 1], [S, 0, -1, 1], [0, S, 1, -1], [S, S, -1, -1]].forEach(function (c) { ctx.moveTo(X + c[0] + c[2] * 12, Y + c[1]); ctx.lineTo(X + c[0], Y + c[1]); ctx.lineTo(X + c[0], Y + c[1] + c[3] * 12); });
+      ctx.stroke();
+      var a = B[0], r = 0.11;
+      // the sword, under its ball
+      var ax = X + k(a.x), ay = Y + k(a.y), ca = Math.cos(ang), sa = Math.sin(ang);
+      ctx.save(); ctx.translate(ax, ay); ctx.rotate(ang);
+      ctx.fillStyle = '#d5dce5'; ctx.strokeStyle = '#0f1724'; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(k(r) * 1.1, -k(r) * .14); ctx.lineTo(k(r) * 2.45, -k(r) * .12); ctx.lineTo(k(r) * 2.75, 0); ctx.lineTo(k(r) * 2.45, k(r) * .12); ctx.lineTo(k(r) * 1.1, k(r) * .14); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#f2c14e'; ctx.fillRect(k(r) * 1.02, -k(r) * .3, k(r) * .14, k(r) * .6);
+      ctx.restore();
+      B.forEach(function (b) { ball(b, X + k(b.x), Y + k(b.y), k(r)); });
+      FX.forEach(function (f) {
+        if (f.num) {
+          ctx.globalAlpha = Math.min(1, f.life * 2); ctx.font = "700 " + Math.round(k(r) * .9) + "px 'Share Tech Mono', monospace"; ctx.textAlign = 'center';
+          ctx.lineWidth = 3; ctx.strokeStyle = '#030304'; ctx.strokeText(String(f.n), X + k(f.x), Y + k(f.y)); ctx.fillStyle = '#ffd166'; ctx.fillText(String(f.n), X + k(f.x), Y + k(f.y));
+        } else {
+          ctx.globalAlpha = f.life / .35; ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(X + k(f.x), Y + k(f.y), 1.6, 0, 6.2832); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      });
+    }
+    size();
+    window.addEventListener('resize', size);
+    host.addEventListener('pointerenter', function () { hot = true; });
+    host.addEventListener('pointerleave', function () { hot = false; });
+    host.addEventListener('focus', function () { hot = true; });
+    host.addEventListener('blur', function () { hot = false; });
+    if ('IntersectionObserver' in window) new IntersectionObserver(function (es) { seen = es[0].isIntersecting; }).observe(host);
+    for (var n = 0; n < 90; n++) step(1 / 60);
+    if (calm) { draw(); return; }
+    loops.push(function (dt) {
+      if (!seen || !W) { if (!W) size(); return; }
+      step(Math.min(dt, 0.05) * (hot ? 1.8 : 1));
+      draw();
+    });
+  }
+  var bbDoor = document.querySelector('.door.brawl');
+  if (bbDoor) BrawlScene(bbDoor.querySelector('.bb-scene'), bbDoor);
+
   // ── places switched off for now (server.py: CLOSED) ───────────────
   // Their doors grey out and won't open; the server shows their closed page
   // to anyone who gets there another way.
   var Closed = (function () {
     var set = {};
-    var KEY = { '/vault': 'vault', '/neon-siege': 'neon-siege', '/rotfall': 'rotfall', '/rotfall-2': 'rotfall-2', '/projects': 'projects' };
+    var KEY = { '/vault': 'vault', '/neon-siege': 'neon-siege', '/rotfall': 'rotfall', '/rotfall-2': 'rotfall-2', '/bounce-brawl': 'bounce-brawl', '/projects': 'projects' };
     function keyOf(el) { return KEY[String(el.getAttribute('href') || '').replace(/\/+$/, '')] || ''; }
     function mark() {
       Array.prototype.forEach.call(document.querySelectorAll('.door[href], .more-btn[href]'), function (el) {
@@ -1584,7 +1721,7 @@ h1 .bee { background: none !important; color: var(--gold) !important; -webkit-te
   // own. Not in BeeSide's single-file copy, which switches pages its own way,
   // nor from a file on disk.
   var Shell = (function () {
-    var ROUTES = { vault: '/vault', 'neon-siege': '/neon-siege', projects: '/projects', rotfall: '/rotfall', 'rotfall-2': '/rotfall-2' };
+    var ROUTES = { vault: '/vault', 'neon-siege': '/neon-siege', projects: '/projects', rotfall: '/rotfall', 'rotfall-2': '/rotfall-2', 'bounce-brawl': '/bounce-brawl' };
     var can = /^https?:$/.test(location.protocol) && window.top === window && !window.BS_ROUTE;
     var frame = null, isOpen = false, onHome = null, watcher = null, playing = null;
     var title0 = document.title, iconEl = document.querySelector('link[rel~="icon"]'), icon0 = iconEl ? iconEl.getAttribute('href') : '';
@@ -1807,7 +1944,7 @@ h1 .bee { background: none !important; color: var(--gold) !important; -webkit-te
     enter(moreGo, e.clientX || e.clientY ? e.clientX : r.left + r.width / 2, e.clientX || e.clientY ? e.clientY : r.top + r.height / 2);
   });
 
-  // 1 and 2 pick a door, 3 is Other Projects
+  // 1 to 4 pick a door, 5 is Other Projects
   document.addEventListener('keydown', function (e) {
     if (e.metaKey || e.ctrlKey || e.altKey || e.repeat || Shell.isOpen()) return;
     var door = doors.concat(moreGo).filter(function (d) { return d.getAttribute('data-key') === e.key; })[0];
@@ -1852,7 +1989,7 @@ h1 .bee { background: none !important; color: var(--gold) !important; -webkit-te
   // /healthz is the server's own count: vaults open (each one sits in the
   // chat room) and games of NEON SIEGE 2 going. Nothing shows until it
   // answers, and a zero shows nothing.
-  var vLive = document.querySelector('.vault .live'), nLive = document.querySelector('.ns2 .live');
+  var vLive = document.querySelector('.vault .live'), nLive = document.querySelector('.ns2 .live'), bLive = document.querySelector('.brawl .live');
   var status = document.querySelector('.foot .status'), statusDot = document.querySelector('.foot .status-dot');
   function show(el, n, text) {
     if (!(n > 0)) { el.hidden = true; return; }
@@ -1867,6 +2004,8 @@ h1 .bee { background: none !important; color: var(--gold) !important; -webkit-te
       var v = +s.chat || 0, g = +s.matches || 0;
       show(vLive, v, v + ' in the vault now');
       show(nLive, g, g === 1 ? '1 game running' : g + ' games running');
+      var b = +s.brawl || 0;
+      if (bLive) show(bLive, b, b + ' playing now');
       status.querySelector('.st').textContent = 'Servers online';
       status.hidden = statusDot.hidden = false;
     }).catch(function () { status.hidden = statusDot.hidden = true; });
