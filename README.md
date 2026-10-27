@@ -23,9 +23,9 @@ this is a Python service.
 
 `/healthz` and `/stats` return `{ok, waiting, live, paired, matches, chat, brawl}` if
 you want to see who is queued. The front page reads it too: `chat` is how many
-vaults are open (each one sits in the chat room), `matches` how many games
-of NEON SIEGE 2 are going and `brawl` how many people have Bounce Brawl open,
-shown on each door when above zero.
+vaults are open (each one sits in the chat room) and `matches` how many games
+of NEON SIEGE 2 are going, shown on each door when above zero. `brawl` is how
+many people have Bounce Brawl open.
 
 ## The front page and the openings
 
@@ -36,18 +36,18 @@ flips up out of the splash in 3D, rays of light break from it and drops of
 honey spray out. The honeycomb rises from a floor into a wall as a wave runs
 out through it, each cell flipping into place. Two rings spin up round the
 logo like a gyroscope, the name rises, the rule is drawn out from a spark,
-and the four doors swing in (each from its own side) and light up. The whole page settles
+and the three doors swing in (the outer two from either side, the middle one
+straight up) and light up. The whole page settles
 out of a slight tilt as it all arrives. Later visits get a shorter version,
 and Other Projects arrives the same way. Everything moves by transform,
 opacity or the canvas: nothing is blurred as it moves. Each door tilts towards the
 pointer. The vault's door turns its dial and spills out what's inside, and
 NEON SIEGE 2's door has a small tower-defense fight running in it. ROTFALL
-2's door has the same live swarm scene as ROTFALL's door on Other Projects,
-and Bounce Brawl's door, the newest and tagged NEW!!!, has a sword ball and a
-dice ball fighting in a little box. The vault's, the game's and Bounce
-Brawl's doors show who is in there right now, and a ticker lists what is
-inside. **1** to **4** pick a door, **5** is Other Projects, and picking one
-opens it out into the next page.
+2's door sits between them, tagged NEW!!!, with the same live swarm scene as
+ROTFALL's door on Other Projects. The vault's and the game's doors show who
+is in there right now, and a ticker lists what is inside. **1**, **2** and
+**3** pick a door, **4** is Other Projects, and picking one opens it out into
+the next page.
 
 **No glow.** Nothing on the front page, Other Projects, the vault or the
 closed page lights itself up: no coloured halos (`0 0 12px <colour>`
@@ -134,7 +134,7 @@ opening holds at its last beat until it is (the vault's door keeps syncing).
 - **While a place is open**, the front page stops drawing and making sound
   underneath it.
 - **Opened on its own at BeeSide's address**, `/vault`, `/neon-siege`,
-  `/projects`, `/rotfall`, `/rotfall-2` or `/bounce-brawl` goes through the front page (`/#vault`). There it
+  `/projects`, `/rotfall` or `/rotfall-2` goes through the front page (`/#vault`). There it
   meets the front page's one CLICK TO ENTER if the browser hasn't allowed sound
   yet.
 - **Everywhere else** (BeeSide's single-file copy, a file on disk, the game
@@ -249,7 +249,9 @@ It plays like Survivor.io, with ROTFALL's guns, supports, survivors and dead:
 `bounce-brawl.html` (at `/bounce-brawl`) is built, not written by hand: its
 sources are in `Downloads/claude/bounce-brawl/src`, and `python build.py --site`
 there writes the page here. Two balls fight on their own in a box; players pick
-one of 30 balls (from crates), bet coins against each other and watch.
+one of 30 balls (from crates), bet coins against each other and watch. It is
+in the vault's Bee's Projects (opened with `#bv=1`, so it hides its BEESIDE
+button), not on the front page.
 
 - **The lobby** is the websocket `/bb`. Each open game keeps a small presence
   (its ball, trophies, whether it is looking for a fight) and the server hands
