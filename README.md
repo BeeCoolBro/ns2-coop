@@ -249,7 +249,7 @@ It plays like Survivor.io, with ROTFALL's guns, supports, survivors and dead:
 `bounce-brawl.html` (at `/bounce-brawl`) is built, not written by hand: its
 sources are in `Downloads/claude/bounce-brawl/src`, and `python build.py --site`
 there writes the page here. Two balls fight on their own in a box; players pick
-one of 30 balls (from crates), bet coins against each other and watch. It is
+one of 100 balls (from crates), bet coins against each other and watch. It is
 in the vault's Bee's Projects (opened with `#bv=1`, so it hides its BEESIDE
 button), not on the front page.
 
@@ -263,6 +263,9 @@ button), not on the front page.
   games agreed on (or that one player left): +30 trophies a win, -20 a loss.
   It is saved as `brawl.json` on the vault-data branch every few minutes, like
   the play counts. Coins live in each browser.
+- **Nobody queueing**: after 5-10 s alone in the queue, the game plays a
+  stand-in opponent in that browser, paid like a ranked fight. These fights
+  never go through the lobby, so they never reach the leaderboard.
 - **Closing it**: `bounce-brawl` in `CLOSED` closes the page and the lobby.
 
 ## What the free plan means
