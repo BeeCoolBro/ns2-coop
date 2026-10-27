@@ -2365,6 +2365,7 @@ const STARTER = { id: 'starter', name: 'Starter Crate', price: 0, col: '#5cff9d'
 const COIN_SVG = '<svg class="i coin" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8.5" fill="currentColor"/><circle cx="10" cy="10" r="5.6" fill="none" stroke="#7a5600" stroke-width="1.6"/><path d="M10 6.6v6.8" stroke="#7a5600" stroke-width="1.8" stroke-linecap="round"/></svg>';
 const TRO_SVG = '<svg class="i coin" viewBox="0 0 20 20"><path d="M5 3h10v4a5 5 0 0 1-10 0z M5 4H2.5v1.5A3 3 0 0 0 5.4 8.4 M15 4h2.5v1.5a3 3 0 0 1-2.9 2.9" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M8.5 11.5h3l.6 3.5h-4.2z M6 15.5h8v2H6z" fill="currentColor"/></svg>';
 const BACK_SVG = '<svg class="i" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 10H4M9 5l-5 5 5 5"/></svg>';
+const FIGHT_SPEED = 2;                     // every fight plays at 2x
 const fmt = n => Math.round(n).toLocaleString('en-US');
 const pad2 = n => String(n).padStart(2, '0');
 
@@ -2843,8 +2844,6 @@ function panelSettings() {
     h('div', { class: 'sec', text: 'Sound' }),
     h('div', { class: 'st-row' }, h('div', {}, h('div', { class: 'l', text: 'SOUND EFFECTS' }), h('div', { class: 'd', text: 'Hits, clangs, explosions' })), seg([[true, 'ON'], [false, 'OFF']], G.sfx, v => { G.sfx = v; SFX.sfx = v; })),
     h('div', { class: 'st-row' }, h('div', {}, h('div', { class: 'l', text: 'MUSIC' }), h('div', { class: 'd', text: 'Menu and fight music' })), seg([[true, 'ON'], [false, 'OFF']], G.music, v => { G.music = v; SFX.music = v; if (v) { SFX.resume(); MUSIC.play(FIGHT ? 'fight' : 'menu'); } })),
-    h('div', { class: 'sec', text: 'Fights' }),
-    h('div', { class: 'st-row' }, h('div', {}, h('div', { class: 'l', text: 'WATCH SPEED' }), h('div', { class: 'd', text: 'How fast fights play. The result is the same.' })), seg([[1, '1X'], [2, '2X'], [3, '3X']], G.speed || 1, v => { G.speed = v; })),
     h('div', { class: 'sec', text: 'Danger zone' }), reset);
   return p;
 }
@@ -2883,8 +2882,6 @@ function startFight(o) {
   const pot = o.mode === 'pvp' ? h('span', { class: 'pot', html: 'POT ' + COIN_SVG + fmt(o.stake * 2) }) : null;
   const banner = h('div', { class: 'banner' });
   const stage = h('div', { class: 'arena' }, cv, banner);
-  const speedBtn = h('button', { class: 'btn2', text: (G.speed || 1) + 'X SPEED' });
-  speedBtn.onclick = () => { G.speed = G.speed >= 3 ? 1 : G.speed + 1; speedBtn.textContent = G.speed + 'X SPEED'; save(); };
   const leave = h('button', { class: 'btn2', text: 'LEAVE' });
   let armed = false;
   leave.onclick = () => {
@@ -2892,10 +2889,9 @@ function startFight(o) {
     if (o.mode === 'pvp' && !armed) { armed = true; leave.textContent = 'TAP AGAIN: YOU LOSE THE STAKE'; setTimeout(() => { armed = false; leave.textContent = 'LEAVE'; }, 3000); return; }
     forfeit();
   };
-  const bar = h('div', { class: 'fbar' }, speedBtn, o.mode === 'bot' ? h('button', { class: 'btn2', text: 'SKIP TO RESULT', onclick: () => skipFight() }) : null, leave,
-    h('span', { class: 'hint', html: '<i class="kbd">S</i> SPEED <i class="kbd">ESC</i> LEAVE' }));
+  const bar = h('div', { class: 'fbar' }, leave, h('span', { class: 'hint', html: '<i class="kbd">ESC</i> LEAVE' }));
   const root = h('div', { id: 'fight' }, h('div', { class: 'hud' }, youP, h('div', { class: 'mid' }, clock, ot, pot), foeP), stage, bar);
-  root.speedBtn = speedBtn; root.leave = leave;
+  root.leave = leave;
   document.body.append(root);
   const arena = new Arena(cv, { sound: true, pad: 8 });
   arena.flip = o.mySide === 1; arena.me = o.mySide;
@@ -2936,7 +2932,7 @@ function fightFrame(F, dt) {
   } else if (F.phase === 'run') {
     if (F.arena.hitstop > 0) F.arena.hitstop -= dt;
     else {
-      F.acc = Math.min(F.acc + dt * (G.speed || 1) * F.slow, 0.25);
+      F.acc = Math.min(F.acc + dt * FIGHT_SPEED * F.slow, 0.25);
       while (F.acc >= DT && !S.over) { F.acc -= DT; step(S); F.arena.events(S); }
     }
     if (S.over) { F.phase = 'ko'; F.pt = 0; F.slow = 0.3; showBanner(F, S.winner === -1 ? 'DRAW' : S.t >= T_LIMIT ? 'TIME!' : 'K.O.', true); }
@@ -3022,8 +3018,7 @@ function onKey(e) {
   const k = e.key;
   if (k === 'm' || k === 'M') { G.sfx = G.music = !(G.sfx || G.music); SFX.sfx = G.sfx; SFX.music = G.music; if (G.music) { SFX.resume(); MUSIC.play(FIGHT ? 'fight' : 'menu'); } save(); toast(G.sfx ? 'Sound on' : 'Sound off', 1200); return; }
   if (FIGHT) {
-    if (k === 's' || k === 'S') FIGHT.root.speedBtn.click();
-    else if (k === 'Escape') { if (FIGHT.done) { endFightScreen(); renderView(); } else FIGHT.root.leave.click(); }
+    if (k === 'Escape') { if (FIGHT.done) { endFightScreen(); renderView(); } else FIGHT.root.leave.click(); }
     else if (k === 'Enter' && FIGHT.done) { const b = FIGHT.result && FIGHT.result.querySelector('.btn2'); if (b) b.click(); }
     return;
   }
