@@ -3791,7 +3791,7 @@ const pad2 = n => String(n).padStart(2, '0');
 
 // ---- the save ------------------------------------------------------------------
 function freshSave() {
-  return { v: 1, coins: 600, tro: 0, peak: 0, owned: {}, eq: null, w: 0, l: 0, d: 0, bw: 0, bl: 0, xp: 0, plv: 1, streak: 0, bstreak: 0, free: [], qday: 0, quests: [], dday: 0, nick: '', named: false, sfx: true, music: true, speed: 1, stake: 50, t: 0, starter: false, crates: 0 };
+  return { v: 1, coins: 600, tro: 0, peak: 0, owned: {}, eq: null, w: 0, l: 0, d: 0, bw: 0, bl: 0, xp: 0, plv: 1, streak: 0, bstreak: 0, free: [], qday: 0, quests: [], dday: 0, packAt: 0, nick: '', named: false, sfx: true, music: true, speed: 1, stake: 50, t: 0, starter: false, crates: 0 };
 }
 function loadLocal() {
   try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.v === 1) return Object.assign(freshSave(), s); } catch (e) {}
@@ -4195,10 +4195,14 @@ function panelCrates() {
   p.classList.add('shop');
   p.prepend(shopRoom());
   body.append(h('p', { class: 'shopline', html: 'Sealed crates and packs, straight off the truck. No refunds. <b>Repeats level up a ball you already have.</b>' }));
-  body.append(h('button', { class: 'deal', style: { '--c': PACK.col }, disabled: G.coins < PACK.price, onclick: buyPack },
+  const wait = packWait();
+  body.append(h('button', { class: 'deal', style: { '--c': PACK.col }, disabled: wait > 0 || G.coins < PACK.price, onclick: buyPack },
     h('img', { src: packIcon(52), alt: '' }),
-    h('div', { class: 'di' }, h('div', { class: 'dt', text: 'On the counter · three balls · Common or Rare' }), h('div', { class: 'dn', text: "HARDWARE'S PACK" })),
-    h('div', { class: 'dp' }, h('div', { class: 'now', html: COIN_SVG + fmt(PACK.price) }), h('div', { class: 'buy', text: 'BUY & RIP' }))));
+    h('div', { class: 'di' }, h('div', { class: 'dt', text: (wait ? 'Sold out' : 'On the counter') + ' · three balls · Common or Rare · one every 2 hours' }), h('div', { class: 'dn', text: "HARDWARE'S PACK" })),
+    h('div', { class: 'dp' }, wait ? [h('div', { class: 'now', text: 'SOLD OUT' }), h('div', { class: 'buy', text: 'BACK IN ' + packWaitText() })]
+      : [h('div', { class: 'now', html: COIN_SVG + fmt(PACK.price) }), h('div', { class: 'buy', text: 'BUY & RIP' })])));
+  // put a new one on the counter the moment it is back, if the shop is still open
+  if (wait) setTimeout(() => { if (TAB === 'crates' && !FIGHT && !topSheet()) renderPanel(true); }, wait + 500);
   const free = [];
   if (G.dday !== today()) free.push(h('div', { class: 'freec done' }, h('img', { src: crateIcon(CRATES[0], 56), alt: '' }),
     h('div', { class: 'qt' }, h('b', { text: 'DAILY MIXED CRATE' }), h('small', { text: 'Free every day. Ready now.' })),
@@ -4826,9 +4830,17 @@ function packIcon(px) {
   c.font = `400 15px ${FONT_D}`; c.fillStyle = '#ffffff'; c.fillText('PACK', 50, 78);
   return (PACK_ICON[px] = cv.toDataURL());
 }
+// one pack every two hours, counted from the last one bought
+const PACK_EVERY = 2 * 60 * 60 * 1000;
+function packWait() { return Math.max(0, (G.packAt || 0) + PACK_EVERY - Date.now()); }
+function packWaitText() {
+  const m = Math.max(1, Math.ceil(packWait() / 60000));
+  return m >= 60 ? `${Math.floor(m / 60)}H ${m % 60}M` : `${m}M`;
+}
 function buyPack() {
+  if (packWait() > 0) { toast(`Hardware is out of packs. Back in ${packWaitText().toLowerCase()}.`); return; }
   if (G.coins < PACK.price) { toast('Not enough coins'); return; }
-  G.coins -= PACK.price; save();
+  G.coins -= PACK.price; G.packAt = Date.now(); save();
   openPack();
 }
 // the pack shakes, its top tears off along the crimp, and three cards slide up out of it
@@ -4866,8 +4878,8 @@ function revealPack(s, picks) {
       h('div', { class: 'rtag', text: `${RARITY[b.rar].name} · ${CATS[b.cat]}` + (b.special ? ' · Gimmick' : '') }),
       h('div', { class: 'what', text: grantText(res[i]) })))),
     h('div', { class: 'foot' },
-      h('button', { class: 'btn2 on', disabled: G.coins < PACK.price, onclick: () => { closeSheet(s); buyPack(); }, html: `AGAIN ${COIN_SVG} <span class="mono">${fmt(PACK.price)}</span>` }),
-      h('button', { class: 'btn2', text: 'DONE', onclick: () => { closeSheet(s); renderView(); } })));
+      h('span', { class: 'lab', text: `Next pack in ${packWaitText()}` }),
+      h('button', { class: 'btn2 on', text: 'DONE', onclick: () => { closeSheet(s); renderView(); } })));
 }
 
 // ---- 02 daily ----------------------------------------------------------------------
