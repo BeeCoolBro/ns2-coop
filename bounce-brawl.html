@@ -82,7 +82,7 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 .m-nav { display: flex; flex-direction: column; gap: 2px; }
 .m-item { position: relative; display: grid; grid-template-columns: 44px 1fr; align-items: center; text-align: left; padding: 8px 14px 8px 12px; border-radius: 8px; width: 100%;
   transition: background .25s var(--ease), transform .3s var(--ease); animation: mIn .7s var(--ease) backwards; }
-.m-item:nth-child(1) { animation-delay: .05s } .m-item:nth-child(2) { animation-delay: .1s } .m-item:nth-child(3) { animation-delay: .15s } .m-item:nth-child(4) { animation-delay: .2s } .m-item:nth-child(5) { animation-delay: .25s } .m-item:nth-child(6) { animation-delay: .3s }
+.m-item:nth-child(1) { animation-delay: .05s } .m-item:nth-child(2) { animation-delay: .1s } .m-item:nth-child(3) { animation-delay: .15s } .m-item:nth-child(4) { animation-delay: .2s } .m-item:nth-child(5) { animation-delay: .25s } .m-item:nth-child(6) { animation-delay: .3s } .m-item:nth-child(7) { animation-delay: .35s }
 @keyframes mIn { from { opacity: 0; transform: translateX(-24px) } }
 .m-item::before { content: ""; position: absolute; left: 0; top: 18%; bottom: 18%; width: 2px; border-radius: 2px; background: var(--o); transform: scaleY(0); transition: transform .3s var(--ease); }
 .m-n { font: 400 12px var(--fm); color: #44444c; letter-spacing: 1px; transition: color .2s; }
@@ -274,7 +274,7 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 .namein:focus { border-color: var(--o); }
 
 /* ---- overlays (crates, matchmaking, welcome) ---- */
-.ov { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow-y: auto; text-align: center; box-sizing: border-box;
+.ov { position: fixed; inset: 0; z-index: 60; overflow-x: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow-y: auto; text-align: center; box-sizing: border-box;
   background: radial-gradient(ellipse at 50% 45%, rgba(30,4,15,.97), rgba(2,2,3,.985) 70%); animation: fadeIn .3s ease;
   padding: max(20px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(20px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
 @keyframes fadeIn { from { opacity: 0 } }
@@ -490,6 +490,53 @@ body.pre #menu *, body.pre #menu { animation-play-state: paused !important; }
 .packrow .upcard .name { font-size: 28px; }
 .packrow .upcard > * { animation-delay: calc(var(--d, 0s) + .3s) !important; }
 @media (max-width: 860px) { .packrow .upcard { display: grid; grid-template-columns: 64px 1fr; gap: 0 12px; text-align: left; width: 100%; padding: 14px; } .packrow .upcard img { width: 64px; height: 64px; grid-row: span 3; } .packrow .upcard .name { font-size: 24px; margin: 0; } .packrow .upcard .what { margin-top: 6px; } }
+/* the Box Cup */
+.cupnext { display: flex; align-items: center; gap: 18px; padding: 16px 18px; border: 1px solid #4a3d12; border-radius: 14px; background: linear-gradient(110deg, rgba(255,210,63,.08), #0c0c0f 55%); }
+.cupnext .cl { flex: 1; min-width: 0; }
+.cupnext .go { width: auto; flex: none; padding: 14px 26px 12px; }
+.cupnext .go span { margin-left: -4px; }
+.cupnext .cv { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.cupnext .cv img { width: 54px; height: 54px; }
+.cupnext .vs2 { font: 400 26px/1 var(--fd); color: var(--o); letter-spacing: 2px; }
+.cupnext .cv b { display: block; font: 400 24px/1 var(--fd); letter-spacing: 2px; }
+.cupnext .cv small { font-size: 12px; color: #77777f; font-weight: 600; }
+.cupnext.intro .tro { width: 110px; height: 110px; flex: none; }
+.cupnext p { margin: 4px 0 10px; color: #9a9aa3; font-size: 14px; max-width: 60ch; }
+.cupnext .prizes { display: flex; flex-wrap: wrap; gap: 6px 16px; font: 400 12px var(--fm); color: #c8c8d0; }
+.cupnext .prizes span { display: inline-flex; align-items: center; gap: 5px; }
+.cupnext .prizes b { font: 700 9px var(--fb); letter-spacing: 2px; color: #77777f; }
+.cres { font: 400 20px/1 var(--fd); letter-spacing: 3px; color: #9a9aa3; margin-bottom: 4px; }
+.cres.champ { color: var(--gold); }
+.cupwins { margin-top: 10px; font: 700 11px var(--fb); letter-spacing: 3px; color: #77777f; text-transform: uppercase; }
+.bwrap { overflow-x: auto; padding-bottom: 6px; }
+.bracket { display: grid; grid-template-columns: repeat(3, minmax(190px, 1fr)) minmax(170px, .8fr); gap: 0 22px; min-width: 820px; }
+.bcol { position: relative; display: flex; flex-direction: column; justify-content: space-around; gap: 10px; padding-top: 22px; }
+.bh { position: absolute; top: 0; left: 0; font: 700 10px/1 var(--fb); letter-spacing: 3px; color: #55555e; }
+.bm { position: relative; border: 1px solid var(--line); border-radius: 10px; background: var(--card); overflow: visible; }
+.bcol:not(.champ) .bm::after { content: ""; position: absolute; right: -23px; top: 50%; width: 22px; height: 2px; background: var(--line2); }
+.cs { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px; align-items: center; padding: 7px 10px; }
+.cs + .cs { border-top: 1px solid var(--line); }
+.cs img { width: 28px; height: 28px; }
+.cs .q { width: 28px; height: 28px; border-radius: 50%; border: 1px dashed var(--line2); display: grid; place-items: center; font: 400 15px var(--fd); color: #44444c; }
+.cs .cn { min-width: 0; }
+.cs b { display: block; font: 400 17px/1.05 var(--fd); letter-spacing: 1.5px; color: #cfcfd6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cs small { display: block; font-size: 10px; color: #66666e; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cs.me { box-shadow: inset 3px 0 0 var(--you); }
+.cs.me b { color: var(--you); }
+.cs.win b { color: #fff; }
+.cs.lose { opacity: .38; }
+.cs.lose b { text-decoration: line-through; text-decoration-color: rgba(255,255,255,.4); }
+.cs.tbd b { color: #44444c; }
+.cs.new { animation: csWin .9s var(--ease) backwards; }
+@keyframes csWin { 0% { background: rgba(255,210,63,.35); } 100% { background: transparent; } }
+.cs.lose.new { animation: csLose .8s ease backwards; }
+@keyframes csLose { from { opacity: 1; } }
+.bm.cm { display: grid; justify-items: center; padding: 12px 8px; border-color: #4a3d12; }
+.bm.cm > img:first-child { width: 96px; height: 96px; }
+.bm.cm .cs { width: 100%; box-sizing: border-box; border: 0; }
+.bm.cm.won { background: linear-gradient(180deg, rgba(255,210,63,.12), var(--card)); }
+.bigtro { position: relative; z-index: 1; width: 220px; height: 220px; animation: popIn .8s var(--spring) .15s backwards; }
+@media (max-width: 860px) { .cupnext { flex-wrap: wrap; } .cupnext .go { width: 100%; } .cupnext.intro .tro { width: 72px; height: 72px; } }
 .confetti { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 70; pointer-events: none; }
 /* the VS screen: both sides slide in, VS slams down, then the halves part to show the fight */
 .vs { animation: fadeIn .2s ease, vsShake .32s linear .62s; }
@@ -2800,6 +2847,7 @@ class Arena {
     this.cv = canvas; this.c = canvas.getContext('2d');
     this.opt = opt || {};
     this.fx = []; this.nums = []; this.trail = {}; this.says = [];
+    this.sq = {}; this.hf = {}; this.decals = []; this.motes = null; this.cam = null; this.lt = null;
     this.shake = 0; this.flip = false; this.me = 0; this.hitstop = 0; this.flash = 0;
     this.k = 1; this.ox = 0; this.oy = 0; this.dpr = 1;
   }
@@ -2817,7 +2865,25 @@ class Arena {
     this.k = Math.min(w, h) / (ARENA + pad * 2);
     this.ox = (w - ARENA * this.k) / 2; this.oy = (h - ARENA * this.k) / 2;
   }
-  reset() { this.fx.length = 0; this.nums.length = 0; this.says.length = 0; this.trail = {}; this.shake = 0; this.hitstop = 0; this.flash = 0; }
+  reset() { this.fx.length = 0; this.nums.length = 0; this.says.length = 0; this.trail = {}; this.shake = 0; this.hitstop = 0; this.flash = 0; this.sq = {}; this.hf = {}; this.decals.length = 0; this.cam = null; this.lt = null; }
+  // short bright streaks flying out of a hit
+  sparks(x, y, n, col, sp) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * TAU, v = (sp || 520) * (0.45 + Math.random() * 0.8);
+      this.fx.push({ k: 'spark', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.22 + Math.random() * 0.12, max: 0.32, col });
+    }
+  }
+  // a knocked-out ball breaks into pieces of itself
+  shatter(f) {
+    const col = f.def.col, n = 14;
+    for (let i = 0; i < n; i++) {
+      const a0 = i * TAU / n, a1 = (i + 1) * TAU / n, am = (a0 + a1) / 2, rr = f.r * (0.55 + Math.random() * 0.5);
+      const pts = [0, 0, Math.cos(a0) * f.r, Math.sin(a0) * f.r, Math.cos(am) * f.r * 1.05, Math.sin(am) * f.r * 1.05, Math.cos(a1) * f.r, Math.sin(a1) * f.r];
+      const v = 260 + Math.random() * 420;
+      this.fx.push({ k: 'shard', x: f.x + Math.cos(am) * rr * 0.2, y: f.y + Math.sin(am) * rr * 0.2, vx: Math.cos(am) * v, vy: Math.sin(am) * v, rot: 0, vr: (Math.random() - 0.5) * 14, pts, col: i % 3 ? col : shade(col, -0.25), life: 1.5, max: 1.5 });
+    }
+  }
+  decal(x, y, r, a) { this.decals.push({ x, y, r, a: a || 0.5, life: 10, max: 10 }); if (this.decals.length > 24) this.decals.shift(); }
   callout(txt, col) { this.says.push({ txt, col: col || '#ffd23f', life: 1.2, max: 1.2 }); if (this.says.length > 3) this.says.shift(); }
 
   events(S) {
@@ -2843,7 +2909,10 @@ class Arena {
         const tb = this.byId(S, e.id), minor = tb && !tb.main;
         const big = e.a >= 10 && !minor, col = minor ? '#d6dbe6' : NUMCOL[e.k] || (big ? '#ffd23f' : '#ffffff');
         this.num(e.x, e.y - 8, String(e.a), col, big, minor);
+        if (tb && tb.main && !DOT[e.k] && e.a >= 3) this.hf[e.id] = 0.12;
         if (!DOT[e.k]) {
+          this.sparks(e.x, e.y, Math.min(10, 2 + Math.round(e.a / 3)), big ? '#ffd23f' : '#ffffff', 380 + e.a * 14);
+          if (e.a >= 18) this.decal(e.x, e.y, 16 + e.a * 0.4, 0.28);
           this.burst(e.x, e.y, Math.min(14, 3 + e.a), big ? '#ffd23f' : '#ffffff', 260 + e.a * 18, 0.32, 3.4);
           this.shake = Math.min(14, this.shake + e.a * 0.45);
           if (big) this.hitstop = Math.max(this.hitstop, 0.06);
@@ -2855,6 +2924,7 @@ class Arena {
       case 'slash': if (snd) snd.slash(e.k, e.a); this.fx.push({ k: 'slash', x: e.x, y: e.y, nx: e.nx, ny: e.ny, life: 0.18, max: 0.18, heavy: HEAVY[e.k] }); break;
       case 'clash':
         this.burst(e.x, e.y, 12, '#ffe08a', 420, 0.3, 3);
+        this.sparks(e.x, e.y, 10, '#fff1b8', 640);
         this.ring(e.x, e.y, 6, 34, '#ffffff', 3, 0.22);
         this.shake = Math.min(14, this.shake + 3); this.hitstop = Math.max(this.hitstop, 0.035);
         if (snd) snd.clang();
@@ -2866,6 +2936,7 @@ class Arena {
         this.fx.push({ k: 'disc', x: e.x, y: e.y, r: e.r * 0.8, life: 0.18, max: 0.18, col: e.crit ? '#fff7d1' : '#ffd8a0' });
         this.burst(e.x, e.y, e.small ? 10 : 24, e.crit ? '#ffe066' : '#ff8a3c', e.small ? 300 : 540, 0.5, 5);
         this.burst(e.x, e.y, e.small ? 4 : 10, '#6a6f80', 200, 0.8, 6);
+        this.decal(e.x, e.y, e.r * (e.small ? 0.5 : 0.75), e.small ? 0.35 : 0.55);
         this.shake = Math.min(18, this.shake + (e.big ? 16 : e.small ? 4 : 9));
         if (e.big) this.flash = Math.max(this.flash, 0.7);
         if (e.crit) this.num(e.x, e.y - 60, 'SIX!', '#ffd23f', true);
@@ -2879,12 +2950,19 @@ class Arena {
         break;
       case 'beam': this.shake = Math.min(14, this.shake + 5); if (snd) snd.laser(); break;
       case 'charge': if (snd) snd.charge(); break;
-      case 'ko':
+      case 'ko': {
+        const kf = this.byId(S, e.id);
+        if (kf) this.shatter(kf);
+        this.sparks(e.x, e.y, 26, '#ffffff', 900);
+        this.decal(e.x, e.y, 70, 0.6);
+        // the camera leans in on the knockout (only in a real fight, not the menu's)
+        if (this.opt.sound) this.cam = { x: e.x, y: e.y, t: 0, z: 0 };
         this.burst(e.x, e.y, 40, '#ffffff', 600, 0.8, 5);
         this.ring(e.x, e.y, 20, 240, '#ffffff', 10, 0.6);
         this.flash = 0.6; this.shake = 18;
         if (snd) snd.ko();
         break;
+      }
       case 'pop': this.burst(e.x, e.y, 8, '#ffffff', 220, 0.3, 2.5); if (snd) snd.pop(); break;
       case 'freeze': this.burst(e.x, e.y, 16, '#dff7ff', 300, 0.5, 3.5); if (snd) snd.freeze(); break;
       case 'tstop': if (snd) snd.tstop(); break;
@@ -2943,7 +3021,18 @@ class Arena {
     for (const p of this.fx) {
       p.life -= dt;
       if (p.k === 'p') { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 1 - 3 * dt; p.vy = p.vy * (1 - 3 * dt) + 300 * dt; }
+      else if (p.k === 'spark') { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 1 - 5 * dt; p.vy *= 1 - 5 * dt; }
+      else if (p.k === 'shard') { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 1 - 2.2 * dt; p.vy *= 1 - 2.2 * dt; p.rot += p.vr * dt; p.vr *= 1 - 1.5 * dt; }
     }
+    for (const d of this.decals) d.life -= dt;
+    this.decals = this.decals.filter(d => d.life > 0);
+    for (const id in this.hf) if ((this.hf[id] -= dt) <= 0) delete this.hf[id];
+    if (this.motes) for (const m of this.motes) {
+      m.x += m.vx * dt; m.y += m.vy * dt;
+      if (m.x < 0) m.x += ARENA; else if (m.x > ARENA) m.x -= ARENA;
+      if (m.y < 0) m.y += ARENA; else if (m.y > ARENA) m.y -= ARENA;
+    }
+    if (this.cam) { this.cam.t += dt; const q = Math.min(1, this.cam.t / 0.5); this.cam.z = 0.32 * (1 - Math.pow(1 - q, 3)); }
     this.fx = this.fx.filter(p => p.life > 0);
     for (const n of this.nums) { n.life -= dt; n.y -= (n.big ? 70 : 55) * dt; }
     this.nums = this.nums.filter(n => n.life > 0);
@@ -2966,8 +3055,21 @@ class Arena {
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.clearRect(0, 0, this.cv.width, this.cv.height);
     const sx = (Math.random() - 0.5) * this.shake * k, sy = (Math.random() - 0.5) * this.shake * k;
-    if (this.flip) c.setTransform(-k, 0, 0, k, this.ox + ARENA * k + sx, this.oy + sy);
+    const dt = this.lt === null ? 0 : clamp(t - this.lt, 0, 0.05); this.lt = t;
+    if (this.cam) {
+      const Z = 1 + this.cam.z, q = this.cam.z / 0.32, px = ARENA / 2 + (this.cam.x - ARENA / 2) * (1 - q * 0.6), py = ARENA / 2 + (this.cam.y - ARENA / 2) * (1 - q * 0.6);
+      if (this.flip) c.setTransform(-k * Z, 0, 0, k * Z, this.ox + ARENA * k - k * (px - this.cam.x * Z) + sx, this.oy + k * (py - this.cam.y * Z) + sy);
+      else c.setTransform(k * Z, 0, 0, k * Z, this.ox + k * (px - this.cam.x * Z) + sx, this.oy + k * (py - this.cam.y * Z) + sy);
+    }
+    else if (this.flip) c.setTransform(-k, 0, 0, k, this.ox + ARENA * k + sx, this.oy + sy);
     else c.setTransform(k, 0, 0, k, this.ox + sx, this.oy + sy);
+    for (const f of S.F) {
+      const q = this.sq[f.id] || (this.sq[f.id] = { s: 0, v: 0, ang: 0, vx: f.vx, vy: f.vy });
+      const dvx = f.vx - q.vx, dvy = f.vy - q.vy, dv = Math.sqrt(dvx * dvx + dvy * dvy);
+      q.vx = f.vx; q.vy = f.vy;
+      if (dt > 0 && dv > 260) { q.ang = Math.atan2(dvy, dvx); q.s = -Math.min(0.26, dv / 2800); q.v = 0; }
+      if (dt > 0) { q.v += (-300 * q.s - 15 * q.v) * dt; q.s += q.v * dt; }
+    }
     this.floor(S, t);
     drawPaint(c, S);
     CHARGE.clear();
@@ -2978,12 +3080,14 @@ class Arena {
       const tr = this.trail[f.id] || (this.trail[f.id] = []);
       tr.push(f.x, f.y); if (tr.length > 12) tr.splice(0, 2);
       const sp = vlen(f.vx, f.vy);
-      if (f.alive && sp > 620 && tangible(f)) {
+      if (f.alive && sp > 560 && tangible(f)) {
+        c.lineCap = 'round'; c.strokeStyle = f.def.col;
         for (let i = 0; i < tr.length - 2; i += 2) {
-          c.globalAlpha = 0.06 + 0.06 * i / tr.length;
-          circ(c, tr[i], tr[i + 1], f.r * (0.7 + 0.3 * i / tr.length)); c.fillStyle = f.def.col; c.fill();
+          const u = (i + 2) / tr.length;
+          c.globalAlpha = 0.16 * u * Math.min(1, (sp - 560) / 400);
+          c.beginPath(); c.moveTo(tr[i], tr[i + 1]); c.lineTo(tr[i + 2], tr[i + 3]); c.lineWidth = f.r * 1.7 * u; c.stroke();
         }
-        c.globalAlpha = 1;
+        c.globalAlpha = 1; c.lineCap = 'butt';
       }
     }
     for (const p of S.projs) drawProj(c, p, t);
@@ -3017,6 +3121,20 @@ class Arena {
     c.beginPath(); c.moveTo(ARENA / 2, 0); c.lineTo(ARENA / 2, ARENA); c.stroke();
     circ(c, ARENA / 2, ARENA / 2, 70); c.stroke();
     circ(c, ARENA / 2, ARENA / 2, 5); c.fillStyle = 'rgba(255,255,255,0.12)'; c.fill();
+    const pool = c.createRadialGradient(ARENA / 2, ARENA * 0.42, 20, ARENA / 2, ARENA * 0.42, ARENA * 0.7);
+    pool.addColorStop(0, 'rgba(255,240,225,0.05)'); pool.addColorStop(1, 'rgba(255,240,225,0)');
+    c.fillStyle = pool; c.fillRect(0, 0, ARENA, ARENA);
+    for (const d of this.decals) {
+      const g = c.createRadialGradient(d.x, d.y, 0, d.x, d.y, d.r);
+      const al = d.a * Math.min(1, d.life / 3);
+      g.addColorStop(0, `rgba(0,0,0,${al.toFixed(3)})`); g.addColorStop(0.6, `rgba(10,6,4,${(al * 0.6).toFixed(3)})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = g; c.fillRect(d.x - d.r, d.y - d.r, d.r * 2, d.r * 2);
+    }
+    if (!this.motes) { this.motes = []; for (let i = 0; i < 16; i++) this.motes.push({ x: Math.random() * ARENA, y: Math.random() * ARENA, vx: (Math.random() - 0.5) * 9, vy: -3 - Math.random() * 7, r: 0.8 + Math.random() * 1.6, a: 0.05 + Math.random() * 0.1 }); }
+    for (const m of this.motes) { circ(c, m.x, m.y, m.r); c.fillStyle = `rgba(255,255,255,${m.a.toFixed(3)})`; c.fill(); }
+    const vig = c.createRadialGradient(ARENA / 2, ARENA / 2, ARENA * 0.38, ARENA / 2, ARENA / 2, ARENA * 0.74);
+    vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,0.38)');
+    c.fillStyle = vig; c.fillRect(0, 0, ARENA, ARENA);
     c.strokeStyle = 'rgba(255,255,255,0.15)'; c.lineWidth = 3;
     c.strokeRect(0, 0, ARENA, ARENA);
     c.strokeStyle = '#ff2d78'; c.lineWidth = 4; c.lineCap = 'square';
@@ -3039,12 +3157,19 @@ class Arena {
     const c = this.c;
     if (!f.alive) return;
     const ghost = f.st.phaseT > 0, stopped = S.tstop[f.side] > 0;
-    circ(c, f.x + f.r * 0.12, f.y + f.r * 0.2, f.r * 1.02); c.fillStyle = ghost ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.5)'; c.fill();
+    const shx = (f.x - ARENA / 2) / ARENA * 14, shy = 5 + (f.y - ARENA * 0.42) / ARENA * 12;
+    circ(c, f.x + shx * 1.3, f.y + shy * 1.3, f.r * 1.1); c.fillStyle = ghost ? 'rgba(0,0,0,0.06)' : 'rgba(0,0,0,0.2)'; c.fill();
+    circ(c, f.x + shx, f.y + shy, f.r * 1.0); c.fillStyle = ghost ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.42)'; c.fill();
     c.globalAlpha = ghost ? 0.32 : 1;
     const top = [];
     for (const w of f.wep) { if (w.k === 'hand' || w.k === 'hand2') top.push(w); else drawWeapon(c, f, w, t); }
     drawAimGear(c, f, t);
-    drawBall(c, f.def, f.x, f.y, f.r, f, t);
+    const q = this.sq[f.id];
+    if (q && Math.abs(q.s) > 0.004) {
+      c.save(); c.translate(f.x, f.y); c.rotate(q.ang); c.scale(1 + q.s, 1 - q.s * 0.85); c.rotate(-q.ang); c.translate(-f.x, -f.y);
+      drawBall(c, f.def, f.x, f.y, f.r, f, t); c.restore();
+    } else drawBall(c, f.def, f.x, f.y, f.r, f, t);
+    if (this.hf[f.id] > 0) { circ(c, f.x, f.y, f.r); c.fillStyle = `rgba(255,255,255,${(this.hf[f.id] / 0.12 * 0.55).toFixed(3)})`; c.fill(); }
     for (const w of top) drawWeapon(c, f, w, t);
     if (ghost) { c.setLineDash([6, 6]); circ(c, f.x, f.y, f.r + 3); c.lineWidth = 2.5; c.strokeStyle = '#6b7a99'; c.stroke(); c.setLineDash([]); }
     c.globalAlpha = 1;
@@ -3098,6 +3223,13 @@ class Arena {
         case 'bub': c.globalAlpha = a; circ(c, p.x, p.y - (1 - a) * 40, p.size); c.lineWidth = 1.5; c.strokeStyle = '#5aa52a'; c.stroke(); break;
         case 'ring': { const r = p.r1 + (p.r0 - p.r1) * a; c.globalAlpha = a; circ(c, p.x, p.y, Math.max(0.1, r)); c.lineWidth = p.w * a + 0.5; c.strokeStyle = p.col; c.stroke(); break; }
         case 'disc': c.globalAlpha = a * 0.7; circ(c, p.x, p.y, p.r); c.fillStyle = p.col; c.fill(); break;
+        case 'spark': c.globalAlpha = a; c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(p.x - p.vx * 0.035, p.y - p.vy * 0.035); c.lineWidth = 2.6 * a + 0.6; c.lineCap = 'round'; c.strokeStyle = p.col; c.stroke(); c.lineCap = 'butt'; break;
+        case 'shard': {
+          c.globalAlpha = Math.min(1, a * 1.6);
+          c.save(); c.translate(p.x, p.y); c.rotate(p.rot); const s = 0.55 + 0.45 * a; c.scale(s, s);
+          poly(c, p.pts); inkFill(c, p.col, 2.4); c.restore();
+          break;
+        }
         case 'slash': {
           const len = p.heavy ? 46 : 30, px = -p.ny, py = p.nx;
           c.globalAlpha = a;
@@ -3791,7 +3923,7 @@ const pad2 = n => String(n).padStart(2, '0');
 
 // ---- the save ------------------------------------------------------------------
 function freshSave() {
-  return { v: 1, coins: 600, tro: 0, peak: 0, owned: {}, eq: null, w: 0, l: 0, d: 0, bw: 0, bl: 0, xp: 0, plv: 1, streak: 0, bstreak: 0, free: [], qday: 0, quests: [], dday: 0, packAt: 0, nick: '', named: false, sfx: true, music: true, speed: 1, stake: 50, t: 0, starter: false, crates: 0 };
+  return { v: 1, coins: 600, tro: 0, peak: 0, owned: {}, eq: null, w: 0, l: 0, d: 0, bw: 0, bl: 0, xp: 0, plv: 1, streak: 0, bstreak: 0, free: [], qday: 0, quests: [], dday: 0, packAt: 0, nick: '', named: false, sfx: true, music: true, speed: 1, stake: 50, t: 0, starter: false, crates: 0, cup: null, cups: 0 };
 }
 function loadLocal() {
   try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.v === 1) return Object.assign(freshSave(), s); } catch (e) {}
@@ -3999,6 +4131,7 @@ let TAB = 'menu', MSEL = 0;
 // [id, title, subtitle, has something waiting]
 const MENU = [
   ['fight', 'Fight', () => G.streak > 1 ? `On a ${G.streak} win streak` : 'Bet coins against a player'],
+  ['cup', 'Cup', () => { const n = cupNext(G.cup); return n ? `The Box Cup · ${CUP_ROUNDS[n[0]].toLowerCase()} next` : 'The Box Cup · eight-ball knockout'; }, () => !!cupNext(G.cup)],
   ['daily', 'Daily', () => dailySub(), () => dailyReady() > 0],
   ['crates', 'Crates', () => G.free.length ? `${G.free.length} free ${G.free.length === 1 ? 'crate' : 'crates'} waiting` : "Hardware's Crates", () => G.free.length > 0],
   ['balls', 'Balls', () => `Your collection · ${Object.keys(G.owned).length} / ${BALLS.length}`],
@@ -4108,7 +4241,7 @@ function panelShell(sub, title, sign) {
 function renderPanel(keepScroll) {
   const root = $('#panelroot'), old = root.querySelector('.panel:not(.under):not(.out)'), y = old ? old.scrollTop : 0;
   stopPreviews(root);
-  const fn = { fight: panelFight, daily: panelDaily, crates: panelCrates, balls: panelBalls, players: panelPlayers, settings: panelSettings }[TAB];
+  const fn = { fight: panelFight, cup: panelCup, daily: panelDaily, crates: panelCrates, balls: panelBalls, players: panelPlayers, settings: panelSettings }[TAB];
   if (!fn) return;
   const p = fn();
   if (keepScroll && old) { p.style.animation = 'none'; p.classList.add('still'); }
@@ -4413,6 +4546,7 @@ function panelSettings() {
   const reset = h('button', { class: 'btn2', text: 'RESET ALL PROGRESS' });
   reset.onclick = () => {
     if (!armed) { armed = true; reset.textContent = 'TAP AGAIN TO WIPE COINS, BALLS & TROPHIES'; return; }
+    if (MM.active) { closeAllSheets(); cancelMatch(); }
     G = freshSave(); save(); setTab('menu'); toast('Progress reset'); setTimeout(welcome, 400);
   };
   body.append(
@@ -4475,7 +4609,7 @@ function startFight(o) {
   const S = newFight({ seed: o.seed >>> 0, a: { id: pick(0).id, lvl: pick(0).lvl }, b: { id: pick(1).id, lvl: pick(1).lvl }, keepEv: true });
   const cv = h('canvas', { 'aria-label': 'The fight' });
   const youP = plate('you', me), foeP = plate('foe', foe);
-  const clock = h('span', { class: 'clock', text: '0:00' }), ot = h('span', { class: 'lab', text: o.mode === 'bot' ? 'PRACTICE' : o.mode === 'friendly' ? 'FRIENDLY' : 'RANKED' });
+  const clock = h('span', { class: 'clock', text: '0:00' }), ot = h('span', { class: 'lab', text: o.mode === 'bot' ? 'PRACTICE' : o.mode === 'friendly' ? 'FRIENDLY' : o.mode === 'cup' ? 'CUP ' + CUP_ROUNDS[o.cupRound] : 'RANKED' });
   const rule = S.rule !== 'normal' ? h('span', { class: 'rule', title: RULES[S.rule].desc, text: RULES[S.rule].name.toUpperCase() }) : null;
   const pot = o.mode === 'pvp' ? h('span', { class: 'pot', html: 'POT ' + COIN_SVG + fmt(o.stake * 2) }) : null;
   const banner = h('div', { class: 'banner' });
@@ -4484,7 +4618,7 @@ function startFight(o) {
   let armed = false;
   leave.onclick = () => {
     if (F.done) return;
-    if (o.mode === 'pvp' && !armed) { armed = true; leave.textContent = 'TAP AGAIN: YOU LOSE THE STAKE'; setTimeout(() => { armed = false; leave.textContent = 'LEAVE'; }, 3000); return; }
+    if ((o.mode === 'pvp' || o.mode === 'cup') && !armed) { armed = true; leave.textContent = o.mode === 'cup' ? 'TAP AGAIN: YOU ARE OUT OF THE CUP' : 'TAP AGAIN: YOU LOSE THE STAKE'; setTimeout(() => { armed = false; leave.textContent = 'LEAVE'; }, 3000); return; }
     forfeit();
   };
   const bar = h('div', { class: 'fbar' }, leave, h('span', { class: 'hint', html: '<i class="kbd">ESC</i> LEAVE' }));
@@ -4582,6 +4716,7 @@ function forfeit() {
   const F = FIGHT;
   if (!F) return;
   if (F.mode === 'pvp' && !F.settled) { G.l++; G.streak = 0; G.tro = Math.max(0, G.tro - 20); save(); NET.fightOver(F, true); }
+  if (F.mode === 'cup' && !F.settled) { cupRecord(F, true); endFightScreen(); setTab('cup'); return; }
   endFightScreen();
   renderView();
 }
@@ -4589,6 +4724,8 @@ function settleFight(F) {
   F.settled = true;
   const w = F.S.winner, mine = w === F.mySide, draw = w === -1;
   let coins = 0, tro = 0, paid = 0, bonus = 0;
+  const cupStart = G.coins;
+  if (F.mode === 'cup') { cupRecord(F, false); coins = G.coins - cupStart; }
   if (F.mode === 'bot') {
     paid = draw ? BOT_LOSS : mine ? BOT_WIN : BOT_LOSS; coins = paid;
     if (mine) G.bw++; else if (!draw) G.bl++;
@@ -4616,18 +4753,19 @@ function settleFight(F) {
   if (xp) extra.append(h('div', { class: 'rl' }, h('span', { class: 'mono', text: `+${xp} XP` }), h('span', { class: 'xpmini' }, xpBar), h('span', { text: 'LV ' + G.plv })));
   for (const u of ups) extra.append(h('div', { class: 'rl up', text: upText(u) }));
   for (const q of quests) extra.append(h('div', { class: 'rl q', text: 'QUEST DONE · ' + questText(q).toUpperCase() }));
-  const again = F.mode === 'bot' ? () => botFight() : F.mode === 'pvp' ? () => { endFightScreen(); setTab('fight'); findMatch(G.coins >= F.stake ? F.stake : (STAKES.filter(s => s <= G.coins).pop() || 50)); } : null;
-  const note = F.mode === 'bot' ? 'Bots pay less than real players. Win against people for bigger rewards and trophies.' : F.mode === 'friendly' ? 'A fight against your own other tab: no coins or trophies change.' : '';
+  const again = F.mode === 'cup' ? () => { endFightScreen(); setTab('cup'); } : F.mode === 'bot' ? () => botFight() : F.mode === 'pvp' ? () => { endFightScreen(); setTab('fight'); findMatch(G.coins >= F.stake ? F.stake : (STAKES.filter(s => s <= G.coins).pop() || 50)); } : null;
+  const note = F.mode === 'cup' ? cupNote(F) : F.mode === 'bot' ? 'Bots pay less than real players. Win against people for bigger rewards and trophies.' : F.mode === 'friendly' ? 'A fight against your own other tab: no coins or trophies change.' : '';
   F.result = h('div', { class: 'result' },
     h('div', { class: 'lab', text: F.tag ? '// ' + F.tag[0].replace('!', '') + ' //' : '// RESULT //' }),
-    h('h2', { class: draw ? 'draw' : mine ? '' : 'lose', text: draw ? 'DRAW' : mine ? 'VICTORY' : 'DEFEAT' }),
+    F.mode === 'cup' ? h('h2', { class: F.cupWon ? '' : 'lose', text: F.cupWon ? 'VICTORY' : 'DEFEAT' })
+      : h('h2', { class: draw ? 'draw' : mine ? '' : 'lose', text: draw ? 'DRAW' : mine ? 'VICTORY' : 'DEFEAT' }),
     h('div', { class: 'lsub', text: `VS ${F.foe.name} · ${BALL[F.foe.id].name} LV ${F.foe.lvl}` }),
-    F.mode === 'friendly' ? null : tiles,
+    F.mode === 'friendly' || (F.mode === 'cup' && !coins) ? null : tiles,
     extra.children.length ? extra : null,
     note ? h('p', { text: note }) : null,
     h('div', { class: 'foot' },
-      again ? h('button', { class: 'btn2 on', text: F.mode === 'pvp' ? 'FIND ANOTHER' : 'FIGHT AGAIN', disabled: F.mode === 'pvp' && G.coins < STAKES[0], onclick: again }) : null,
-      h('button', { class: 'btn2', text: 'DONE', onclick: () => { endFightScreen(); renderView(); } })));
+      again ? h('button', { class: 'btn2 on', text: F.mode === 'cup' ? 'BACK TO THE BRACKET' : F.mode === 'pvp' ? 'FIND ANOTHER' : 'FIGHT AGAIN', disabled: F.mode === 'pvp' && G.coins < STAKES[0], onclick: again }) : null,
+      F.mode === 'cup' ? null : h('button', { class: 'btn2', text: 'DONE', onclick: () => { endFightScreen(); renderView(); } })));
   F.root.querySelector('.arena').append(F.result);
   F.done = true;
   setTimeout(() => { xpBar.style.width = (G.xp / xpNeed(G.plv) * 100) + '%'; }, 650);
@@ -4685,7 +4823,7 @@ function onKey(e) {
       const i = MENU.findIndex(m => m[0] === TAB);
       e.preventDefault(); SFX.ui(); setTab(MENU[(i + (k === 'ArrowRight' ? 1 : MENU.length - 1)) % MENU.length][0]);
     }
-    else if (k === 'Enter' && TAB === 'fight') { const b = document.querySelector('.panel .go'); if (b && !b.disabled) b.click(); }
+    else if (k === 'Enter' && (TAB === 'fight' || TAB === 'cup')) { const b = document.querySelector('.panel .go'); if (b && !b.disabled) b.click(); }
   }
 }
 
@@ -4755,6 +4893,7 @@ function upText(u) { return `LEVEL ${u.lvl} · +${fmt(u.coins)} COINS` + (u.crat
 function xpForFight(F, mine, draw) {
   if (F.mode === 'pvp') return mine ? 40 : draw ? 20 : 15;
   if (F.mode === 'bot') return mine ? 12 : 5;
+  if (F.mode === 'cup') return F.cupWon ? 25 : 10;
   return 0;
 }
 
@@ -4924,6 +5063,193 @@ function panelDaily() {
       h('p', { class: 'note', text: `Every ranked win in a row adds ${STREAK_STEP * 100}% of the stake to the prize, up to +${STREAK_STEP * STREAK_MAX * 100}%. A loss resets it.` })));
   body.append(h('div', { class: 'fp' }, left, right));
   return p;
+}
+
+// ===== THE BOX CUP: an eight-ball knockout tournament =========================
+// You and seven others in a bracket. You watch your own fights; the rest are
+// played out instantly by the same sim. One of the seven is the defending
+// champion, seeded in the other half, so if it goes to plan you meet in the final.
+const CUP_FEE = 150;
+const CUP_PRIZE = { champ: 1200, final: 400, semi: 150 };
+const CUP_ROUNDS = ['QUARTERFINAL', 'SEMIFINAL', 'FINAL'];
+
+// winner of a bracket fight, with a draw going to whoever has more health left
+function cupWinner(S) {
+  if (S.winner !== -1) return S.winner;
+  const q = f => f.hp / f.maxHp;
+  return q(S.F[0]) >= q(S.F[1]) ? 0 : 1;
+}
+function cupNew() {
+  const lv = lvlOf(G.eq), seed = (Math.random() * 4294967296) >>> 0, r = rng(seed);
+  const me = Math.floor(r() * 8), champ = (me < 4 ? 4 : 0) + Math.floor(r() * 4);
+  const top = BALLS.filter(b => b.rar === 'L' || b.rar === 'M'), rest = BALLS.filter(b => b.id !== G.eq);
+  const slots = [];
+  for (let i = 0; i < 8; i++) {
+    if (i === me) { slots.push({ me: true }); continue; }
+    const pool = i === champ ? top : rest, b = pool[Math.floor(r() * pool.length)];
+    slots.push({ id: b.id, lvl: clamp(i === champ ? lv + 2 : lv - 1 + Math.floor(r() * 3), 1, MAXLVL), name: ghostName(), champ: i === champ });
+  }
+  return { seed, me, slots, w: [], done: false, out: false, place: '', anim: -1, paid: false };
+}
+// who stands in slot i right now (you always fight with your current ball)
+function cupWho(c, i) { const s = c.slots[i]; return s.me ? { id: G.eq, lvl: lvlOf(G.eq), name: NET.nameFor(null, myNick()), me: true } : s; }
+function cupRoundOf(c) { return c.w.length; }
+function cupField(c, r) { return r === 0 ? [0, 1, 2, 3, 4, 5, 6, 7] : c.w[r - 1]; }
+// your next fight: [round, your slot, their slot] or null
+function cupNext(c) {
+  if (!c || c.done || c.out) return null;
+  const r = cupRoundOf(c), f = cupField(c, r), p = f.indexOf(c.me);
+  return p < 0 ? null : [r, c.me, f[p ^ 1]];
+}
+// play out every other match of round r, given the winner of yours
+function cupFinishRound(c, r, mine) {
+  const f = cupField(c, r), w = [];
+  for (let m = 0; m < f.length; m += 2) {
+    const a = f[m], b = f[m + 1];
+    if (a === c.me || b === c.me) { w.push(mine); continue; }
+    const A = cupWho(c, a), B = cupWho(c, b);
+    const S = runFight({ seed: (c.seed + r * 7919 + m * 131) >>> 0, a: { id: A.id, lvl: A.lvl }, b: { id: B.id, lvl: B.lvl } });
+    w.push(cupWinner(S) === 0 ? a : b);
+  }
+  c.w.push(w);
+}
+// a fight of yours ended (won, lost or left)
+function cupRecord(F, quit) {
+  const c = G.cup, nx = cupNext(c);
+  if (!c || !nx || F.cupDone) return;
+  F.cupDone = true; c.live = 0;
+  const [r, me, them] = nx, won = !quit && cupWinner(F.S) === F.mySide;
+  F.cupWon = won;
+  cupFinishRound(c, r, won ? me : them);
+  c.anim = r;
+  if (!won) {
+    c.out = true;
+    c.place = r === 2 ? 'final' : r === 1 ? 'semi' : 'quarter';
+    while (c.w.length < 3) { const rr = c.w.length; cupFinishRound(c, rr, -1); }   // the rest of the cup plays out
+    c.done = true;
+    const pay = r === 2 ? CUP_PRIZE.final : r === 1 ? CUP_PRIZE.semi : 0;
+    if (pay) G.coins += pay;
+    c.pay = pay;
+  } else if (r === 2) {
+    c.done = true; c.place = 'champ'; c.pay = CUP_PRIZE.champ;
+    G.coins += CUP_PRIZE.champ; G.free.push('gimmick'); G.cups = (G.cups || 0) + 1; c.ceremony = true;
+  }
+  save();
+}
+// a cup fight that never finished (the page was closed or reloaded) is a loss
+function cupAbandoned() {
+  const c = G.cup;
+  if (!c || !c.live || FIGHT) return;
+  cupRecord({}, true);
+  toast('You left your Box Cup fight, so you are out of the cup.', 4200);
+}
+function cupNote(F) {
+  const c = G.cup;
+  if (!c) return '';
+  if (c.place === 'champ') return 'YOU WON THE BOX CUP!';
+  if (c.done) return c.pay ? `Knocked out in the ${c.place === 'final' ? 'final' : 'semifinal'}. You take ${fmt(c.pay)} coins.` : 'Knocked out in the quarterfinal.';
+  return `Through to the ${CUP_ROUNDS[cupRoundOf(c)].toLowerCase()}!`;
+}
+function cupEnter() {
+  if (!G.eq) return;
+  if (G.coins < CUP_FEE) { toast('Not enough coins'); return; }
+  G.coins -= CUP_FEE; G.cup = cupNew(); G.cup.paid = true; save();
+  SFX.clang(); renderPanel(true);
+}
+function cupPlay() {
+  const c = G.cup, nx = cupNext(c);
+  if (!nx || !G.eq) return;
+  const [r, , them] = nx, foe = cupWho(c, them);
+  c.live = r + 1; save();     // if the page goes away mid-fight, that fight counts as lost
+  startFight({ mode: 'cup', seed: (c.seed ^ (0x9e3779b9 + r * 104729)) >>> 0, mySide: 0, cupRound: r,
+    me: { id: G.eq, lvl: lvlOf(G.eq), name: NET.nameFor(null, myNick()) }, foe: { id: foe.id, lvl: foe.lvl, name: foe.name, tro: 0 } });
+}
+
+// ---- the trophy -------------------------------------------------------------------
+const TROPHY_ICON = {};
+function trophyIcon(px, col) {
+  const key = px + (col || '');
+  if (TROPHY_ICON[key]) return TROPHY_ICON[key];
+  const cv = document.createElement('canvas'), dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = cv.height = px * dpr;
+  const c = cv.getContext('2d'), g = col || '#ffd23f', d = shade(g, -0.3), l = shade(g, 0.35);
+  c.scale(dpr * px / 100, dpr * px / 100);
+  for (const s of [-1, 1]) { c.beginPath(); c.arc(50 + s * 27, 30, 11, s > 0 ? -HALF_PI : HALF_PI, s > 0 ? HALF_PI : PI * 1.5, s < 0); c.lineWidth = 9; c.strokeStyle = INK; c.stroke(); c.lineWidth = 5; c.strokeStyle = d; c.stroke(); }
+  c.beginPath(); c.moveTo(24, 12); c.lineTo(76, 12); c.quadraticCurveTo(76, 50, 50, 56); c.quadraticCurveTo(24, 50, 24, 12); c.closePath(); inkFill(c, g, 3);
+  c.save(); c.clip(); c.fillStyle = d; c.fillRect(58, 10, 20, 50); c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(30, 14, 6, 34); c.restore();
+  rrect(c, 44, 55, 12, 14, 2); inkFill(c, d, 2.5);
+  rrect(c, 32, 68, 36, 9, 3); inkFill(c, g, 2.5);
+  rrect(c, 26, 77, 48, 12, 3); inkFill(c, '#3a2a20', 2.5);
+  rrect(c, 34, 80, 32, 6, 1.5); c.fillStyle = l; c.fill();
+  circ(c, 50, 30, 9); inkFill(c, '#ffffff', 2);
+  circ(c, 50, 30, 5); c.fillStyle = '#ff2d78'; c.fill();
+  return (TROPHY_ICON[key] = cv.toDataURL());
+}
+
+// ---- 02 cup -----------------------------------------------------------------------------
+function cupSlot(c, i, round) {
+  const p = cupWho(c, i), wins = round < c.w.length ? c.w[round].includes(i) : null;
+  return h('div', { class: 'cs' + (p.me ? ' me' : '') + (wins === true ? ' win' : wins === false ? ' lose' : '') + (c.anim === round && wins !== null ? ' new' : '') },
+    BALL[p.id] ? ballImg(p.id, 28, '') : h('span', { class: 'q', text: '?' }),
+    h('span', { class: 'cn' }, h('b', { text: (p.me ? 'YOU' : p.name).toUpperCase() }), h('small', { text: (BALL[p.id] ? BALL[p.id].name : '') + ' · LV ' + p.lvl + (p.champ ? ' · CHAMPION' : '') })));
+}
+function cupBracket(c) {
+  const cols = h('div', { class: 'bracket' });
+  for (let r = 0; r < 3; r++) {
+    const f = cupField(c, r), col = h('div', { class: 'bcol' }, h('div', { class: 'bh', text: CUP_ROUNDS[r] + (r < 2 ? 'S' : '') }));
+    for (let m = 0; m < 8 >> r; m += 2) {
+      const match = h('div', { class: 'bm' });
+      for (const k of [m, m + 1]) match.append(f && f[k] !== undefined && f[k] !== -1 ? cupSlot(c, f[k], r) : h('div', { class: 'cs tbd' }, h('span', { class: 'q', text: '?' }), h('span', { class: 'cn' }, h('b', { text: 'TO BE DECIDED' }))));
+      col.append(match);
+    }
+    cols.append(col);
+  }
+  const champ = c.w[2] && c.w[2][0];
+  cols.append(h('div', { class: 'bcol champ' }, h('div', { class: 'bh', text: 'CHAMPION' }),
+    h('div', { class: 'bm cm' + (champ !== undefined ? ' won' : '') }, h('img', { src: trophyIcon(96), alt: '' }),
+      champ !== undefined ? cupSlot(c, champ, 3) : h('div', { class: 'cs tbd' }, h('span', { class: 'cn' }, h('b', { text: '?' }))))));
+  return h('div', { class: 'bwrap' }, cols);
+}
+function panelCup() {
+  const [p, body] = panelShell('// EIGHT BALLS · ONE TROPHY //', 'THE BOX CUP');
+  const c = G.cup, nx = cupNext(c);
+  if (!G.eq) { body.append(h('p', { class: 'empty', text: 'You need a ball first.' })); return p; }
+  if (nx) {
+    const [r, , them] = nx, foe = cupWho(c, them);
+    body.append(h('div', { class: 'cupnext' },
+      h('div', { class: 'cl' }, h('div', { class: 'lab', text: 'Up next · ' + CUP_ROUNDS[r] }), h('div', { class: 'cv' }, ballImg(G.eq, 54, ''), h('span', { class: 'vs2', text: 'VS' }), ballImg(foe.id, 54, ''),
+        h('div', {}, h('b', { text: foe.name.toUpperCase() }), h('small', { text: `${BALL[foe.id].name} · LV ${foe.lvl}` + (foe.champ ? ' · DEFENDING CHAMPION' : '') })))),
+      h('button', { class: 'go', onclick: () => { SFX.ui(); cupPlay(); }, html: 'FIGHT <i class="kbd">ENTER</i>' })));
+  } else {
+    const last = c && c.done;
+    body.append(h('div', { class: 'cupnext intro' },
+      h('img', { class: 'tro', src: trophyIcon(120), alt: '' }),
+      h('div', { class: 'cl' },
+        last ? h('div', { class: 'cres' + (c.place === 'champ' ? ' champ' : ''), text: c.place === 'champ' ? 'YOU WON THE LAST CUP' : `LAST CUP: OUT IN THE ${c.place === 'final' ? 'FINAL' : c.place === 'semi' ? 'SEMIFINAL' : 'QUARTERFINAL'}` }) : null,
+        h('p', { text: 'Eight balls, three rounds, one trophy. Win your quarterfinal, semifinal and final in a row. One of the seven is the defending champion.' }),
+        h('div', { class: 'prizes' },
+          h('span', { html: `<b>CHAMPION</b> ${COIN_SVG}${fmt(CUP_PRIZE.champ)} + GIMMICK CRATE` }),
+          h('span', { html: `<b>FINALIST</b> ${COIN_SVG}${fmt(CUP_PRIZE.final)}` }),
+          h('span', { html: `<b>SEMIFINAL</b> ${COIN_SVG}${fmt(CUP_PRIZE.semi)}` }))),
+      h('button', { class: 'go', disabled: G.coins < CUP_FEE, onclick: () => { SFX.ui(); cupEnter(); }, html: `ENTER ${COIN_SVG}<span>${CUP_FEE}</span>` })));
+  }
+  if (c) body.append(h('div', { class: 'sec', text: c.done ? 'The last cup' : 'The bracket' }), cupBracket(c));
+  if ((G.cups || 0) > 0) body.append(h('p', { class: 'cupwins', text: `Cups won: ${G.cups}` }));
+  if (c && c.anim >= 0) { c.anim = -1; save(); }
+  if (c && c.ceremony) { c.ceremony = false; save(); setTimeout(cupCeremony, 500); }
+  return p;
+}
+// lifting the trophy
+function cupCeremony() {
+  SFX.reveal(4);
+  confetti(['#ffd23f', '#ffffff', '#ff2d78', '#fff3b0'], 160);
+  setTimeout(() => confetti(['#ffd23f', '#ffffff'], 90), 600);
+  const s = sheet([
+    h('div', { class: 'lsub', style: { margin: '0 0 6px' }, text: 'THE BOX CUP' }),
+    h('h2', { text: 'CHAMPION' }),
+    h('div', { class: 'rv' }, h('div', { class: 'rays', style: { '--r': '#ffd23f', '--ro': '0.95' } }), h('img', { class: 'bigtro', src: trophyIcon(220), alt: 'The Box Cup trophy' })),
+    h('p', { html: `Three fights, three wins. You take <b>${fmt(CUP_PRIZE.champ)} coins</b> and a <b>Gimmick Crate</b> (in Daily).` }),
+    h('div', { class: 'foot' }, h('button', { class: 'btn2 on', text: 'LIFT IT', onclick: () => { SFX.coin(); closeSheet(s); renderView(); } }))], { noClose: true });
 }
 
 // ===== players online: presence, matchmaking, leaderboard =================
@@ -5358,6 +5684,7 @@ function boot() {
   // the way back to BeeSide, except inside Bee's Vault (#bv=1), which has its own close button
   if ((ON_SITE || window.BS_ROUTE) && !/(^|[#&])bv=1(&|$)/.test(location.hash)) $('#toBeeside').hidden = false;
   setTab('menu');
+  cupAbandoned();
   intro();
   requestAnimationFrame(loop);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { for (const k in ICON) delete ICON[k]; for (const k in CRATE_ICON) delete CRATE_ICON[k]; for (const k in PACK_ICON) delete PACK_ICON[k]; if (!FIGHT) renderView(); });
