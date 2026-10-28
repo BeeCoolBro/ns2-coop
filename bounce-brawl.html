@@ -2794,19 +2794,29 @@ BALL_LIST.push(
     },
     desc: 'Every 8 seconds it slows time for the enemy: it and its shots crawl for 3 seconds.' },
   // the one Super Rare: grins and bounces, then below 20% health grows legs and runs the enemy down
-  { id: 'verity', name: 'Verity', rar: 'S', cat: 'off', col: '#ffd60a', hp: 210, contact: 3, upright: 1, grows: 1,
+  { id: 'verity', name: 'Verity', rar: 'S', cat: 'off', col: '#ffd60a', hp: 210, contact: 2.7, upright: 1, grows: 1,
     update(S, f, dt) {
+      f.u.grinT = Math.max(0, (f.u.grinT || 0) - dt);
       if (!f.u.mad && f.hp < f.maxHp * 0.2) {
         f.u.mad = 1; f.u.leg = 0; f.contact *= 2.5;
+        pulse(S, f, 170, 6, 700, { stun: 0.6 }, '#ff4646');   // the tantrum: a blast that knocks the enemy back
         emit(S, { e: 'rage', id: f.id, x: f.x, y: f.y });
       }
-      if (!f.u.mad) return;
+      if (!f.u.mad) {
+        // a grin so wide it unsettles: every 5 s, an enemy close by gets turned around for a moment
+        if (every(f, 'grin', dt, 5)) {
+          f.u.grinT = 0.7;
+          if (toward(f, f.foe)[2] < 380) applyFx(S, f, f.foe, { confuse: 0.9 });
+          emit(S, { e: 'grin', x: f.x, y: f.y });
+        }
+        return;
+      }
       f.u.leg = Math.min(1, f.u.leg + dt * 4);
       if (f.st.confuseT > 0) return;
       const [ux, uy] = toward(f, f.foe), sp = 720 * S.vmul, k = Math.min(1, 7 * dt);
       f.vx += (ux * sp - f.vx) * k; f.vy += (uy * sp - f.vy) * k;
     },
-    desc: 'Grins and bounces around. Below 20% health it grows four legs, gets angry and chases the enemy down, hitting 2.5x harder.' },
+    desc: 'Grins and bounces around, and every 5 seconds its grin confuses a nearby enemy. Below 20% health it throws a tantrum that blasts the enemy back, grows four spider legs and chases the enemy down, hitting 2.5x harder.' },
 );
 for (const b of BALL_LIST) BALL[b.id] = b;
 const BALLS = BALL_LIST.filter(b => !b.hidden);
@@ -3622,6 +3632,7 @@ class Arena {
       case 'fx': break;
       case 'chaos': this.shake = Math.min(16, this.shake + 8); if (snd) snd.bump(900); break;
       case 'phit': break;
+      case 'grin': this.ring(e.x, e.y, 30, 120, '#ffd60a', 4, 0.35); if (snd) snd.ping(); break;
       case 'rage': this.shake = Math.min(16, this.shake + 7); this.burst(e.x, e.y, 18, '#ffd60a', 340, 0.5, 5); this.num(e.x, e.y - 56, 'ANGRY!', '#ff4646', true); if (snd) snd.boom(true); break;
     }
   }
@@ -4336,7 +4347,8 @@ Object.assign(ART, {
     if (mad) {
       c.arc(0, 27, 15, PI * 1.2, PI * 1.8); c.stroke();
       c.lineWidth = 4.5; c.beginPath(); c.moveTo(-21, -21); c.lineTo(-6, -15); c.moveTo(21, -21); c.lineTo(6, -15); c.stroke();
-    } else { c.arc(0, 3, 17, PI * 0.18, PI * 0.82); c.stroke(); }
+    } else if (f && f.u.grinT > 0) { c.arc(0, 4, 19, 0, PI); c.closePath(); c.fill(); }   // the big grin: D
+    else { c.arc(0, 3, 17, PI * 0.18, PI * 0.82); c.stroke(); }
     c.lineCap = 'butt';
   },
   // elements
