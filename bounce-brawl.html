@@ -14,6 +14,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap">
 <style>
+canvas:where(.pic) { width: var(--w); height: auto; }
 /* Layout: the BeeSide game shell (ROTFALL 2's): a live fight plays behind a
    numbered menu on the left, the current fighter sits in a card bottom right,
    and every section opens as a full-screen panel with a Back button.
@@ -101,7 +102,7 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 .m-card { position: absolute; right: max(clamp(24px, 6vw, 100px), env(safe-area-inset-right, 0px)); bottom: clamp(24px, 8vh, 90px); width: 290px; padding: 18px 18px 16px; border: 1px solid var(--line); border-radius: 14px;
   background: linear-gradient(160deg, rgba(26,6,15,.88), rgba(6,6,8,.88)); backdrop-filter: blur(4px); animation: mIn .8s var(--ease) .3s backwards; }
 .m-card .who { display: flex; align-items: center; gap: 12px; margin: 10px 0 12px; }
-.m-card .who img { width: 64px; height: 64px; }
+.m-card .who canvas:where(.pic) { width: 64px; height: 64px; }
 .m-card .nm { font: 400 28px/1 var(--fd); letter-spacing: 3px; }
 .m-card .tg { font-size: 12px; color: #77777f; margin-top: 3px; font-weight: 600; }
 .m-card .row { display: flex; justify-content: space-between; align-items: center; font: 700 11px/1 var(--fb); letter-spacing: 2px; color: #55555e; padding-top: 10px; border-top: 1px solid var(--line); text-transform: uppercase; }
@@ -137,7 +138,7 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 /* daily */
 .quest, .freec { display: grid; grid-template-columns: minmax(0, 1fr) 150px auto; gap: 14px; align-items: center; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); margin-bottom: 8px; }
 .freec { grid-template-columns: 56px minmax(0, 1fr) auto; }
-.freec img { width: 56px; height: 56px; }
+.freec canvas:where(.pic) { width: 56px; height: 56px; }
 .quest.done, .freec.done { border-color: #4a3d12; }
 .quest.got { opacity: .45; }
 .qt b { display: block; font: 400 20px/1.05 var(--fd); letter-spacing: 2px; color: #ddd; }
@@ -214,14 +215,14 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 .bc::before { content: ""; position: absolute; right: -34px; top: -34px; width: 120px; height: 120px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--c) 16%, transparent), transparent 70%); pointer-events: none; }
 .bc:hover { border-color: #3a1a28; transform: translateY(-2px); }
 .bc.sel { border-color: var(--o); }
-.bc img { grid-row: span 3; width: 58px; height: 58px; }
+.bc canvas:where(.pic) { grid-row: span 3; width: 58px; height: 58px; }
 .bc .n { font: 400 22px/1 var(--fd); letter-spacing: 2px; color: #ddd; }
 .bc .r { font: 700 9px/1 var(--fb); letter-spacing: 3px; text-transform: uppercase; }
 .pips { display: flex; gap: 3px; margin-top: 4px; }
 .pips i { width: 14px; height: 3px; border-radius: 2px; background: #26262c; }
 .pips i.on { background: var(--o); }
 .bc.locked { opacity: .55; }
-.bc.locked img { filter: grayscale(1) brightness(.55); }
+.bc.locked canvas:where(.pic) { filter: grayscale(1) brightness(.55); }
 .bc .eq { position: absolute; top: 10px; right: 10px; font: 400 10px var(--fm); color: var(--o); letter-spacing: 1px; }
 .detail { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; text-align: left; width: min(860px, 100%); }
 .stat { display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 10px; margin-bottom: 9px; }
@@ -238,7 +239,7 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 .crate { --c: #888; position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; padding: 16px; background: linear-gradient(170deg, #0f0f12, #08080a); display: flex; flex-direction: column; gap: 12px; }
 .crate::before { content: ""; position: absolute; right: -40px; top: -40px; width: 150px; height: 150px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--c) 20%, transparent), transparent 70%); pointer-events: none; }
 .crate .top { display: flex; gap: 14px; align-items: center; }
-.crate .top img { width: 74px; height: 74px; }
+.crate .top canvas:where(.pic) { width: 74px; height: 74px; }
 .crate .n { font: 400 26px/1 var(--fd); letter-spacing: 2px; }
 .crate .t { font: 700 9px/1 var(--fb); letter-spacing: 3px; margin-top: 5px; color: var(--c); text-transform: uppercase; }
 .crate p { margin: 0; font-size: 13px; color: #88888f; line-height: 1.5; }
@@ -248,7 +249,7 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 .odd .b i { display: block; height: 100%; }
 .odd b { font: 400 11px var(--fm); color: #aaa; text-align: right; letter-spacing: 0; }
 .inside { display: flex; flex-wrap: wrap; gap: 2px; }
-.inside img { width: 24px; height: 24px; }
+.inside canvas:where(.pic) { width: 24px; height: 24px; }
 .crate .btn2 { justify-content: space-between; }
 .crate .btn2 b { font: 400 14px var(--fm); letter-spacing: 0; display: inline-flex; gap: 5px; align-items: center; color: var(--gold); }
 
@@ -256,7 +257,7 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 .pcols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
 .prow { display: grid; grid-template-columns: 28px 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); margin-bottom: 8px; }
 .prow .pos { font: 400 12px var(--fm); color: #55555e; }
-.prow img { width: 40px; height: 40px; }
+.prow canvas:where(.pic) { width: 40px; height: 40px; }
 .prow b { display: block; font: 400 21px/1 var(--fd); letter-spacing: 2px; color: #ddd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .prow small { font-size: 12px; color: #66666e; font-weight: 600; }
 .prow .tr { font: 400 14px var(--fm); display: inline-flex; gap: 5px; align-items: center; color: var(--txt); }
@@ -287,7 +288,7 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 .reel { position: absolute; top: 14px; left: 0; display: flex; gap: 8px; will-change: transform; }
 .reel div { --r: #888; position: relative; width: 112px; height: 140px; flex: none; border-radius: 12px; border: 1px solid var(--line); background: linear-gradient(180deg, #111114, #0a0a0c); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; box-sizing: border-box; overflow: hidden; }
 .reel div::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--r); }
-.reel img { width: 72px; height: 72px; }
+.reel canvas:where(.pic) { width: 72px; height: 72px; }
 .reel span { font: 400 15px/1 var(--fd); letter-spacing: 2px; color: #ccc; }
 .marker { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; background: var(--o); z-index: 2; }
 .marker::before, .marker::after { content: ""; position: absolute; left: -7px; border: 8px solid transparent; }
@@ -296,7 +297,7 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 .upcard { --r: #8a8a8a; position: relative; width: min(300px, 100%); padding: 26px 18px 20px; border: 1px solid var(--r); border-radius: 14px; background: linear-gradient(180deg, #0f0f12, #09090b); overflow: hidden; animation: cardIn .5s var(--spring) backwards; box-sizing: border-box; }
 @keyframes cardIn { from { opacity: 0; transform: translateY(28px) scale(.9) } }
 .upcard::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--r); }
-.upcard img { width: 150px; height: 150px; }
+.upcard canvas:where(.pic) { width: 150px; height: 150px; }
 .upcard .name { font: 400 40px/1 var(--fd); letter-spacing: 4px; color: #eee; margin-top: 6px; }
 .upcard .rtag { font: 700 10px/1 var(--fb); letter-spacing: 4px; color: var(--r); text-transform: uppercase; margin-top: 8px; }
 .upcard .what { font: 400 20px/1.1 var(--fd); letter-spacing: 3px; color: var(--o); margin-top: 12px; }
@@ -309,7 +310,7 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
   padding: max(12px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
 .hud { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 16px; align-items: center; max-width: 1000px; width: 100%; margin: 0 auto; }
 .plate { --tc: var(--you); display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 5px 12px; align-items: center; min-width: 0; }
-.plate img { grid-row: span 2; width: 46px; height: 46px; }
+.plate canvas:where(.pic) { grid-row: span 2; width: 46px; height: 46px; }
 .plate .top { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
 .plate .who { font: 400 24px/1 var(--fd); letter-spacing: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .plate .bn { font: 700 10px/1 var(--fb); letter-spacing: 3px; color: #66666e; white-space: nowrap; text-transform: uppercase; }
@@ -318,7 +319,7 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 .hp b { position: absolute; inset: 0 auto 0 0; background: rgba(255,255,255,.35); transition: width .6s ease .25s; }
 .hpn { font: 400 12px var(--fm); color: #aaa; }
 .plate.foe { --tc: var(--foe); grid-template-columns: minmax(0, 1fr) 46px; }
-.plate.foe img { grid-column: 2; grid-row: 1 / span 2; }
+.plate.foe canvas:where(.pic) { grid-column: 2; grid-row: 1 / span 2; }
 .plate.foe .top { flex-direction: row-reverse; }
 .plate.foe .top, .plate.foe .hpw { grid-column: 1; grid-row: auto; }
 .plate.foe .hp i, .plate.foe .hp b { inset: 0 0 0 auto; }
@@ -360,7 +361,7 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 .vs .side { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 20px; text-align: center; min-width: 0; }
 .vs .side.you { background: radial-gradient(ellipse at 50% 50%, rgba(74,163,255,.16), transparent 70%); border-right: 1px solid var(--line); }
 .vs .side.foe { background: radial-gradient(ellipse at 50% 50%, rgba(255,70,70,.16), transparent 70%); }
-.vs .side img { width: min(200px, 34vw); height: min(200px, 34vw); animation: cardIn .6s var(--spring) backwards; }
+.vs .side canvas:where(.pic) { width: min(200px, 34vw); height: min(200px, 34vw); animation: cardIn .6s var(--spring) backwards; }
 .vs .side .lab { letter-spacing: 5px; }
 .vs .side .who { font: 400 clamp(30px, 5vw, 52px)/.95 var(--fd); letter-spacing: 4px; overflow-wrap: anywhere; }
 .vs .side .bn { font: 700 12px/1 var(--fb); letter-spacing: 4px; color: #77777f; text-transform: uppercase; }
@@ -388,7 +389,7 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
   .pan-cash { margin-left: 0; width: 100%; }
   .plate { grid-template-columns: 34px minmax(0, 1fr); gap: 4px 8px; }
   .plate.foe { grid-template-columns: minmax(0, 1fr) 34px; }
-  .plate img { width: 34px; height: 34px; }
+  .plate canvas:where(.pic) { width: 34px; height: 34px; }
   .plate .who { font-size: 18px; }
   .plate .bn, .fbar .hint { display: none; }
   .clock { font-size: 26px; }
@@ -446,9 +447,9 @@ body.pre #menu *, body.pre #menu { animation-play-state: paused !important; }
 @keyframes bump { 40% { transform: scale(1.18); color: var(--gold) } }
 /* crates: the crate shakes, bursts, and the reel rolls out */
 .cpop { --c: #888; position: relative; width: 220px; height: 220px; display: grid; place-items: center; }
-.cpop img { width: 180px; height: 180px; animation: cshake 1s ease-in forwards; }
+.cpop canvas:where(.pic) { width: 180px; height: 180px; animation: cshake 1s ease-in forwards; }
 @keyframes cshake { 0% { transform: scale(.5); opacity: 0 } 14% { transform: scale(1.06); opacity: 1 } 24% { transform: scale(1) } 38% { transform: rotate(-3deg) } 48% { transform: rotate(3deg) } 58% { transform: rotate(-5deg) translateY(-2px) } 68% { transform: rotate(6deg) } 77% { transform: rotate(-8deg) translateY(-5px) } 86% { transform: rotate(9deg) } 94% { transform: rotate(-10deg) scale(1.06) } 100% { transform: scale(1.12) } }
-.cpop.burst img { animation: cburst .3s var(--ease) forwards; }
+.cpop.burst canvas:where(.pic) { animation: cburst .3s var(--ease) forwards; }
 @keyframes cburst { to { transform: scale(1.7); opacity: 0 } }
 .cpop.burst::before, .cpop.burst::after { content: ""; position: absolute; inset: 30px; border-radius: 50%; border: 3px solid var(--c); animation: ring .5s var(--ease) forwards; }
 .cpop.burst::after { border-color: #fff; border-width: 2px; animation-delay: .06s; opacity: 0; }
@@ -465,13 +466,13 @@ body.pre #menu *, body.pre #menu { animation-play-state: paused !important; }
   animation: spin 18s linear infinite, fadeIn .8s ease; }
 .rv .upcard { z-index: 1; animation: flipIn .75s var(--spring) backwards; }
 @keyframes flipIn { from { opacity: 0; transform: perspective(900px) rotateY(85deg) scale(.8) } }
-.upcard img { animation: popIn .6s var(--spring) .25s backwards; }
+.upcard canvas:where(.pic) { animation: popIn .6s var(--spring) .25s backwards; }
 @keyframes popIn { from { transform: scale(0) rotate(-50deg) } }
 .upcard .name { animation: rise .5s var(--ease) .35s backwards; } .upcard .rtag { animation: rise .5s var(--ease) .42s backwards; }
 .upcard .what { animation: whatIn .5s var(--spring) .5s backwards; } .upcard .desc { animation: rise .5s var(--ease) .58s backwards; }
 @keyframes whatIn { from { opacity: 0; transform: scale(1.5) } }
 .rip { position: relative; width: 220px; height: 220px; animation: cshake 1s ease-in forwards; }
-.rip img { position: absolute; left: 20px; top: 20px; width: 180px; height: 180px; }
+.rip canvas:where(.pic) { position: absolute; left: 20px; top: 20px; width: 180px; height: 180px; }
 .rip .top { z-index: 3; transform-origin: 72% 18%; }
 .rip .bot { z-index: 2; }
 .rip .cb { position: absolute; z-index: 1; left: 50%; top: 78px; width: 62px; height: 86px; margin-left: -31px; border-radius: 7px; box-sizing: border-box; border: 2px solid var(--o); background: repeating-linear-gradient(135deg, #1d1d24 0 6px, #141418 6px 12px); opacity: 0; }
@@ -486,17 +487,17 @@ body.pre #menu *, body.pre #menu { animation-play-state: paused !important; }
 @keyframes ripAway { to { transform: translateY(46px); opacity: 0 } }
 .packrow { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; width: min(760px, 100%); }
 .packrow .upcard { width: min(220px, 100%); padding: 20px 14px 16px; animation: flipIn .7s var(--spring) backwards; animation-delay: var(--d, 0s); }
-.packrow .upcard img { width: 96px; height: 96px; }
+.packrow .upcard canvas:where(.pic) { width: 96px; height: 96px; }
 .packrow .upcard .name { font-size: 28px; }
 .packrow .upcard > * { animation-delay: calc(var(--d, 0s) + .3s) !important; }
-@media (max-width: 860px) { .packrow .upcard { display: grid; grid-template-columns: 64px 1fr; gap: 0 12px; text-align: left; width: 100%; padding: 14px; } .packrow .upcard img { width: 64px; height: 64px; grid-row: span 3; } .packrow .upcard .name { font-size: 24px; margin: 0; } .packrow .upcard .what { margin-top: 6px; } }
+@media (max-width: 860px) { .packrow .upcard { display: grid; grid-template-columns: 64px 1fr; gap: 0 12px; text-align: left; width: 100%; padding: 14px; } .packrow .upcard canvas:where(.pic) { width: 64px; height: 64px; grid-row: span 3; } .packrow .upcard .name { font-size: 24px; margin: 0; } .packrow .upcard .what { margin-top: 6px; } }
 /* the Box Cup */
 .cupnext { display: flex; align-items: center; gap: 18px; padding: 16px 18px; border: 1px solid #4a3d12; border-radius: 14px; background: linear-gradient(110deg, rgba(255,210,63,.08), #0c0c0f 55%); }
 .cupnext .cl { flex: 1; min-width: 0; }
 .cupnext .go { width: auto; flex: none; padding: 14px 26px 12px; }
 .cupnext .go span { margin-left: -4px; }
 .cupnext .cv { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
-.cupnext .cv img { width: 54px; height: 54px; }
+.cupnext .cv canvas:where(.pic) { width: 54px; height: 54px; }
 .cupnext .vs2 { font: 400 26px/1 var(--fd); color: var(--o); letter-spacing: 2px; }
 .cupnext .cv b { display: block; font: 400 24px/1 var(--fd); letter-spacing: 2px; }
 .cupnext .cv small { font-size: 12px; color: #77777f; font-weight: 600; }
@@ -516,7 +517,7 @@ body.pre #menu *, body.pre #menu { animation-play-state: paused !important; }
 .bcol:not(.champ) .bm::after { content: ""; position: absolute; right: -23px; top: 50%; width: 22px; height: 2px; background: var(--line2); }
 .cs { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px; align-items: center; padding: 7px 10px; }
 .cs + .cs { border-top: 1px solid var(--line); }
-.cs img { width: 28px; height: 28px; }
+.cs canvas:where(.pic) { width: 28px; height: 28px; }
 .cs .q { width: 28px; height: 28px; border-radius: 50%; border: 1px dashed var(--line2); display: grid; place-items: center; font: 400 15px var(--fd); color: #44444c; }
 .cs .cn { min-width: 0; }
 .cs b { display: block; font: 400 17px/1.05 var(--fd); letter-spacing: 1.5px; color: #cfcfd6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -532,7 +533,7 @@ body.pre #menu *, body.pre #menu { animation-play-state: paused !important; }
 .cs.lose.new { animation: csLose .8s ease backwards; }
 @keyframes csLose { from { opacity: 1; } }
 .bm.cm { display: grid; justify-items: center; padding: 12px 8px; border-color: #4a3d12; }
-.bm.cm > img:first-child { width: 96px; height: 96px; }
+.bm.cm > canvas:where(.pic):first-child { width: 96px; height: 96px; }
 .bm.cm .cs { width: 100%; box-sizing: border-box; border: 0; }
 .bm.cm.won { background: linear-gradient(180deg, rgba(255,210,63,.12), var(--card)); }
 .bigtro { position: relative; z-index: 1; width: 220px; height: 220px; animation: popIn .8s var(--spring) .15s backwards; }
@@ -541,7 +542,7 @@ body.pre #menu *, body.pre #menu { animation-play-state: paused !important; }
 .raid { position: relative; overflow: hidden; display: flex; align-items: center; gap: 20px; padding: 18px 20px; border: 1px solid #4a1f2e; border-radius: 14px;
   background: radial-gradient(70% 140% at 0% 50%, rgba(255,45,120,.14), transparent 60%), repeating-linear-gradient(135deg, rgba(255,255,255,.02) 0 10px, transparent 10px 20px), #0c0c0f; }
 .raid .rart { flex: none; position: relative; }
-.raid .rart img { width: 110px; height: 110px; animation: bossBob 3.4s ease-in-out infinite; }
+.raid .rart canvas:where(.pic) { width: 110px; height: 110px; animation: bossBob 3.4s ease-in-out infinite; }
 @keyframes bossBob { 50% { transform: translateY(-5px) rotate(-3deg); } }
 .raid .rinfo { flex: 1; min-width: 0; }
 .raid .rn { font: 400 40px/1 var(--fd); letter-spacing: 4px; color: #ff6a9e; margin: 4px 0 6px; }
@@ -564,7 +565,7 @@ body.pre #menu *, body.pre #menu { animation-play-state: paused !important; }
 /* recent fights */
 .hist { display: grid; gap: 6px; }
 .hrow { display: grid; grid-template-columns: 46px 26px 18px 26px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
-.hrow img { width: 26px; height: 26px; }
+.hrow canvas:where(.pic) { width: 26px; height: 26px; }
 .hrow .hr { font: 400 15px/1 var(--fd); letter-spacing: 2px; }
 .hrow.W .hr { color: #5cff9d; } .hrow.R .hr { color: var(--gold); } .hrow.L .hr { color: var(--foe); } .hrow.D .hr { color: #aaa; }
 .hrow .hv { font: 700 9px var(--fb); color: #55555e; text-align: center; letter-spacing: 1px; }
@@ -587,13 +588,13 @@ svg.mst.on { fill: var(--gold); }
 .wn span { font-size: 13px; color: #9a9aa3; font-weight: 600; }
 .skins { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .skin { display: grid; gap: 6px; padding: 8px 8px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); text-align: left; transition: border-color .15s, transform .15s var(--ease); }
-.skin img { width: 100%; aspect-ratio: 1; border-radius: 8px; display: block; }
+.skin canvas:where(.pic) { width: 100%; aspect-ratio: 1; border-radius: 8px; display: block; }
 .skin b { font: 400 17px/1 var(--fd); letter-spacing: 2px; color: #ddd; }
 .skin small { font-size: 11px; color: #77777f; font-weight: 600; }
 .skin:hover:not(:disabled) { border-color: #5a2238; transform: translateY(-2px); }
 .skin.sel { border-color: var(--o); }
 .skin.sel small { color: var(--o); }
-.skin.locked img { filter: grayscale(1) brightness(.4); }
+.skin.locked canvas:where(.pic) { filter: grayscale(1) brightness(.4); }
 .skin:disabled { cursor: default; }
 .promise { margin: -10px 0 16px; font-size: 13px; color: #8a8a94; font-weight: 600; }
 .promise b { font: 700 10px var(--fb); letter-spacing: 3px; color: var(--gold); margin-right: 6px; }
@@ -659,12 +660,12 @@ svg.mst.on { fill: var(--gold); }
 .go { position: relative; overflow: hidden; }
 .go::after { content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.35), transparent); transform: skewX(-18deg); transition: left .7s var(--ease); pointer-events: none; }
 .go:hover:not(:disabled)::after { left: 130%; }
-.plate img { border-radius: 50%; box-shadow: 0 0 0 2px #030304, 0 0 0 4px var(--tc); }
+.plate canvas:where(.pic) { border-radius: 50%; box-shadow: 0 0 0 2px #030304, 0 0 0 4px var(--tc); }
 .hp::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), rgba(0,0,0,.45) calc(10% - 1px) 10%); }
 .hp i { background: linear-gradient(180deg, color-mix(in srgb, var(--tc) 70%, #fff), var(--tc) 55%, color-mix(in srgb, var(--tc) 75%, #000)); }
 .m-card { background: linear-gradient(160deg, rgba(40,10,24,.9), rgba(8,8,10,.9)); }
 .m-card::before { content: ""; position: absolute; left: 18px; right: 18px; top: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--o), transparent); opacity: .7; }
-.crate:hover .top img { animation: crateWobble .5s ease; }
+.crate:hover .top canvas:where(.pic) { animation: crateWobble .5s ease; }
 @keyframes crateWobble { 25% { transform: rotate(-6deg) translateY(-2px); } 50% { transform: rotate(5deg); } 75% { transform: rotate(-2deg); } }
 .tile { background: linear-gradient(170deg, #101014, #0a0a0c); }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; transition-duration: .01ms !important; } #intro { display: none; } }
@@ -706,7 +707,7 @@ svg.mst.on { fill: var(--gold); }
   transition: transform .15s var(--ease), border-color .15s; }
 .deal:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--c); }
 .deal:disabled { opacity: .6; cursor: default; }
-.deal img { width: 52px; height: 52px; flex: none; }
+.deal canvas:where(.pic) { width: 52px; height: 52px; flex: none; }
 .deal .di { flex: 1 1 180px; min-width: 0; }
 .deal .dt { font: 700 9px/1.2 var(--fb); letter-spacing: 3px; color: #6b6b75; text-transform: uppercase; }
 .deal .dn { font: 400 28px/1 var(--fd); letter-spacing: 3px; color: var(--c); margin-top: 5px; }
@@ -3144,7 +3145,7 @@ function drawBall(c, def, x, y, r, f, t, rot) {
   c.restore();
 }
 
-// icons for menus, cached per ball and size
+// icons for menus, cached per ball and size (a canvas; pic() puts a copy on the page)
 const ICON = {};
 function ballIcon(id, px) {
   const key = id + '@' + px;
@@ -3155,7 +3156,7 @@ function ballIcon(id, px) {
   c.scale(dpr, dpr);
   const def = BALL[id], out = ART_OUT[id] ? 0.66 : 0.86;
   drawBall(c, def, px / 2, px / 2 + (id === 'balloon' ? -px * 0.06 : id === 'bomb' ? px * 0.06 : 0), px / 2 * out, null, 0);
-  return (ICON[key] = cv.toDataURL());
+  return (ICON[key] = cv);
 }
 
 // ---- weapons ------------------------------------------------------------------
@@ -4930,7 +4931,17 @@ function confetti(cols, n) {
   };
   requestAnimationFrame(tick);
 }
-function ballImg(id, px, alt) { return h('img', { src: ballIcon(id, px), alt: alt === undefined ? BALL[id].name : alt, width: px, height: px }); }
+// pictures go on the page as canvases copied from the cached one, not as data: images,
+// which the claude.ai viewer won't always load. a: {alt, title, class, style}
+function pic(src, px, a) {
+  a = a || {};
+  const cv = h('canvas', { class: 'pic' + (a.class ? ' ' + a.class : ''), role: a.alt ? 'img' : null, 'aria-label': a.alt || null, 'aria-hidden': a.alt ? null : 'true', title: a.title || null,
+    style: Object.assign({ '--w': px + 'px' }, a.style) });
+  cv.width = src.width; cv.height = src.height;
+  cv.getContext('2d').drawImage(src, 0, 0);
+  return cv;
+}
+function ballImg(id, px, alt) { return pic(ballIcon(id, px), px, { alt: alt === undefined ? BALL[id].name : alt }); }
 // names are shown to other players: drop control and invisible formatting characters
 const BADCH = new RegExp('[' + [[0, 31], [127, 159], [0x200b, 0x200f], [0x2028, 0x202e], [0x2066, 0x2069], [0xfeff, 0xfeff]]
   .map(([a, b]) => String.fromCharCode(a) + '-' + String.fromCharCode(b)).join('') + ']', 'g');
@@ -4963,7 +4974,7 @@ function crateIcon(cr, px) {
   else if (cr.id === 'starter') { poly(c, [0, -12, 3.5, -4, 12, -4, 5, 2, 8, 11, 0, 6, -8, 11, -5, 2, -12, -4, -3.5, -4]); c.fill(); }
   else { c.font = `400 30px ${FONT_D}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('?', 0, 2); }
   c.restore();
-  return (CRATE_ICON[key] = cv.toDataURL());
+  return (CRATE_ICON[key] = cv);
 }
 function rankIcon(cv, tro) {
   const r = rankOf(tro), dpr = Math.min(2, window.devicePixelRatio || 1), px = cv.clientWidth || 54;
@@ -5231,17 +5242,17 @@ function panelCrates() {
     h('p', { class: 'promise', html: `<b>HARDWARE'S PROMISE</b> An Epic or better at least every ${PITY} crates. <span class="mono">${PITY - (G.pity || 0)}</span> to go.` }));
   const wait = packWait();
   body.append(h('button', { class: 'deal', style: { '--c': PACK.col }, disabled: wait > 0 || G.coins < PACK.price, onclick: buyPack },
-    h('img', { src: packIcon(52), alt: '' }),
+    pic(packIcon(52), 52),
     h('div', { class: 'di' }, h('div', { class: 'dt', text: (wait ? 'Sold out' : 'On the counter') + ' · three balls · Common or Rare · one every 2 hours' }), h('div', { class: 'dn', text: "HARDWARE'S PACK" })),
     h('div', { class: 'dp' }, wait ? [h('div', { class: 'now', text: 'SOLD OUT' }), h('div', { class: 'buy', text: 'BACK IN ' + packWaitText() })]
       : [h('div', { class: 'now', html: COIN_SVG + fmt(PACK.price) }), h('div', { class: 'buy', text: 'BUY & RIP' })])));
   // put a new one on the counter the moment it is back, if the shop is still open
   if (wait) setTimeout(() => { if (TAB === 'crates' && !FIGHT && !topSheet()) renderPanel(true); }, wait + 500);
   const free = [];
-  if (G.dday !== today()) free.push(h('div', { class: 'freec done' }, h('img', { src: crateIcon(CRATES[0], 56), alt: '' }),
+  if (G.dday !== today()) free.push(h('div', { class: 'freec done' }, pic(crateIcon(CRATES[0], 56), 56),
     h('div', { class: 'qt' }, h('b', { text: 'DAILY MIXED CRATE' }), h('small', { text: 'Free every day. Ready now.' })),
     h('button', { class: 'btn2 on', text: 'OPEN FREE', onclick: claimDaily })));
-  G.free.forEach((id, i) => free.push(h('div', { class: 'freec done' }, h('img', { src: crateIcon(crateById(id), 56), alt: '' }),
+  G.free.forEach((id, i) => free.push(h('div', { class: 'freec done' }, pic(crateIcon(crateById(id), 56), 56),
     h('div', { class: 'qt' }, h('b', { text: crateById(id).name.toUpperCase() }), h('small', { text: 'A level-up reward.' })),
     h('button', { class: 'btn2 on', text: 'OPEN FREE', onclick: () => claimFree(i) }))));
   if (free.length) body.append(h('div', { class: 'sec', text: 'On the house' }), h('div', { class: 'freegrid' }, free));
@@ -5254,11 +5265,11 @@ function panelCrates() {
       odds.append(h('div', { class: 'odd' }, h('span', { text: RARITY[k].name, style: { color: RARITY[k].col } }), h('span', { class: 'b' }, h('i', { style: { width: Math.max(3, pc) + '%', background: RARITY[k].col } })), h('b', { text: (pc < 1 ? pc.toFixed(1) : Math.round(pc)) + '%' })));
     }
     const inside = h('div', { class: 'inside' }), all = cr.pool().slice().sort((a, b) => RARITY[b.rar].rank - RARITY[a.rar].rank), PEEK = 22;
-    for (const b of all.slice(0, PEEK)) inside.append(h('img', { src: ballIcon(b.id, 24), alt: b.name, title: b.name }));
+    for (const b of all.slice(0, PEEK)) inside.append(pic(ballIcon(b.id, 24), 24, { alt: b.name, title: b.name }));
     if (all.length > PEEK) inside.append(h('span', { class: 'more', text: '+' + (all.length - PEEK) }));
     g.append(h('div', { class: 'crate', style: { '--c': cr.col } },
       h('span', { class: 'ptag', html: COIN_SVG + fmt(cr.price) }),
-      h('div', { class: 'top' }, h('img', { src: crateIcon(cr, 74), alt: '' }), h('div', {}, h('div', { class: 'n', text: cr.name.toUpperCase() }), h('div', { class: 't', text: `No. ${pad2(i + 1)} · ${cr.pool().length} balls` }))),
+      h('div', { class: 'top' }, pic(crateIcon(cr, 74), 74), h('div', {}, h('div', { class: 'n', text: cr.name.toUpperCase() }), h('div', { class: 't', text: `No. ${pad2(i + 1)} · ${cr.pool().length} balls` }))),
       h('p', { text: cr.blurb }), odds, inside,
       h('button', { class: 'btn2' + (G.coins >= cr.price ? ' on' : ''), disabled: G.coins < cr.price, onclick: () => buyCrate(cr), html: `BUY & OPEN <b>${COIN_SVG}${fmt(cr.price)}</b>` })));
   });
@@ -5279,10 +5290,10 @@ function openCrate(cr, free) {
   const reel = h('div', { class: 'reel' });
   for (let i = 0; i < N; i++) {
     const b = i === AT ? prize : rollCrate(cr);
-    reel.append(h('div', { style: { '--r': RARITY[b.rar].col } }, h('img', { src: ballIcon(b.id, 72), alt: '' }), h('span', { text: b.name.toUpperCase() })));
+    reel.append(h('div', { style: { '--r': RARITY[b.rar].col } }, pic(ballIcon(b.id, 72), 72), h('span', { text: b.name.toUpperCase() })));
   }
   const wrap = h('div', { class: 'reelwrap' }, reel, h('div', { class: 'marker' }));
-  const pop = h('div', { class: 'cpop', style: { '--c': cr.col } }, h('img', { src: crateIcon(cr, 180), alt: '' }));
+  const pop = h('div', { class: 'cpop', style: { '--c': cr.col } }, pic(crateIcon(cr, 180), 180));
   const sub = h('div', { class: 'lsub', text: 'OPENING...' });
   const s = sheet([h('div', { class: 'lsub', style: { margin: '0 0 6px' }, text: "HARDWARE'S CRATES" }), h('h2', { text: cr.name.toUpperCase() }), sub, REDUCED ? wrap : pop], { noClose: true });
   const T = REDUCED ? 1.2 : 4.6, ITEM = 120;
@@ -5881,7 +5892,7 @@ function packIcon(px) {
   c.textAlign = 'center'; c.textBaseline = 'middle';
   c.save(); c.translate(50, 57); c.rotate(-0.32); c.font = `400 9px ${FONT_D}`; c.letterSpacing = '1px'; c.fillStyle = '#16020a'; c.fillText('HARDWARE', 0, 0); c.letterSpacing = '0px'; c.restore();
   c.font = `400 15px ${FONT_D}`; c.fillStyle = '#ffffff'; c.fillText('PACK', 50, 78);
-  return (PACK_ICON[px] = cv.toDataURL());
+  return (PACK_ICON[px] = cv);
 }
 // one pack every two hours, counted from the last one bought
 const PACK_EVERY = 2 * 60 * 60 * 1000;
@@ -5904,8 +5915,8 @@ function openPack() {
   const TEAR = 22, pts = [];
   for (let x = 0; x <= 100; x += 5) pts.push(`${x}% ${(TEAR + (x % 10 ? 2.4 : -2.4)).toFixed(1)}%`);
   const src = packIcon(180);
-  const top = h('img', { class: 'top', src, alt: '', style: { clipPath: `polygon(0% 0%, 100% 0%, ${pts.slice().reverse().join(', ')})` } });
-  const bot = h('img', { class: 'bot', src, alt: '', style: { clipPath: `polygon(${pts.join(', ')}, 100% 100%, 0% 100%)` } });
+  const top = pic(src, 180, { class: 'top', style: { clipPath: `polygon(0% 0%, 100% 0%, ${pts.slice().reverse().join(', ')})` } });
+  const bot = pic(src, 180, { class: 'bot', style: { clipPath: `polygon(${pts.join(', ')}, 100% 100%, 0% 100%)` } });
   const cards = [[-46, -12], [0, 0], [46, 12]].map(([x, r], i) => h('i', { class: 'cb', style: { '--x': x + 'px', '--r': r + 'deg', '--d': (i * 0.09) + 's' } }));
   const rip = h('div', { class: 'rip' }, cards, bot, top);
   const sub = h('div', { class: 'lsub', text: 'RIPPING IT OPEN...' });
@@ -5952,13 +5963,13 @@ function panelDaily() {
   }
   left.append(h('div', { class: 'sec', text: 'Free crates' }),
     h('div', { class: 'freec' + (crateReady ? ' done' : '') },
-      h('img', { src: crateIcon(CRATES[0], 56), alt: '' }),
+      pic(crateIcon(CRATES[0], 56), 56),
       h('div', { class: 'qt' }, h('b', { text: 'DAILY MIXED CRATE' }), h('small', { text: crateReady ? 'Free every day. Ready now.' : `Opened today. Next one in ${untilTomorrow()}.` })),
       h('button', { class: 'btn2' + (crateReady ? ' on' : ''), disabled: !crateReady, text: 'OPEN', onclick: claimDaily })));
   G.free.forEach((id, i) => {
     const cr = crateById(id);
     left.append(h('div', { class: 'freec done' },
-      h('img', { src: crateIcon(cr, 56), alt: '' }),
+      pic(crateIcon(cr, 56), 56),
       h('div', { class: 'qt' }, h('b', { text: cr.name.toUpperCase() }), h('small', { text: 'A level-up reward.' })),
       h('button', { class: 'btn2 on', text: 'OPEN', onclick: () => claimFree(i) })));
   });
@@ -6097,7 +6108,7 @@ function trophyIcon(px, col) {
   rrect(c, 34, 80, 32, 6, 1.5); c.fillStyle = l; c.fill();
   circ(c, 50, 30, 9); inkFill(c, '#ffffff', 2);
   circ(c, 50, 30, 5); c.fillStyle = '#ff2d78'; c.fill();
-  return (TROPHY_ICON[key] = cv.toDataURL());
+  return (TROPHY_ICON[key] = cv);
 }
 
 // ---- 02 cup -----------------------------------------------------------------------------
@@ -6120,7 +6131,7 @@ function cupBracket(c) {
   }
   const champ = c.w[2] && c.w[2][0];
   cols.append(h('div', { class: 'bcol champ' }, h('div', { class: 'bh', text: 'CHAMPION' }),
-    h('div', { class: 'bm cm' + (champ !== undefined ? ' won' : '') }, h('img', { src: trophyIcon(96), alt: '' }),
+    h('div', { class: 'bm cm' + (champ !== undefined ? ' won' : '') }, pic(trophyIcon(96), 96),
       champ !== undefined ? cupSlot(c, champ, 3) : h('div', { class: 'cs tbd' }, h('span', { class: 'cn' }, h('b', { text: '?' }))))));
   return h('div', { class: 'bwrap' }, cols);
 }
@@ -6138,7 +6149,7 @@ function panelCup() {
   } else {
     const last = c && c.done;
     body.append(h('div', { class: 'cupnext intro' },
-      h('img', { class: 'tro', src: trophyIcon(120), alt: '' }),
+      pic(trophyIcon(120), 120, { class: 'tro' }),
       h('div', { class: 'cl' },
         last ? h('div', { class: 'cres' + (c.place === 'champ' ? ' champ' : ''), text: c.place === 'champ' ? 'YOU WON THE LAST CUP' : `LAST CUP: OUT IN THE ${c.place === 'final' ? 'FINAL' : c.place === 'semi' ? 'SEMIFINAL' : 'QUARTERFINAL'}` }) : null,
         h('p', { text: 'Eight balls, three rounds, one trophy. Win your quarterfinal, semifinal and final in a row. One of the seven is the defending champion.' }),
@@ -6162,7 +6173,7 @@ function cupCeremony() {
   const s = sheet([
     h('div', { class: 'lsub', style: { margin: '0 0 6px' }, text: 'THE BOX CUP' }),
     h('h2', { text: 'CHAMPION' }),
-    h('div', { class: 'rv' }, h('div', { class: 'rays', style: { '--r': '#ffd23f', '--ro': '0.95' } }), h('img', { class: 'bigtro', src: trophyIcon(220), alt: 'The Box Cup trophy' })),
+    h('div', { class: 'rv' }, h('div', { class: 'rays', style: { '--r': '#ffd23f', '--ro': '0.95' } }), pic(trophyIcon(220), 220, { class: 'bigtro', alt: 'The Box Cup trophy' })),
     h('p', { html: `Three fights, three wins. You take <b>${fmt(CUP_PRIZE.champ)} coins</b> and a <b>Gimmick Crate</b> (in Daily).` }),
     h('div', { class: 'foot' }, h('button', { class: 'btn2 on', text: 'LIFT IT', onclick: () => { SFX.coin(); closeSheet(s); renderView(); } }))], { noClose: true });
 }
@@ -6302,7 +6313,7 @@ function skinThumb(id) {
   c.strokeStyle = '#ff2d78'; c.lineWidth = 4; c.beginPath();
   for (const [x, y, sx, sy] of [[0, 0, 1, 1], [160, 0, -1, 1], [0, 160, 1, -1], [160, 160, -1, -1]]) { c.moveTo(x + sx * 18, y); c.lineTo(x, y); c.lineTo(x, y + sy * 18); }
   c.stroke();
-  return cv.toDataURL();
+  return cv;
 }
 function skinPicker() {
   const g = h('div', { class: 'skins' });
@@ -6310,7 +6321,7 @@ function skinPicker() {
     const sk = SKINS[id], ok = sk.ok(), on = (G.skin || 'classic') === id && ok;
     g.append(h('button', { class: 'skin' + (on ? ' sel' : '') + (ok ? '' : ' locked'), disabled: !ok, 'aria-pressed': on ? 'true' : 'false',
         onclick: () => { G.skin = id; ARENA_SKIN = id; save(); SFX.ui(); renderPanel(true); toast(sk.name + ' arena selected'); } },
-      h('img', { src: skinThumb(id), alt: '' }),
+      pic(skinThumb(id), 160),
       h('b', { text: sk.name.toUpperCase() }),
       h('small', { text: ok ? (on ? 'In use' : 'Unlocked') : sk.need })));
   }
