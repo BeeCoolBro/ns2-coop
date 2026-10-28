@@ -657,6 +657,9 @@ svg.mst.on { fill: var(--gold); }
 .bc[data-r="M"], .upcard[style*="#ff3fa4"] { border: 1px solid transparent; background: linear-gradient(170deg, #121016, #08080a) padding-box, conic-gradient(from var(--ang), #ff3fa4, #ffd23f, #3fd6c6, #b46bff, #ff3fa4) border-box; animation: holo 5s linear infinite; }
 .upcard[style*="#ff3fa4"] { animation: flipIn .75s var(--spring) backwards, holo 5s linear infinite; }
 .bc.locked[data-r="M"] { animation: none; }
+.bc[data-r="S"], .upcard[style*="#fff36b"] { border: 1px solid transparent; background: linear-gradient(170deg, #15140c, #08080a) padding-box, conic-gradient(from var(--ang), #fff36b, #ffffff, #ffd60a, #8a7a2a, #fff36b) border-box; animation: holo 3.5s linear infinite; }
+.upcard[style*="#fff36b"] { animation: flipIn .75s var(--spring) backwards, holo 3.5s linear infinite; }
+.bc.locked[data-r="S"] { animation: none; }
 .go { position: relative; overflow: hidden; }
 .go::after { content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.35), transparent); transform: skewX(-18deg); transition: left .7s var(--ease); pointer-events: none; }
 .go:hover:not(:disabled)::after { left: 130%; }
@@ -751,7 +754,7 @@ svg.mst.on { fill: var(--gold); }
 // A fight is played out from a seed, separately in each player's browser, so
 // the simulation may only use + - * / and sqrt (the same in every engine):
 // no Math.sin/cos/atan2/hypot/pow/exp, no Math.random, no clocks.
-const VERSION = 4;
+const VERSION = 5;
 const HP_SCALE = 0.33;                     // every ball's health is scaled by this, so fights end sooner
 const TAU = 6.283185307179586, PI = 3.141592653589793, HALF_PI = 1.5707963267948966;
 const DT = 1 / 60, SUB = 3;            // 60 steps a second, 3 physics substeps each
@@ -1575,6 +1578,7 @@ const RARITY = {
   E: { name: 'Epic', col: '#a25cff', rank: 2 },
   L: { name: 'Legendary', col: '#ffb020', rank: 3 },
   M: { name: 'Mythic', col: '#ff3fa4', rank: 4 },
+  S: { name: 'Super Rare', col: '#fff36b', rank: 5 },
 };
 const CATS = { off: 'Offense', def: 'Defense', trick: 'Trick' };
 
@@ -2789,6 +2793,20 @@ BALL_LIST.push(
       emit(S, { e: 'tstop' }); pulse(S, f, 300, 0, 0, null, '#d4b483');
     },
     desc: 'Every 8 seconds it slows time for the enemy: it and its shots crawl for 3 seconds.' },
+  // the one Super Rare: grins and bounces, then below 20% health grows legs and runs the enemy down
+  { id: 'verity', name: 'Verity', rar: 'S', cat: 'off', col: '#ffd60a', hp: 210, contact: 3, upright: 1, grows: 1,
+    update(S, f, dt) {
+      if (!f.u.mad && f.hp < f.maxHp * 0.2) {
+        f.u.mad = 1; f.u.leg = 0; f.contact *= 2.5;
+        emit(S, { e: 'rage', id: f.id, x: f.x, y: f.y });
+      }
+      if (!f.u.mad) return;
+      f.u.leg = Math.min(1, f.u.leg + dt * 4);
+      if (f.st.confuseT > 0) return;
+      const [ux, uy] = toward(f, f.foe), sp = 720 * S.vmul, k = Math.min(1, 7 * dt);
+      f.vx += (ux * sp - f.vx) * k; f.vy += (uy * sp - f.vy) * k;
+    },
+    desc: 'Grins and bounces around. Below 20% health it grows four legs, gets angry and chases the enemy down, hitting 2.5x harder.' },
 );
 for (const b of BALL_LIST) BALL[b.id] = b;
 const BALLS = BALL_LIST.filter(b => !b.hidden);
@@ -3137,7 +3155,7 @@ function drawBall(c, def, x, y, r, f, t, rot) {
   c.save(); circ(c, 0, 0, 40); c.clip();
   c.fillStyle = 'rgba(0,0,0,0.2)'; c.fillRect(-40, -40, 80, 80);
   circ(c, -4.5, -5.5, 39.5); c.fillStyle = def.col; c.fill();
-  if (ART[def.id]) { c.save(); if (rot) c.rotate(rot); ART[def.id](c, k, f, t); c.restore(); }
+  if (ART[def.id]) { c.save(); if (rot && !def.upright) c.rotate(rot); ART[def.id](c, k, f, t); c.restore(); }
   c.beginPath(); c.ellipse(-17, -21, 9, 5, -0.6, 0, TAU); c.fillStyle = 'rgba(255,255,255,0.28)'; c.fill();
   c.restore();
   circ(c, 0, 0, 40); c.lineWidth = 3.2; c.strokeStyle = INK; c.stroke();
@@ -3154,7 +3172,7 @@ function ballIcon(id, px) {
   cv.width = cv.height = Math.round(px * dpr);
   const c = cv.getContext('2d');
   c.scale(dpr, dpr);
-  const def = BALL[id], out = ART_OUT[id] ? 0.66 : 0.86;
+  const def = BALL[id], out = ART_OUT[id] && !def.grows ? 0.66 : 0.86;
   drawBall(c, def, px / 2, px / 2 + (id === 'balloon' ? -px * 0.06 : id === 'bomb' ? px * 0.06 : 0), px / 2 * out, null, 0);
   return (ICON[key] = cv);
 }
@@ -3604,6 +3622,7 @@ class Arena {
       case 'fx': break;
       case 'chaos': this.shake = Math.min(16, this.shake + 8); if (snd) snd.bump(900); break;
       case 'phit': break;
+      case 'rage': this.shake = Math.min(16, this.shake + 7); this.burst(e.x, e.y, 18, '#ffd60a', 340, 0.5, 5); this.num(e.x, e.y - 56, 'ANGRY!', '#ff4646', true); if (snd) snd.boom(true); break;
     }
   }
   byId(S, id) { for (const b of S.bodies) if (b.id === id) return b; return null; }
@@ -4308,6 +4327,18 @@ const bolt = (c, x, y, s, col) => { poly(c, [x + s * 0.2, y - s, x - s * 0.5, y 
 const ring = (c, x, y, r, w, col) => { circ(c, x, y, r); c.lineWidth = w; c.strokeStyle = col; c.stroke(); };
 
 Object.assign(ART, {
+  // two dots and a curve, (: then ): once it's angry
+  verity(c, k, f) {
+    const mad = f && f.u.mad;
+    c.fillStyle = INK; c.strokeStyle = INK; c.lineCap = 'round';
+    circ(c, -12, -9, 4.6); c.fill(); circ(c, 12, -9, 4.6); c.fill();
+    c.lineWidth = 5; c.beginPath();
+    if (mad) {
+      c.arc(0, 27, 15, PI * 1.2, PI * 1.8); c.stroke();
+      c.lineWidth = 4.5; c.beginPath(); c.moveTo(-21, -21); c.lineTo(-6, -15); c.moveTo(21, -21); c.lineTo(6, -15); c.stroke();
+    } else { c.arc(0, 3, 17, PI * 0.18, PI * 0.82); c.stroke(); }
+    c.lineCap = 'butt';
+  },
   // elements
   lava(c, k) { for (const [x, y, r] of [[-12, 4, 13], [10, -6, 11], [8, 16, 8], [-16, -14, 6]]) { circ(c, x, y, r); c.fillStyle = '#ffb02e'; c.fill(); circ(c, x - r * 0.2, y - r * 0.2, r * 0.45); c.fillStyle = '#ffe680'; c.fill(); } },
   quake(c, k) { line(c, [-26, -18, -10, -4, -16, 6, 2, 14, -4, 26], 3.5); line(c, [-10, -4, 10, -10, 24, -2], 3); line(c, [2, 14, 18, 18], 3); },
@@ -4426,6 +4457,23 @@ Object.assign(ART, {
 });
 
 Object.assign(ART_OUT, {
+  // four spider legs, two out of each side, scuttling, once it's angry
+  verity(c, k, f, t) {
+    if (!f || !f.u.mad) return;
+    const g = f.u.leg || 0;
+    c.lineCap = 'round'; c.lineJoin = 'round';
+    c.beginPath();
+    for (const s of [-1, 1]) for (let j = 0; j < 2; j++) {
+      // root on the body, knee up and out, foot down on the floor; opposite legs lift in turn
+      const rx = s * 34, ry = -6 + j * 20, lift = Math.max(0, Math.sin(t * 20 + (j + (s > 0 ? 1 : 0)) * PI)) * 9;
+      const kx = rx + (s * (18 + j * 12)) * g, ky = ry + (-22 + j * 10) * g - lift * 0.5;
+      const fx = rx + (s * (24 + j * 18)) * g, fy = ry + (40 - j * 10) * g - lift;
+      c.moveTo(rx, ry); c.lineTo(kx, ky); c.lineTo(fx, fy);
+    }
+    c.lineWidth = 9; c.strokeStyle = 'rgba(255,255,255,0.3)'; c.stroke();   // a light edge, for the dark floor
+    c.lineWidth = 6; c.strokeStyle = INK; c.stroke();
+    c.lineCap = 'butt'; c.lineJoin = 'miter';
+  },
   boss_titan(c, k) { for (const s of [-1, 1]) { poly(c, [s * 24, -30, s * 34, -52, s * 40, -24]); inkFill(c, '#a88a6a', 2); } },
   boss_void(c, k, f, t) { for (let i = 0; i < 10; i++) { const a = i * TAU / 10 + t * 0.4; poly(c, [Math.cos(a - 0.1) * 38, Math.sin(a - 0.1) * 38, Math.cos(a) * 50, Math.sin(a) * 50, Math.cos(a + 0.1) * 38, Math.sin(a + 0.1) * 38]); inkFill(c, '#3a2f5a', 1.4); } },
   porcupine(c, k) { for (let i = -5; i <= 5; i++) { const a = -HALF_PI + i * 0.28; poly(c, [Math.cos(a - 0.08) * 36, Math.sin(a - 0.08) * 36, Math.cos(a) * 50, Math.sin(a) * 50, Math.cos(a + 0.08) * 36, Math.sin(a + 0.08) * 36]); inkFill(c, '#f4efe6', 1.4); } },
@@ -4706,7 +4754,7 @@ const SFX = (() => {
     tick(p) { if (ok('tick', 25)) tone('triangle', 1300 + (p || 0) * 600, 1200, 0.025, 0.07); },
     reveal(rank) {
       if (!ac || !sfxOn) return;
-      const chords = [[523, 659, 784], [587, 740, 880], [659, 831, 988, 1319], [523, 659, 784, 1047, 1319, 1568], [440, 554, 659, 880, 1109, 1319, 1760]];
+      const chords = [[523, 659, 784], [587, 740, 880], [659, 831, 988, 1319], [523, 659, 784, 1047, 1319, 1568], [440, 554, 659, 880, 1109, 1319, 1760], [392, 494, 587, 784, 988, 1175, 1568, 1976]];
       const ch = chords[rank] || chords[0];
       ch.forEach((f, i) => { tone('triangle', f, f, 0.8, 0.07, i * 0.06); tone('sine', f * 2, f * 2, 0.5, 0.02, i * 0.06); });
       if (rank >= 2) noise(0.6, 0.08, 'highpass', 6000, 9000, 0.7, 0.05);
@@ -4795,12 +4843,12 @@ const BOT_WIN = 20, BOT_LOSS = 5;            // bots pay far less than real play
 const WIN_BONUS = 0.1;                       // a PvP winner also gets 10% of the stake from the house
 const RANKS = [['Bronze', 0, '#c98a55'], ['Silver', 200, '#c3ccd8'], ['Gold', 500, '#ffd633'], ['Platinum', 900, '#7fe0d4'], ['Diamond', 1400, '#8fb8ff'], ['Champion', 2000, '#ff2d78']];
 const CRATES = [
-  { id: 'mixed', name: 'Mixed Crate', price: 250, col: '#8a93a6', odds: { C: 64, R: 26, E: 7.4, L: 2, M: 0.6 }, pool: () => BALLS, blurb: 'Any ball in the game, even a Mythic.' },
-  { id: 'off', name: 'Offense Crate', price: 400, col: '#ff4646', odds: { C: 55, R: 31, E: 11, L: 2.5, M: 0.5 }, pool: () => BALLS.filter(b => b.cat === 'off'), blurb: 'Weapons and shooters.' },
+  { id: 'mixed', name: 'Mixed Crate', price: 250, col: '#8a93a6', odds: { C: 64, R: 26, E: 7.4, L: 2, M: 0.6, S: 0.15 }, pool: () => BALLS, blurb: 'Any ball in the game, even a Mythic.' },
+  { id: 'off', name: 'Offense Crate', price: 400, col: '#ff4646', odds: { C: 55, R: 31, E: 11, L: 2.5, M: 0.5, S: 0.2 }, pool: () => BALLS.filter(b => b.cat === 'off'), blurb: 'Weapons and shooters.' },
   { id: 'def', name: 'Defense Crate', price: 400, col: '#4a9bff', odds: { C: 55, R: 31, E: 11, L: 2.5, M: 0.5 }, pool: () => BALLS.filter(b => b.cat === 'def'), blurb: 'Armour, healing and ways to survive.' },
   { id: 'trick', name: 'Trick Crate', price: 400, col: '#b46bff', odds: { C: 55, R: 31, E: 11, L: 2.5, M: 0.5 }, pool: () => BALLS.filter(b => b.cat === 'trick'), blurb: 'Fire, ice, magic and chaos.' },
   { id: 'gimmick', name: 'Gimmick Crate', price: 1000, col: '#3fd6c6', odds: { R: 52, E: 33, L: 12, M: 3 }, pool: () => BALLS.filter(b => b.special), blurb: 'Only the strange ones: copycats, clones, painters, nukes.' },
-  { id: 'legend', name: 'Legend Crate', price: 2000, col: '#ffb020', odds: { R: 50, E: 36, L: 12, M: 2 }, pool: () => BALLS.filter(b => b.rar !== 'C'), blurb: 'No commons. The best shot at a Legendary or a Mythic.' },
+  { id: 'legend', name: 'Legend Crate', price: 2000, col: '#ffb020', odds: { R: 50, E: 36, L: 12, M: 2, S: 0.5 }, pool: () => BALLS.filter(b => b.rar !== 'C'), blurb: 'No commons. The best shot at a Legendary or a Mythic.' },
 ];
 const STARTER = { id: 'starter', name: 'Starter Crate', price: 0, col: '#5cff9d', odds: { C: 80, R: 20 }, pool: () => BALLS.filter(b => b.rar === 'C' || b.rar === 'R'), blurb: '' };
 const COIN_SVG = '<svg class="i coin" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8.5" fill="currentColor"/><circle cx="10" cy="10" r="5.6" fill="none" stroke="#7a5600" stroke-width="1.6"/><path d="M10 6.6v6.8" stroke="#7a5600" stroke-width="1.8" stroke-linecap="round"/></svg>';
@@ -4852,7 +4900,7 @@ function pityRoll(cr) {
 // [rarity, chance] for the rarities this crate can really give
 function crateOdds(crate) {
   const pool = crate.pool(), out = [];
-  for (const k of ['C', 'R', 'E', 'L', 'M']) if (crate.odds[k] && pool.some(b => b.rar === k)) out.push([k, crate.odds[k]]);
+  for (const k of ['C', 'R', 'E', 'L', 'M', 'S']) if (crate.odds[k] && pool.some(b => b.rar === k)) out.push([k, crate.odds[k]]);
   const tot = out.reduce((a, o) => a + o[1], 0);
   return out.map(([k, v]) => [k, v / tot]);
 }
@@ -6594,7 +6642,7 @@ function ghostMatch() {
   NET.set({ st: 'm', want: null, mid: null, vs: null });
   if (MM.sheet) { const s = MM.sheet.s; MM.sheet = null; s.onclose = null; closeSheet(s); }
   // their ball: mostly ones a player at this level would have, a Mythic only rarely
-  const pool = BALLS.filter(b => b.id !== G.eq && (b.rar !== 'M' || Math.random() < 0.15));
+  const pool = BALLS.filter(b => b.id !== G.eq && (b.rar !== 'M' || Math.random() < 0.15) && (b.rar !== 'S' || Math.random() < 0.03));
   const b = pool[Math.floor(Math.random() * pool.length)], lv = lvlOf(G.eq);
   const foe = { id: b.id, lvl: clamp(lv + Math.floor(Math.random() * 3) - 1, 1, MAXLVL), name: ghostName(), tro: Math.max(0, G.tro + Math.round((Math.random() - 0.5) * 90)) };
   const mine = { id: G.eq, lvl: lv, name: NET.nameFor(null, myNick()) };
