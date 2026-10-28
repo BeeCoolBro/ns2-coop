@@ -5253,7 +5253,7 @@ function panelCrates() {
     h('div', { class: 'qt' }, h('b', { text: 'DAILY MIXED CRATE' }), h('small', { text: 'Free every day. Ready now.' })),
     h('button', { class: 'btn2 on', text: 'OPEN FREE', onclick: claimDaily })));
   G.free.forEach((id, i) => free.push(h('div', { class: 'freec done' }, pic(crateIcon(crateById(id), 56), 56),
-    h('div', { class: 'qt' }, h('b', { text: crateById(id).name.toUpperCase() }), h('small', { text: 'A level-up reward.' })),
+    h('div', { class: 'qt' }, h('b', { text: crateById(id).name.toUpperCase() }), h('small', { text: freeFrom(id) })),
     h('button', { class: 'btn2 on', text: 'OPEN FREE', onclick: () => claimFree(i) }))));
   if (free.length) body.append(h('div', { class: 'sec', text: 'On the house' }), h('div', { class: 'freegrid' }, free));
   body.append(h('div', { class: 'sec', text: 'On the shelves' }));
@@ -5800,7 +5800,10 @@ function dailySub() { const n = dailyReady(); return n ? `${n} ${n === 1 ? 'rewa
 // ---- player level --------------------------------------------------------------
 function xpNeed(l) { return 100 + (l - 1) * 40; }
 function levelReward(l) { return { coins: 100 + l * 20, crate: l % 10 === 0 ? 'gimmick' : l % 5 === 0 ? 'mixed' : null }; }
-function crateById(id) { return CRATES.find(c => c.id === id) || CRATES[0]; }
+function crateById(id) { id = String(id).split('@')[0]; return CRATES.find(c => c.id === id) || CRATES[0]; }
+// G.free entries are 'crate@where' ('legend@raid'); older saves have just the crate
+const FREE_FROM = { lvl: 'A level-up reward.', cup: 'Won at The Box Cup.', raid: 'For beating a raid boss.' };
+function freeFrom(e) { const [id, at] = String(e).split('@'); return FREE_FROM[at || (id === 'legend' ? 'raid' : 'lvl')] || FREE_FROM.lvl; }
 function addXp(n) {
   const ups = [];
   G.xp += n;
@@ -5808,7 +5811,7 @@ function addXp(n) {
     G.xp -= xpNeed(G.plv); G.plv++;
     const r = levelReward(G.plv);
     G.coins += r.coins;
-    if (r.crate) G.free.push(r.crate);
+    if (r.crate) G.free.push(r.crate + '@lvl');
     ups.push(Object.assign({ lvl: G.plv }, r));
   }
   return ups;
@@ -5977,7 +5980,7 @@ function panelDaily() {
     const cr = crateById(id);
     left.append(h('div', { class: 'freec done' },
       pic(crateIcon(cr, 56), 56),
-      h('div', { class: 'qt' }, h('b', { text: cr.name.toUpperCase() }), h('small', { text: 'A level-up reward.' })),
+      h('div', { class: 'qt' }, h('b', { text: cr.name.toUpperCase() }), h('small', { text: freeFrom(id) })),
       h('button', { class: 'btn2 on', text: 'OPEN', onclick: () => claimFree(i) })));
   });
   const nx = levelReward(G.plv + 1);
@@ -6064,7 +6067,7 @@ function cupRecord(F, quit) {
     c.pay = pay;
   } else if (r === 2) {
     c.done = true; c.place = 'champ'; c.pay = CUP_PRIZE.champ;
-    G.coins += CUP_PRIZE.champ; G.free.push('gimmick'); G.cups = (G.cups || 0) + 1; c.ceremony = true;
+    G.coins += CUP_PRIZE.champ; G.free.push('gimmick@cup'); G.cups = (G.cups || 0) + 1; c.ceremony = true;
   }
   save();
 }
@@ -6387,7 +6390,7 @@ function raidPay(F, quit) {
   const coins = Math.round(dmg * 2.5) + (kill ? 1000 : 0);
   G.coins += coins;
   G.bossBest = Math.max(G.bossBest || 0, dmg);
-  if (kill) { G.bossKills = (G.bossKills || 0) + 1; G.free.push('legend'); }
+  if (kill) { G.bossKills = (G.bossKills || 0) + 1; G.free.push('legend@raid'); }
   save();
   return (F.raidPaid = { dmg, kill, coins });
 }
