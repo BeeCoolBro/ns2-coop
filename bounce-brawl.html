@@ -5865,6 +5865,13 @@ function claimDaily() {
   G.dday = today(); save();
   openCrate(CRATES[0], true);
 }
+// a crate waiting in G.free (level-ups, the cup, a boss kill): taken off the list, then opened
+function claimFree(i) {
+  const id = G.free[i];
+  if (id === undefined) return;
+  G.free.splice(i, 1); save();
+  openCrate(crateById(id), true);
+}
 
 // ---- Hardware's packs: three balls, each a Common or a Rare --------------------------
 const PACK = { id: 'pack', name: "Hardware's Pack", price: 300, col: '#ff2d78', odds: { C: 72, R: 28 }, pool: () => BALLS.filter(b => b.rar === 'C' || b.rar === 'R') };
