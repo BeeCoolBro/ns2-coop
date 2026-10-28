@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Bounce Brawl by BeeSide Studio's: two balls fight on their own in a box. Collect 30 balls and bet coins against other players.">
+<meta name="description" content="Bounce Brawl 2 by BeeSide Studio's: two balls fight on their own in a box. Collect 30 balls and bet coins against other players.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='27' fill='%23ff2d78' stroke='%230f1724' stroke-width='5'/%3E%3Cpath d='M38 14l4 4-14 18-5 1 1-5z' fill='%23d5dce5' stroke='%230f1724' stroke-width='2.5' stroke-linejoin='round'/%3E%3Cpath d='M20 36l8 8M23 46l-5 5' stroke='%230f1724' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>[hidden]{display:none!important} body{margin:0}</style>
 </head>
 <body>
-<title>Bounce Brawl</title>
+<title>Bounce Brawl 2</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -594,11 +594,11 @@ body.pre #menu *, body.pre #menu { animation-play-state: paused !important; }
 <div id="menu" class="scr">
   <div class="vig"></div>
   <div class="m-top"><a id="toBeeside" href="/" hidden title="Back to BeeSide Studio's"><svg class="i" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 10H4M9 5l-5 5 5 5"/></svg>BEESIDE</a><div class="m-online" id="monline"><i class="dot"></i><span>Connecting</span></div></div>
-  <div class="m-ver">BeeSide Studio's · Bounce Brawl · v1.1</div>
+  <div class="m-ver">BeeSide Studio's · Bounce Brawl 2 · v2.0</div>
   <div class="m-left">
     <div class="logo-wrap">
       <div class="logo-tag">// TWO BALLS. ONE BOX. //</div>
-      <div class="logo-main">BOUNCE<span class="two">BRAWL</span></div>
+      <div class="logo-main">BOUNCE<span class="two">BRAWL</span> 2</div>
       <div class="logo-sub">ONLY ONE BOUNCES OUT</div>
     </div>
     <nav class="m-nav" id="mnav" aria-label="Main menu"></nav>
@@ -4448,7 +4448,7 @@ function welcome() {
   if (G.starter) { askName(); return; }
   const s = sheet([
     h('div', { class: 'lsub', style: { margin: '0 0 8px' }, text: "// A BEESIDE STUDIO'S GAME //" }),
-    h('h2', { text: 'BOUNCE BRAWL' }),
+    h('h2', { text: 'BOUNCE BRAWL 2' }),
     h('div', { class: 'lsub', text: 'Two balls go in the box. Only one bounces out.' }),
     h('p', { text: `You don't control anything in a fight. Pick your ball, bet coins against another player, and watch it battle on its own. Each of the ${BALLS.length} balls has its own ability.` }),
     h('p', { text: 'Spend coins on crates to collect more balls. Repeats level them up.' }),
@@ -5335,7 +5335,7 @@ function intro() {
   if (REDUCED) return;
   const el = h('div', { id: 'intro', 'aria-hidden': 'true' },
     h('div', { class: 'ib' }, h('i'), h('i'), h('b')),
-    h('div', { class: 'it', html: 'BOUNCE <span>BRAWL</span>' }));
+    h('div', { class: 'it', html: 'BOUNCE <span>BRAWL</span> 2' }));
   document.body.classList.add('pre');
   document.body.append(el);
   let over = false;
