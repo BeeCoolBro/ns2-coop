@@ -6467,16 +6467,15 @@ const NET = {
 };
 
 // ---- matchmaking -----------------------------------------------------------
-const MM = { active: false, stake: 50, since: 0, match: null, timer: 0, sheet: null, ghostAt: 0, pairAt: 0 };
+const MM = { active: false, stake: 50, since: 0, match: null, timer: 0, sheet: null, ghostAt: 0 };
 let PENDING = null;
 
 function findMatch(stake) {
   if (!G.eq || FIGHT) return;
   if (G.coins < stake) { toast('Not enough coins for that stake'); return; }
   MM.active = true; MM.stake = stake; MM.since = Date.now(); MM.match = null;
-  // every search takes 5-10 seconds: real players pair from 5-8 s, a stand-in by 10 s at the latest
+  // real players pair at once; with nobody else searching, a stand-in comes after 5-10 seconds
   MM.ghostAt = MM.since + (Q.has('ghost') ? +Q.get('ghost') : 5000 + Math.random() * 5000);
-  MM.pairAt = MM.since + (Q.has('ghost') ? 0 : 5000 + Math.random() * 3000);
   NET.set({ st: 'q', stake, qt: Date.now(), want: null, mid: null, vs: null, res: null, ball: G.eq, lvl: lvlOf(G.eq), tro: G.tro });
   const status = h('p', { class: 'mmline', text: '' }), hint = h('p', { class: 'mmline', text: '' });
   const spin = h('canvas', { class: 'spin', width: 240, height: 240 });
@@ -6522,7 +6521,7 @@ function mmTick() {
   const q = peers.filter(p => p.presence.st === 'q');
   // nobody else is looking (or the one who is never answers): a stand-in opponent
   if (Date.now() > (q.length ? Math.max(MM.ghostAt, MM.since + 10000) : MM.ghostAt)) { ghostMatch(); return; }
-  if (!q.length || Date.now() < MM.pairAt) { if (NET.my.want) NET.set({ want: null }); return; }
+  if (!q.length) { if (NET.my.want) NET.set({ want: null }); return; }
   // the closest trophy count, then a fixed order so both sides agree
   q.sort((a, b) => (Math.abs((+a.presence.tro || 0) - G.tro) - Math.abs((+b.presence.tro || 0) - G.tro)) || (a.peer < b.peer ? -1 : 1));
   const best = q[0];
