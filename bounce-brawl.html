@@ -6905,7 +6905,12 @@ window.BB = {
   finish() { const F = FIGHT; if (!F) return null; skipFight(); fightFrame(F, 0.016); F.pt = 2; fightFrame(F, 0.016); return { winner: F.S.winner, coins: G.coins, tro: G.tro }; },
   crate(id) { const cr = CRATES.find(c => c.id === id) || STARTER; if (cr === STARTER) openCrate(STARTER, true); else buyCrate(cr); },
   coins(n) { G.coins = n; save(); renderView(); },
-  give(id, lvl) { G.owned[id] = { lvl: lvl || 1, copies: 0 }; if (!G.eq) G.eq = id; G.starter = true; save(); renderView(); },
+  give(id, lvl) {
+    if (!BALL[id]) return 'No ball called "' + id + '"';
+    G.owned[id] = { lvl: lvl || 1, copies: 0 }; G.eq = id; G.starter = true; save(); renderView();
+    toast(BALL[id].name + ' added and equipped');
+    return BALL[id].name + ' added and equipped';
+  },
   tab: setTab, find: findMatch, cancel: cancelMatch, ball: openBall, ghost: ghostMatch, xp: addXp, daily: () => { ensureDaily(); return G.quests; },
 };
 
