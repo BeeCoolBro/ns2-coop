@@ -470,6 +470,12 @@ body.pre #menu *, body.pre #menu { animation-play-state: paused !important; }
 .upcard .name { animation: rise .5s var(--ease) .35s backwards; } .upcard .rtag { animation: rise .5s var(--ease) .42s backwards; }
 .upcard .what { animation: whatIn .5s var(--spring) .5s backwards; } .upcard .desc { animation: rise .5s var(--ease) .58s backwards; }
 @keyframes whatIn { from { opacity: 0; transform: scale(1.5) } }
+.packrow { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; width: min(760px, 100%); }
+.packrow .upcard { width: min(220px, 100%); padding: 20px 14px 16px; animation: flipIn .7s var(--spring) backwards; animation-delay: var(--d, 0s); }
+.packrow .upcard img { width: 96px; height: 96px; }
+.packrow .upcard .name { font-size: 28px; }
+.packrow .upcard > * { animation-delay: calc(var(--d, 0s) + .3s) !important; }
+@media (max-width: 860px) { .packrow .upcard { display: grid; grid-template-columns: 64px 1fr; gap: 0 12px; text-align: left; width: 100%; padding: 14px; } .packrow .upcard img { width: 64px; height: 64px; grid-row: span 3; } .packrow .upcard .name { font-size: 24px; margin: 0; } .packrow .upcard .what { margin-top: 6px; } }
 .confetti { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 70; pointer-events: none; }
 /* the VS screen: both sides slide in, VS slams down, then the halves part to show the fight */
 .vs { animation: fadeIn .2s ease, vsShake .32s linear .62s; }
@@ -4195,8 +4201,8 @@ function panelCrates() {
     h('div', { class: 'dp' }, sold ? h('div', { class: 'now', text: 'SOLD' })
       : [h('div', { class: 'was', text: fmt(d.cr.price) }), h('div', { class: 'now', html: COIN_SVG + fmt(d.price) + `<span class="off">-${d.pct}%</span>` })])));
   const free = [];
-  if (G.dday !== today()) free.push(h('div', { class: 'freec done' }, h('img', { src: crateIcon(CRATES[0], 56), alt: '' }),
-    h('div', { class: 'qt' }, h('b', { text: 'DAILY MIXED CRATE' }), h('small', { text: 'Free every day. Ready now.' })),
+  if (G.dday !== today()) free.push(h('div', { class: 'freec done' }, h('img', { src: packIcon(56), alt: '' }),
+    h('div', { class: 'qt' }, h('b', { text: 'DAILY PACK' }), h('small', { text: 'Three balls, Common or Rare. Free every day.' })),
     h('button', { class: 'btn2 on', text: 'OPEN FREE', onclick: claimDaily })));
   G.free.forEach((id, i) => free.push(h('div', { class: 'freec done' }, h('img', { src: crateIcon(crateById(id), 56), alt: '' }),
     h('div', { class: 'qt' }, h('b', { text: crateById(id).name.toUpperCase() }), h('small', { text: 'A level-up reward.' })),
@@ -4274,6 +4280,10 @@ function openCrate(cr, free) {
   setTimeout(() => { if (!pop.isConnected) return; pop.classList.add('burst'); SFX.clang(); }, 1000);
   setTimeout(() => { if (!pop.isConnected) return; pop.replaceWith(wrap); sub.textContent = 'ROLLING...'; requestAnimationFrame(anim); }, 1300);
 }
+// what a pull did, in a few words
+function grantText(res) {
+  return res.kind === 'new' ? 'NEW BALL!' : res.kind === 'up' ? `LEVEL UP! NOW LV ${res.lvl}` : res.kind === 'max' ? `ALREADY MAXED: +${fmt(res.coins)} COINS` : `+1 COPY (${res.copies}/${res.need} TO LV ${res.lvl + 1})`;
+}
 function revealPrize(s, cr, b, free) {
   const res = grant(b.id, cr);
   const qd = cr === STARTER ? [] : questBump('crate', 1);
@@ -4281,7 +4291,7 @@ function revealPrize(s, cr, b, free) {
   save();
   if (qd.length) setTimeout(() => toast('Quest done: ' + questText(qd[0]) + '. Claim it in Daily.', 3200), 600);
   SFX.reveal(RARITY[b.rar].rank);
-  const what = res.kind === 'new' ? 'NEW BALL!' : res.kind === 'up' ? `LEVEL UP! NOW LV ${res.lvl}` : res.kind === 'max' ? `ALREADY MAXED: +${fmt(res.coins)} COINS` : `+1 COPY (${res.copies}/${res.need} TO LV ${res.lvl + 1})`;
+  const what = grantText(res);
   const done = () => { closeSheet(s); if (cr === STARTER) setTab('menu'); else renderView(); };
   const rank = RARITY[b.rar].rank;
   if (rank >= 2) setTimeout(() => confetti([RARITY[b.rar].col, '#ffffff', shade(RARITY[b.rar].col, 0.4)], 50 + rank * 30), 250);
@@ -4787,7 +4797,62 @@ function claimQuest(q) {
 function claimDaily() {
   if (G.dday === today()) return;
   G.dday = today(); save();
-  openCrate(CRATES[0], true);
+  openPack();
+}
+
+// ---- the daily pack: three balls, each a Common or a Rare -------------------------
+const PACK = { id: 'pack', name: 'Daily Pack', price: 100, col: '#ff2d78', odds: { C: 72, R: 28 }, pool: () => BALLS.filter(b => b.rar === 'C' || b.rar === 'R') };
+const PACK_ICON = {};
+// a foil pack with crimped ends, a pink band and three balls peeking over it
+function packIcon(px) {
+  if (PACK_ICON[px]) return PACK_ICON[px];
+  const cv = document.createElement('canvas'), dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = cv.height = px * dpr;
+  const c = cv.getContext('2d');
+  c.scale(dpr * px / 100, dpr * px / 100);
+  const body = () => {
+    c.beginPath(); c.moveTo(24, 14);
+    for (let x = 24; x < 76; x += 4) { c.lineTo(x + 2, 9); c.lineTo(x + 4, 14); }
+    c.lineTo(76, 86);
+    for (let x = 76; x > 24; x -= 4) { c.lineTo(x - 2, 91); c.lineTo(x - 4, 86); }
+    c.closePath();
+  };
+  body(); inkFill(c, '#1d1d24', 3);
+  c.save(); body(); c.clip();
+  c.fillStyle = '#ff2d78'; c.beginPath(); c.moveTo(20, 60); c.lineTo(80, 40); c.lineTo(80, 54); c.lineTo(20, 74); c.fill();
+  c.fillStyle = 'rgba(255,255,255,0.07)'; c.fillRect(27, 10, 7, 82);
+  c.restore();
+  for (const [x, y, col] of [[38, 30, '#9aa7b8'], [50, 26, '#3f8cff'], [62, 30, '#9aa7b8']]) { circ(c, x, y, 7); inkFill(c, col, 2); }
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.save(); c.translate(50, 57); c.rotate(-0.32); c.font = `400 9px ${FONT_D}`; c.letterSpacing = '1px'; c.fillStyle = '#16020a'; c.fillText('HARDWARE', 0, 0); c.letterSpacing = '0px'; c.restore();
+  c.font = `400 15px ${FONT_D}`; c.fillStyle = '#ffffff'; c.fillText('PACK', 50, 78);
+  return (PACK_ICON[px] = cv.toDataURL());
+}
+function openPack() {
+  closeAllSheets();
+  SFX.resume();
+  const picks = [0, 1, 2].map(() => rollCrate(PACK));
+  const pop = h('div', { class: 'cpop', style: { '--c': PACK.col } }, h('img', { src: packIcon(180), alt: '' }));
+  const s = sheet([h('div', { class: 'lsub', style: { margin: '0 0 6px' }, text: "HARDWARE'S CRATES" }), h('h2', { text: 'DAILY PACK' }), h('div', { class: 'lsub', text: 'TEARING IT OPEN...' }), REDUCED ? null : pop], { noClose: true });
+  if (REDUCED) { revealPack(s, picks); return; }
+  [250, 450, 600, 720, 820, 900].forEach((ms, i) => setTimeout(() => { if (pop.isConnected) SFX.tick(0.2 + i * 0.12); }, ms));
+  setTimeout(() => { if (!pop.isConnected) return; pop.classList.add('burst'); SFX.clang(); }, 1000);
+  setTimeout(() => { if (s.isConnected) revealPack(s, picks); }, 1300);
+}
+// the three cards flip over one after another
+function revealPack(s, picks) {
+  const res = picks.map(b => grant(b.id, PACK));
+  save();
+  const STEP = 0.32;
+  picks.forEach((b, i) => setTimeout(() => (i === 2 ? SFX.reveal(Math.max(...picks.map(p => RARITY[p.rar].rank))) : SFX.tink()), REDUCED ? 0 : i * STEP * 1000 + 150));
+  s.replaceChildren(
+    h('h2', { text: 'DAILY PACK' }), h('div', { class: 'lsub', text: 'THREE BALLS, ON THE HOUSE' }),
+    h('div', { class: 'packrow' }, picks.map((b, i) => h('div', { class: 'upcard', style: { '--r': RARITY[b.rar].col, '--d': (i * STEP) + 's' } },
+      ballImg(b.id, 96, ''),
+      h('div', { class: 'name', text: b.name.toUpperCase() }),
+      h('div', { class: 'rtag', text: `${RARITY[b.rar].name} · ${CATS[b.cat]}` + (b.special ? ' · Gimmick' : '') }),
+      h('div', { class: 'what', text: grantText(res[i]) })))),
+    h('div', { class: 'foot' }, h('button', { class: 'btn2 on', text: 'DONE', onclick: () => { closeSheet(s); renderView(); } })));
 }
 function claimFree(i) {
   const id = G.free[i];
@@ -4811,10 +4876,10 @@ function panelDaily() {
       q.got ? h('span', { class: 'lab', text: 'Claimed' })
         : h('button', { class: 'btn2' + (done ? ' on' : ''), disabled: !done, text: 'CLAIM', onclick: () => claimQuest(q) })));
   }
-  left.append(h('div', { class: 'sec', text: 'Free crates' }),
+  left.append(h('div', { class: 'sec', text: 'Free packs & crates' }),
     h('div', { class: 'freec' + (crateReady ? ' done' : '') },
-      h('img', { src: crateIcon(CRATES[0], 56), alt: '' }),
-      h('div', { class: 'qt' }, h('b', { text: 'DAILY MIXED CRATE' }), h('small', { text: crateReady ? 'Free every day. Ready now.' : `Opened today. Next one in ${untilTomorrow()}.` })),
+      h('img', { src: packIcon(56), alt: '' }),
+      h('div', { class: 'qt' }, h('b', { text: 'DAILY PACK' }), h('small', { text: crateReady ? 'Three balls, Common or Rare. Ready now.' : `Opened today. Next one in ${untilTomorrow()}.` })),
       h('button', { class: 'btn2' + (crateReady ? ' on' : ''), disabled: !crateReady, text: 'OPEN', onclick: claimDaily })));
   G.free.forEach((id, i) => {
     const cr = crateById(id);
@@ -5274,7 +5339,7 @@ function boot() {
   setTab('menu');
   intro();
   requestAnimationFrame(loop);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { for (const k in ICON) delete ICON[k]; for (const k in CRATE_ICON) delete CRATE_ICON[k]; if (!FIGHT) renderView(); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { for (const k in ICON) delete ICON[k]; for (const k in CRATE_ICON) delete CRATE_ICON[k]; for (const k in PACK_ICON) delete PACK_ICON[k]; if (!FIGHT) renderView(); });
   if (!G.starter || !(G.named || G.nick)) setTimeout(welcome, REDUCED ? 300 : 1500);
   netInit();
 }
