@@ -470,6 +470,20 @@ body.pre #menu *, body.pre #menu { animation-play-state: paused !important; }
 .upcard .name { animation: rise .5s var(--ease) .35s backwards; } .upcard .rtag { animation: rise .5s var(--ease) .42s backwards; }
 .upcard .what { animation: whatIn .5s var(--spring) .5s backwards; } .upcard .desc { animation: rise .5s var(--ease) .58s backwards; }
 @keyframes whatIn { from { opacity: 0; transform: scale(1.5) } }
+.rip { position: relative; width: 220px; height: 220px; animation: cshake 1s ease-in forwards; }
+.rip img { position: absolute; left: 20px; top: 20px; width: 180px; height: 180px; }
+.rip .top { z-index: 3; transform-origin: 72% 18%; }
+.rip .bot { z-index: 2; }
+.rip .cb { position: absolute; z-index: 1; left: 50%; top: 78px; width: 62px; height: 86px; margin-left: -31px; border-radius: 7px; box-sizing: border-box; border: 2px solid var(--o); background: repeating-linear-gradient(135deg, #1d1d24 0 6px, #141418 6px 12px); opacity: 0; }
+.rip.torn { animation: none; transform: scale(1.12); }
+.rip.torn .top { animation: ripTop .65s cubic-bezier(.2, .7, .3, 1) forwards; }
+@keyframes ripTop { 0% { transform: none } 22% { transform: translate(5px, -5px) rotate(7deg) } 100% { transform: translate(80px, -100px) rotate(42deg); opacity: 0 } }
+.rip.torn .bot { animation: ripBot .45s ease; }
+@keyframes ripBot { 30% { transform: translateY(7px) rotate(-2deg) } }
+.rip.out .cb { animation: cbUp .55s cubic-bezier(.3, 1.4, .5, 1) forwards; animation-delay: var(--d); }
+@keyframes cbUp { from { opacity: 1 } to { opacity: 1; transform: translate(var(--x), -92px) rotate(var(--r)) } }
+.rip.out .bot { animation: ripAway .5s ease .3s forwards; }
+@keyframes ripAway { to { transform: translateY(46px); opacity: 0 } }
 .packrow { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; width: min(760px, 100%); }
 .packrow .upcard { width: min(220px, 100%); padding: 20px 14px 16px; animation: flipIn .7s var(--spring) backwards; animation-delay: var(--d, 0s); }
 .packrow .upcard img { width: 96px; height: 96px; }
@@ -564,6 +578,7 @@ body.pre #menu *, body.pre #menu { animation-play-state: paused !important; }
 .deal .was { font: 400 12px var(--fm); color: #66666e; text-decoration: line-through; text-decoration-color: rgba(255,255,255,.35); }
 .deal .was::before { content: 'WAS '; display: inline-block; text-decoration: none; font: 700 8px var(--fb); letter-spacing: 2px; margin-right: 4px; }
 .deal .now { font: 400 26px/1 var(--fd); letter-spacing: 2px; color: var(--gold); display: inline-flex; align-items: center; gap: 6px; margin-top: 3px; }
+.deal .buy { font: 700 9px/1 var(--fb); letter-spacing: 3px; color: var(--o); margin-top: 6px; }
 .deal .off { font: 700 10px/1 var(--fb); letter-spacing: 1px; background: var(--o); color: #16020a; border-radius: 4px; padding: 3px 6px 2px; }
 /* stock on the shelf: a price tag on a string, and each crate drops into place */
 .shop .crate { padding-top: 46px; padding-bottom: 18px; border-bottom: 6px solid #24242b; }
@@ -3663,6 +3678,7 @@ const SFX = (() => {
       else if (k === 'bat') { noise(0.03, 0.12, 'bandpass', 1300, 0, 4); noise(0.03, 0.12, 'bandpass', 1100, 0, 4, 0.06); }
     },
     mark() { if (ok('mark', 120)) tone('sine', 62, 50, 0.3, 0.16); },
+    rip() { if (!ac || !sfxOn) return; noise(0.32, 0.24, 'bandpass', 3400, 1300, 1.4); noise(0.16, 0.14, 'highpass', 6500, 3200, 0.8, 0.07); noise(0.08, 0.12, 'bandpass', 2200, 1800, 2, 0.2); },
     drop() { if (ok('drop', 100)) tone('square', 420, 300, 0.06, 0.04); },
     ui() { if (ok('ui', 40)) tone('triangle', 660, 620, 0.05, 0.07); },
     coin() { if (!ok('coin', 60)) return; tone('square', 988, 988, 0.07, 0.04); tone('square', 1319, 1319, 0.12, 0.04, 0.07); },
@@ -3775,7 +3791,7 @@ const pad2 = n => String(n).padStart(2, '0');
 
 // ---- the save ------------------------------------------------------------------
 function freshSave() {
-  return { v: 1, coins: 600, tro: 0, peak: 0, owned: {}, eq: null, w: 0, l: 0, d: 0, bw: 0, bl: 0, xp: 0, plv: 1, streak: 0, bstreak: 0, free: [], qday: 0, quests: [], dday: 0, dealSlot: 0, nick: '', named: false, sfx: true, music: true, speed: 1, stake: 50, t: 0, starter: false, crates: 0 };
+  return { v: 1, coins: 600, tro: 0, peak: 0, owned: {}, eq: null, w: 0, l: 0, d: 0, bw: 0, bl: 0, xp: 0, plv: 1, streak: 0, bstreak: 0, free: [], qday: 0, quests: [], dday: 0, nick: '', named: false, sfx: true, music: true, speed: 1, stake: 50, t: 0, starter: false, crates: 0 };
 }
 function loadLocal() {
   try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.v === 1) return Object.assign(freshSave(), s); } catch (e) {}
@@ -4159,21 +4175,7 @@ function statusBits(broke) {
   return [h('i', { class: 'dot live' }), 'MATCHED BY TROPHIES'];
 }
 
-// ---- 02 crates -------------------------------------------------------------------
 // ---- 03 crates: Hardware's shop ---------------------------------------------------
-// One crate sits on the counter cheaper until the next restock, the same one for
-// everybody (picked from the clock), and it can be bought once per restock.
-const DEAL_MS = 2 * 60 * 60 * 1000;
-function crateDeal() {
-  const slot = Math.floor(Date.now() / DEAL_MS), r = rng(hashStr('deal:' + slot));
-  const pool = CRATES.filter(c => c.id !== 'mixed'), cr = pool[Math.floor(r() * pool.length)];
-  const pct = [10, 15, 20, 25, 30][Math.floor(r() * 5)];
-  return { slot, cr, pct, price: Math.round(cr.price * (1 - pct / 100) / 10) * 10 };
-}
-function restockText() {
-  const m = Math.max(1, Math.round((DEAL_MS - Date.now() % DEAL_MS) / 60000));
-  return m >= 60 ? `${Math.floor(m / 60)}H ${m % 60}M` : `${m}M`;
-}
 // the workshop around the shelves: a lamp, racks of boxes, the bay number, a hazard-striped floor
 function shopRoom() {
   const rack = side => {
@@ -4192,17 +4194,14 @@ function panelCrates() {
   const [p, body] = panelShell('', 'CRATES', ["HARDWARE'S", 'CRATES']);
   p.classList.add('shop');
   p.prepend(shopRoom());
-  body.append(h('p', { class: 'shopline', html: 'Sealed crates, straight off the truck. No refunds. <b>Repeats level up a ball you already have.</b>' }));
-  const d = crateDeal(), sold = G.dealSlot === d.slot;
-  body.append(h('button', { class: 'deal', style: { '--c': d.cr.col }, disabled: sold || G.coins < d.price,
-      onclick: () => { if (G.dealSlot === d.slot || G.coins < d.price) return; G.dealSlot = d.slot; buyCrate(d.cr, d.price); } },
-    h('img', { src: crateIcon(d.cr, 52), alt: '' }),
-    h('div', { class: 'di' }, h('div', { class: 'dt', text: (sold ? 'Sold out' : 'On the counter') + ' · new stock in ' + restockText() }), h('div', { class: 'dn', text: d.cr.name.toUpperCase() })),
-    h('div', { class: 'dp' }, sold ? h('div', { class: 'now', text: 'SOLD' })
-      : [h('div', { class: 'was', text: fmt(d.cr.price) }), h('div', { class: 'now', html: COIN_SVG + fmt(d.price) + `<span class="off">-${d.pct}%</span>` })])));
+  body.append(h('p', { class: 'shopline', html: 'Sealed crates and packs, straight off the truck. No refunds. <b>Repeats level up a ball you already have.</b>' }));
+  body.append(h('button', { class: 'deal', style: { '--c': PACK.col }, disabled: G.coins < PACK.price, onclick: buyPack },
+    h('img', { src: packIcon(52), alt: '' }),
+    h('div', { class: 'di' }, h('div', { class: 'dt', text: 'On the counter · three balls · Common or Rare' }), h('div', { class: 'dn', text: "HARDWARE'S PACK" })),
+    h('div', { class: 'dp' }, h('div', { class: 'now', html: COIN_SVG + fmt(PACK.price) }), h('div', { class: 'buy', text: 'BUY & RIP' }))));
   const free = [];
-  if (G.dday !== today()) free.push(h('div', { class: 'freec done' }, h('img', { src: packIcon(56), alt: '' }),
-    h('div', { class: 'qt' }, h('b', { text: 'DAILY PACK' }), h('small', { text: 'Three balls, Common or Rare. Free every day.' })),
+  if (G.dday !== today()) free.push(h('div', { class: 'freec done' }, h('img', { src: crateIcon(CRATES[0], 56), alt: '' }),
+    h('div', { class: 'qt' }, h('b', { text: 'DAILY MIXED CRATE' }), h('small', { text: 'Free every day. Ready now.' })),
     h('button', { class: 'btn2 on', text: 'OPEN FREE', onclick: claimDaily })));
   G.free.forEach((id, i) => free.push(h('div', { class: 'freec done' }, h('img', { src: crateIcon(crateById(id), 56), alt: '' }),
     h('div', { class: 'qt' }, h('b', { text: crateById(id).name.toUpperCase() }), h('small', { text: 'A level-up reward.' })),
@@ -4228,10 +4227,9 @@ function panelCrates() {
   body.append(g);
   return p;
 }
-function buyCrate(cr, price) {
-  const cost = price || cr.price;
-  if (G.coins < cost) { toast('Not enough coins'); return; }
-  G.coins -= cost; G.crates++; save();
+function buyCrate(cr) {
+  if (G.coins < cr.price) { toast('Not enough coins'); return; }
+  G.coins -= cr.price; G.crates++; save();
   openCrate(cr, false);
 }
 // free: no price and no "again" button (the starter, the daily crate, level-up crates)
@@ -4797,11 +4795,11 @@ function claimQuest(q) {
 function claimDaily() {
   if (G.dday === today()) return;
   G.dday = today(); save();
-  openPack();
+  openCrate(CRATES[0], true);
 }
 
-// ---- the daily pack: three balls, each a Common or a Rare -------------------------
-const PACK = { id: 'pack', name: 'Daily Pack', price: 100, col: '#ff2d78', odds: { C: 72, R: 28 }, pool: () => BALLS.filter(b => b.rar === 'C' || b.rar === 'R') };
+// ---- Hardware's packs: three balls, each a Common or a Rare --------------------------
+const PACK = { id: 'pack', name: "Hardware's Pack", price: 300, col: '#ff2d78', odds: { C: 72, R: 28 }, pool: () => BALLS.filter(b => b.rar === 'C' || b.rar === 'R') };
 const PACK_ICON = {};
 // a foil pack with crimped ends, a pink band and three balls peeking over it
 function packIcon(px) {
@@ -4828,37 +4826,48 @@ function packIcon(px) {
   c.font = `400 15px ${FONT_D}`; c.fillStyle = '#ffffff'; c.fillText('PACK', 50, 78);
   return (PACK_ICON[px] = cv.toDataURL());
 }
+function buyPack() {
+  if (G.coins < PACK.price) { toast('Not enough coins'); return; }
+  G.coins -= PACK.price; save();
+  openPack();
+}
+// the pack shakes, its top tears off along the crimp, and three cards slide up out of it
 function openPack() {
   closeAllSheets();
   SFX.resume();
   const picks = [0, 1, 2].map(() => rollCrate(PACK));
-  const pop = h('div', { class: 'cpop', style: { '--c': PACK.col } }, h('img', { src: packIcon(180), alt: '' }));
-  const s = sheet([h('div', { class: 'lsub', style: { margin: '0 0 6px' }, text: "HARDWARE'S CRATES" }), h('h2', { text: 'DAILY PACK' }), h('div', { class: 'lsub', text: 'TEARING IT OPEN...' }), REDUCED ? null : pop], { noClose: true });
+  const TEAR = 22, pts = [];
+  for (let x = 0; x <= 100; x += 5) pts.push(`${x}% ${(TEAR + (x % 10 ? 2.4 : -2.4)).toFixed(1)}%`);
+  const src = packIcon(180);
+  const top = h('img', { class: 'top', src, alt: '', style: { clipPath: `polygon(0% 0%, 100% 0%, ${pts.slice().reverse().join(', ')})` } });
+  const bot = h('img', { class: 'bot', src, alt: '', style: { clipPath: `polygon(${pts.join(', ')}, 100% 100%, 0% 100%)` } });
+  const cards = [[-46, -12], [0, 0], [46, 12]].map(([x, r], i) => h('i', { class: 'cb', style: { '--x': x + 'px', '--r': r + 'deg', '--d': (i * 0.09) + 's' } }));
+  const rip = h('div', { class: 'rip' }, cards, bot, top);
+  const sub = h('div', { class: 'lsub', text: 'RIPPING IT OPEN...' });
+  const s = sheet([h('div', { class: 'lsub', style: { margin: '0 0 6px' }, text: "HARDWARE'S CRATES" }), h('h2', { text: 'PACK' }), sub, REDUCED ? null : rip], { noClose: true });
   if (REDUCED) { revealPack(s, picks); return; }
-  [250, 450, 600, 720, 820, 900].forEach((ms, i) => setTimeout(() => { if (pop.isConnected) SFX.tick(0.2 + i * 0.12); }, ms));
-  setTimeout(() => { if (!pop.isConnected) return; pop.classList.add('burst'); SFX.clang(); }, 1000);
-  setTimeout(() => { if (s.isConnected) revealPack(s, picks); }, 1300);
+  [250, 450, 600, 720, 820, 900].forEach((ms, i) => setTimeout(() => { if (rip.isConnected) SFX.tick(0.2 + i * 0.12); }, ms));
+  setTimeout(() => { if (!rip.isConnected) return; rip.classList.add('torn'); SFX.rip(); confetti(['#ffffff', '#c9c9d2', PACK.col], 22); }, 1000);
+  setTimeout(() => { if (!rip.isConnected) return; rip.classList.add('out'); SFX.pop(); }, 1350);
+  setTimeout(() => { if (s.isConnected) revealPack(s, picks); }, 2000);
 }
 // the three cards flip over one after another
 function revealPack(s, picks) {
-  const res = picks.map(b => grant(b.id, PACK));
+  // a maxed ball pays out like a cheap crate, so a pack can never pay for itself
+  const res = picks.map(b => grant(b.id, { price: 100 }));
   save();
   const STEP = 0.32;
   picks.forEach((b, i) => setTimeout(() => (i === 2 ? SFX.reveal(Math.max(...picks.map(p => RARITY[p.rar].rank))) : SFX.tink()), REDUCED ? 0 : i * STEP * 1000 + 150));
   s.replaceChildren(
-    h('h2', { text: 'DAILY PACK' }), h('div', { class: 'lsub', text: 'THREE BALLS, ON THE HOUSE' }),
+    h('h2', { text: 'PACK' }), h('div', { class: 'lsub', text: "THREE BALLS FROM HARDWARE'S" }),
     h('div', { class: 'packrow' }, picks.map((b, i) => h('div', { class: 'upcard', style: { '--r': RARITY[b.rar].col, '--d': (i * STEP) + 's' } },
       ballImg(b.id, 96, ''),
       h('div', { class: 'name', text: b.name.toUpperCase() }),
       h('div', { class: 'rtag', text: `${RARITY[b.rar].name} · ${CATS[b.cat]}` + (b.special ? ' · Gimmick' : '') }),
       h('div', { class: 'what', text: grantText(res[i]) })))),
-    h('div', { class: 'foot' }, h('button', { class: 'btn2 on', text: 'DONE', onclick: () => { closeSheet(s); renderView(); } })));
-}
-function claimFree(i) {
-  const id = G.free[i];
-  if (!id) return;
-  G.free.splice(i, 1); save();
-  openCrate(crateById(id), true);
+    h('div', { class: 'foot' },
+      h('button', { class: 'btn2 on', disabled: G.coins < PACK.price, onclick: () => { closeSheet(s); buyPack(); }, html: `AGAIN ${COIN_SVG} <span class="mono">${fmt(PACK.price)}</span>` }),
+      h('button', { class: 'btn2', text: 'DONE', onclick: () => { closeSheet(s); renderView(); } })));
 }
 
 // ---- 02 daily ----------------------------------------------------------------------
@@ -4876,10 +4885,10 @@ function panelDaily() {
       q.got ? h('span', { class: 'lab', text: 'Claimed' })
         : h('button', { class: 'btn2' + (done ? ' on' : ''), disabled: !done, text: 'CLAIM', onclick: () => claimQuest(q) })));
   }
-  left.append(h('div', { class: 'sec', text: 'Free packs & crates' }),
+  left.append(h('div', { class: 'sec', text: 'Free crates' }),
     h('div', { class: 'freec' + (crateReady ? ' done' : '') },
-      h('img', { src: packIcon(56), alt: '' }),
-      h('div', { class: 'qt' }, h('b', { text: 'DAILY PACK' }), h('small', { text: crateReady ? 'Three balls, Common or Rare. Ready now.' : `Opened today. Next one in ${untilTomorrow()}.` })),
+      h('img', { src: crateIcon(CRATES[0], 56), alt: '' }),
+      h('div', { class: 'qt' }, h('b', { text: 'DAILY MIXED CRATE' }), h('small', { text: crateReady ? 'Free every day. Ready now.' : `Opened today. Next one in ${untilTomorrow()}.` })),
       h('button', { class: 'btn2' + (crateReady ? ' on' : ''), disabled: !crateReady, text: 'OPEN', onclick: claimDaily })));
   G.free.forEach((id, i) => {
     const cr = crateById(id);
