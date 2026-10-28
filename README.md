@@ -244,14 +244,15 @@ It plays like Survivor.io, with ROTFALL's guns, supports, survivors and dead:
   speed, reach, gold, refreshes). The first time you fall you get one free
   revive. The experience for each level climbs on a gentle curve, times 1.1.
 
-## Bounce Brawl
+## Bounce Brawl 2
 
 `bounce-brawl.html` (at `/bounce-brawl`) is built, not written by hand: its
 sources are in `Downloads/claude/bounce-brawl/src`, and `python build.py --site`
 there writes the page here. Two balls fight on their own in a box; players pick
-one of 100 balls (from crates), bet coins against each other and watch. It is
-in the vault's Bee's Projects (opened with `#bv=1`, so it hides its BEESIDE
-button), not on the front page.
+one of 100 balls (from crates), bet coins against each other and watch. It has
+door 2 on the front page (ROTFALL 2 moved to Other Projects, where it took the
+"More soon" spot) and a card in the vault's Bee's Projects (opened with `#bv=1`,
+so it hides its BEESIDE button).
 
 - **The lobby** is the websocket `/bb`. Each open game keeps a small presence
   (its ball, trophies, whether it is looking for a fight) and the server hands
