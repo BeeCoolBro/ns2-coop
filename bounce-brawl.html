@@ -398,6 +398,119 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 }
 @media (max-width: 420px) { .logo-main { font-size: 54px; } .stake .v { font-size: 21px; } .go { font-size: 26px; letter-spacing: 4px; } }
 @media (prefers-reduced-motion: reduce) { .m-item, .m-card, .panel, .upcard, .banner div { animation: none; } .hp i, .hp b { transition: none; } }
+/* ---- motion: the intro, screen changes, crates, the VS screen and results ---- */
+@keyframes rise { from { opacity: 0; transform: translateY(14px) } }
+@keyframes ring { from { transform: scale(.4); opacity: 1 } to { transform: scale(1.9); opacity: 0 } }
+@keyframes spin { to { transform: rotate(360deg) } }
+.btn2, .chip, .back { transition: border-color .15s, color .15s, background .15s, transform .12s var(--ease); }
+.btn2:active:not(:disabled), .chip:active, .back:active, .stake:active:not(:disabled), .ptabs button:active, .m-item:active { transform: scale(.96); }
+/* opening the game */
+#intro { position: fixed; inset: 0; z-index: 90; background: #030304; display: grid; place-items: center; align-content: center; gap: 22px; pointer-events: none; animation: introOut .5s var(--ease) 1.25s forwards; }
+#intro.skip { animation: introOut .2s ease forwards; }
+@keyframes introOut { to { opacity: 0; visibility: hidden } }
+#intro .ib { position: relative; width: 200px; height: 34px; }
+#intro .ib i { position: absolute; top: 0; width: 34px; height: 34px; border-radius: 50%; box-sizing: border-box; border: 3px solid #030304; }
+#intro .ib i:nth-child(1) { left: 0; background: var(--you); animation: ibL .9s forwards; }
+#intro .ib i:nth-child(2) { right: 0; background: var(--foe); animation: ibR .9s forwards; }
+#intro .ib b { position: absolute; left: 50%; top: 50%; width: 60px; height: 60px; margin: -30px; border-radius: 50%; border: 3px solid var(--o); opacity: 0; animation: ring .5s var(--ease) .42s forwards; }
+@keyframes ibL { 0% { transform: translateX(-40px); opacity: 0; animation-timing-function: cubic-bezier(.5,0,.9,.5) } 47% { transform: translateX(66px); opacity: 1; animation-timing-function: cubic-bezier(.2,.7,.3,1) } 100% { transform: translateX(28px) } }
+@keyframes ibR { 0% { transform: translateX(40px); opacity: 0; animation-timing-function: cubic-bezier(.5,0,.9,.5) } 47% { transform: translateX(-66px); opacity: 1; animation-timing-function: cubic-bezier(.2,.7,.3,1) } 100% { transform: translateX(-28px) } }
+#intro .it { font: 400 54px/1 var(--fd); letter-spacing: 8px; color: var(--o); animation: itIn .6s var(--ease) .45s backwards; white-space: nowrap; }
+#intro .it span { color: var(--txt); }
+@keyframes itIn { from { opacity: 0; letter-spacing: 26px; transform: translateY(8px) } }
+#bg { transition: opacity .5s ease; }
+#bg.fade, body.pre #bg { opacity: 0; }
+.logo-tag { animation: rise .6s var(--ease) .05s backwards; }
+.logo-main { animation: logoIn .8s var(--ease) .1s backwards; }
+.logo-sub { animation: rise .6s var(--ease) .3s backwards; }
+.m-top, .m-hint, .m-ver { animation: fadeIn .8s ease .5s backwards; }
+@keyframes logoIn { from { opacity: 0; transform: translateY(18px); letter-spacing: 16px } }
+body.pre #menu *, body.pre #menu { animation-play-state: paused !important; }
+/* panels: slide in from the side you are moving towards, items rise in turn */
+.panel { animation-name: panIn2; }
+@keyframes panIn2 { from { opacity: 0; transform: translateX(var(--dx, 40px)) } }
+.panel.out { animation: panOut .22s ease forwards; pointer-events: none; }
+@keyframes panOut { to { opacity: 0; transform: translateX(-30px) } }
+.stg { animation: rise .5s var(--ease) backwards; animation-delay: calc(var(--i, 0) * 32ms + 90ms); }
+/* sheets */
+.ov > * { animation: rise .45s var(--ease) backwards; }
+.ov > :nth-child(2) { animation-delay: .04s } .ov > :nth-child(3) { animation-delay: .08s } .ov > :nth-child(4) { animation-delay: .12s } .ov > :nth-child(5) { animation-delay: .16s } .ov > :nth-child(6) { animation-delay: .2s } .ov > :nth-child(7) { animation-delay: .24s }
+.ov.closing { animation: ovOut .2s ease forwards; pointer-events: none; }
+@keyframes ovOut { to { opacity: 0; transform: scale(.985) } }
+.toast { animation: toastIn .35s var(--ease); }
+.toast.out { animation: toastOut .25s ease forwards; }
+@keyframes toastIn { from { opacity: 0; transform: translate(-50%, 18px) } }
+@keyframes toastOut { to { opacity: 0; transform: translate(-50%, 8px) } }
+[data-coins].bump, [data-tro].bump { display: inline-block; animation: bump .35s var(--ease); }
+@keyframes bump { 40% { transform: scale(1.18); color: var(--gold) } }
+/* crates: the crate shakes, bursts, and the reel rolls out */
+.cpop { --c: #888; position: relative; width: 220px; height: 220px; display: grid; place-items: center; }
+.cpop img { width: 180px; height: 180px; animation: cshake 1s ease-in forwards; }
+@keyframes cshake { 0% { transform: scale(.5); opacity: 0 } 14% { transform: scale(1.06); opacity: 1 } 24% { transform: scale(1) } 38% { transform: rotate(-3deg) } 48% { transform: rotate(3deg) } 58% { transform: rotate(-5deg) translateY(-2px) } 68% { transform: rotate(6deg) } 77% { transform: rotate(-8deg) translateY(-5px) } 86% { transform: rotate(9deg) } 94% { transform: rotate(-10deg) scale(1.06) } 100% { transform: scale(1.12) } }
+.cpop.burst img { animation: cburst .3s var(--ease) forwards; }
+@keyframes cburst { to { transform: scale(1.7); opacity: 0 } }
+.cpop.burst::before, .cpop.burst::after { content: ""; position: absolute; inset: 30px; border-radius: 50%; border: 3px solid var(--c); animation: ring .5s var(--ease) forwards; }
+.cpop.burst::after { border-color: #fff; border-width: 2px; animation-delay: .06s; opacity: 0; }
+.reelwrap { animation: reelIn .45s var(--ease) backwards; }
+@keyframes reelIn { from { opacity: 0; transform: scaleY(.5) } }
+.reel div { transition: transform .16s var(--ease), opacity .35s ease, border-color .3s; }
+.reel div.on { transform: scale(1.05); border-color: #3a3a44; }
+.reelwrap.stop .reel div { opacity: .28; }
+.reelwrap.stop .reel div.win { opacity: 1; transform: scale(1.12); border-color: var(--r); }
+.rv { position: relative; display: grid; place-items: center; width: min(300px, 100%); }
+.rv .rays { --r: #888; position: absolute; left: 50%; top: 42%; width: 640px; height: 640px; margin: -320px 0 0 -320px; pointer-events: none; z-index: 0; opacity: var(--ro, .5);
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--r) 30%, transparent) 0 9deg, transparent 9deg 24deg);
+  -webkit-mask: radial-gradient(closest-side, #000 20%, transparent 100%); mask: radial-gradient(closest-side, #000 20%, transparent 100%);
+  animation: spin 18s linear infinite, fadeIn .8s ease; }
+.rv .upcard { z-index: 1; animation: flipIn .75s var(--spring) backwards; }
+@keyframes flipIn { from { opacity: 0; transform: perspective(900px) rotateY(85deg) scale(.8) } }
+.upcard img { animation: popIn .6s var(--spring) .25s backwards; }
+@keyframes popIn { from { transform: scale(0) rotate(-50deg) } }
+.upcard .name { animation: rise .5s var(--ease) .35s backwards; } .upcard .rtag { animation: rise .5s var(--ease) .42s backwards; }
+.upcard .what { animation: whatIn .5s var(--spring) .5s backwards; } .upcard .desc { animation: rise .5s var(--ease) .58s backwards; }
+@keyframes whatIn { from { opacity: 0; transform: scale(1.5) } }
+.confetti { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 70; pointer-events: none; }
+/* the VS screen: both sides slide in, VS slams down, then the halves part to show the fight */
+.vs { animation: fadeIn .2s ease, vsShake .32s linear .62s; }
+.vs .side.you, .vs .side.foe { background-color: #030304; transition: transform .5s cubic-bezier(.7,0,.84,0), opacity .5s ease; }
+.vs .side.you { animation: vsL .6s var(--ease) backwards; }
+.vs .side.foe { animation: vsR .6s var(--ease) backwards; }
+@keyframes vsL { from { transform: translateX(-70%); opacity: 0 } }
+@keyframes vsR { from { transform: translateX(70%); opacity: 0 } }
+.vs .side .who, .vs .side .bn, .vs .side .lab { animation: rise .5s var(--ease) .3s backwards; }
+.vs .mark { animation: vsSlam .45s cubic-bezier(.3,1.5,.5,1) .35s backwards; transition: opacity .3s ease, transform .4s ease; }
+@keyframes vsSlam { from { transform: translate(-50%, -50%) scale(3) rotate(-12deg); opacity: 0 } }
+.vs .potline { animation: rise .5s var(--ease) .6s backwards; transition: opacity .25s ease; }
+@keyframes vsShake { 0%, 100% { transform: none } 20% { transform: translate(-7px, 3px) } 40% { transform: translate(6px, -4px) } 60% { transform: translate(-3px, 2px) } 80% { transform: translate(2px, -1px) } }
+.vs.go { background: transparent; animation: none; pointer-events: none; }
+.vs.go .side.you { transform: translateX(-105%); }
+.vs.go .side.foe { transform: translateX(105%); }
+.vs.go .mark { opacity: 0; transform: translate(-50%, -50%) scale(.3); }
+.vs.go .potline { opacity: 0; }
+@media (max-width: 860px) { .vs.go .side.you { transform: translateY(-105%); } .vs.go .side.foe { transform: translateY(105%); } }
+/* the fight screen comes in piece by piece */
+#fight { animation: fadeIn .3s ease; }
+#fight .plate.you { animation: inL .6s var(--ease) .1s backwards; }
+#fight .plate.foe { animation: inR .6s var(--ease) .1s backwards; }
+#fight .mid { animation: inT .6s var(--ease) .18s backwards; }
+#fight .arena { animation: rise .6s var(--ease) .05s backwards; }
+#fight .fbar { animation: rise .6s var(--ease) .3s backwards; }
+@keyframes inL { from { opacity: 0; transform: translateX(-40px) } }
+@keyframes inR { from { opacity: 0; transform: translateX(40px) } }
+@keyframes inT { from { opacity: 0; transform: translateY(-24px) } }
+#fight.out { animation: ovOut .25s ease forwards; pointer-events: none; }
+#fight .plate.hit { animation: plHit .32s ease; }
+@keyframes plHit { 20% { transform: translateX(-5px) } 40% { transform: translateX(5px) } 60% { transform: translateX(-3px) } 80% { transform: translateX(2px) } }
+.banner .bsub { animation: rise .4s var(--ease); }
+/* results */
+.result > * { animation: rise .5s var(--ease) backwards; }
+.result > :nth-child(1) { animation-delay: .05s } .result > :nth-child(3) { animation-delay: .3s } .result > :nth-child(4) { animation-delay: .4s } .result > :nth-child(5) { animation-delay: .5s } .result > :nth-child(6) { animation-delay: .6s } .result > :nth-child(7) { animation-delay: .7s }
+.result h2 { animation: koPop .65s var(--spring) .12s backwards; }
+@keyframes koPop { from { opacity: 0; transform: scale(1.7); letter-spacing: 34px } }
+.result .tile { animation: rise .5s var(--ease) backwards; }
+.result .tile:nth-child(1) { animation-delay: .4s } .result .tile:nth-child(2) { animation-delay: .5s } .result .tile:nth-child(3) { animation-delay: .6s }
+.xpmini i, .qbar i { transition: width .9s var(--ease); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; transition-duration: .01ms !important; } #intro { display: none; } }
 </style>
 
 <canvas id="bg" aria-hidden="true"></canvas>
@@ -2799,9 +2912,16 @@ class Arena {
     }
     for (const p of S.projs) drawProj(c, p, t);
     for (const b of S.bodies) if (!b.main && b.alive) drawDrone(c, b, t);
-    for (const f of S.F) this.fighter(S, f, t);
+    // pop (0 to 1) grows the balls in at the start of a fight, one after the other
+    const grow = f => { if (this.pop === undefined || this.pop >= 1) return 1; const x = clamp((this.pop - f.side * 0.25) / 0.5, 0, 1); return x <= 0 ? 0 : 1 + 2.70158 * Math.pow(x - 1, 3) + 1.70158 * Math.pow(x - 1, 2); };
+    for (const f of S.F) {
+      const q = grow(f);
+      if (q >= 1) { this.fighter(S, f, t); continue; }
+      if (q <= 0) continue;
+      c.save(); c.translate(f.x, f.y); c.scale(q, q); c.translate(-f.x, -f.y); this.fighter(S, f, t); c.restore();
+    }
     this.effects(S, t);
-    for (const f of S.F) this.tag(S, f);
+    for (const f of S.F) if (grow(f) > 0.9) this.tag(S, f);
     this.numbers();
     const ts = Math.max(S.tstop[0], S.tstop[1]);
     if (ts > 0) { c.fillStyle = `rgba(120,110,90,${0.16 * clamp(ts / 0.3, 0, 1)})`; c.fillRect(-60, -60, ARENA + 120, ARENA + 120); }
@@ -3652,10 +3772,12 @@ function h(tag, attrs, ...kids) {
 }
 const $ = s => document.querySelector(s);
 const layer = () => $('#layer');
+const REDUCED = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 function toast(msg, ms) {
+  for (const o of document.querySelectorAll('.toast')) o.remove();
   const t = h('div', { class: 'toast', role: 'status', text: msg });
   document.body.append(t);
-  setTimeout(() => t.remove(), ms || 2600);
+  setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 260); }, ms || 2600);
 }
 // a full-screen overlay (crates, matchmaking, a ball's details, the welcome)
 function sheet(content, opt) {
@@ -3665,9 +3787,40 @@ function sheet(content, opt) {
   layer().append(s);
   return s;
 }
-function closeSheet(s) { if (s && s.onclose) s.onclose(); if (s) s.remove(); stopPreviews(s); }
-function closeAllSheets() { for (const s of [...document.querySelectorAll('.ov')]) closeSheet(s); }
-function topSheet() { const all = document.querySelectorAll('.ov'); return all[all.length - 1] || null; }
+// sheets fade out before they go; a closing one no longer counts as open
+function closeSheet(s) {
+  if (!s || s.classList.contains('closing')) return;
+  if (s.onclose) s.onclose();
+  stopPreviews(s);
+  s.classList.add('closing'); s.removeAttribute('id');
+  setTimeout(() => s.remove(), 210);
+}
+function closeAllSheets() { for (const s of [...document.querySelectorAll('.ov:not(.closing)')]) closeSheet(s); }
+function topSheet() { const all = document.querySelectorAll('.ov:not(.closing)'); return all[all.length - 1] || null; }
+// a burst of confetti over the page (for good crate pulls)
+function confetti(cols, n) {
+  if (REDUCED) return;
+  const cv = h('canvas', { class: 'confetti' }), c = cv.getContext('2d'), dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
+  document.body.append(cv);
+  const ps = [];
+  for (let i = 0; i < n; i++) {
+    const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.4, v = 380 + Math.random() * 620;
+    ps.push({ x: innerWidth / 2, y: innerHeight * 0.45, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: Math.random() * TAU, vr: (Math.random() - 0.5) * 14, w: 5 + Math.random() * 6, h: 3 + Math.random() * 4, col: cols[i % cols.length] });
+  }
+  let last = performance.now(), life = 0;
+  const tick = now => {
+    const dt = Math.min(0.04, (now - last) / 1000); last = now; life += dt;
+    c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, innerWidth, innerHeight);
+    c.globalAlpha = Math.max(0, Math.min(1, (2.2 - life) / 0.6));
+    for (const p of ps) {
+      p.vy += 900 * dt; p.vx *= 0.985; p.x += p.vx * dt; p.y += p.vy * dt; p.r += p.vr * dt;
+      c.save(); c.translate(p.x, p.y); c.rotate(p.r); c.fillStyle = p.col; c.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); c.restore();
+    }
+    if (life < 2.2) requestAnimationFrame(tick); else cv.remove();
+  };
+  requestAnimationFrame(tick);
+}
 function ballImg(id, px, alt) { return h('img', { src: ballIcon(id, px), alt: alt === undefined ? BALL[id].name : alt, width: px, height: px }); }
 // names are shown to other players: drop control and invisible formatting characters
 const BADCH = new RegExp('[' + [[0, 31], [127, 159], [0x200b, 0x200f], [0x2028, 0x202e], [0x2066, 0x2069], [0xfeff, 0xfeff]]
@@ -3754,7 +3907,11 @@ function bgTick(dt) {
   BGF.a.resize();
   BGF.acc = Math.min(BGF.acc + dt, 0.2);
   while (BGF.acc >= DT && !BGF.S.over) { BGF.acc -= DT; step(BGF.S); BGF.a.events(BGF.S); }
-  if (BGF.S.over && (BGF.wait += dt) > 1.6) bgNew();
+  if (BGF.S.over) {
+    BGF.wait += dt;
+    BGF.a.cv.classList.toggle('fade', BGF.wait > 1.1);
+    if (BGF.wait > 1.7) { bgNew(); BGF.a.cv.classList.remove('fade'); }
+  }
   BGF.t += dt; BGF.a.step(dt); BGF.a.draw(BGF.S, BGF.t);
 }
 
@@ -3771,17 +3928,43 @@ const MENU = [
 ];
 const isHot = it => !!(it[3] && G.starter && it[3]());
 function setTab(t) {
+  const from = MENU.findIndex(m => m[0] === TAB), to = MENU.findIndex(m => m[0] === t);
   TAB = t;
-  stopPreviews($('#panelroot'));
-  $('#panelroot').replaceChildren();
-  if (t === 'menu') { $('#menu').hidden = false; renderMenu(); return; }
+  const root = $('#panelroot'), old = root.querySelector('.panel');
+  stopPreviews(root);
+  if (t === 'menu') {
+    // the panel slides away over the menu, whose items come back in turn
+    if (old && !REDUCED) { old.classList.add('out'); setTimeout(() => old.remove(), 230); } else root.replaceChildren();
+    $('#menu').hidden = false; renderMenu(); return;
+  }
+  root.replaceChildren();
   $('#menu').hidden = true;
+  PANEL_DX = from < 0 || to > from ? 40 : -40;
   renderPanel();
 }
+let PANEL_DX = 40;
+// what rises into place, one after another, when a panel opens
+const STAGGER = '.box, .crate, .bc, .quest, .freec, .prow, .tile, .st-row, .rung, .sec, .stage, .chips, .empty';
 function renderView() { if (TAB === 'menu') renderMenu(); else renderPanel(true); }
+// coin and trophy counts roll to their new value instead of jumping
+const CASH = { coins: null, tro: null, raf: 0 };
 function renderCash() {
-  for (const e of document.querySelectorAll('[data-coins]')) e.textContent = fmt(G.coins);
-  for (const e of document.querySelectorAll('[data-tro]')) e.textContent = fmt(G.tro);
+  if (CASH.coins === null || REDUCED) { CASH.coins = G.coins; CASH.tro = G.tro; }
+  const c0 = CASH.coins, t0 = CASH.tro, c1 = G.coins, t1 = G.tro, start = performance.now();
+  CASH.coins = c1; CASH.tro = t1;
+  const paint = (c, t) => {
+    for (const e of document.querySelectorAll('[data-coins]')) e.textContent = fmt(c);
+    for (const e of document.querySelectorAll('[data-tro]')) e.textContent = fmt(t);
+  };
+  cancelAnimationFrame(CASH.raf);
+  if (c0 === c1 && t0 === t1) { paint(c1, t1); return; }
+  for (const e of document.querySelectorAll(c1 !== c0 ? '[data-coins]' : '[data-tro]')) { e.classList.remove('bump'); void e.offsetWidth; e.classList.add('bump'); }
+  const step = now => {
+    const q = Math.min(1, (now - start) / 550), e = 1 - Math.pow(1 - q, 3);
+    paint(c0 + (c1 - c0) * e, t0 + (t1 - t0) * e);
+    if (q < 1) CASH.raf = requestAnimationFrame(step);
+  };
+  CASH.raf = requestAnimationFrame(step);
 }
 function renderMenu() {
   const nav = $('#mnav');
@@ -3845,6 +4028,10 @@ function renderPanel(keepScroll) {
   if (!fn) return;
   const p = fn();
   if (keepScroll && old) p.style.animation = 'none';
+  else {
+    p.style.setProperty('--dx', PANEL_DX + 'px');
+    [...p.querySelectorAll(STAGGER)].forEach((e, i) => { e.classList.add('stg'); e.style.setProperty('--i', Math.min(i, 16)); });
+  }
   root.replaceChildren(p);
   if (keepScroll) p.scrollTop = y;
 }
@@ -3947,23 +4134,39 @@ function openCrate(cr, free) {
     reel.append(h('div', { style: { '--r': RARITY[b.rar].col } }, h('img', { src: ballIcon(b.id, 72), alt: '' }), h('span', { text: b.name.toUpperCase() })));
   }
   const wrap = h('div', { class: 'reelwrap' }, reel, h('div', { class: 'marker' }));
-  const s = sheet([h('h2', { text: cr.name.toUpperCase() }), h('div', { class: 'lsub', text: 'ROLLING...' }), wrap], { noClose: true });
-  const reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const T = reduced ? 1.2 : 4.6, ITEM = 120;
-  const t0 = performance.now(), jitter = (Math.random() - 0.5) * 70;
-  let lastIdx = -1, done = false;
+  const pop = h('div', { class: 'cpop', style: { '--c': cr.col } }, h('img', { src: crateIcon(cr, 180), alt: '' }));
+  const sub = h('div', { class: 'lsub', text: 'OPENING...' });
+  const s = sheet([h('h2', { text: cr.name.toUpperCase() }), sub, REDUCED ? wrap : pop], { noClose: true });
+  const T = REDUCED ? 1.2 : 4.6, ITEM = 120;
+  let t0 = 0, lastIdx = -1, done = false;
+  const jitter = (Math.random() - 0.5) * 70;
   const anim = now => {
     if (done || !wrap.isConnected) return;
+    if (!t0) t0 = now;
     const W = wrap.clientWidth, dist = AT * ITEM + 56 - W / 2 + jitter;
     const q = Math.min(1, (now - t0) / 1000 / T), e = 1 - Math.pow(1 - q, 4);
     const x = dist * e;
     reel.style.transform = `translateX(${-x}px)`;
     const idx = Math.floor((x + W / 2) / ITEM);
-    if (idx !== lastIdx) { lastIdx = idx; SFX.tick(q); }
+    if (idx !== lastIdx) {
+      if (reel.children[lastIdx]) reel.children[lastIdx].classList.remove('on');
+      lastIdx = idx; SFX.tick(q);
+      if (reel.children[idx]) reel.children[idx].classList.add('on');
+    }
     if (q < 1) requestAnimationFrame(anim);
-    else { done = true; setTimeout(() => revealPrize(s, cr, prize, free), 350); }
+    else {
+      done = true;
+      for (const d of reel.children) d.classList.remove('on');
+      reel.children[AT].classList.add('win'); wrap.classList.add('stop');
+      SFX.tink();
+      setTimeout(() => revealPrize(s, cr, prize, free), REDUCED ? 200 : 700);
+    }
   };
-  requestAnimationFrame(anim);
+  if (REDUCED) { sub.textContent = 'ROLLING...'; requestAnimationFrame(anim); return; }
+  // the crate rattles harder and harder, bursts open, then the reel rolls
+  [250, 450, 600, 720, 820, 900].forEach((ms, i) => setTimeout(() => { if (pop.isConnected) SFX.tick(0.2 + i * 0.12); }, ms));
+  setTimeout(() => { if (!pop.isConnected) return; pop.classList.add('burst'); SFX.clang(); }, 1000);
+  setTimeout(() => { if (!pop.isConnected) return; pop.replaceWith(wrap); sub.textContent = 'ROLLING...'; requestAnimationFrame(anim); }, 1300);
 }
 function revealPrize(s, cr, b, free) {
   const res = grant(b.id, cr);
@@ -3974,14 +4177,18 @@ function revealPrize(s, cr, b, free) {
   SFX.reveal(RARITY[b.rar].rank);
   const what = res.kind === 'new' ? 'NEW BALL!' : res.kind === 'up' ? `LEVEL UP! NOW LV ${res.lvl}` : res.kind === 'max' ? `ALREADY MAXED: +${fmt(res.coins)} COINS` : `+1 COPY (${res.copies}/${res.need} TO LV ${res.lvl + 1})`;
   const done = () => { closeSheet(s); if (cr === STARTER) setTab('menu'); else renderView(); };
+  const rank = RARITY[b.rar].rank;
+  if (rank >= 2) setTimeout(() => confetti([RARITY[b.rar].col, '#ffffff', shade(RARITY[b.rar].col, 0.4)], 50 + rank * 30), 250);
   s.replaceChildren(
     h('h2', { text: res.kind === 'new' ? 'NEW BALL' : 'YOU GOT' }), h('div', { class: 'lsub', text: cr.name.toUpperCase() }),
-    h('div', { class: 'upcard', style: { '--r': RARITY[b.rar].col } },
-      ballImg(b.id, 150, ''),
-      h('div', { class: 'name', text: b.name.toUpperCase() }),
-      h('div', { class: 'rtag', text: `${RARITY[b.rar].name} · ${CATS[b.cat]}` + (b.special ? ' · Gimmick' : '') }),
-      h('div', { class: 'what', text: what }),
-      h('div', { class: 'desc', text: b.desc })),
+    h('div', { class: 'rv' },
+      rank ? h('div', { class: 'rays', style: { '--r': RARITY[b.rar].col, '--ro': String(0.25 + rank * 0.18) } }) : null,
+      h('div', { class: 'upcard', style: { '--r': RARITY[b.rar].col } },
+        ballImg(b.id, 150, ''),
+        h('div', { class: 'name', text: b.name.toUpperCase() }),
+        h('div', { class: 'rtag', text: `${RARITY[b.rar].name} · ${CATS[b.cat]}` + (b.special ? ' · Gimmick' : '') }),
+        h('div', { class: 'what', text: what }),
+        h('div', { class: 'desc', text: b.desc }))),
     h('div', { class: 'foot' },
       G.eq !== b.id ? h('button', { class: 'btn2', text: 'USE IT', onclick: () => { G.eq = b.id; save(); done(); } }) : null,
       !free ? h('button', { class: 'btn2 on', disabled: G.coins < cr.price, onclick: () => { closeSheet(s); buyCrate(cr); }, html: `AGAIN ${COIN_SVG} <span class="mono">${fmt(cr.price)}</span>` }) : null,
@@ -4167,7 +4374,7 @@ function startFight(o) {
   root.leave = leave;
   document.body.append(root);
   const arena = new Arena(cv, { sound: true, pad: 8 });
-  arena.flip = o.mySide === 1; arena.me = o.mySide;
+  arena.flip = o.mySide === 1; arena.me = o.mySide; arena.pop = REDUCED ? 1 : 0;
   const F = FIGHT = Object.assign({}, o, { S, arena, root, cv, banner, clock, ot, plates: [youP, foeP], acc: 0, t: 0, phase: 'count', pt: 0, slow: 1, done: false, settled: false, dmg: 0, worst: 0 });
   F.otBase = ot.textContent;
   if (o.mode === 'pvp') { G.coins -= o.stake; save(); }
@@ -4193,6 +4400,8 @@ function updatePlates(F) {
     const f = S.F[sides[i]], q = clamp(f.hp / f.maxHp, 0, 1) * 100 + '%';
     const hp = p.querySelector('.hp');
     hp.children[0].style.width = q; hp.children[1].style.width = q;
+    if (p.lastHp !== undefined && p.lastHp - f.hp > f.maxHp * 0.08) { p.classList.remove('hit'); void p.offsetWidth; p.classList.add('hit'); }
+    p.lastHp = f.hp;
     p.querySelector('.hpn').textContent = Math.ceil(f.hp) + ' / ' + Math.ceil(f.maxHp) + ' HP';
   });
   const t = Math.floor(S.t);
@@ -4213,10 +4422,16 @@ function fightFrame(F, dt) {
     if (F.lastLabel !== label) {
       F.lastLabel = label;
       showBanner(F, label, n <= 0, n > 0 && S.rule !== 'normal' ? `${RULES[S.rule].name}: ${RULES[S.rule].desc}` : '');
-      if (n > 0) SFX.tick(0.2); else SFX.clang();
+      if (n > 0) SFX.tick(0.2);
+      else { SFX.clang(); F.arena.ring(ARENA / 2, ARENA / 2, 30, 360, '#ff2d78', 5, 0.55); F.arena.shake = 10; }
     }
+    // the balls drop into the box one after the other
+    const p0 = F.arena.pop;
+    F.arena.pop = Math.min(1, F.pt / 0.9);
+    for (const f of S.F) { const at = 0.25 + f.side * 0.25; if (p0 < at && F.arena.pop >= at) { F.arena.ring(f.x, f.y, f.r, f.r * 2.2, TEAM[f.side === F.mySide ? 0 : 1], 4, 0.4); SFX.pop(); } }
     if (F.pt > 2.6) { F.phase = 'run'; showBanner(F, ''); }
   } else if (F.phase === 'run') {
+    F.arena.pop = 1;
     if (F.arena.hitstop > 0) F.arena.hitstop -= dt;
     else {
       F.acc = Math.min(F.acc + dt * FIGHT_SPEED * F.slow, 0.25);
@@ -4269,16 +4484,18 @@ function settleFight(F) {
   }
   G.coins += paid; G.tro += tro; G.peak = Math.max(G.peak, G.tro);
   F.coins = coins; F.tro = tro;
-  const xp = xpForFight(F, mine, draw), ups = addXp(xp), quests = questFight(F);
+  const xp0 = G.xp / xpNeed(G.plv), xp = xpForFight(F, mine, draw), ups = addXp(xp), quests = questFight(F);
   save();
   NET.fightOver(F, false);
   if (draw) SFX.draw(); else if (mine) SFX.win(); else SFX.lose();
   const sign = n => (n > 0 ? '+' : n < 0 ? '-' : '') + fmt(Math.abs(n));
-  const tiles = h('div', { class: 'tiles' }, h('div', { class: 'tile' + (coins > 0 ? ' hi' : '') }, h('div', { class: 'l', text: 'Coins' }), h('div', { class: 'v', html: COIN_SVG + sign(coins) })));
-  if (F.mode === 'pvp') tiles.append(h('div', { class: 'tile' + (tro > 0 ? ' hi' : '') }, h('div', { class: 'l', text: 'Trophies' }), h('div', { class: 'v', html: TRO_SVG + sign(tro) })));
-  if (bonus) tiles.append(h('div', { class: 'tile hi' }, h('div', { class: 'l', text: `Streak x${G.streak}` }), h('div', { class: 'v', html: COIN_SVG + '+' + fmt(bonus) })));
+  const cu = n => `<span data-cu="${n}">${sign(n)}</span>`;
+  const tiles = h('div', { class: 'tiles' }, h('div', { class: 'tile' + (coins > 0 ? ' hi' : '') }, h('div', { class: 'l', text: 'Coins' }), h('div', { class: 'v', html: COIN_SVG + cu(coins) })));
+  if (F.mode === 'pvp') tiles.append(h('div', { class: 'tile' + (tro > 0 ? ' hi' : '') }, h('div', { class: 'l', text: 'Trophies' }), h('div', { class: 'v', html: TRO_SVG + cu(tro) })));
+  if (bonus) tiles.append(h('div', { class: 'tile hi' }, h('div', { class: 'l', text: `Streak x${G.streak}` }), h('div', { class: 'v', html: COIN_SVG + cu(bonus) })));
   const extra = h('div', { class: 'rlines' });
-  if (xp) extra.append(h('div', { class: 'rl' }, h('span', { class: 'mono', text: `+${xp} XP` }), h('span', { class: 'xpmini' }, h('i', { style: { width: (G.xp / xpNeed(G.plv) * 100) + '%' } })), h('span', { text: 'LV ' + G.plv })));
+  const xpBar = h('i', { style: { width: (ups.length ? 0 : xp0 * 100) + '%' } });
+  if (xp) extra.append(h('div', { class: 'rl' }, h('span', { class: 'mono', text: `+${xp} XP` }), h('span', { class: 'xpmini' }, xpBar), h('span', { text: 'LV ' + G.plv })));
   for (const u of ups) extra.append(h('div', { class: 'rl up', text: upText(u) }));
   for (const q of quests) extra.append(h('div', { class: 'rl q', text: 'QUEST DONE · ' + questText(q).toUpperCase() }));
   const again = F.mode === 'bot' ? () => botFight() : F.mode === 'pvp' ? () => { endFightScreen(); setTab('fight'); findMatch(G.coins >= F.stake ? F.stake : (STAKES.filter(s => s <= G.coins).pop() || 50)); } : null;
@@ -4295,11 +4512,22 @@ function settleFight(F) {
       h('button', { class: 'btn2', text: 'DONE', onclick: () => { endFightScreen(); renderView(); } })));
   F.root.querySelector('.arena').append(F.result);
   F.done = true;
+  setTimeout(() => { xpBar.style.width = (G.xp / xpNeed(G.plv) * 100) + '%'; }, 650);
+  for (const e of F.result.querySelectorAll('[data-cu]')) {
+    const to = +e.dataset.cu;
+    if (REDUCED || !to) continue;
+    e.textContent = '0';
+    const t0 = performance.now() + 450;
+    const step = now => { const q = clamp((now - t0) / 700, 0, 1), v = Math.round(to * (1 - Math.pow(1 - q, 3))); e.textContent = sign(v); if (q < 1 && e.isConnected) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  }
 }
 function endFightScreen() {
   const F = FIGHT;
   if (!F) return;
-  F.root.remove();
+  const root = F.root;
+  root.classList.add('out'); root.inert = true;
+  setTimeout(() => root.remove(), 260);
   FIGHT = null;
   MUSIC.play('menu');
   NET.pushPresence();
@@ -4720,8 +4948,10 @@ function showVs(me, foe, stake, friendly, seed, go) {
     const q = NET.peers.find(x => x.peer === (MM.match && MM.match.peer));
     const ready = (MM.match && MM.match.ghost) || (q && q.presence && q.presence.mid === (MM.match && MM.match.mid));
     if (!ready && tries < 12) { setTimeout(attempt, 400); return; }
-    el.remove();
+    // the fight is built underneath, then the two halves slide apart to show it
     go();
+    el.classList.add('go');
+    setTimeout(() => el.remove(), 520);
   };
   setTimeout(attempt, 2200);
 }
@@ -4872,7 +5102,7 @@ function refreshLive() {
   liveT = setTimeout(() => {
     if (FIGHT) return;
     renderOnline();
-    if (document.querySelector('.ov')) return;
+    if (document.querySelector('.ov:not(.closing)')) return;
     if (TAB === 'players') renderPanel(true);
     else if (TAB === 'fight') {
       const st = document.getElementById('fstatus'), btn = document.querySelector('.panel .go');
@@ -4908,6 +5138,25 @@ function loop(ts) {
   if (MM.sheet) spinDraw(MM.sheet.spin, ts / 1000);
   requestAnimationFrame(loop);
 }
+// opening the game: two balls bounce off each other, then the menu comes in
+function intro() {
+  if (REDUCED) return;
+  const el = h('div', { id: 'intro', 'aria-hidden': 'true' },
+    h('div', { class: 'ib' }, h('i'), h('i'), h('b')),
+    h('div', { class: 'it', html: 'BOUNCE <span>BRAWL</span>' }));
+  document.body.classList.add('pre');
+  document.body.append(el);
+  let over = false;
+  const end = fast => {
+    if (over) return; over = true;
+    if (fast) el.classList.add('skip');
+    document.body.classList.remove('pre');
+    setTimeout(() => el.remove(), fast ? 220 : 520);
+  };
+  setTimeout(() => end(false), 1250);
+  addEventListener('pointerdown', () => end(true), { once: true });
+  addEventListener('keydown', () => end(true), { once: true });
+}
 function boot() {
   applySettings();
   const wake = () => { SFX.resume(); if (G.music) MUSIC.play(FIGHT ? 'fight' : 'menu'); };
@@ -4917,9 +5166,10 @@ function boot() {
   // the way back to BeeSide, except inside Bee's Vault (#bv=1), which has its own close button
   if ((ON_SITE || window.BS_ROUTE) && !/(^|[#&])bv=1(&|$)/.test(location.hash)) $('#toBeeside').hidden = false;
   setTab('menu');
+  intro();
   requestAnimationFrame(loop);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { for (const k in ICON) delete ICON[k]; for (const k in CRATE_ICON) delete CRATE_ICON[k]; if (!FIGHT) renderView(); });
-  if (!G.starter || !(G.named || G.nick)) setTimeout(welcome, 300);
+  if (!G.starter || !(G.named || G.nick)) setTimeout(welcome, REDUCED ? 300 : 1500);
   netInit();
 }
 
