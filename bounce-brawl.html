@@ -428,8 +428,9 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 body.pre #menu *, body.pre #menu { animation-play-state: paused !important; }
 /* panels: slide in from the side you are moving towards, items rise in turn */
 .panel { animation-name: panIn2; }
-@keyframes panIn2 { from { opacity: 0; transform: translateX(var(--dx, 40px)) } }
+@keyframes panIn2 { from { opacity: 0; transform: translateX(var(--dx, 40px)) } 40% { opacity: 1 } }
 .panel.out { animation: panOut .22s ease forwards; pointer-events: none; }
+.panel.under { animation: none; pointer-events: none; }
 @keyframes panOut { to { opacity: 0; transform: translateX(-30px) } }
 .stg { animation: rise .5s var(--ease) backwards; animation-delay: calc(var(--i, 0) * 32ms + 90ms); }
 /* sheets */
@@ -3930,18 +3931,21 @@ const isHot = it => !!(it[3] && G.starter && it[3]());
 function setTab(t) {
   const from = MENU.findIndex(m => m[0] === TAB), to = MENU.findIndex(m => m[0] === t);
   TAB = t;
-  const root = $('#panelroot'), old = root.querySelector('.panel');
+  const root = $('#panelroot'), old = root.querySelector('.panel:not(.under):not(.out)');
   stopPreviews(root);
   if (t === 'menu') {
     // the panel slides away over the menu, whose items come back in turn
     if (old && !REDUCED) { old.classList.add('out'); setTimeout(() => old.remove(), 230); } else root.replaceChildren();
     $('#menu').hidden = false; renderMenu(); return;
   }
-  root.replaceChildren();
-  $('#menu').hidden = true;
+  // the new panel fades in over whatever was showing (the menu or the last panel),
+  // which stays put underneath until it is covered, so nothing flashes through
   PANEL_DX = from < 0 || to > from ? 40 : -40;
   renderPanel();
+  if (REDUCED) $('#menu').hidden = true;
+  else setTimeout(() => { if (TAB !== 'menu') $('#menu').hidden = true; }, PANEL_FADE);
 }
+const PANEL_FADE = 460;
 let PANEL_DX = 40;
 // what rises into place, one after another, when a panel opens
 const STAGGER = '.box, .crate, .bc, .quest, .freec, .prow, .tile, .st-row, .rung, .sec, .stage, .chips, .empty';
@@ -4022,7 +4026,7 @@ function panelShell(sub, title) {
   return [p, body];
 }
 function renderPanel(keepScroll) {
-  const root = $('#panelroot'), old = root.querySelector('.panel'), y = old ? old.scrollTop : 0;
+  const root = $('#panelroot'), old = root.querySelector('.panel:not(.under):not(.out)'), y = old ? old.scrollTop : 0;
   stopPreviews(root);
   const fn = { fight: panelFight, daily: panelDaily, crates: panelCrates, balls: panelBalls, players: panelPlayers, settings: panelSettings }[TAB];
   if (!fn) return;
@@ -4032,7 +4036,11 @@ function renderPanel(keepScroll) {
     p.style.setProperty('--dx', PANEL_DX + 'px');
     [...p.querySelectorAll(STAGGER)].forEach((e, i) => { e.classList.add('stg'); e.style.setProperty('--i', Math.min(i, 16)); });
   }
-  root.replaceChildren(p);
+  if (keepScroll || REDUCED) root.replaceChildren(p);
+  else {
+    for (const o of root.querySelectorAll('.panel:not(.out)')) { o.classList.add('under'); setTimeout(() => o.remove(), PANEL_FADE); }
+    root.append(p);
+  }
   if (keepScroll) p.scrollTop = y;
 }
 
