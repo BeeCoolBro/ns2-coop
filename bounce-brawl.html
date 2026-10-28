@@ -585,6 +585,19 @@ svg.mst.on { fill: var(--gold); }
 .wn { display: grid; gap: 3px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
 .wn b { font: 400 20px/1 var(--fd); letter-spacing: 3px; color: var(--o); }
 .wn span { font-size: 13px; color: #9a9aa3; font-weight: 600; }
+.skins { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.skin { display: grid; gap: 6px; padding: 8px 8px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); text-align: left; transition: border-color .15s, transform .15s var(--ease); }
+.skin img { width: 100%; aspect-ratio: 1; border-radius: 8px; display: block; }
+.skin b { font: 400 17px/1 var(--fd); letter-spacing: 2px; color: #ddd; }
+.skin small { font-size: 11px; color: #77777f; font-weight: 600; }
+.skin:hover:not(:disabled) { border-color: #5a2238; transform: translateY(-2px); }
+.skin.sel { border-color: var(--o); }
+.skin.sel small { color: var(--o); }
+.skin.locked img { filter: grayscale(1) brightness(.4); }
+.skin:disabled { cursor: default; }
+.promise { margin: -10px 0 16px; font-size: 13px; color: #8a8a94; font-weight: 600; }
+.promise b { font: 700 10px var(--fb); letter-spacing: 3px; color: var(--gold); margin-right: 6px; }
+.promise .mono { color: #ddd; }
 .confetti { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 70; pointer-events: none; }
 /* the VS screen: both sides slide in, VS slams down, then the halves part to show the fight */
 .vs { animation: fadeIn .2s ease, vsShake .32s linear .62s; }
@@ -3691,11 +3704,13 @@ class Arena {
   // a dark floor with a faint grid, like the rest of BeeSide's games
   floor(S, t) {
     const c = this.c, b = S.box;
-    c.fillStyle = '#0a0a0d'; c.fillRect(0, 0, ARENA, ARENA);
-    c.strokeStyle = 'rgba(255,255,255,0.035)'; c.lineWidth = 1.5;
-    c.beginPath();
-    for (let x = 40; x < ARENA; x += 40) { c.moveTo(x, 0); c.lineTo(x, ARENA); c.moveTo(0, x); c.lineTo(ARENA, x); }
-    c.stroke();
+    if (!drawSkin(c, t)) {
+      c.fillStyle = '#0a0a0d'; c.fillRect(0, 0, ARENA, ARENA);
+      c.strokeStyle = 'rgba(255,255,255,0.035)'; c.lineWidth = 1.5;
+      c.beginPath();
+      for (let x = 40; x < ARENA; x += 40) { c.moveTo(x, 0); c.lineTo(x, ARENA); c.moveTo(0, x); c.lineTo(ARENA, x); }
+      c.stroke();
+    }
     c.strokeStyle = 'rgba(255,255,255,0.08)'; c.lineWidth = 2.5;
     c.beginPath(); c.moveTo(ARENA / 2, 0); c.lineTo(ARENA / 2, ARENA); c.stroke();
     circ(c, ARENA / 2, ARENA / 2, 70); c.stroke();
@@ -4492,6 +4507,90 @@ Object.assign(ZONE_LOOK, {
   frostz(c, z) { blob(c, z, '#bfe6ff', 0.35); },
 });
 
+// ===== arena skins: different floors for the box, earned by playing ==========
+// The still part of each floor is painted once to its own canvas; only what
+// moves (lava, stars) is drawn every frame.
+let ARENA_SKIN = 'classic';
+const SKINS = {
+  classic: { name: 'Classic', need: 'Free', ok: () => true },
+  garage: { name: "Hardware's Garage", need: 'Reach player level 5', ok: () => (G.plv || 1) >= 5,
+    paint(c, r) {
+      c.fillStyle = '#17171a'; c.fillRect(0, 0, ARENA, ARENA);
+      for (let i = 0; i < 900; i++) { c.fillStyle = `rgba(255,255,255,${(0.015 + r() * 0.03).toFixed(3)})`; c.fillRect(r() * ARENA, r() * ARENA, 1.5 + r() * 2, 1.5 + r() * 2); }
+      for (let i = 0; i < 5; i++) { const x = 60 + r() * 480, y = 60 + r() * 480, g = c.createRadialGradient(x, y, 0, x, y, 30 + r() * 40); g.addColorStop(0, 'rgba(0,0,0,0.45)'); g.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = g; c.fillRect(x - 80, y - 80, 160, 160); }
+      c.strokeStyle = 'rgba(0,0,0,0.5)'; c.lineWidth = 2;
+      for (let x = 150; x < ARENA; x += 150) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, ARENA); c.stroke(); c.beginPath(); c.moveTo(0, x); c.lineTo(ARENA, x); c.stroke(); }
+      c.strokeStyle = 'rgba(246,195,60,0.55)'; c.lineWidth = 5;
+      for (const x of [110, 490]) { c.beginPath(); c.moveTo(x, 30); c.lineTo(x, 170); c.stroke(); c.beginPath(); c.moveTo(x, 430); c.lineTo(x, 570); c.stroke(); }
+      c.save(); c.beginPath(); c.rect(0, 0, ARENA, ARENA); c.rect(14, 14, ARENA - 28, ARENA - 28); c.clip('evenodd');
+      for (let x = -ARENA; x < ARENA * 2; x += 28) { c.fillStyle = '#f6c33c'; c.beginPath(); c.moveTo(x, 0); c.lineTo(x + 14, 0); c.lineTo(x + 14 + ARENA, ARENA); c.lineTo(x + ARENA, ARENA); c.fill(); }
+      c.restore(); c.fillStyle = 'rgba(0,0,0,0.55)'; c.fillRect(0, 0, ARENA, 14); c.fillRect(0, ARENA - 14, ARENA, 14); c.fillRect(0, 14, 14, ARENA - 28); c.fillRect(ARENA - 14, 14, 14, ARENA - 28);
+      c.font = `400 54px ${FONT_D}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = 'rgba(255,255,255,0.05)'; c.fillText('BAY 07', ARENA / 2, ARENA - 70);
+    } },
+  glacier: { name: 'Glacier', need: 'Reach player level 10', ok: () => (G.plv || 1) >= 10,
+    paint(c, r) {
+      const g = c.createLinearGradient(0, 0, ARENA, ARENA); g.addColorStop(0, '#0e2230'); g.addColorStop(1, '#081720'); c.fillStyle = g; c.fillRect(0, 0, ARENA, ARENA);
+      c.strokeStyle = 'rgba(160,220,255,0.08)'; c.lineWidth = 2;
+      for (let x = 0; x <= ARENA; x += 75) for (let y = 0; y <= ARENA; y += 75) { c.strokeRect(x + (y / 75 % 2) * 37, y, 75, 75); }
+      c.strokeStyle = 'rgba(230,248,255,0.22)'; c.lineWidth = 1.4;
+      for (let i = 0; i < 14; i++) { let x = r() * ARENA, y = r() * ARENA; c.beginPath(); c.moveTo(x, y); for (let k = 0; k < 5; k++) { x += (r() - 0.5) * 90; y += (r() - 0.5) * 90; c.lineTo(x, y); } c.stroke(); }
+      for (let i = 0; i < 6; i++) { const x = r() * ARENA, y = r() * ARENA, gg = c.createRadialGradient(x, y, 0, x, y, 70); gg.addColorStop(0, 'rgba(200,240,255,0.08)'); gg.addColorStop(1, 'rgba(200,240,255,0)'); c.fillStyle = gg; c.fillRect(x - 70, y - 70, 140, 140); }
+    } },
+  volcano: { name: 'Volcano', need: 'Win The Box Cup', ok: () => (G.cups || 0) >= 1,
+    paint(c, r) {
+      c.fillStyle = '#140b09'; c.fillRect(0, 0, ARENA, ARENA);
+      c.strokeStyle = 'rgba(70,30,20,0.9)'; c.lineWidth = 3;
+      for (let row = 0; row < 12; row++) for (let col = 0; col < 12; col++) {
+        const x = col * 56 + (row % 2) * 28, y = row * 50, p = [];
+        for (let i = 0; i < 6; i++) { const a = i * TAU / 6 + PI / 6; p.push(x + Math.cos(a) * 30, y + Math.sin(a) * 30); }
+        poly(c, p); c.stroke();
+      }
+      const cr = [];
+      for (let i = 0; i < 9; i++) { let x = r() * ARENA, y = r() * ARENA; const pts = [x, y]; for (let k = 0; k < 6; k++) { x += (r() - 0.5) * 80; y += (r() - 0.5) * 80; pts.push(x, y); } cr.push(pts); }
+      SKINS.volcano.cracks = cr;
+    },
+    live(c, t) {
+      const a = 0.45 + 0.25 * Math.sin(t * 2.2);
+      c.lineCap = 'round'; c.lineJoin = 'round';
+      for (const pts of SKINS.volcano.cracks || []) {
+        c.beginPath(); c.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) c.lineTo(pts[i], pts[i + 1]);
+        c.lineWidth = 7; c.strokeStyle = `rgba(255,90,20,${(a * 0.35).toFixed(3)})`; c.stroke();
+        c.lineWidth = 2.5; c.strokeStyle = `rgba(255,190,80,${a.toFixed(3)})`; c.stroke();
+      }
+      c.lineCap = 'butt'; c.lineJoin = 'miter';
+    } },
+  cosmos: { name: 'Cosmos', need: 'Defeat a raid boss', ok: () => (G.bossKills || 0) >= 1,
+    paint(c, r) {
+      c.fillStyle = '#05040c'; c.fillRect(0, 0, ARENA, ARENA);
+      for (const [x, y, rr, col] of [[150, 160, 220, 'rgba(140,70,200,0.16)'], [470, 420, 240, 'rgba(60,110,220,0.14)'], [380, 120, 140, 'rgba(255,90,170,0.09)']]) {
+        const g = c.createRadialGradient(x, y, 0, x, y, rr); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = g; c.fillRect(0, 0, ARENA, ARENA);
+      }
+      const st = [];
+      for (let i = 0; i < 160; i++) st.push([r() * ARENA, r() * ARENA, 0.4 + r() * 1.4, r() * 6.28]);
+      SKINS.cosmos.stars = st;
+    },
+    live(c, t) {
+      for (const [x, y, s, ph] of SKINS.cosmos.stars || []) { c.globalAlpha = 0.35 + 0.45 * (0.5 + 0.5 * Math.sin(t * 1.6 + ph)); circ(c, x, y, s); c.fillStyle = '#ffffff'; c.fill(); }
+      c.globalAlpha = 1;
+    } },
+};
+const SKIN_CV = {};
+function skinCanvas(id) {
+  if (SKIN_CV[id]) return SKIN_CV[id];
+  const cv = document.createElement('canvas'); cv.width = cv.height = 1200;
+  const c = cv.getContext('2d'); c.scale(2, 2);
+  SKINS[id].paint(c, rng(hashStr('skin:' + id)));
+  return (SKIN_CV[id] = cv);
+}
+// draws the floor under the grid lines; true if a skin did it
+function drawSkin(c, t) {
+  const sk = ARENA_SKIN !== 'classic' && SKINS[ARENA_SKIN];
+  if (!sk || !sk.paint) return false;
+  c.drawImage(skinCanvas(ARENA_SKIN), 0, 0, ARENA, ARENA);
+  if (sk.live) sk.live(c, t);
+  return true;
+}
+
 // ===== sound: every effect is synthesised, no audio files ==================
 const SFX = (() => {
   let ac = null, out = null, sfxBus = null, musBus = null, nbuf = null;
@@ -4736,6 +4835,18 @@ function grant(id, crate) {
   o.copies++;
   if (o.copies >= need(o.lvl)) { o.copies -= need(o.lvl); o.lvl++; return { kind: 'up', lvl: o.lvl }; }
   return { kind: 'copy', copies: o.copies, need: need(o.lvl), lvl: o.lvl };
+}
+// Hardware's promise: if the last PITY - 1 crates gave nothing Epic or better, this one will
+const PITY = 10;
+function pityRoll(cr) {
+  if ((G.pity || 0) < PITY - 1) return rollCrate(cr);
+  const top = crateOdds(cr).filter(([k]) => RARITY[k].rank >= 2);
+  if (!top.length) return rollCrate(cr);
+  const tot = top.reduce((a, o) => a + o[1], 0);
+  let x = Math.random() * tot, rar = top[0][0];
+  for (const [k, p] of top) { rar = k; if ((x -= p) < 0) break; }
+  const of = cr.pool().filter(b => b.rar === rar);
+  return of[Math.floor(Math.random() * of.length)];
 }
 // [rarity, chance] for the rarities this crate can really give
 function crateOdds(crate) {
@@ -5116,7 +5227,8 @@ function panelCrates() {
   const [p, body] = panelShell('', 'CRATES', ["HARDWARE'S", 'CRATES']);
   p.classList.add('shop');
   p.prepend(shopRoom());
-  body.append(h('p', { class: 'shopline', html: 'Sealed crates and packs, straight off the truck. No refunds. <b>Repeats level up a ball you already have.</b>' }));
+  body.append(h('p', { class: 'shopline', html: 'Sealed crates and packs, straight off the truck. No refunds. <b>Repeats level up a ball you already have.</b>' }),
+    h('p', { class: 'promise', html: `<b>HARDWARE'S PROMISE</b> An Epic or better at least every ${PITY} crates. <span class="mono">${PITY - (G.pity || 0)}</span> to go.` }));
   const wait = packWait();
   body.append(h('button', { class: 'deal', style: { '--c': PACK.col }, disabled: wait > 0 || G.coins < PACK.price, onclick: buyPack },
     h('img', { src: packIcon(52), alt: '' }),
@@ -5163,7 +5275,7 @@ function openCrate(cr, free) {
   if (cr === STARTER && G.starter) return;
   closeAllSheets();
   SFX.resume();
-  const prize = rollCrate(cr), N = 46, AT = 38;
+  const prize = cr === STARTER ? rollCrate(cr) : pityRoll(cr), N = 46, AT = 38;
   const reel = h('div', { class: 'reel' });
   for (let i = 0; i < N; i++) {
     const b = i === AT ? prize : rollCrate(cr);
@@ -5210,6 +5322,7 @@ function grantText(res) {
 }
 function revealPrize(s, cr, b, free) {
   const res = grant(b.id, cr);
+  if (cr !== STARTER) G.pity = RARITY[b.rar].rank >= 2 ? 0 : (G.pity || 0) + 1;
   const qd = cr === STARTER ? [] : questBump('crate', 1);
   if (cr === STARTER) G.starter = true;
   save();
@@ -5346,6 +5459,7 @@ function panelSettings() {
     h('div', { class: 'sec', text: 'Sound' }),
     h('div', { class: 'st-row' }, h('div', {}, h('div', { class: 'l', text: 'SOUND EFFECTS' }), h('div', { class: 'd', text: 'Hits, clangs, explosions' })), seg([[true, 'ON'], [false, 'OFF']], G.sfx, v => { G.sfx = v; SFX.sfx = v; })),
     h('div', { class: 'st-row' }, h('div', {}, h('div', { class: 'l', text: 'MUSIC' }), h('div', { class: 'd', text: 'Menu and fight music' })), seg([[true, 'ON'], [false, 'OFF']], G.music, v => { G.music = v; SFX.music = v; if (v) { SFX.resume(); MUSIC.play(FIGHT ? 'fight' : 'menu'); } })),
+    h('div', { class: 'sec', text: 'Arena' }), skinPicker(),
     h('div', { class: 'sec', text: 'Danger zone' }), reset);
   return p;
 }
@@ -6173,8 +6287,34 @@ function whatsNew() {
       item('BOSS RAIDS', 'A giant boss every day in Events. Deal damage for coins, bring it down for a Legend Crate.'),
       item('THE BOX CUP', 'An eight-ball knockout tournament with a trophy at the end.'),
       item('MEDALS & MASTERY', 'Medals to claim in Ranks, and stars for every ball you win with.'),
-      item('INSTANT REPLAY', 'Watch the knockout again in slow motion from the results screen.')),
+      item('INSTANT REPLAY', 'Watch the knockout again in slow motion from the results screen.'),
+      item('ARENA SKINS', "New floors for the box: Hardware's Garage, Glacier, Volcano and Cosmos. Unlock them, then pick one in Settings.")),
     h('div', { class: 'foot' }, h('button', { class: 'btn2 on', text: "LET'S GO", onclick: () => { SFX.ui(); closeSheet(s); } }))], { noClose: true });
+}
+
+// ---- picking an arena skin ------------------------------------------------------------
+function skinThumb(id) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 160;
+  const c = cv.getContext('2d');
+  if (SKINS[id].paint) c.drawImage(skinCanvas(id), 0, 0, 160, 160);
+  else { c.fillStyle = '#0a0a0d'; c.fillRect(0, 0, 160, 160); c.strokeStyle = 'rgba(255,255,255,0.06)'; c.beginPath(); for (let x = 16; x < 160; x += 16) { c.moveTo(x, 0); c.lineTo(x, 160); c.moveTo(0, x); c.lineTo(160, x); } c.stroke(); }
+  if (SKINS[id].live) { c.save(); c.scale(160 / ARENA, 160 / ARENA); SKINS[id].live(c, 1); c.restore(); }
+  c.strokeStyle = '#ff2d78'; c.lineWidth = 4; c.beginPath();
+  for (const [x, y, sx, sy] of [[0, 0, 1, 1], [160, 0, -1, 1], [0, 160, 1, -1], [160, 160, -1, -1]]) { c.moveTo(x + sx * 18, y); c.lineTo(x, y); c.lineTo(x, y + sy * 18); }
+  c.stroke();
+  return cv.toDataURL();
+}
+function skinPicker() {
+  const g = h('div', { class: 'skins' });
+  for (const id in SKINS) {
+    const sk = SKINS[id], ok = sk.ok(), on = (G.skin || 'classic') === id && ok;
+    g.append(h('button', { class: 'skin' + (on ? ' sel' : '') + (ok ? '' : ' locked'), disabled: !ok, 'aria-pressed': on ? 'true' : 'false',
+        onclick: () => { G.skin = id; ARENA_SKIN = id; save(); SFX.ui(); renderPanel(true); toast(sk.name + ' arena selected'); } },
+      h('img', { src: skinThumb(id), alt: '' }),
+      h('b', { text: sk.name.toUpperCase() }),
+      h('small', { text: ok ? (on ? 'In use' : 'Unlocked') : sk.need })));
+  }
+  return g;
 }
 
 // ---- instant replay: the same seed played again, the last few seconds in slow motion ----
@@ -6638,7 +6778,7 @@ async function resolveNames() {
 }
 
 // ---- start up -----------------------------------------------------------------
-function applySettings() { SFX.sfx = G.sfx; SFX.music = G.music; }
+function applySettings() { SFX.sfx = G.sfx; SFX.music = G.music; ARENA_SKIN = SKINS[G.skin] && SKINS[G.skin].ok() ? G.skin : 'classic'; }
 let lastFrame = 0;
 function loop(ts) {
   const dt = Math.min(0.05, lastFrame ? (ts - lastFrame) / 1000 : 0.016);
