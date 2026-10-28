@@ -269,6 +269,9 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 .st-row .d { font-size: 12px; color: #55555e; font-weight: 600; }
 .st-row input { min-width: 0; flex: 1; max-width: 280px; background: #08080a; border: 1px solid var(--line2); border-radius: 8px; padding: 8px 12px; font: 400 20px var(--fd); letter-spacing: 3px; color: #fff; outline: none; }
 .st-row input:focus { border-color: var(--o); }
+.namebox { display: grid; gap: 10px; justify-items: center; margin-top: 10px; width: min(340px, 100%); }
+.namein { width: 100%; box-sizing: border-box; background: #08080a; border: 1px solid var(--line2); border-radius: 8px; padding: 10px 14px; font: 400 26px var(--fd); letter-spacing: 4px; color: #fff; text-align: center; outline: none; }
+.namein:focus { border-color: var(--o); }
 
 /* ---- overlays (crates, matchmaking, welcome) ---- */
 .ov { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow-y: auto; text-align: center; box-sizing: border-box;
@@ -422,7 +425,8 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 // A fight is played out from a seed, separately in each player's browser, so
 // the simulation may only use + - * / and sqrt (the same in every engine):
 // no Math.sin/cos/atan2/hypot/pow/exp, no Math.random, no clocks.
-const VERSION = 2;
+const VERSION = 3;
+const HP_SCALE = 0.55;                     // every ball's health is scaled by this, so fights end sooner
 const TAU = 6.283185307179586, PI = 3.141592653589793, HALF_PI = 1.5707963267948966;
 const DT = 1 / 60, SUB = 3;            // 60 steps a second, 3 physics substeps each
 const ARENA = 600;                    // the box is ARENA x ARENA units
@@ -539,7 +543,7 @@ function newFight(o) {
 function mkFighter(S, side, pick, x, y, vx, vy) {
   const d = BALL[pick.id] || BALL.sword, L = clamp(pick.lvl | 0, 1, MAXLVL);
   const hpMul = 1 + 0.07 * (L - 1), dmgMul = 1 + 0.05 * (L - 1);
-  const r = (d.r || 40) * S.rmul, hp = (d.hp || 100) * hpMul;
+  const r = (d.r || 40) * S.rmul, hp = (d.hp || 100) * hpMul * HP_SCALE;
   const r0 = d.r || 40;
   const f = { id: S.nid++, side, main: true, def: d, lvl: L, hpMul, dmgMul, x, y, vx, vy, r, r0: r, m: (d.m || r0 * r0 / 1600) * S.rmul * S.rmul,
     hp, maxHp: hp, armor: d.armor || 0, marmor: d.marmor || 0, contact: d.contact || 1, alive: true, shield: 0,
@@ -1260,13 +1264,13 @@ function inBox(S, x, y, m) {
 
 const BALL_LIST = [
   // ---- offense -------------------------------------------------------------
-  { id: 'sword', name: 'Sword', rar: 'C', cat: 'off', col: '#4f86e8', hp: 155,
+  { id: 'sword', name: 'Sword', rar: 'C', cat: 'off', col: '#4f86e8', hp: 185,
     weapons: [{ kind: 'blade', len: 112, w: 11, dmg: 4, spin: 5.5, knock: 240, grow: { dmg: 1 } }],
     desc: 'Swings a sword in circles. Every hit makes the next one deal 1 more damage.' },
-  { id: 'dagger', name: 'Dagger', rar: 'C', cat: 'off', col: '#2fb5a3', hp: 180,
+  { id: 'dagger', name: 'Dagger', rar: 'C', cat: 'off', col: '#2fb5a3', hp: 200,
     weapons: [{ kind: 'dagger', len: 96, w: 9, dmg: 4.5, spin: 10, knock: 110, hcd: 0.2, grow: { spin: 1.0, maxSpin: 24 } }],
     desc: 'A quick knife that spins faster after every hit.' },
-  { id: 'bow', name: 'Bow', rar: 'C', cat: 'off', col: '#b98a4e', hp: 125,
+  { id: 'bow', name: 'Bow', rar: 'C', cat: 'off', col: '#b98a4e', hp: 130,
     init(S, f) { f.u.vol = 1; f.u.ah = 0; f.u.aim = toward(f, f.foe); },
     update(S, f, dt) {
       f.u.aim = lead(S, f, f.foe, 950);
@@ -1294,16 +1298,16 @@ const BALL_LIST = [
       }
     },
     desc: 'Fires a ring of 8 spikes every 2 seconds.' },
-  { id: 'axe', name: 'Axe', rar: 'R', cat: 'off', col: '#e07a5f', hp: 115,
+  { id: 'axe', name: 'Axe', rar: 'R', cat: 'off', col: '#e07a5f', hp: 140,
     weapons: [{ kind: 'axe', len: 120, head: 36, w: 28, dmg: 8, spin: 3.2, knock: 430, grow: { dmg: 1.2 } }],
     desc: 'A heavy spinning axe. Slow, but every hit cuts deeper.' },
-  { id: 'spear', name: 'Spear', rar: 'R', cat: 'off', col: '#9c8f45', hp: 185,
+  { id: 'spear', name: 'Spear', rar: 'R', cat: 'off', col: '#9c8f45', hp: 175,
     weapons: [{ kind: 'spear', len: 150, head: 46, w: 10, dmg: 7, spin: 4.0, knock: 300, grow: { len: 10, maxLen: 270 } }],
     desc: 'A long spear that grows longer with every hit.' },
-  { id: 'flail', name: 'Flail', rar: 'R', cat: 'off', col: '#7b8794', hp: 135,
+  { id: 'flail', name: 'Flail', rar: 'R', cat: 'off', col: '#7b8794', hp: 150,
     weapons: [{ kind: 'flail', len: 125, w: 34, dmg: 2, knock: 360 }],
     desc: 'A spiked ball on a chain. The faster it swings, the harder it hits.' },
-  { id: 'cannon', name: 'Cannon', rar: 'R', cat: 'off', col: '#46505e', hp: 170, m: 1.2,
+  { id: 'cannon', name: 'Cannon', rar: 'R', cat: 'off', col: '#46505e', hp: 155, m: 1.2,
     init(S, f) { f.u.aim = toward(f, f.foe); },
     update(S, f, dt) {
       f.u.aim = lead(S, f, f.foe, 680);
@@ -1315,10 +1319,10 @@ const BALL_LIST = [
       }
     },
     desc: 'Fires bouncing cannonballs that knock enemies flying.' },
-  { id: 'hammer', name: 'Hammer', rar: 'E', cat: 'off', col: '#a0662f', hp: 110, m: 1.3,
+  { id: 'hammer', name: 'Hammer', rar: 'E', cat: 'off', col: '#a0662f', hp: 120, m: 1.3,
     weapons: [{ kind: 'hammer', len: 114, head: 30, w: 36, dmg: 10, spin: 3.0, knock: 720, stun: 0.35, grow: { dmg: 0.6 } }],
     desc: 'A war hammer. Every hit stuns the enemy and sends it flying.' },
-  { id: 'scythe', name: 'Scythe', rar: 'E', cat: 'off', col: '#5b4b8a', hp: 100,
+  { id: 'scythe', name: 'Scythe', rar: 'E', cat: 'off', col: '#5b4b8a', hp: 120,
     weapons: [{ kind: 'scythe', len: 140, head: 58, w: 14, dmg: 6, spin: 4.8, knock: 260, grow: { dmg: 0.5 } }],
     onDeal(S, f, t, a, kind) { if (kind === 'melee') heal(S, f, a * 0.4); },
     desc: 'A reaping scythe that heals it for 40% of the damage it deals.' },
@@ -1331,7 +1335,7 @@ const BALL_LIST = [
       }
     },
     desc: 'Charges for a moment, then fires a beam for 20 damage. Its aim locks just before it fires.' },
-  { id: 'missile', name: 'Missile', rar: 'L', cat: 'off', col: '#5a7d3a', hp: 140,
+  { id: 'missile', name: 'Missile', rar: 'L', cat: 'off', col: '#5a7d3a', hp: 160,
     update(S, f, dt) {
       if (every(f, 'm', dt, 2.5)) {
         const [dx, dy] = toward(f, f.foe);
@@ -1346,21 +1350,21 @@ const BALL_LIST = [
     desc: 'Launches pairs of homing missiles that explode on impact.' },
 
   // ---- defense -------------------------------------------------------------
-  { id: 'shield', name: 'Shield', rar: 'C', cat: 'def', col: '#8a7bd8', hp: 180, contact: 2,
+  { id: 'shield', name: 'Shield', rar: 'C', cat: 'def', col: '#8a7bd8', hp: 175, contact: 2,
     weapons: [{ kind: 'shield', len: 60, arc: 1.9, w: 12, dmg: 4, spin: 3.0, knock: 420 }],
     desc: 'An orbiting shield blocks weapons, sends shots back and bashes enemies away.' },
-  { id: 'tank', name: 'Tank', rar: 'C', cat: 'def', col: '#8d7b5a', hp: 130, r: 52, m: 2.3, armor: 0.25, contact: 4,
+  { id: 'tank', name: 'Tank', rar: 'C', cat: 'def', col: '#8d7b5a', hp: 135, r: 52, m: 2.3, armor: 0.25, contact: 4,
     desc: 'Heavy armour: takes 25% less damage and slams hard.' },
   { id: 'thorns', name: 'Thorns', rar: 'R', cat: 'def', col: '#2e8b57', hp: 105, contact: 4, marmor: 0.25,
     onHurt(S, f, src, a, kind) { if ((kind === 'melee' || kind === 'contact') && src && src.alive) hurt(S, f, src, a * 0.5, 'thorns'); },
     desc: 'Covered in thorns: takes 25% less melee damage and sends half of it back.' },
-  { id: 'medic', name: 'Medic', rar: 'R', cat: 'def', col: '#7fdcb5', hp: 110, contact: 3,
+  { id: 'medic', name: 'Medic', rar: 'R', cat: 'def', col: '#7fdcb5', hp: 105, contact: 3,
     update(S, f, dt) {
       heal(S, f, 1.0 * dt * f.hpMul);
       if (every(f, 'pulse', dt, 5)) { heal(S, f, 7 * f.hpMul); emit(S, { e: 'pulse', id: f.id, x: f.x, y: f.y }); }
     },
     desc: 'Heals 1 HP every second, plus a 7 HP burst every 5 seconds.' },
-  { id: 'balloon', name: 'Balloon', rar: 'R', cat: 'def', col: '#ff8fc7', hp: 100, r: 34,
+  { id: 'balloon', name: 'Balloon', rar: 'R', cat: 'def', col: '#ff8fc7', hp: 95, r: 34,
     onHurt(S, f) { if (f.r < 80) { f.r = Math.min(80, f.r + 2.2); f.m = f.r * f.r / 1600; f.maxHp += 2 * f.hpMul; f.hp += 2 * f.hpMul; } },
     onContact(S, f, t, d, imp) { return (1 + (f.r - 34) * 0.11) * clamp(imp / 500, 0.5, 2); },
     desc: 'Grows bigger, heavier and tougher every time it gets hit.' },
@@ -1389,15 +1393,15 @@ const BALL_LIST = [
     desc: 'Drains life from anything close and sends out bats that heal it.' },
 
   // ---- trick ---------------------------------------------------------------
-  { id: 'fire', name: 'Fire', rar: 'C', cat: 'trick', col: '#ff7a1f', hp: 110, contact: 2,
+  { id: 'fire', name: 'Fire', rar: 'C', cat: 'trick', col: '#ff7a1f', hp: 105, contact: 2,
     update(S, f, dt) { if (every(f, 'trail', dt, 0.09) && S.hz.length < 90) hazard(S, f, 'fire', { x: f.x, y: f.y, r: 24, life: 2.2, t0: S.t }); },
     onContact(S, f, t, d) { burn(t, f, 2.5); return d; },
     desc: 'Leaves a burning trail. Touching the trail or the ball sets enemies on fire.' },
-  { id: 'poison', name: 'Poison', rar: 'C', cat: 'trick', col: '#86c232', hp: 105, contact: 2,
+  { id: 'poison', name: 'Poison', rar: 'C', cat: 'trick', col: '#86c232', hp: 120, contact: 2,
     update(S, f, dt) { if (every(f, 'pud', dt, 3.5)) hazard(S, f, 'puddle', { x: f.x, y: f.y, r: 55, life: 4.5, t0: S.t }); },
     onContact(S, f, t, d) { poison(t, f, 2); return d; },
     desc: 'Each touch adds 2 poison stacks. It also drops toxic puddles.' },
-  { id: 'dice', name: 'Dice', rar: 'C', cat: 'trick', col: '#f3efe4', hp: 115,
+  { id: 'dice', name: 'Dice', rar: 'C', cat: 'trick', col: '#f3efe4', hp: 120,
     init(S, f) { f.u.face = 5; },
     onContact(S, f, t) {
       const roll = 1 + Math.floor(S.rng() * 6);
@@ -1421,7 +1425,7 @@ const BALL_LIST = [
       }
     },
     desc: 'Drags enemies in close and pushes their shots away.' },
-  { id: 'ice', name: 'Ice', rar: 'R', cat: 'trick', col: '#9fe3ff', hp: 125, contact: 3,
+  { id: 'ice', name: 'Ice', rar: 'R', cat: 'trick', col: '#9fe3ff', hp: 120, contact: 3,
     update(S, f, dt) {
       f.cd.frz = (f.cd.frz || 0) - dt;
       if (every(f, 'shard', dt, 2.6)) {
@@ -1438,12 +1442,12 @@ const BALL_LIST = [
       return d;
     },
     desc: 'Freezes enemies solid on touch (frozen targets take 30% more damage) and throws slowing shards.' },
-  { id: 'bomb', name: 'Bomb', rar: 'R', cat: 'trick', col: '#2b2d42', hp: 210,
+  { id: 'bomb', name: 'Bomb', rar: 'R', cat: 'trick', col: '#2b2d42', hp: 200,
     update(S, f, dt) {
       if (every(f, 'bomb', dt, 2.4)) { hazard(S, f, 'bomb', { x: f.x, y: f.y, r: 165, fuse: 1.2, dmg: 16, knock: 650 }); emit(S, { e: 'drop', id: f.id }); }
     },
     desc: 'Drops bombs that explode a moment later.' },
-  { id: 'lightning', name: 'Lightning', rar: 'E', cat: 'trick', col: '#f9d71c', hp: 145, contact: 2,
+  { id: 'lightning', name: 'Lightning', rar: 'E', cat: 'trick', col: '#f9d71c', hp: 135, contact: 2,
     update(S, f, dt) {
       if (every(f, 'zap', dt, 2.1)) {
         const t = f.foe, T = 0.45;
@@ -1455,10 +1459,10 @@ const BALL_LIST = [
       }
     },
     desc: 'Calls lightning down where the enemy is about to be. Each strike stuns.' },
-  { id: 'swarm', name: 'Swarm', rar: 'E', cat: 'trick', col: '#c76b98', hp: 145, contact: 2,
+  { id: 'swarm', name: 'Swarm', rar: 'E', cat: 'trick', col: '#c76b98', hp: 155, contact: 2,
     update(S, f, dt) { if (every(f, 'drone', dt, 2.6) && droneCount(S, f) < 4) spawnDrone(S, f); },
     desc: 'Builds little attack drones that chase and ram the enemy, up to 4 at a time.' },
-  { id: 'blink', name: 'Blink', rar: 'E', cat: 'trick', col: '#7d3cff', hp: 175, contact: 2,
+  { id: 'blink', name: 'Blink', rar: 'E', cat: 'trick', col: '#7d3cff', hp: 185, contact: 2,
     update(S, f, dt) {
       if (f.u.dash > 0) f.u.dash -= dt;
       if (every(f, 'blink', dt, 2.6)) {
@@ -1474,7 +1478,7 @@ const BALL_LIST = [
     },
     onContact(S, f, t, d) { if (f.u.dash > 0) { f.u.dash = 0; return 9; } return d; },
     desc: 'Teleports behind the enemy and dashes into it for 9 damage.' },
-  { id: 'blackhole', name: 'Black Hole', rar: 'L', cat: 'trick', col: '#1a1033', hp: 170,
+  { id: 'blackhole', name: 'Black Hole', rar: 'L', cat: 'trick', col: '#1a1033', hp: 165,
     update(S, f, dt) {
       if (every(f, 'hole', dt, 4.2)) {
         const t = f.foe;
@@ -1486,7 +1490,7 @@ const BALL_LIST = [
       }
     },
     desc: 'Opens a black hole that drags the enemy and its shots into a crushing core.' },
-  { id: 'clock', name: 'Clock', rar: 'L', cat: 'trick', col: '#d8c16a', hp: 170,
+  { id: 'clock', name: 'Clock', rar: 'L', cat: 'trick', col: '#d8c16a', hp: 185,
     weapons: [{ kind: 'hand', len: 82, w: 10, dmg: 4, spin: 2.4, knock: 220 }, { kind: 'hand2', len: 114, w: 7, dmg: 3, spin: 5.5, knock: 160 }],
     update(S, f, dt) { if (every(f, 'stop', dt, 5)) { S.tstop[f.foe.side] = 1.5; emit(S, { e: 'tstop', side: f.foe.side }); } },
     dmgMod(S, f) { return S.tstop[f.foe.side] > 0 ? 1.5 : 1; },
@@ -1520,7 +1524,7 @@ function dashAt(S, f, t, sp, secs) {
 
 BALL_LIST.push(
   // ======================= GIMMICKS ========================================
-  { id: 'copycat', name: 'Copycat', rar: 'M', cat: 'trick', special: 1, col: '#9b8cff', hp: 165,
+  { id: 'copycat', name: 'Copycat', rar: 'M', cat: 'trick', special: 1, col: '#9b8cff', hp: 170,
     init(S, f) {
       let d = f.foe.def;
       if (d.id === 'copycat' || !d) d = BALL.sword;
@@ -1533,7 +1537,7 @@ BALL_LIST.push(
       emit(S, { e: 'copy', id: f.id, x: f.x, y: f.y });
     },
     desc: 'Copies the other ball’s ability when the fight starts, at 85% power.' },
-  { id: 'hydra', name: 'Hydra', rar: 'M', cat: 'off', special: 1, col: '#3fa36b', hp: 110,
+  { id: 'hydra', name: 'Hydra', rar: 'M', cat: 'off', special: 1, col: '#3fa36b', hp: 150,
     weapons: [HYDRA_HEAD],
     onHurt(S, f, src, a) {
       f.u.acc = (f.u.acc || 0) + a;
@@ -1553,7 +1557,7 @@ BALL_LIST.push(
   { id: 'builder', name: 'Builder', rar: 'E', cat: 'def', special: 1, col: '#f28c28', hp: 225, contact: 3,
     update(S, f, dt) { if (every(f, 'build', dt, 2.8)) { wallAcross(S, f, 0.45, 170, 4.5); emit(S, { e: 'build', x: f.x, y: f.y }); } },
     desc: 'Builds walls between itself and the enemy. The enemy and its shots bounce off them.' },
-  { id: 'mime', name: 'Mime', rar: 'E', cat: 'trick', special: 1, col: '#f4f1ea', hp: 170, contact: 4,
+  { id: 'mime', name: 'Mime', rar: 'E', cat: 'trick', special: 1, col: '#f4f1ea', hp: 185, contact: 4,
     update(S, f, dt) {
       if (every(f, 'box', dt, 5)) {      // an invisible box round the enemy, for a couple of seconds
         const t = f.foe, s = 85;
@@ -1563,7 +1567,7 @@ BALL_LIST.push(
       }
     },
     desc: 'Traps the enemy in an invisible box every few seconds. The mime can walk right in.' },
-  { id: 'glitch', name: 'Glitch', rar: 'M', cat: 'trick', special: 1, col: '#00e0b0', hp: 130, contact: 3,
+  { id: 'glitch', name: 'Glitch', rar: 'M', cat: 'trick', special: 1, col: '#00e0b0', hp: 135, contact: 3,
     update(S, f, dt) {
       if (!every(f, 'glitch', dt, 2.2)) return;
       const t = f.foe, roll = Math.floor(S.rng() * 6);
@@ -1622,7 +1626,7 @@ BALL_LIST.push(
       }
     },
     desc: 'Once a fight, when it drops under 30%, it rewinds its health to the best of the last 5 seconds.' },
-  { id: 'supernova', name: 'Supernova', rar: 'L', cat: 'off', special: 1, col: '#ffcf4a', hp: 190, contact: 3,
+  { id: 'supernova', name: 'Supernova', rar: 'L', cat: 'off', special: 1, col: '#ffcf4a', hp: 185, contact: 3,
     update(S, f, dt) {
       if (every(f, 'flare', dt, 3)) { aoe(S, f, f.x, f.y, 115, 4, 300, 0, 'flare'); emit(S, { e: 'boom', x: f.x, y: f.y, r: 115, small: 1 }); }
     },
@@ -1639,14 +1643,14 @@ BALL_LIST.push(
       if (every(f, 'nuke', dt, 9)) { hazard(S, f, 'bomb', { x: f.x, y: f.y, r: 270, fuse: 2.6, dmg: 32, knock: 900, look: 'nuke' }); emit(S, { e: 'drop', id: f.id }); }
     },
     desc: 'Every 9 seconds it drops a nuke: 32 damage across half the box after a short countdown.' },
-  { id: 'phoenix', name: 'Phoenix', rar: 'L', cat: 'def', special: 1, col: '#ff5a1f', hp: 70, contact: 3, revive: 0.55,
+  { id: 'phoenix', name: 'Phoenix', rar: 'L', cat: 'def', special: 1, col: '#ff5a1f', hp: 65, contact: 3, revive: 0.55,
     update(S, f, dt) { if (every(f, 'trail', dt, 0.18) && S.hz.length < 90) hazard(S, f, 'fire', { x: f.x, y: f.y, r: 18, life: 1.4 }); },
     onRevive(S, f) { aoe(S, f, f.x, f.y, 190, 10, 700, 0, 'blast'); burn(f.foe, f, 3); emit(S, { e: 'boom', x: f.x, y: f.y, r: 190 }); },
     desc: 'Dies once and is reborn from its ashes at 55% health, in a burst of fire.' },
-  { id: 'zombie', name: 'Zombie', rar: 'R', cat: 'def', special: 1, col: '#7fae5a', hp: 80, contact: 4, revive: 0.35,
+  { id: 'zombie', name: 'Zombie', rar: 'R', cat: 'def', special: 1, col: '#7fae5a', hp: 90, contact: 4, revive: 0.35,
     onContact(S, f, t, d) { poison(t, f, 1); return d; },
     desc: 'Won’t stay down: comes back once at 35% health. Its bite is poisonous.' },
-  { id: 'slime', name: 'Slime', rar: 'E', cat: 'def', special: 1, col: '#6ee05a', hp: 185, contact: 3,
+  { id: 'slime', name: 'Slime', rar: 'E', cat: 'def', special: 1, col: '#6ee05a', hp: 165, contact: 3,
     always(S, f) {
       if (!f.u.split && f.hp < f.maxHp * 0.5) {
         f.u.split = 1; f.r = f.r0 * 0.8; f.m *= 0.64;
@@ -1656,17 +1660,17 @@ BALL_LIST.push(
     },
     onContact(S, f, t, d) { applyFx(S, f, t, { slow: 1 }); return d; },
     desc: 'At half health it splits: two little slimes break off and keep fighting with it.' },
-  { id: 'clone', name: 'Clone', rar: 'E', cat: 'trick', special: 1, col: '#8f9bff', hp: 115, contact: 3,
+  { id: 'clone', name: 'Clone', rar: 'E', cat: 'trick', special: 1, col: '#8f9bff', hp: 120, contact: 3,
     update(S, f, dt) { if (every(f, 'clone', dt, 5) && droneCount(S, f, 'clone') < 2) spawnDrone(S, f, { r: 22, hp: 14, ram: 4, spd: 480, acc: 1200, look: 'clone', life: 9 }); },
     desc: 'Makes copies of itself that chase the enemy for a while, up to 2 at a time.' },
-  { id: 'mirror', name: 'Mirror', rar: 'E', cat: 'def', special: 1, col: '#cfe8ff', hp: 165, contact: 3,
+  { id: 'mirror', name: 'Mirror', rar: 'E', cat: 'def', special: 1, col: '#cfe8ff', hp: 155, contact: 3,
     onShot(S, f, p) { const [nx, ny] = toward(f, p); reflectProj(S, p, f, nx, ny); p.dmg *= 1.2; return true; },
     onHurt(S, f, src, a, kind) { if ((kind === 'melee' || kind === 'contact') && src && src.alive) hurt(S, f, src, a * 0.3, 'thorns'); },
     desc: 'Every shot that hits it bounces straight back, 20% stronger. Melee gets 30% sent back.' },
-  { id: 'sponge', name: 'Sponge', rar: 'R', cat: 'def', special: 1, col: '#ffe066', hp: 220, contact: 3,
+  { id: 'sponge', name: 'Sponge', rar: 'R', cat: 'def', special: 1, col: '#ffe066', hp: 255, contact: 3,
     onShot(S, f, p) { heal(S, f, p.dmg * 0.7); p.alive = false; emit(S, { e: 'soak', x: p.x, y: p.y }); return true; },
     desc: 'Soaks up every shot that hits it and heals from it instead.' },
-  { id: 'chomper', name: 'Chomper', rar: 'E', cat: 'trick', special: 1, col: '#ffc531', hp: 135, contact: 3,
+  { id: 'chomper', name: 'Chomper', rar: 'E', cat: 'trick', special: 1, col: '#ffc531', hp: 145, contact: 3,
     update(S, f, dt) {
       for (const p of S.projs) {
         if (p.side === f.side || !p.alive) continue;
@@ -1677,17 +1681,17 @@ BALL_LIST.push(
     onShot(S, f, p) { heal(S, f, 5); p.alive = false; emit(S, { e: 'chomp', id: f.id, x: p.x, y: p.y }); return true; },
     onContact(S, f, t, d) { if ((f.cd.bite || 0) <= S.t) { f.cd.bite = S.t + 1.2; emit(S, { e: 'chomp', id: f.id, x: t.x, y: t.y }); return 8; } return d; },
     desc: 'Sucks in nearby shots and eats them to heal. Its bite does 8.' },
-  { id: 'jelly', name: 'Jelly', rar: 'R', cat: 'def', special: 1, col: '#ff8ad8', hp: 95, contact: 2,
+  { id: 'jelly', name: 'Jelly', rar: 'R', cat: 'def', special: 1, col: '#ff8ad8', hp: 100, contact: 2,
     takeMod(S, f, src, kind) { if (kind === 'melee' || kind === 'contact' || kind === 'proj') { f.u.wob = (f.u.wob || 0) + 1; return 0.6; } return 1; },
     onHurt(S, f, src, a) { f.u.store = Math.min(30, (f.u.store || 0) + a * 0.7); },
     onContact(S, f, t, d) { const s = f.u.store || 0; if (s > 4) { f.u.store = 0; emit(S, { e: 'boom', x: t.x, y: t.y, r: 60, small: 1 }); return d + s * 1.3; } return d; },
     desc: 'Wobbly: takes 40% less from hits, stores the shock and slaps it back on the next bump.' },
-  { id: 'battery', name: 'Battery', rar: 'R', cat: 'off', special: 1, col: '#3ddc84', hp: 95, contact: 2,
+  { id: 'battery', name: 'Battery', rar: 'R', cat: 'off', special: 1, col: '#3ddc84', hp: 105, contact: 2,
     init(S, f) { f.u.ch = 0; },
     onWall(S, f) { if (f.u.ch < 10) f.u.ch++; },
     onContact(S, f, t, d) { const c = f.u.ch; f.u.ch = 0; if (c >= 3) { applyFx(S, f, t, { stun: 0.2 + c * 0.04 }); emit(S, { e: 'bolt', x: t.x, y: t.y, r: 40 + c * 6 }); } return d + c * 2.6; },
     desc: 'Every wall it bounces off charges it up. The next bump lets it all out.' },
-  { id: 'snowball', name: 'Snowball', rar: 'R', cat: 'def', special: 1, col: '#eaf6ff', hp: 85, r: 32,
+  { id: 'snowball', name: 'Snowball', rar: 'R', cat: 'def', special: 1, col: '#eaf6ff', hp: 110, r: 32,
     always(S, f, dt) { if (f.r < 76 && canMove(S, f)) { f.r = Math.min(76, f.r + vlen(f.vx, f.vy) * dt * 0.0055); f.m = f.r * f.r / 1600; } },
     onHurt(S, f) { f.r = Math.max(28, f.r - 1.6); f.m = f.r * f.r / 1600; },
     onContact(S, f, t, d, imp) { return f.r * 0.16 * clamp(imp / 500, 0.5, 2); },
@@ -1702,7 +1706,7 @@ BALL_LIST.push(
     always(S, f, dt) { if (f.u.puff > 0 && (f.u.puff -= dt) <= 0) { f.r = f.r0; f.m = f.r * f.r / 1600; } },
     onContact(S, f, t, d) { return f.u.puff > 0 ? d * 2.4 : d; },
     desc: 'Hit it and it puffs up huge, firing spikes everywhere and bumping twice as hard.' },
-  { id: 'wrestler', name: 'Wrestler', rar: 'E', cat: 'off', special: 1, col: '#d63a3a', hp: 85, contact: 3, m: 1.3,
+  { id: 'wrestler', name: 'Wrestler', rar: 'E', cat: 'off', special: 1, col: '#d63a3a', hp: 90, contact: 3, m: 1.3,
     onContact(S, f, t, d) {
       if ((f.cd.grab || 0) > S.t) return d;
       f.cd.grab = S.t + 3.2;
@@ -1711,7 +1715,7 @@ BALL_LIST.push(
       return d + 3;
     },
     desc: 'Grabs the enemy and throws it into the nearest wall, which hurts a lot.' },
-  { id: 'disco', name: 'Disco', rar: 'E', cat: 'trick', special: 1, col: '#c86bff', hp: 175, contact: 3,
+  { id: 'disco', name: 'Disco', rar: 'E', cat: 'trick', special: 1, col: '#c86bff', hp: 190, contact: 3,
     update(S, f, dt) {
       if (!every(f, 'flash', dt, 3.2)) return;
       const t = f.foe;
@@ -1720,7 +1724,7 @@ BALL_LIST.push(
       emit(S, { e: 'disco', x: f.x, y: f.y });
     },
     desc: 'Drops the beat: a flash that stuns and dizzies the enemy, and spotlights that burn.' },
-  { id: 'cupid', name: 'Cupid', rar: 'E', cat: 'trick', special: 1, col: '#ff6f9f', hp: 170, contact: 2,
+  { id: 'cupid', name: 'Cupid', rar: 'E', cat: 'trick', special: 1, col: '#ff6f9f', hp: 180, contact: 2,
     update(S, f, dt) {
       if (!every(f, 'heart', dt, 1.6)) return;
       f.u.n = (f.u.n || 0) + 1;
@@ -1729,13 +1733,13 @@ BALL_LIST.push(
       emit(S, { e: 'shoot', k: 'heart', id: f.id });
     },
     desc: 'Shoots love arrows. Every other one charms the enemy: for a moment it can’t hurt anyone.' },
-  { id: 'banana', name: 'Banana', rar: 'R', cat: 'trick', special: 1, col: '#ffe135', hp: 80, contact: 3,
+  { id: 'banana', name: 'Banana', rar: 'R', cat: 'trick', special: 1, col: '#ffe135', hp: 85, contact: 3,
     update(S, f, dt) {
       let n = 0; for (const z of S.hz) if (z.owner === f && z.k === 'peel') n++;
       if (every(f, 'peel', dt, 1.1) && n < 7) hazard(S, f, 'peel', { x: f.x, y: f.y, r: 16, life: 9, dmg: 5 });
     },
     desc: 'Drops banana peels. Slip on one and you spin off stunned in a random direction.' },
-  { id: 'tsunami', name: 'Tsunami', rar: 'L', cat: 'trick', special: 1, col: '#1f8fff', hp: 125, contact: 3,
+  { id: 'tsunami', name: 'Tsunami', rar: 'L', cat: 'trick', special: 1, col: '#1f8fff', hp: 120, contact: 3,
     update(S, f, dt) {
       if (!every(f, 'wave', dt, 4.6)) return;
       const t = f.foe, dir = t.x > f.x ? 1 : -1, b = S.box;
@@ -1743,7 +1747,7 @@ BALL_LIST.push(
       emit(S, { e: 'wave', x: f.x, y: f.y });
     },
     desc: 'Sends a wave right across the box that hits for 9 and washes the enemy away.' },
-  { id: 'pinball', name: 'Pinball', rar: 'E', cat: 'trick', special: 1, col: '#ff4d4d', hp: 90, contact: 3,
+  { id: 'pinball', name: 'Pinball', rar: 'E', cat: 'trick', special: 1, col: '#ff4d4d', hp: 100, contact: 3,
     update(S, f, dt) {
       let n = 0; for (const z of S.hz) if (z.owner === f && z.k === 'bumper') n++;
       if (every(f, 'bump', dt, 3) && n < 3) {
@@ -1752,7 +1756,7 @@ BALL_LIST.push(
       }
     },
     desc: 'Builds bumpers around the enemy that fling it about and hurt on every bounce.' },
-  { id: 'eightball', name: '8-Ball', rar: 'R', cat: 'off', special: 1, col: '#1b1b22', hp: 100, contact: 3,
+  { id: 'eightball', name: '8-Ball', rar: 'R', cat: 'off', special: 1, col: '#1b1b22', hp: 90, contact: 3,
     update(S, f, dt) {
       if (every(f, 'cue', dt, 2.4) && droneCount(S, f, 'cue') < 3) {
         const [ux, uy] = lead(S, f, f.foe, 720);
@@ -1760,7 +1764,7 @@ BALL_LIST.push(
       }
     },
     desc: 'Breaks out pool balls that shoot off in straight lines and smash into the enemy.' },
-  { id: 'tornado', name: 'Tornado', rar: 'E', cat: 'trick', special: 1, col: '#9db4c8', hp: 195, contact: 3,
+  { id: 'tornado', name: 'Tornado', rar: 'E', cat: 'trick', special: 1, col: '#9db4c8', hp: 185, contact: 3,
     update(S, f, dt) {
       let n = 0; for (const z of S.hz) if (z.owner === f && z.look === 'twister') n++;
       if (every(f, 'twist', dt, 4) && n < 2) {
@@ -1769,7 +1773,7 @@ BALL_LIST.push(
       }
     },
     desc: 'Whips up tornadoes that wander the box, sucking the enemy in and spinning it around.' },
-  { id: 'whitehole', name: 'White Hole', rar: 'L', cat: 'trick', special: 1, col: '#f7f3ff', hp: 135, contact: 3,
+  { id: 'whitehole', name: 'White Hole', rar: 'L', cat: 'trick', special: 1, col: '#f7f3ff', hp: 140, contact: 3,
     update(S, f, dt) {
       if (!every(f, 'blast', dt, 4.2)) return;
       hazard(S, f, 'hole', { x: f.x, y: f.y, R: 330, core: 70, life: 1.6, dps: 9, push: 1 });
@@ -1779,10 +1783,10 @@ BALL_LIST.push(
     desc: 'Blasts everything away from itself. Anything thrown into a wall takes 9 damage.' },
 
   // ======================= REGULARS =========================================
-  { id: 'knight', name: 'Knight', rar: 'C', cat: 'def', col: '#9aa7b8', hp: 115, contact: 2,
+  { id: 'knight', name: 'Knight', rar: 'C', cat: 'def', col: '#9aa7b8', hp: 135, contact: 2,
     weapons: [{ kind: 'shield', len: 58, arc: 1.5, w: 12, dmg: 3, spin: 2.6, knock: 380 }, { kind: 'blade', len: 106, w: 10, dmg: 4, spin: 4.6, knock: 220, grow: { dmg: 0.6 } }],
     desc: 'A sword and a shield: it blocks with one and cuts with the other.' },
-  { id: 'samurai', name: 'Samurai', rar: 'R', cat: 'off', col: '#c0392b', hp: 85,
+  { id: 'samurai', name: 'Samurai', rar: 'R', cat: 'off', col: '#c0392b', hp: 80,
     weapons: [{ kind: 'katana', len: 120, w: 9, dmg: 5, spin: 6, knock: 200 }],
     update(S, f, dt) {
       if (!every(f, 'iai', dt, 3)) return;
@@ -1796,21 +1800,21 @@ BALL_LIST.push(
     weapons: [{ kind: 'axe', len: 114, head: 34, w: 26, dmg: 6, spin: 3.4, knock: 380 }],
     dmgMod(S, f) { return 1 + 1.2 * (1 - f.hp / f.maxHp); },
     desc: 'An axe and a temper: the lower its health, the harder it hits, up to more than double.' },
-  { id: 'crab', name: 'Crab', rar: 'C', cat: 'off', col: '#ff6b4a', hp: 140, armor: 0.15,
+  { id: 'crab', name: 'Crab', rar: 'C', cat: 'off', col: '#ff6b4a', hp: 135, armor: 0.15,
     weapons: [{ kind: 'claw', n: 2, len: 80, head: 30, w: 26, dmg: 5, spin: 3.8, knock: 260 }],
     desc: 'Two snapping claws and a hard shell that takes 15% off every hit.' },
-  { id: 'scorpion', name: 'Scorpion', rar: 'R', cat: 'off', col: '#8a5a2b', hp: 140,
+  { id: 'scorpion', name: 'Scorpion', rar: 'R', cat: 'off', col: '#8a5a2b', hp: 145,
     weapons: [{ kind: 'tail', len: 136, head: 30, w: 14, dmg: 4, spin: 3.2, knock: 220, fx: { poison: 2 } }],
     desc: 'A long tail with a poison sting: every hit adds 2 poison stacks.' },
-  { id: 'shark', name: 'Shark', rar: 'R', cat: 'off', col: '#6e8ca0', hp: 85, contact: 6,
+  { id: 'shark', name: 'Shark', rar: 'R', cat: 'off', col: '#6e8ca0', hp: 95, contact: 6,
     always(S, f) { const low = f.foe.hp < f.foe.maxHp * 0.5; f.u.vmin = low ? VMIN * S.vmul * 1.5 : 0; },
     onContact(S, f, t, d) { return t.hp < t.maxHp * 0.5 ? d * 2 : d; },
     desc: 'Big bites. When the enemy drops under half health, it smells blood: faster and twice the bite.' },
-  { id: 'snake', name: 'Snake', rar: 'C', cat: 'trick', col: '#59b84a', hp: 85, contact: 4,
+  { id: 'snake', name: 'Snake', rar: 'C', cat: 'trick', col: '#59b84a', hp: 95, contact: 4,
     init(S, f) { f.u.vmin = 420 * S.vmul; },
     onContact(S, f, t, d) { poison(t, f, 2); return d; },
     desc: 'Quick and slippery. Every bite adds 2 poison stacks.' },
-  { id: 'dragon', name: 'Dragon', rar: 'E', cat: 'off', col: '#d8402c', hp: 100, contact: 3,
+  { id: 'dragon', name: 'Dragon', rar: 'E', cat: 'off', col: '#d8402c', hp: 105, contact: 3,
     update(S, f, dt) {
       if (!every(f, 'breath', dt, 2.4)) return;
       const [ux, uy] = lead(S, f, f.foe, 540);
@@ -1821,7 +1825,7 @@ BALL_LIST.push(
       emit(S, { e: 'shoot', k: 'flame', id: f.id });
     },
     desc: 'Breathes a cone of fire that burns whatever it touches.' },
-  { id: 'wizard', name: 'Wizard', rar: 'E', cat: 'trick', col: '#4b3fd1', hp: 135, contact: 2,
+  { id: 'wizard', name: 'Wizard', rar: 'E', cat: 'trick', col: '#4b3fd1', hp: 125, contact: 2,
     update(S, f, dt) {
       if (!every(f, 'spell', dt, 1.9)) return;
       const t = f.foe, s = Math.floor(S.rng() * 4), [ux, uy] = lead(S, f, t, 650);
@@ -1832,13 +1836,13 @@ BALL_LIST.push(
       emit(S, { e: 'spell', id: f.id, k: s });
     },
     desc: 'Casts a random spell every 2 seconds: fireball, frost bolt, lightning or seeking missiles.' },
-  { id: 'robot', name: 'Robot', rar: 'R', cat: 'def', col: '#8fa3b8', hp: 60, contact: 3,
+  { id: 'robot', name: 'Robot', rar: 'R', cat: 'def', col: '#8fa3b8', hp: 55, contact: 3,
     update(S, f, dt) {
       if (every(f, 'las', dt, 3.4)) hazard(S, f, 'laser', { ch: 0.6, dx: toward(f, f.foe)[0], dy: toward(f, f.foe)[1], fired: false, dmg: 12, x0: f.x, y0: f.y, x1: f.x, y1: f.y, look: 'red' });
       if (every(f, 'shield', dt, 7)) { f.shield = 18 * f.hpMul; emit(S, { e: 'shieldup', id: f.id }); }
     },
     desc: 'Fires an eye laser and keeps putting up a force field that soaks 18 damage.' },
-  { id: 'pirate', name: 'Pirate', rar: 'R', cat: 'off', col: '#7a4a2a', hp: 95, contact: 3,
+  { id: 'pirate', name: 'Pirate', rar: 'R', cat: 'off', col: '#7a4a2a', hp: 105, contact: 3,
     init(S, f) { f.u.aim = toward(f, f.foe); },
     update(S, f, dt) {
       f.u.aim = lead(S, f, f.foe, 650);
@@ -1850,23 +1854,23 @@ BALL_LIST.push(
       if (every(f, 'parrot', dt, 4) && droneCount(S, f, 'parrot') < 1) spawnDrone(S, f, { r: 12, hp: 12, ram: 3, spd: 580, acc: 1700, look: 'parrot' });
     },
     desc: 'A little cannon, and a parrot that pecks at the enemy.' },
-  { id: 'hedgehog', name: 'Hedgehog', rar: 'C', cat: 'off', col: '#8b6a4f', hp: 115, contact: 3,
+  { id: 'hedgehog', name: 'Hedgehog', rar: 'C', cat: 'off', col: '#8b6a4f', hp: 110, contact: 3,
     update(S, f, dt) { if (every(f, 'roll', dt, 2.5)) { dashAt(S, f, f.foe, 1050, 0.6); emit(S, { e: 'roll', id: f.id }); } },
     always(S, f, dt) { if (f.u.dash > 0) f.u.dash -= dt; },
     onContact(S, f, t, d) { return f.u.dash > 0 ? d * 3.2 : d; },
     desc: 'Curls up and spin-dashes at the enemy: three times the damage while rolling.' },
-  { id: 'turtle', name: 'Turtle', rar: 'C', cat: 'def', col: '#4f9a52', hp: 135, armor: 0.3, contact: 3,
+  { id: 'turtle', name: 'Turtle', rar: 'C', cat: 'def', col: '#4f9a52', hp: 145, armor: 0.3, contact: 3,
     update(S, f, dt) { if (every(f, 'shell', dt, 6)) { f.u.shell = 1.4; f.st.rootT = 1.4; emit(S, { e: 'shell', id: f.id }); } },
     always(S, f, dt) { if (f.u.shell > 0) f.u.shell -= dt; },
     takeMod(S, f) { return f.u.shell > 0 ? 0 : 1; },
     desc: 'A tough shell (30% less damage), and every 6 seconds it hides inside and takes nothing at all.' },
-  { id: 'rainbow', name: 'Rainbow', rar: 'R', cat: 'trick', col: '#ff9a3c', hp: 115, contact: 3,
+  { id: 'rainbow', name: 'Rainbow', rar: 'R', cat: 'trick', col: '#ff9a3c', hp: 120, contact: 3,
     update(S, f, dt) {
       if (every(f, 'orb', dt, 2)) { const [ux, uy] = lead(S, f, f.foe, 700); proj(S, f, 'prism', f.x + ux * (f.r + 6), f.y + uy * (f.r + 6), ux * 700, uy * 700, { r: 9, dmg: 3, life: 1.8, fx: { rand: 1 } }); }
     },
     onContact(S, f, t, d) { applyFx(S, f, t, { rand: 1 }); return d; },
     desc: 'Every hit does something random: burn, slow, stun, root, dizzy, charm, weaken or freeze.' },
-  { id: 'clover', name: 'Clover', rar: 'C', cat: 'trick', col: '#3cb371', hp: 105, contact: 3,
+  { id: 'clover', name: 'Clover', rar: 'C', cat: 'trick', col: '#3cb371', hp: 115, contact: 3,
     update(S, f, dt) {
       if (every(f, 'leaf', dt, 1.5)) { const [ux, uy] = lead(S, f, f.foe, 760); proj(S, f, 'leaf', f.x + ux * (f.r + 6), f.y + uy * (f.r + 6), ux * 760, uy * 760, { r: 7, dmg: 3, life: 1.6 }); }
     },
@@ -1882,12 +1886,12 @@ BALL_LIST.push(
     },
     onContact(S, f, t, d) { return f.u.rush > 0 ? d * 2.2 : d; },
     desc: 'Caffeine rushes every 3 seconds: almost double speed and double the bump.' },
-  { id: 'sniper', name: 'Sniper', rar: 'R', cat: 'off', col: '#5d6b3a', hp: 270,
+  { id: 'sniper', name: 'Sniper', rar: 'R', cat: 'off', col: '#5d6b3a', hp: 235,
     update(S, f, dt) {
       if (every(f, 'snipe', dt, 3.2)) { const [dx, dy] = toward(f, f.foe); hazard(S, f, 'laser', { ch: 1.1, lock: 0.35, dx, dy, fired: false, dmg: 30, thick: 11, x0: f.x, y0: f.y, x1: f.x, y1: f.y, look: 'snipe' }); emit(S, { e: 'charge', id: f.id }); }
     },
     desc: 'Lines up a shot for a second, then fires a thin round for 30. Move and it misses.' },
-  { id: 'minigun', name: 'Minigun', rar: 'R', cat: 'off', col: '#55606e', hp: 90,
+  { id: 'minigun', name: 'Minigun', rar: 'R', cat: 'off', col: '#55606e', hp: 85,
     init(S, f) { f.u.spin = 0; f.u.aim = [1, 0]; },
     update(S, f, dt) {
       f.u.spin = Math.min(1, f.u.spin + dt * 0.25);
@@ -1901,7 +1905,7 @@ BALL_LIST.push(
       }
     },
     desc: 'Spins up a minigun: slow at first, then a storm of little bullets.' },
-  { id: 'boomerang', name: 'Boomerang', rar: 'C', cat: 'off', col: '#d9a441', hp: 200,
+  { id: 'boomerang', name: 'Boomerang', rar: 'C', cat: 'off', col: '#d9a441', hp: 175,
     update(S, f, dt) {
       if (every(f, 'throw', dt, 1.7)) { const [ux, uy] = lead(S, f, f.foe, 720); proj(S, f, 'boomerang', f.x + ux * (f.r + 10), f.y + uy * (f.r + 10), ux * 720, uy * 720, { r: 11, dmg: 5, life: 2.6, ret: 0.45, pierce: 1, knock: 160 }); emit(S, { e: 'shoot', k: 'boomerang', id: f.id }); }
     },
@@ -1909,7 +1913,7 @@ BALL_LIST.push(
   { id: 'yoyo', name: 'Yo-Yo', rar: 'C', cat: 'off', col: '#e8505b', hp: 190,
     weapons: [{ kind: 'orb', len: 60, w: 30, dmg: 8, spin: 3.4, knock: 320, osc: { amp: 110, f: 3.2 }, look: 'yoyo' }],
     desc: 'A yo-yo that shoots out and snaps back while it spins.' },
-  { id: 'shotgun', name: 'Shotgun', rar: 'R', cat: 'off', col: '#7d5a44', hp: 130,
+  { id: 'shotgun', name: 'Shotgun', rar: 'R', cat: 'off', col: '#7d5a44', hp: 115,
     update(S, f, dt) {
       if (!every(f, 'blast', dt, 2.1)) return;
       const [ux, uy] = lead(S, f, f.foe, 900);
@@ -1928,36 +1932,36 @@ BALL_LIST.push(
       if (every(f, 'nade', dt, 2)) { const [ux, uy] = lead(S, f, f.foe, 560); proj(S, f, 'grenade', f.x + ux * (f.r + 8), f.y + uy * (f.r + 8), ux * 560, uy * 560, { r: 9, dmg: 2, life: 1.2, bounce: 6, drag: 0.9, blast: 120, bdmg: 14, fuse: 1, pierce: 1 }); emit(S, { e: 'shoot', k: 'grenade', id: f.id }); }
     },
     desc: 'Lobs bouncing grenades that go off a second later.' },
-  { id: 'mines', name: 'Mine Layer', rar: 'R', cat: 'trick', col: '#4a4a3a', hp: 75,
+  { id: 'mines', name: 'Mine Layer', rar: 'R', cat: 'trick', col: '#4a4a3a', hp: 90,
     update(S, f, dt) {
       let n = 0; for (const z of S.hz) if (z.owner === f && z.k === 'mine') n++;
       if (every(f, 'mine', dt, 1.5) && n < 6) hazard(S, f, 'mine', { x: f.x, y: f.y, r: 24, arm: 0.6, life: 12, blast: 90, dmg: 11 });
     },
     desc: 'Leaves hidden mines behind it that blow up when the enemy rolls over them.' },
-  { id: 'glue', name: 'Glue', rar: 'C', cat: 'trick', col: '#f2f2e6', hp: 210, contact: 3,
+  { id: 'glue', name: 'Glue', rar: 'C', cat: 'trick', col: '#f2f2e6', hp: 240, contact: 3,
     update(S, f, dt) { if (every(f, 'blob', dt, 3)) hazard(S, f, 'zone', { x: f.x, y: f.y, r: 58, life: 4, fx: { slow: 0.8, root: 0.35 }, every: 1.1, look: 'glue' }); },
     onContact(S, f, t, d) { applyFx(S, f, t, { slow: 2, root: 0.5 }); return d; },
     desc: 'Sticky: touching it glues the enemy in place, and it leaves glue puddles around.' },
-  { id: 'necro', name: 'Necromancer', rar: 'E', cat: 'trick', col: '#3d2a5c', hp: 120, contact: 2,
+  { id: 'necro', name: 'Necromancer', rar: 'E', cat: 'trick', col: '#3d2a5c', hp: 135, contact: 2,
     update(S, f, dt) { if (every(f, 'raise', dt, 3) && droneCount(S, f, 'skull') < 3) spawnDrone(S, f, { r: 14, hp: 10, ram: 4, spd: 420, acc: 1300, look: 'skull', life: 12 }); },
     desc: 'Raises skeletons that hunt the enemy down, up to 3 at a time.' },
-  { id: 'king', name: 'King', rar: 'L', cat: 'def', col: '#ffcc33', hp: 140, contact: 4,
+  { id: 'king', name: 'King', rar: 'L', cat: 'def', col: '#ffcc33', hp: 150, contact: 4,
     update(S, f, dt) { if (every(f, 'guard', dt, 3.5) && droneCount(S, f, 'guard') < 3) spawnDrone(S, f, { r: 15, hp: 16, ram: 3, look: 'guard', mode: 'guard', m: 0.5 }); },
     desc: 'Keeps three royal guards circling it, blocking shots and bumping anything that gets close.' },
-  { id: 'spider', name: 'Spider', rar: 'R', cat: 'trick', col: '#3a3340', hp: 200, contact: 3,
+  { id: 'spider', name: 'Spider', rar: 'R', cat: 'trick', col: '#3a3340', hp: 210, contact: 3,
     update(S, f, dt) {
       if (every(f, 'web', dt, 2.2)) { const [ux, uy] = lead(S, f, f.foe, 620); proj(S, f, 'web', f.x + ux * (f.r + 6), f.y + uy * (f.r + 6), ux * 620, uy * 620, { r: 10, dmg: 2, life: 1.8, fx: { root: 1 } }); }
       if (every(f, 'net', dt, 4)) hazard(S, f, 'zone', { x: f.x, y: f.y, r: 55, life: 5, fx: { root: 0.6 }, every: 1.2, look: 'web' });
     },
     desc: 'Shoots webs that pin the enemy in place, and leaves sticky webs behind.' },
-  { id: 'mushroom', name: 'Mushroom', rar: 'C', cat: 'trick', col: '#e8463c', hp: 230, contact: 2,
+  { id: 'mushroom', name: 'Mushroom', rar: 'C', cat: 'trick', col: '#e8463c', hp: 265, contact: 2,
     update(S, f, dt) { if (every(f, 'spore', dt, 2.4)) { const t = f.foe; hazard(S, f, 'zone', { x: t.x, y: t.y, r: 76, life: 3.5, dps: 3, fx: { confuse: 1 }, every: 0.8, look: 'spore' }); } },
     desc: 'Puffs out spore clouds. Breathe them in and you wander the wrong way.' },
   { id: 'octopus', name: 'Octopus', rar: 'E', cat: 'trick', col: '#b3478f', hp: 75,
     weapons: [{ kind: 'flail', n: 3, len: 92, w: 18, dmg: 0.5, knock: 220, look: 'tentacle' }],
     update(S, f, dt) { if (every(f, 'ink', dt, 4)) { const t = f.foe; hazard(S, f, 'zone', { x: t.x, y: t.y, r: 95, life: 2.5, fx: { blind: 1.5, slow: 0.8 }, look: 'ink' }); emit(S, { e: 'ink', x: t.x, y: t.y }); } },
     desc: 'Three swinging tentacles, and clouds of ink that blind the enemy’s aim.' },
-  { id: 'alien', name: 'Alien', rar: 'E', cat: 'trick', col: '#7ed957', hp: 125, contact: 3,
+  { id: 'alien', name: 'Alien', rar: 'E', cat: 'trick', col: '#7ed957', hp: 135, contact: 3,
     update(S, f, dt) {
       if (every(f, 'beam', dt, 3.6)) { f.u.beam = 1.1; emit(S, { e: 'tractor', id: f.id }); }
       if (f.u.beam > 0) {
@@ -1967,7 +1971,7 @@ BALL_LIST.push(
       }
     },
     desc: 'Locks on with a tractor beam, drags the enemy in, then zaps it for 7 and a stun.' },
-  { id: 'cloud', name: 'Storm Cloud', rar: 'R', cat: 'trick', col: '#9aa5b5', hp: 155, contact: 2,
+  { id: 'cloud', name: 'Storm Cloud', rar: 'R', cat: 'trick', col: '#9aa5b5', hp: 180, contact: 2,
     update(S, f, dt) {
       let n = 0; for (const z of S.hz) if (z.owner === f && z.look === 'rain') n++;
       if (every(f, 'rain', dt, 4) && n < 1) hazard(S, f, 'zone', { x: f.x, y: f.y, r: 95, life: 7, follow: 'foe', spd: 210, dps: 4, fx: { slow: 0.6 }, look: 'rain' });
@@ -1986,10 +1990,10 @@ BALL_LIST.push(
     init(S, f) { hazard(S, f, 'zone', { x: f.x, y: f.y, r: 115, life: 1e9, follow: 'owner', dps: 1.4, fx: { burn: 1 }, every: 0.8, look: 'sun' }); },
     update(S, f, dt) { if (every(f, 'flare', dt, 4)) { aoe(S, f, f.x, f.y, 175, 8, 520, 0, 'flare'); emit(S, { e: 'boom', x: f.x, y: f.y, r: 175 }); } },
     desc: 'Burns everything near it, and throws off a solar flare every 4 seconds.' },
-  { id: 'planet', name: 'Planet', rar: 'R', cat: 'def', col: '#4a7fd8', hp: 190, m: 1.6,
+  { id: 'planet', name: 'Planet', rar: 'R', cat: 'def', col: '#4a7fd8', hp: 230, m: 1.6,
     weapons: [{ kind: 'moon', n: 2, len: 84, w: 30, dmg: 4, spin: 2.3, knock: 420 }],
     desc: 'Two moons orbit it, smashing into anything and blocking shots.' },
-  { id: 'soccer', name: 'Soccer', rar: 'C', cat: 'off', col: '#f4f4f4', hp: 190,
+  { id: 'soccer', name: 'Soccer', rar: 'C', cat: 'off', col: '#f4f4f4', hp: 205,
     update(S, f, dt) {
       if (every(f, 'kick', dt, 2.2)) { const [ux, uy] = lead(S, f, f.foe, 760); proj(S, f, 'soccer', f.x + ux * (f.r + 16), f.y + uy * (f.r + 16), ux * 760, uy * 760, { r: 15, dmg: 6, knock: 420, bounce: 6, life: 5 }); emit(S, { e: 'shoot', k: 'soccer', id: f.id }); }
     },
@@ -2142,20 +2146,20 @@ const ART = {
     c.beginPath(); c.ellipse(-13, -15, 7, 11, -0.6, 0, TAU); c.fillStyle = rgba('#ffffff', 0.7); c.fill();
     circ(c, -3, -27, 2.5); c.fill();
   },
-  ghost(c, k, f, t) {
-    const blink = f && ((t * 0.7) % 3) < 0.08;
-    for (const x of [-11, 11]) { c.beginPath(); c.ellipse(x, -5, 6, blink ? 1.2 : 9, 0, 0, TAU); c.fillStyle = INK; c.fill(); }
-    if (!blink) for (const x of [-9, 13]) { circ(c, x, -9, 2); c.fillStyle = '#ffffff'; c.fill(); }
-    c.beginPath(); c.ellipse(0, 15, 6, 5, 0, 0, TAU); c.fillStyle = INK; c.fill();
+  ghost(c, k, f, t) {          // a sheet ghost, no face
+    const b = Math.sin(t * 3) * 1.5;
+    c.beginPath(); c.moveTo(-17, 20 + b); c.lineTo(-17, -6); c.arc(0, -6, 17, PI, 0); c.lineTo(17, 20 + b);
+    for (let i = 0; i < 4; i++) { const x = 17 - i * 8.5; c.quadraticCurveTo(x - 4.25, 12 + b, x - 8.5, 20 + b); }
+    c.closePath(); inkFill(c, 'rgba(255,255,255,0.9)', 2.2);
+    c.beginPath(); c.moveTo(-9, -14); c.quadraticCurveTo(-12, -2, -9, 10); c.lineWidth = 2.5; c.strokeStyle = 'rgba(150,170,200,0.45)'; c.stroke();
   },
-  vampire(c, k) {
-    c.save(); circ(c, 0, 0, 40); c.clip();
-    c.beginPath(); c.moveTo(-50, -50); c.lineTo(50, -50); c.lineTo(50, -16); c.quadraticCurveTo(20, -22, 0, -6); c.quadraticCurveTo(-20, -22, -50, -16); c.closePath();
-    c.fillStyle = INK; c.fill();
-    c.restore();
-    for (const s of [-1, 1]) { poly(c, [s * 4, 0, s * 20, -4, s * 16, 6]); inkFill(c, '#ffd166', 1.5); }
-    c.beginPath(); c.moveTo(-14, 16); c.quadraticCurveTo(0, 22, 14, 16); c.lineWidth = 2.5; c.strokeStyle = INK; c.stroke();
-    for (const s of [-1, 1]) { poly(c, [s * 6, 17, s * 9, 18, s * 7.5, 26]); inkFill(c, '#ffffff', 1.2); }
+  vampire(c, k) {              // a bat over a drop of blood
+    c.beginPath(); c.moveTo(0, -6);
+    c.quadraticCurveTo(12, -18, 30, -12); c.quadraticCurveTo(23, -6, 25, 3); c.quadraticCurveTo(17, -2, 13, 6); c.quadraticCurveTo(6, 1, 0, 9);
+    c.quadraticCurveTo(-6, 1, -13, 6); c.quadraticCurveTo(-17, -2, -25, 3); c.quadraticCurveTo(-23, -6, -30, -12); c.quadraticCurveTo(-12, -18, 0, -6);
+    c.closePath(); c.fillStyle = INK; c.fill();
+    poly(c, [-6, -6, -5, -15, -1, -8, 1, -8, 5, -15, 6, -6]); c.fill();
+    c.beginPath(); c.moveTo(0, 12); c.quadraticCurveTo(8, 22, 0, 27); c.quadraticCurveTo(-8, 22, 0, 12); inkFill(c, '#ff2a4a', 1.8);
   },
   fire(c, k, f, t) {
     const w = 1 + 0.06 * Math.sin(t * 13), h = 1 + 0.08 * Math.sin(t * 9 + 1);
@@ -2982,12 +2986,15 @@ Object.assign(ART, {
   copycat(c, k, f, t) {
     const cp = f && f.def.copied;
     if (cp && ART[cp]) { c.save(); c.scale(0.62, 0.62); c.translate(0, 8); ART[cp](c, kitOf(BALL[cp]), f, t); c.restore(); }
-    else { eyes(c, 11, -4, 7); poly(c, [-3, 8, 3, 8, 0, 12]); c.fillStyle = '#ff7aa8'; c.fill(); line(c, [-26, 8, -10, 10, -26, 15], 1.6); line(c, [26, 8, 10, 10, 26, 15], 1.6); }
+    else {                       // a paw print
+      c.beginPath(); c.ellipse(0, 9, 13, 11, 0, 0, TAU); inkFill(c, '#ffd6e6', 2);
+      for (const [x, y] of [[-17, -5], [-6, -15], [6, -15], [17, -5]]) { c.beginPath(); c.ellipse(x, y, 5.5, 7, x * 0.03, 0, TAU); inkFill(c, '#ffd6e6', 2); }
+    }
   },
   hydra(c, k) {
     for (const [x, y, a] of [[-16, -6, -0.5], [0, -14, 0], [16, -6, 0.5]]) {
       line(c, [x * 0.4, 22, x, y], 7, k.d);
-      c.save(); c.translate(x, y); c.rotate(a); c.beginPath(); c.ellipse(0, 0, 7, 9, 0, 0, TAU); inkFill(c, k.l, 1.6); circ(c, -2.5, -2, 1.6); circ(c, 2.5, -2, 1.6); c.fillStyle = INK; c.fill(); c.restore();
+      c.save(); c.translate(x, y); c.rotate(a); c.beginPath(); c.ellipse(0, 0, 7, 9, 0, 0, TAU); inkFill(c, k.l, 1.6); poly(c, [-1.5, -9, 0, -15, 1.5, -9]); c.fillStyle = '#ff4d6d'; c.fill(); c.restore();
     }
   },
   painter(c, k) {
@@ -2999,13 +3006,12 @@ Object.assign(ART, {
     c.beginPath(); c.arc(0, 4, 24, PI, 0); c.closePath(); inkFill(c, '#ffd23f', 2.2);
     rrect(c, -30, 2, 60, 8, 3); inkFill(c, '#ffd23f', 2);
     rrect(c, -4, -21, 8, 22, 2); c.fillStyle = shade('#ffd23f', -0.2); c.fill();
-    eyes(c, 9, 20, 4);
+    for (const [x, y] of [[-16, 15], [0, 15], [16, 15], [-8, 24], [8, 24]]) { rrect(c, x - 7, y - 3.5, 14, 7, 1.5); inkFill(c, '#d9663a', 1.4); }
   },
-  mime(c, k) {
-    eyes(c, 11, -6, 5);
-    line(c, [-11, -15, -11, -12], 2); line(c, [11, -15, 11, -12], 2);
-    c.beginPath(); c.ellipse(0, 13, 8, 4, 0, 0, TAU); c.fillStyle = '#e8364a'; c.fill();
-    for (let i = -2; i <= 2; i++) { c.fillStyle = i % 2 ? '#24124a' : '#f4f1ea'; }
+  mime(c, k) {                 // a striped shirt under the beret
+    c.save(); circ(c, 0, 0, 40); c.clip();
+    c.fillStyle = '#24124a'; for (const y of [-16, -3, 10, 23]) c.fillRect(-40, y, 80, 6);
+    c.restore();
   },
   glitch(c, k, f, t) {
     const o = Math.floor(t * 8) % 3;
@@ -3044,33 +3050,46 @@ Object.assign(ART, {
     c.beginPath(); c.ellipse(0, 0, 7, 12, 0, 0, TAU); inkFill(c, '#ff8a2e', 1.8);
     poly(c, [0, -14, 4, -8, -4, -8]); inkFill(c, '#ffd23f', 1.4);
   },
-  zombie(c, k) {
-    line(c, [-17, -11, -7, -3], 3); line(c, [-17, -3, -7, -11], 3);
-    circ(c, 11, -7, 6); inkFill(c, '#ffffff', 1.6); circ(c, 12, -6, 2.4); c.fillStyle = INK; c.fill();
-    line(c, [-16, 14, 16, 12], 2.4);
-    for (let x = -12; x <= 12; x += 6) line(c, [x, 9, x, 17], 1.8);
+  zombie(c, k) {               // a brain
+    c.beginPath(); c.ellipse(0, 0, 24, 18, 0, 0, TAU); inkFill(c, '#ff9ab8', 2.2);
+    const fold = '#c2557a';
+    line(c, [0, -17, 0, 17], 2, fold);
+    line(c, [-20, -6, -13, -10, -8, -4, -14, 2], 1.8, fold); line(c, [-18, 9, -10, 6, -5, 12], 1.8, fold);
+    line(c, [20, -6, 13, -10, 8, -4, 14, 2], 1.8, fold); line(c, [18, 9, 10, 6, 5, 12], 1.8, fold);
+    line(c, [-8, -14, -4, -9], 1.8, fold); line(c, [8, -14, 4, -9], 1.8, fold);
   },
-  slime(c, k) { eyes(c, 10, -4, 6, 1); c.beginPath(); c.arc(0, 8, 8, 0.2, PI - 0.2); c.lineWidth = 2.4; c.strokeStyle = INK; c.stroke(); circ(c, -14, -18, 4); c.fillStyle = 'rgba(255,255,255,0.6)'; c.fill(); },
-  clone(c, k) { for (const [x, a] of [[-9, 0.5], [9, 1]]) { c.globalAlpha = a; circ(c, x, 0, 16); inkFill(c, k.l, 2); circ(c, x - 4, -3, 2.4); circ(c, x + 4, -3, 2.4); c.fillStyle = INK; c.fill(); } c.globalAlpha = 1; },
+  slime(c, k) { c.beginPath(); c.ellipse(-12, -14, 9, 6, -0.6, 0, TAU); c.fillStyle = 'rgba(255,255,255,0.6)'; c.fill(); for (const [x, y, r] of [[8, -4, 6], [-4, 10, 4], [14, 14, 3], [-14, 4, 2.5]]) { circ(c, x, y, r); c.fillStyle = shade(k.col, 0.35); c.fill(); c.lineWidth = 1.4; c.strokeStyle = shade(k.col, -0.35); c.stroke(); } },
+  clone(c, k) { for (const [x, a] of [[-9, 0.5], [9, 1]]) { c.globalAlpha = a; circ(c, x, 0, 16); inkFill(c, k.l, 2); c.beginPath(); c.ellipse(x - 6, -7, 5, 3, -0.6, 0, TAU); c.fillStyle = 'rgba(255,255,255,0.6)'; c.fill(); } c.globalAlpha = 1; },
   mirror(c, k) { c.save(); circ(c, 0, 0, 40); c.clip(); c.rotate(-0.7); c.fillStyle = 'rgba(255,255,255,0.75)'; c.fillRect(-6, -60, 9, 120); c.fillRect(10, -60, 4, 120); c.fillStyle = 'rgba(120,170,220,0.35)'; c.fillRect(-30, -60, 14, 120); c.restore(); },
   sponge(c, k) { for (const [x, y, r] of [[-14, -12, 6], [8, -16, 4], [14, 2, 7], [-6, 6, 5], [-18, 14, 3.5], [6, 20, 4], [-2, -26, 3]]) { circ(c, x, y, r); c.fillStyle = shade(k.col, -0.3); c.fill(); } },
-  chomper(c, k) {
-    c.beginPath(); c.moveTo(-28, -2); c.quadraticCurveTo(0, 30, 28, -2); c.closePath(); inkFill(c, '#5a1028', 2);
-    c.fillStyle = '#ffffff'; for (let x = -20; x <= 16; x += 9) poly(c, [x, -2, x + 8, -2, x + 4, 7]), c.fill();
-    eyes(c, 10, -16, 5);
+  chomper(c, k) {              // a bear trap's jaws
+    for (const s of [-1, 1]) {
+      rrect(c, -24, s > 0 ? 12 : -18, 48, 6, 2); inkFill(c, '#c9d2dc', 2);
+      c.fillStyle = '#ffffff';
+      for (let i = 0; i < 5; i++) { const x = -20 + i * 10 + (s > 0 ? 5 : 0); poly(c, [x - 4, s > 0 ? 12 : -12, x + 4, s > 0 ? 12 : -12, x, s > 0 ? 3 : -3]); inkFill(c, '#f4efe6', 1.4); }
+      circ(c, s * 26, 0, 6); inkFill(c, '#8a8f99', 2);
+    }
+    line(c, [-26, -15, -26, 15], 2.4, '#8a8f99'); line(c, [26, -15, 26, 15], 2.4, '#8a8f99');
   },
-  jelly(c, k, f, t) { const w = Math.sin(t * 9) * 2; c.beginPath(); c.ellipse(-12, -14, 8 + w, 5, -0.6, 0, TAU); c.fillStyle = 'rgba(255,255,255,0.7)'; c.fill(); eyes(c, 9, 2, 4.5); c.beginPath(); c.arc(0, 10, 5, 0.2, PI - 0.2); c.lineWidth = 2; c.strokeStyle = INK; c.stroke(); },
+  jelly(c, k, f, t) {          // a wobbling jelly with a cherry
+    const w = Math.sin(t * 9) * 2;
+    line(c, [-24, 19, 24, 19], 3, '#f4efe6');
+    c.beginPath(); c.moveTo(-18 - w, 16); c.lineTo(18 + w, 16); c.lineTo(13 - w, -9); c.quadraticCurveTo(0, -15, -13 + w, -9); c.closePath(); inkFill(c, shade(k.col, 0.25), 2);
+    c.fillStyle = 'rgba(255,255,255,0.6)'; c.fillRect(-9 + w * 0.5, -5, 4, 15);
+    circ(c, 0, -17, 5); inkFill(c, '#e8364a', 1.6); line(c, [0, -22, 4, -28], 1.6);
+  },
   battery(c, k, f) {
     rrect(c, -14, -22, 28, 44, 4); inkFill(c, '#2a2f3a', 2.2); rrect(c, -6, -27, 12, 6, 2); inkFill(c, '#c9d2dc', 1.6);
     const n = f ? Math.ceil((f.u.ch || 0) / 2.5) : 3;
     for (let i = 0; i < 4; i++) { rrect(c, -9, 13 - i * 9, 18, 7, 2); c.fillStyle = i < n ? '#5bff9d' : '#3a404c'; c.fill(); }
   },
   snowball(c, k) { c.fillStyle = '#c7defa'; for (const [x, y] of [[-14, -10], [10, -16], [16, 8], [-6, 14], [-20, 10], [4, -2]]) { circ(c, x, y, 3); c.fill(); } },
-  puffer(c, k) { eyes(c, 12, -6, 6, 2); c.beginPath(); c.ellipse(0, 12, 6, 4, 0, 0, TAU); inkFill(c, '#ff7aa8', 1.6); },
-  wrestler(c, k) {
-    for (const s of [-1, 1]) { c.beginPath(); c.moveTo(s * 4, -8); c.quadraticCurveTo(s * 26, -18, s * 24, -2); c.quadraticCurveTo(s * 14, 4, s * 4, 0); c.closePath(); inkFill(c, '#ffffff', 2); circ(c, s * 13, -6, 3); c.fillStyle = INK; c.fill(); }
-    poly(c, [0, -30, 6, -18, -6, -18]); inkFill(c, '#ffd23f', 1.6);
-    c.beginPath(); c.ellipse(0, 14, 9, 5, 0, 0, TAU); inkFill(c, '#ffffff', 2);
+  puffer(c, k) { c.beginPath(); c.ellipse(-3, 0, 18, 13, 0, 0, TAU); inkFill(c, '#fff3d6', 2); poly(c, [13, 0, 26, -11, 26, 11]); inkFill(c, '#fff3d6', 2); for (const [x, y] of [[-12, -3], [-3, 5], [-6, -7], [5, -4], [3, 7]]) { circ(c, x, y, 2); c.fillStyle = shade(k.col, -0.3); c.fill(); } },
+  wrestler(c, k) {             // a title belt
+    rrect(c, -34, -6, 68, 14, 4); inkFill(c, '#3a2a20', 2);
+    for (const s of [-1, 1]) { rrect(c, s * 23 - 5, -4, 10, 10, 2); inkFill(c, '#ffd23f', 1.4); }
+    c.beginPath(); c.ellipse(0, 1, 16, 14, 0, 0, TAU); inkFill(c, '#ffd23f', 2.2);
+    c.beginPath(); c.ellipse(0, 1, 9, 8, 0, 0, TAU); inkFill(c, '#e8364a', 1.6);
   },
   disco(c, k, f, t) {
     c.save(); circ(c, 0, 0, 40); c.clip();
@@ -3086,25 +3105,38 @@ Object.assign(ART, {
   whitehole(c, k, f, t) { for (let i = 0; i < 8; i++) { c.save(); c.rotate(i * TAU / 8 + t * 0.5); poly(c, [16, -3, 34, 0, 16, 3]); c.fillStyle = '#ffd6f8'; c.fill(); c.restore(); } circ(c, 0, 0, 14); inkFill(c, '#ffffff', 2); },
 
   knight(c, k) { rrect(c, -20, -22, 40, 42, 12); inkFill(c, '#d5dce5', 2.2); c.fillStyle = INK; c.fillRect(-14, -6, 28, 5); c.fillRect(-2, -1, 4, 14); poly(c, [-6, -22, 0, -34, 6, -22]); inkFill(c, '#e8364a', 1.6); },
-  samurai(c, k) { rrect(c, -30, -10, 60, 9, 3); inkFill(c, '#ffffff', 2); circ(c, 0, -6, 5); c.fillStyle = '#e8364a'; c.fill(); line(c, [-16, 8, -6, 10], 3); line(c, [6, 10, 16, 8], 3); line(c, [-8, 22, 8, 22], 2.4); },
+  samurai(c, k) { rrect(c, -30, -10, 60, 9, 3); inkFill(c, '#ffffff', 2); circ(c, 0, -6, 5); c.fillStyle = '#e8364a'; c.fill(); for (const s of [-1, 1]) { line(c, [-18 * s, 26, 16 * s, 4], 5, INK); line(c, [-18 * s, 26, 16 * s, 4], 3, '#d5dce5'); line(c, [-12 * s, 18, -16 * s, 24], 5, '#24124a'); } },
   viking(c, k) {
     c.beginPath(); c.arc(0, 2, 22, PI, 0); c.closePath(); inkFill(c, '#c9d2dc', 2.2);
     for (const s of [-1, 1]) { c.beginPath(); c.moveTo(s * 18, -6); c.quadraticCurveTo(s * 34, -14, s * 30, -32); c.quadraticCurveTo(s * 26, -18, s * 12, -14); c.closePath(); inkFill(c, '#f4efe6', 1.8); }
-    c.beginPath(); c.moveTo(-18, 8); c.quadraticCurveTo(0, 36, 18, 8); c.closePath(); inkFill(c, '#e38b2c', 2);
+    rrect(c, -24, 2, 48, 7, 3); inkFill(c, '#8a6a3a', 1.8);
+    for (const x of [-14, 0, 14]) { circ(c, x, 5.5, 2); c.fillStyle = '#c9d2dc'; c.fill(); }
   },
-  crab(c, k) { eyes(c, 10, -10, 6, 0); line(c, [-10, -4, -10, 2], 3); line(c, [10, -4, 10, 2], 3); c.beginPath(); c.arc(0, 12, 8, 0.2, PI - 0.2); c.lineWidth = 2.4; c.strokeStyle = INK; c.stroke(); },
+  crab(c, k) {                 // a big claw
+    const cl = shade(k.col, 0.3);
+    circ(c, -12, 12, 11); inkFill(c, cl, 2);
+    c.beginPath(); c.moveTo(-18, 4); c.quadraticCurveTo(-14, -28, 20, -16); c.quadraticCurveTo(2, -12, -2, 4); c.closePath(); inkFill(c, cl, 2.2);
+    c.beginPath(); c.moveTo(-2, 10); c.quadraticCurveTo(14, 6, 24, -6); c.quadraticCurveTo(22, 18, -6, 20); c.closePath(); inkFill(c, cl, 2.2);
+  },
   scorpion(c, k) { c.beginPath(); c.moveTo(-10, 20); c.quadraticCurveTo(-24, -6, -4, -20); c.quadraticCurveTo(14, -30, 16, -10); c.lineWidth = 7; c.strokeStyle = shade(k.col, -0.35); c.lineCap = 'round'; c.stroke(); c.lineCap = 'butt'; poly(c, [16, -12, 24, -2, 12, -2]); inkFill(c, '#ffd23f', 1.6); },
-  shark(c, k) { eyes(c, 13, -10, 5); c.beginPath(); c.moveTo(-22, 6); c.quadraticCurveTo(0, 22, 22, 6); c.closePath(); inkFill(c, '#3a1020', 2); c.fillStyle = '#ffffff'; for (let x = -18; x < 18; x += 6) { poly(c, [x, 6, x + 6, 6, x + 3, 12]); c.fill(); } },
-  snake(c, k) { c.beginPath(); c.ellipse(0, 0, 20, 14, 0, 0, TAU); inkFill(c, '#ffe066', 2.2); c.beginPath(); c.ellipse(0, 0, 3.5, 12, 0, 0, TAU); c.fillStyle = INK; c.fill(); },
-  dragon(c, k) { eyes(c, 12, -8, 6, 1); circ(c, -6, 14, 2.6); circ(c, 6, 14, 2.6); c.fillStyle = INK; c.fill(); },
-  wizard(c, k) { for (const [x, y, r] of [[-14, -10, 6], [10, 6, 8], [12, -16, 4], [-8, 16, 4]]) { star(c, x, y, r, r * 0.42, 5); c.fillStyle = '#ffd23f'; c.fill(); } },
-  robot(c, k) { rrect(c, -22, -14, 44, 30, 6); inkFill(c, '#d5dce5', 2); for (const s of [-1, 1]) { rrect(c, s * 11 - 6, -8, 12, 9, 2); c.fillStyle = '#ff4d4d'; c.fill(); } c.fillStyle = INK; for (let x = -12; x <= 12; x += 6) c.fillRect(x - 1, 6, 2, 6); },
-  pirate(c, k) {
-    c.beginPath(); c.moveTo(-38, -10); c.quadraticCurveTo(0, -30, 38, -10); c.lineTo(38, -40); c.lineTo(-38, -40); c.closePath(); c.fillStyle = '#e8364a'; c.fill();
-    circ(c, -11, 2, 7); c.fillStyle = INK; c.fill(); line(c, [-28, -12, 22, 12], 2.4); circ(c, 11, 2, 5); inkFill(c, '#ffffff', 1.6);
-    c.beginPath(); c.arc(0, 18, 9, 0.3, PI - 0.3); c.lineWidth = 2.4; c.strokeStyle = INK; c.stroke();
+  shark(c, k) { c.beginPath(); c.moveTo(-15, -16); c.lineTo(15, -16); c.lineTo(3, 22); c.quadraticCurveTo(0, 26, -3, 22); c.closePath(); inkFill(c, '#ffffff', 2.4); for (let y = -10; y <= 12; y += 6) { const w = 13 - (y + 16) * 0.32; line(c, [w, y, w + 3, y + 3], 1.6); line(c, [-w, y, -w - 3, y + 3], 1.6); } },
+  snake(c, k) {                // a coiled snake
+    c.beginPath(); c.moveTo(-14, 22); c.quadraticCurveTo(24, 20, 4, 4); c.quadraticCurveTo(-20, -8, 2, -18);
+    c.lineCap = 'round'; c.lineWidth = 11; c.strokeStyle = INK; c.stroke(); c.lineWidth = 7; c.strokeStyle = '#ffe066'; c.stroke(); c.lineCap = 'butt';
+    c.beginPath(); c.ellipse(6, -20, 8, 6, -0.3, 0, TAU); inkFill(c, '#ffe066', 2);
+    line(c, [13, -22, 20, -24, 23, -27], 1.6, '#e8364a'); line(c, [20, -24, 23, -21], 1.6, '#e8364a');
   },
-  hedgehog(c, k) { eyes(c, 9, -2, 5, 2); circ(c, 4, 12, 4); c.fillStyle = INK; c.fill(); },
+  dragon(c, k) { c.save(); circ(c, 0, 0, 40); c.clip(); c.lineWidth = 2.4; c.strokeStyle = shade(k.col, -0.35); for (let row = 0; row < 6; row++) for (let i = -3; i <= 3; i++) { c.beginPath(); c.arc(i * 14 + (row % 2) * 7, -30 + row * 12, 7, 0, PI); c.stroke(); } c.restore(); },
+  wizard(c, k) { for (const [x, y, r] of [[-14, -10, 6], [10, 6, 8], [12, -16, 4], [-8, 16, 4]]) { star(c, x, y, r, r * 0.42, 5); c.fillStyle = '#ffd23f'; c.fill(); } },
+  robot(c, k) { const p = []; for (let i = 0; i < 40; i++) { const a = i * TAU / 40, r = i % 5 < 2 ? 25 : 19; p.push(Math.cos(a) * r, Math.sin(a) * r); } poly(c, p); inkFill(c, '#d5dce5', 2); circ(c, 0, 0, 8); inkFill(c, shade(k.col, -0.3), 2); },
+  pirate(c, k) {               // a bandana and crossed bones
+    c.beginPath(); c.moveTo(-38, -10); c.quadraticCurveTo(0, -30, 38, -10); c.lineTo(38, -40); c.lineTo(-38, -40); c.closePath(); c.fillStyle = '#e8364a'; c.fill();
+    for (const s of [-1, 1]) {
+      line(c, [-16 * s, 0, 16 * s, 24], 8); line(c, [-16 * s, 0, 16 * s, 24], 5, '#f4efe6');
+      for (const [x, y] of [[-16 * s, 0], [16 * s, 24]]) for (const o of [-1, 1]) { circ(c, x + o * 3, y + o * s * -3 * (x * s < 0 ? 1 : -1), 3.4); inkFill(c, '#f4efe6', 1.4); }
+    }
+  },
+  hedgehog(c, k) { for (const [y, n0] of [[-12, 3], [0, 4], [12, 3]]) for (let i = 0; i < n0; i++) { const x = (i - (n0 - 1) / 2) * 12; line(c, [x - 4, y + 4, x, y - 3, x + 4, y + 4], 2.2, shade(k.col, -0.45)); } },
   turtle(c, k) { const hex = (x, y, r) => { const p = []; for (let i = 0; i < 6; i++) { const a = i * TAU / 6; p.push(x + Math.cos(a) * r, y + Math.sin(a) * r); } poly(c, p); }; hex(0, 0, 13); inkFill(c, shade(k.col, 0.25), 2); for (let i = 0; i < 6; i++) { const a = i * TAU / 6 + PI / 6; hex(Math.cos(a) * 24, Math.sin(a) * 24, 10); inkFill(c, shade(k.col, 0.15), 1.6); } },
   rainbow(c, k) { ['#ff4d4d', '#ff9f2e', '#ffe135', '#3ddc84', '#38b6ff', '#8f5bff'].forEach((col, i) => { c.beginPath(); c.arc(0, 12, 30 - i * 5, PI, 0); c.lineWidth = 5; c.strokeStyle = col; c.stroke(); }); },
   clover(c, k) { for (let i = 0; i < 4; i++) { c.save(); c.rotate(i * HALF_PI + PI / 4); heart(c, 0, -12, 10); inkFill(c, '#7fe08a', 1.8); c.restore(); } line(c, [0, 0, 6, 26], 3.5, '#2a6a3a'); },
@@ -3123,14 +3155,19 @@ Object.assign(ART, {
   mines(c, k) { for (let i = 0; i < 8; i++) { c.save(); c.rotate(i * TAU / 8); rrect(c, -3, -28, 6, 10, 2); inkFill(c, '#8a8f99', 1.4); c.restore(); } circ(c, 0, 0, 18); inkFill(c, '#2a2f3a', 2); circ(c, 0, 0, 5); c.fillStyle = '#ff4d4d'; c.fill(); },
   glue(c, k) { rrect(c, -13, -12, 26, 34, 6); inkFill(c, '#ffffff', 2.2); poly(c, [-7, -12, 7, -12, 3, -26, -3, -26]); inkFill(c, '#ff9f2e', 1.8); c.fillStyle = '#ff9f2e'; c.fillRect(-13, 0, 26, 9); },
   necro(c, k) { c.beginPath(); c.ellipse(0, -4, 18, 17, 0, 0, TAU); inkFill(c, '#f4efe6', 2); rrect(c, -10, 8, 20, 12, 3); inkFill(c, '#f4efe6', 2); for (const x of [-7, 7]) { circ(c, x, -5, 5); c.fillStyle = '#b46bff'; c.fill(); } },
-  king(c, k) { c.beginPath(); c.moveTo(-14, 12); c.quadraticCurveTo(0, 30, 14, 12); c.closePath(); inkFill(c, '#ffffff', 2); eyes(c, 10, -4, 4.5); },
-  spider(c, k) { for (const s of [-1, 1]) for (let i = 0; i < 4; i++) line(c, [s * 8, -4 + i * 5, s * 22, -14 + i * 8, s * 30, -4 + i * 10], 2.6); c.beginPath(); c.ellipse(0, 2, 11, 14, 0, 0, TAU); inkFill(c, '#1b1622', 2); circ(c, -4, -6, 2.4); circ(c, 4, -6, 2.4); c.fillStyle = '#ff4d4d'; c.fill(); },
+  king(c, k) { circ(c, 0, 6, 14); inkFill(c, '#ffd23f', 2.2); line(c, [-13, 6, 13, 6], 2, '#b8860b'); line(c, [0, -7, 0, 19], 2, '#b8860b'); circ(c, 0, 6, 3); c.fillStyle = '#e8364a'; c.fill(); rrect(c, -2, -20, 4, 13, 1.5); inkFill(c, '#ffd23f', 1.4); rrect(c, -6, -16, 12, 4, 1.5); inkFill(c, '#ffd23f', 1.4); },
+  spider(c, k) { for (const s of [-1, 1]) for (let i = 0; i < 4; i++) line(c, [s * 8, -4 + i * 5, s * 22, -14 + i * 8, s * 30, -4 + i * 10], 2.6); c.beginPath(); c.ellipse(0, 2, 11, 14, 0, 0, TAU); inkFill(c, '#1b1622', 2); poly(c, [-4, -4, 4, -4, 0, 2, 4, 8, -4, 8, 0, 2]); c.fillStyle = '#ff4d4d'; c.fill(); },
   mushroom(c, k) { for (const [x, y, r] of [[-14, -14, 7], [10, -18, 5], [16, 4, 6], [-4, 2, 4], [-18, 10, 4], [4, 18, 5]]) { circ(c, x, y, r); c.fillStyle = '#ffffff'; c.fill(); } },
-  octopus(c, k) { eyes(c, 11, -8, 7, 1); c.beginPath(); c.ellipse(0, 10, 5, 4, 0, 0, TAU); c.fillStyle = INK; c.fill(); },
-  alien(c, k) { for (const s of [-1, 1]) { c.save(); c.translate(s * 11, -4); c.rotate(s * 0.45); c.beginPath(); c.ellipse(0, 0, 8, 13, 0, 0, TAU); c.fillStyle = INK; c.fill(); c.restore(); } line(c, [-5, 18, 5, 18], 2.4); },
+  octopus(c, k) { for (const [x, y, r] of [[-14, -10, 5], [0, -16, 6], [14, -10, 5], [-8, 4, 4.5], [8, 4, 4.5], [0, 17, 4]]) { circ(c, x, y, r); c.fillStyle = shade(k.col, 0.35); c.fill(); c.lineWidth = 1.6; c.strokeStyle = shade(k.col, -0.3); c.stroke(); } },
+  alien(c, k) {                // a flying saucer
+    poly(c, [-8, 6, 8, 6, 18, 26, -18, 26]); c.fillStyle = 'rgba(255,255,190,0.45)'; c.fill();
+    c.beginPath(); c.ellipse(0, -4, 11, 11, 0, PI, 0); inkFill(c, 'rgba(200,245,255,0.9)', 2);
+    c.beginPath(); c.ellipse(0, 0, 27, 8, 0, 0, TAU); inkFill(c, '#c9d2dc', 2.2);
+    for (const x of [-15, 0, 15]) { circ(c, x, 1, 2.6); c.fillStyle = '#ffd23f'; c.fill(); }
+  },
   cloud(c, k) { for (const [x, y, r] of [[-12, -4, 12], [4, -10, 15], [16, -2, 11], [0, 2, 13]]) { circ(c, x, y, r); c.fillStyle = '#ffffff'; c.fill(); } c.fillStyle = '#38b6ff'; for (const x of [-12, 0, 12]) { poly(c, [x, 14, x + 3, 22, x - 3, 22]); c.fill(); } },
   meteor(c, k) { for (const [x, y, r] of [[-12, -10, 8], [10, 4, 10], [-6, 16, 5], [14, -16, 4]]) { circ(c, x, y, r); c.fillStyle = shade(k.col, -0.35); c.fill(); circ(c, x - r * 0.3, y - r * 0.3, r * 0.5); c.fillStyle = shade(k.col, -0.15); c.fill(); } },
-  sun(c, k) { eyes(c, 10, -4, 4); c.beginPath(); c.arc(0, 8, 9, 0.2, PI - 0.2); c.lineWidth = 2.6; c.strokeStyle = INK; c.stroke(); },
+  sun(c, k) { circ(c, 0, 0, 22); inkFill(c, '#ffe680', 2); circ(c, 0, 0, 12); c.fillStyle = '#fff6c2'; c.fill(); },
   planet(c, k) { c.save(); circ(c, 0, 0, 40); c.clip(); c.fillStyle = '#3ddc84'; for (const [x, y, rx, ry] of [[-14, -12, 14, 10], [12, 8, 16, 12], [-10, 18, 8, 6]]) { c.beginPath(); c.ellipse(x, y, rx, ry, 0.4, 0, TAU); c.fill(); } c.restore(); },
   soccer(c, k) { const pent = (x, y, r, a) => { const p = []; for (let i = 0; i < 5; i++) { const q = a + i * TAU / 5; p.push(x + Math.cos(q) * r, y + Math.sin(q) * r); } poly(c, p); c.fillStyle = INK; c.fill(); }; pent(0, 0, 11, -HALF_PI); for (let i = 0; i < 5; i++) { const a = -HALF_PI + i * TAU / 5; pent(Math.cos(a) * 30, Math.sin(a) * 30, 9, a + PI); } },
   bowling(c, k) { for (const [x, y, r] of [[-8, -12, 5], [8, -12, 5], [0, 6, 6]]) { circ(c, x, y, r); c.fillStyle = INK; c.fill(); } c.beginPath(); c.ellipse(-16, -18, 8, 4, -0.6, 0, TAU); c.fillStyle = 'rgba(255,255,255,0.35)'; c.fill(); },
@@ -3145,10 +3182,8 @@ Object.assign(ART_OUT, {
   wizard(c, k) { poly(c, [-26, -28, 26, -28, 6, -78]); inkFill(c, '#3a2fb0', 2.2); star(c, 2, -46, 6, 2.5, 5); c.fillStyle = '#ffd23f'; c.fill(); rrect(c, -30, -32, 60, 8, 4); inkFill(c, '#3a2fb0', 2); },
   robot(c, k) { line(c, [0, -38, 0, -52], 3); circ(c, 0, -54, 5); inkFill(c, '#ff4d4d', 1.6); },
   hedgehog(c, k) { for (let i = -5; i <= 5; i++) { const a = -HALF_PI + i * 0.26; poly(c, [Math.cos(a - 0.1) * 36, Math.sin(a - 0.1) * 36, Math.cos(a) * 52, Math.sin(a) * 52, Math.cos(a + 0.1) * 36, Math.sin(a + 0.1) * 36]); inkFill(c, shade(k.col, -0.3), 1.6); } },
-  crab(c, k) { for (const s of [-1, 1]) { line(c, [s * 10, -32, s * 12, -46], 3); circ(c, s * 12, -48, 6); inkFill(c, '#ffffff', 1.6); circ(c, s * 12, -48, 2.5); c.fillStyle = INK; c.fill(); } },
   king(c, k) { c.beginPath(); c.moveTo(-24, -30); c.lineTo(-26, -56); c.lineTo(-12, -42); c.lineTo(0, -60); c.lineTo(12, -42); c.lineTo(26, -56); c.lineTo(24, -30); c.closePath(); inkFill(c, '#ffd23f', 2.2); for (const x of [-12, 0, 12]) { circ(c, x, -36, 3); c.fillStyle = '#e8364a'; c.fill(); } },
   octopus(c, k) { for (let i = 0; i < 5; i++) { const x = -24 + i * 12; c.beginPath(); c.moveTo(x - 5, 30); c.quadraticCurveTo(x, 52, x + 6, 44); c.quadraticCurveTo(x + 4, 36, x + 5, 30); c.closePath(); inkFill(c, k.col, 1.8); } },
-  alien(c, k) { for (const s of [-1, 1]) { line(c, [s * 10, -36, s * 18, -52], 2.6); circ(c, s * 18, -54, 4); inkFill(c, '#b8ff8a', 1.4); } },
   sun(c, k, f, t) { for (let i = 0; i < 12; i++) { const a = i * TAU / 12 + t * 0.4; poly(c, [Math.cos(a - 0.13) * 38, Math.sin(a - 0.13) * 38, Math.cos(a) * 54, Math.sin(a) * 54, Math.cos(a + 0.13) * 38, Math.sin(a + 0.13) * 38]); inkFill(c, '#ffd23f', 1.6); } },
   slime(c, k) { for (const x of [-18, 6, 22]) { c.beginPath(); c.ellipse(x, 38, 5, 9, 0, 0, TAU); inkFill(c, k.col, 1.6); } },
   nuke(c, k) { for (const s of [-1, 1]) { poly(c, [s * 30, 20, s * 50, 34, s * 44, 10]); inkFill(c, shade(k.col, -0.2), 2); } },
@@ -3319,7 +3354,7 @@ function hazardLook(c, z, S, t) {
 // ---- minions ---------------------------------------------------------------------
 const CUE_COLS = ['#ffd23f', '#38b6ff', '#ff4d4d', '#8f5bff', '#ff9f2e', '#3ddc84', '#8c3b1e'];
 const DRONE2 = {
-  slime(c, d) { c.beginPath(); c.ellipse(d.x, d.y + 2, d.r * 1.05, d.r * 0.9, 0, 0, TAU); inkFill(c, d.owner.def.col, 2.2); for (const s of [-1, 1]) { circ(c, d.x + s * d.r * 0.35, d.y - 2, 3); c.fillStyle = INK; c.fill(); } },
+  slime(c, d) { c.beginPath(); c.ellipse(d.x, d.y + 2, d.r * 1.05, d.r * 0.9, 0, 0, TAU); inkFill(c, d.owner.def.col, 2.2); c.beginPath(); c.ellipse(d.x - d.r * 0.35, d.y - d.r * 0.3, d.r * 0.3, d.r * 0.18, -0.6, 0, TAU); c.fillStyle = 'rgba(255,255,255,0.6)'; c.fill(); },
   clone(c, d, t) { c.globalAlpha = 0.85; drawBall(c, d.owner.def, d.x, d.y, d.r, d.owner, t); c.globalAlpha = 1; },
   cue(c, d) { circ(c, d.x, d.y, d.r); inkFill(c, CUE_COLS[d.id % CUE_COLS.length], 2.2); circ(c, d.x, d.y, d.r * 0.5); c.fillStyle = '#ffffff'; c.fill(); c.font = `400 ${Math.round(d.r * 0.8)}px ${FONT_D}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = INK; c.fillText(String(1 + d.id % 15), d.x, d.y + 1); },
   parrot(c, d, t) { const fl = Math.sin(t * 30 + d.id) * 6; c.beginPath(); c.ellipse(d.x, d.y, 9, 12, 0, 0, TAU); inkFill(c, '#3ddc84', 2); for (const s of [-1, 1]) { c.beginPath(); c.ellipse(d.x + s * 10, d.y - 2 + fl * 0.3, 8, 4, s * 0.6, 0, TAU); inkFill(c, '#e8364a', 1.6); } poly(c, [d.x - 3, d.y - 6, d.x + 3, d.y - 6, d.x, d.y + 1]); c.fillStyle = '#ffd23f'; c.fill(); circ(c, d.x, d.y - 9, 2); c.fillStyle = INK; c.fill(); },
@@ -3553,13 +3588,13 @@ const STARTER = { id: 'starter', name: 'Starter Crate', price: 0, col: '#5cff9d'
 const COIN_SVG = '<svg class="i coin" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8.5" fill="currentColor"/><circle cx="10" cy="10" r="5.6" fill="none" stroke="#7a5600" stroke-width="1.6"/><path d="M10 6.6v6.8" stroke="#7a5600" stroke-width="1.8" stroke-linecap="round"/></svg>';
 const TRO_SVG = '<svg class="i coin" viewBox="0 0 20 20"><path d="M5 3h10v4a5 5 0 0 1-10 0z M5 4H2.5v1.5A3 3 0 0 0 5.4 8.4 M15 4h2.5v1.5a3 3 0 0 1-2.9 2.9" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M8.5 11.5h3l.6 3.5h-4.2z M6 15.5h8v2H6z" fill="currentColor"/></svg>';
 const BACK_SVG = '<svg class="i" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 10H4M9 5l-5 5 5 5"/></svg>';
-const FIGHT_SPEED = 2;                     // every fight plays at 2x
+const FIGHT_SPEED = 1.5;                   // every fight plays at 1.5x
 const fmt = n => Math.round(n).toLocaleString('en-US');
 const pad2 = n => String(n).padStart(2, '0');
 
 // ---- the save ------------------------------------------------------------------
 function freshSave() {
-  return { v: 1, coins: 600, tro: 0, peak: 0, owned: {}, eq: null, w: 0, l: 0, d: 0, bw: 0, bl: 0, xp: 0, plv: 1, streak: 0, bstreak: 0, free: [], qday: 0, quests: [], dday: 0, nick: '', sfx: true, music: true, speed: 1, stake: 50, t: 0, starter: false, crates: 0 };
+  return { v: 1, coins: 600, tro: 0, peak: 0, owned: {}, eq: null, w: 0, l: 0, d: 0, bw: 0, bl: 0, xp: 0, plv: 1, streak: 0, bstreak: 0, free: [], qday: 0, quests: [], dday: 0, nick: '', named: false, sfx: true, music: true, speed: 1, stake: 50, t: 0, starter: false, crates: 0 };
 }
 function loadLocal() {
   try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.v === 1) return Object.assign(freshSave(), s); } catch (e) {}
@@ -4048,7 +4083,7 @@ function panelSettings() {
     return s;
   };
   const nick = h('input', { id: 'nick', maxlength: 16, value: G.nick, placeholder: 'NAMELESS', autocomplete: 'off', 'aria-label': 'Your name' });
-  nick.addEventListener('change', () => { const n = cleanName(nick.value); if (n !== G.nick) { G.nick = n; save(); NET.pushPresence(); toast('Name saved'); } });
+  nick.addEventListener('change', () => { const n = cleanName(nick.value); if (n !== G.nick) { G.nick = n; G.named = !!n; save(); NET.pushPresence(); toast('Name saved'); } });
   let armed = false;
   const reset = h('button', { class: 'btn2', text: 'RESET ALL PROGRESS' });
   reset.onclick = () => {
@@ -4064,15 +4099,35 @@ function panelSettings() {
     h('div', { class: 'sec', text: 'Danger zone' }), reset);
   return p;
 }
+// the name box on the first visit; the button waits for a name
+function nameBox(label, onOk) {
+  const pre = cleanName(G.nick || myNick() || (NET.uid && NET.names[NET.uid]) || '');
+  const inp = h('input', { class: 'namein', maxlength: 16, value: pre, placeholder: 'YOUR NAME', autocomplete: 'off', spellcheck: 'false', 'aria-label': 'Your name' });
+  const go = h('button', { class: 'btn2 on', text: label });
+  const sync = () => { go.disabled = !cleanName(inp.value); };
+  const ok = () => { if (go.disabled) return; G.nick = cleanName(inp.value); G.named = true; save(); NET.pushPresence(); onOk(); };
+  inp.addEventListener('input', sync);
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') ok(); });
+  go.onclick = ok; sync();
+  setTimeout(() => inp.focus(), 60);
+  return [h('div', { class: 'namebox' }, h('div', { class: 'lab', text: 'What should other players call you?' }), inp), h('div', { class: 'foot' }, go)];
+}
+// players from before names were asked for get asked once
+function askName() {
+  if (G.named || G.nick || document.getElementById('askname')) return;
+  const s = sheet([h('h2', { text: 'PICK A NAME' }), h('div', { class: 'lsub', text: 'Shown to the players you fight' }),
+    ...nameBox('SAVE NAME', () => { closeSheet(s); renderView(); toast('Name saved'); })], { noClose: true });
+  s.id = 'askname';
+}
 function welcome() {
-  if (G.starter) return;
+  if (G.starter) { askName(); return; }
   const s = sheet([
     h('div', { class: 'lsub', style: { margin: '0 0 8px' }, text: "// A BEESIDE STUDIO'S GAME //" }),
     h('h2', { text: 'BOUNCE BRAWL' }),
     h('div', { class: 'lsub', text: 'Two balls go in the box. Only one bounces out.' }),
     h('p', { text: `You don't control anything in a fight. Pick your ball, bet coins against another player, and watch it battle on its own. Each of the ${BALLS.length} balls has its own ability.` }),
     h('p', { text: 'Spend coins on crates to collect more balls. Repeats level them up.' }),
-    h('div', { class: 'foot' }, h('button', { class: 'btn2 on', text: 'OPEN FREE STARTER CRATE', onclick: () => { closeSheet(s); openCrate(STARTER, true); } }))], { noClose: true });
+    ...nameBox('OPEN FREE STARTER CRATE', () => { closeSheet(s); openCrate(STARTER, true); })], { noClose: true });
   s.id = 'welcome';
 }
 
@@ -4796,7 +4851,7 @@ async function netInit() {
         const r = JSON.parse(snap.data().g);
         if (r && r.v === 1 && (r.t || 0) > (G.t || 0)) {
           G = Object.assign(freshSave(), r); applySettings(); save(); renderView();
-          const w = document.getElementById('welcome'); if (w && G.starter) closeSheet(w);
+          const w = document.getElementById('welcome'); if (w && G.starter) { closeSheet(w); welcome(); }
         }
       }
     } catch (e) {}
@@ -4864,7 +4919,7 @@ function boot() {
   setTab('menu');
   requestAnimationFrame(loop);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { for (const k in ICON) delete ICON[k]; for (const k in CRATE_ICON) delete CRATE_ICON[k]; if (!FIGHT) renderView(); });
-  if (!G.starter) setTimeout(welcome, 300);
+  if (!G.starter || !(G.named || G.nick)) setTimeout(welcome, 300);
   netInit();
 }
 
