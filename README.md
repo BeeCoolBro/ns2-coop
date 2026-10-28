@@ -249,7 +249,7 @@ It plays like Survivor.io, with ROTFALL's guns, supports, survivors and dead:
 `bounce-brawl.html` (at `/bounce-brawl`) is built, not written by hand: its
 sources are in `Downloads/claude/bounce-brawl/src`, and `python build.py --site`
 there writes the page here. Two balls fight on their own in a box; players pick
-one of 100 balls (from crates), bet coins against each other and watch. It has
+one of 200 balls (from crates), bet coins against each other and watch. It has
 door 2 on the front page (ROTFALL 2 moved to Other Projects, where it took the
 "More soon" spot) and a card in the vault's Bee's Projects (opened with `#bv=1`,
 so it hides its BEESIDE button).
