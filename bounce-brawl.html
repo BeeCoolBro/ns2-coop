@@ -5101,7 +5101,7 @@ function bgTick(dt) {
 let TAB = 'menu', MSEL = 0;
 // [id, title, subtitle, has something waiting]
 const MENU = [
-  ['fight', 'Fight', () => G.streak > 1 ? `On a ${G.streak} win streak` : 'Bet coins against a player'],
+  ['fight', 'Fight', () => G.eq && G.coins < STAKES[0] ? 'Out of coins · beat bots to earn some' : G.streak > 1 ? `On a ${G.streak} win streak` : 'Bet coins against a player', () => !!G.eq && G.coins < STAKES[0]],
   ['cup', 'Events', () => { const n = cupNext(G.cup); return raidFree() ? `Boss raid: ${bossToday().name} · free today` : n ? `The Box Cup · ${CUP_ROUNDS[n[0]].toLowerCase()} next` : 'Boss raids · The Box Cup'; }, () => raidFree() || !!cupNext(G.cup)],
   ['daily', 'Daily', () => dailySub(), () => dailyReady() > 0],
   ['crates', 'Crates', () => G.free.length ? `${G.free.length} free ${G.free.length === 1 ? 'crate' : 'crates'} waiting` : "Hardware's Crates", () => G.free.length > 0],
@@ -5253,7 +5253,9 @@ function panelFight() {
   const games = G.w + G.l + G.d;
   const right = h('div', {},
     h('div', { class: 'box' }, h('div', { class: 'h', text: 'Stake' }), row,
-      h('button', { class: 'go', style: { marginTop: '14px' }, disabled: broke, onclick: () => { SFX.ui(); findMatch(G.stake); }, html: 'FIND OPPONENT <i class="kbd">ENTER</i>' }),
+      // with nothing to bet, the big button sends you to a bot instead
+      broke ? h('button', { class: 'go', style: { marginTop: '14px' }, onclick: () => { SFX.ui(); botFight(); }, html: 'FIGHT A BOT <i class="kbd">ENTER</i>' })
+        : h('button', { class: 'go', style: { marginTop: '14px' }, onclick: () => { SFX.ui(); findMatch(G.stake); }, html: 'FIND OPPONENT <i class="kbd">ENTER</i>' }),
       h('div', { class: 'status', id: 'fstatus' }, ...statusBits(broke))),
     h('div', { class: 'box' }, h('div', { class: 'h', text: 'Rank' }),
       h('div', { class: 'rank' }, rcv, h('div', { class: 'rn', text: rk.name.toUpperCase(), style: { color: rk.col } }),
@@ -5274,7 +5276,7 @@ function panelFight() {
   return p;
 }
 function statusBits(broke) {
-  if (broke) return [h('i', { class: 'dot' }), 'OUT OF COINS. PRACTISE AGAINST BOTS TO EARN SOME BACK.'];
+  if (broke) return [h('i', { class: 'dot' }), `OUT OF COINS. BEAT BOTS TO EARN SOME BACK: ${BOT_WIN} COINS A WIN.`];
   if (G.streak > 0) return [h('i', { class: 'dot live' }), `${G.streak} WIN STREAK · NEXT WIN +${Math.min(G.streak, STREAK_MAX) * STREAK_STEP * 100}% OF THE STAKE`];
   return [h('i', { class: 'dot live' }), 'MATCHED BY TROPHIES'];
 }
