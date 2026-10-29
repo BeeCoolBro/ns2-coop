@@ -4851,7 +4851,7 @@ const MUSIC = (() => {
 const Q = new URLSearchParams(location.search);
 const SAVE_KEY = 'bouncebrawl.v1' + (Q.get('save') ? '.' + Q.get('save') : '');
 const STAKES = [50, 200, 800, 3000];
-const BOT_WIN = 20, BOT_LOSS = 5;            // bots pay far less than real players
+const BOT_PAY = 50;                           // a bot fight pays this win or lose; bots are only for when you can't afford a bet
 const WIN_BONUS = 0.1;                       // a PvP winner also gets 10% of the stake from the house
 const RANKS = [['Bronze', 0, '#c98a55'], ['Silver', 200, '#c3ccd8'], ['Gold', 500, '#ffd633'], ['Platinum', 900, '#7fe0d4'], ['Diamond', 1400, '#8fb8ff'], ['Champion', 2000, '#ff2d78']];
 const CRATES = [
@@ -5266,17 +5266,14 @@ function panelFight() {
       h('div', { class: 'tile' }, h('div', { class: 'l', text: 'Wins' }), h('div', { class: 'v', text: fmt(G.w) })),
       h('div', { class: 'tile' }, h('div', { class: 'l', text: 'Losses' }), h('div', { class: 'v', text: fmt(G.l) })),
       h('div', { class: 'tile' }, h('div', { class: 'l', text: 'Win rate' }), h('div', { class: 'v', text: games ? Math.round(G.w / games * 100) + '%' : '-' })),
-      h('div', { class: 'tile hi' }, h('div', { class: 'l', text: 'Best' }), h('div', { class: 'v', text: fmt(G.peak) }))),
-    h('div', { class: 'botline' }, 'Nobody around?',
-      h('button', { class: 'link', text: 'Practise against a bot', onclick: () => { SFX.ui(); botFight(); } }),
-      h('span', { text: `(${BOT_WIN} coins a win, no trophies)` })));
+      h('div', { class: 'tile hi' }, h('div', { class: 'l', text: 'Best' }), h('div', { class: 'v', text: fmt(G.peak) }))));
   body.append(h('div', { class: 'fp' }, left, right));
   new Preview(cv, G.eq, lv);
   requestAnimationFrame(() => rankIcon(rcv, G.tro));
   return p;
 }
 function statusBits(broke) {
-  if (broke) return [h('i', { class: 'dot' }), `OUT OF COINS. BEAT BOTS TO EARN SOME BACK: ${BOT_WIN} COINS A WIN.`];
+  if (broke) return [h('i', { class: 'dot' }), `OUT OF COINS. BOTS PAY ${BOT_PAY} COINS A FIGHT, WIN OR LOSE.`];
   if (G.streak > 0) return [h('i', { class: 'dot live' }), `${G.streak} WIN STREAK · NEXT WIN +${Math.min(G.streak, STREAK_MAX) * STREAK_STEP * 100}% OF THE STAKE`];
   return [h('i', { class: 'dot live' }), 'MATCHED BY TROPHIES'];
 }
@@ -5709,7 +5706,7 @@ function settleFight(F) {
   const raid = F.mode === 'boss' ? raidPay(F, false) : null;
   if (raid) coins = raid.coins;
   if (F.mode === 'bot') {
-    paid = draw ? BOT_LOSS : mine ? BOT_WIN : BOT_LOSS; coins = paid;
+    paid = coins = BOT_PAY;
     if (mine) G.bw++; else if (!draw) G.bl++;
   } else if (F.mode === 'pvp') {
     paid = draw ? F.stake : mine ? Math.round(F.stake * (2 + WIN_BONUS)) : 0;
@@ -5737,8 +5734,8 @@ function settleFight(F) {
   if (xp) extra.append(h('div', { class: 'rl' }, h('span', { class: 'mono', text: `+${xp} XP` }), h('span', { class: 'xpmini' }, xpBar), h('span', { text: 'LV ' + G.plv })));
   for (const u of ups) extra.append(h('div', { class: 'rl up', text: upText(u) }));
   for (const q of quests) extra.append(h('div', { class: 'rl q', text: 'QUEST DONE · ' + questText(q).toUpperCase() }));
-  const again = F.mode === 'cup' || F.mode === 'boss' ? () => { endFightScreen(); setTab('cup'); } : F.mode === 'bot' ? () => botFight() : F.mode === 'pvp' ? () => { endFightScreen(); setTab('fight'); findMatch(G.coins >= F.stake ? F.stake : (STAKES.filter(s => s <= G.coins).pop() || 50)); } : null;
-  const note = raid ? (raid.kill ? `You brought ${F.foe.name} down! +1,000 coins and a Legend Crate (in Daily).` : `You dealt ${fmt(raid.dmg)} damage to ${F.foe.name}.`) : F.mode === 'cup' ? cupNote(F) : F.mode === 'bot' ? 'Bots pay less than real players. Win against people for bigger rewards and trophies.' : F.mode === 'friendly' ? 'A fight against your own other tab: no coins or trophies change.' : '';
+  const again = F.mode === 'cup' || F.mode === 'boss' ? () => { endFightScreen(); setTab('cup'); } : F.mode === 'bot' ? (G.coins < STAKES[0] ? () => botFight() : () => { endFightScreen(); setTab('fight'); findMatch(STAKES.filter(s => s <= G.coins).pop()); }) : F.mode === 'pvp' ? () => { endFightScreen(); setTab('fight'); findMatch(G.coins >= F.stake ? F.stake : (STAKES.filter(s => s <= G.coins).pop() || 50)); } : null;
+  const note = raid ? (raid.kill ? `You brought ${F.foe.name} down! +1,000 coins and a Legend Crate (in Daily).` : `You dealt ${fmt(raid.dmg)} damage to ${F.foe.name}.`) : F.mode === 'cup' ? cupNote(F) : F.mode === 'bot' ? (G.coins < STAKES[0] ? `Bots pay ${BOT_PAY} coins a fight, win or lose. Fight another until you can afford a bet.` : `Bots pay ${BOT_PAY} coins a fight, win or lose. You can bet against real players again.`) : F.mode === 'friendly' ? 'A fight against your own other tab: no coins or trophies change.' : '';
   F.result = h('div', { class: 'result' },
     h('div', { class: 'lab', text: F.tag ? '// ' + F.tag[0].replace('!', '') + ' //' : '// RESULT //' }),
     raid ? h('h2', { class: raid.kill ? '' : 'draw', text: raid.kill ? 'BOSS DOWN' : 'RAID OVER' })
@@ -5749,7 +5746,7 @@ function settleFight(F) {
     extra.children.length ? extra : null,
     note ? h('p', { text: note }) : null,
     h('div', { class: 'foot' },
-      again ? h('button', { class: 'btn2 on', text: F.mode === 'cup' ? 'BACK TO THE BRACKET' : F.mode === 'boss' ? 'BACK TO EVENTS' : F.mode === 'pvp' ? 'FIND ANOTHER' : 'FIGHT AGAIN', disabled: F.mode === 'pvp' && G.coins < STAKES[0], onclick: again }) : null,
+      again ? h('button', { class: 'btn2 on', text: F.mode === 'cup' ? 'BACK TO THE BRACKET' : F.mode === 'boss' ? 'BACK TO EVENTS' : F.mode === 'pvp' ? 'FIND ANOTHER' : G.coins < STAKES[0] ? 'FIGHT AGAIN' : 'FIND OPPONENT', disabled: F.mode === 'pvp' && G.coins < STAKES[0], onclick: again }) : null,
       F.S.t > 2 ? h('button', { class: 'btn2', html: '<svg class="i" viewBox="0 0 16 16"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg> REPLAY', onclick: () => replayKO(F) }) : null,
       F.mode === 'cup' || F.mode === 'boss' ? null : h('button', { class: 'btn2', text: 'DONE', onclick: () => { endFightScreen(); renderView(); } })));
   F.root.querySelector('.arena').append(F.result);
@@ -5774,8 +5771,9 @@ function endFightScreen() {
   MUSIC.play('menu');
   NET.pushPresence();
 }
-function botFight() {
-  if (!G.eq) return;
+// only when you can't afford the smallest bet (tests pass force)
+function botFight(force) {
+  if (!G.eq || (!force && G.coins >= STAKES[0])) return;
   const lv = lvlOf(G.eq), pool = BALLS.filter(b => b.id !== G.eq);
   const b = pool[Math.floor(Math.random() * pool.length)];
   const blv = clamp(lv + Math.floor(Math.random() * 3) - 1, 1, MAXLVL);
@@ -6913,7 +6911,7 @@ function boot() {
 // hooks for automated tests
 window.BB = {
   get G() { return G; }, get net() { return NET; }, get fight() { return FIGHT; }, get mm() { return MM; },
-  bot: (id, lvl) => { if (id) { G.owned[id] = G.owned[id] || { lvl: lvl || 1, copies: 0 }; G.eq = id; } botFight(); return !!FIGHT; },
+  bot: (id, lvl) => { if (id) { G.owned[id] = G.owned[id] || { lvl: lvl || 1, copies: 0 }; G.eq = id; } botFight(true); return !!FIGHT; },
   skip: skipFight,
   run(secs) { const F = FIGHT; if (!F) return null; F.phase = 'run'; showBanner(F, ''); const end = F.S.t + secs; while (F.S.t < end && !F.S.over) { step(F.S); F.arena.events(F.S); F.arena.step(DT); } F.arena.draw(F.S, F.S.t); updatePlates(F); return { t: F.S.t, hp: F.S.F.map(f => Math.ceil(f.hp)), over: F.S.over }; },
   finish() { const F = FIGHT; if (!F) return null; skipFight(); fightFrame(F, 0.016); F.pt = 2; fightFrame(F, 0.016); return { winner: F.S.winner, coins: G.coins, tro: G.tro }; },
