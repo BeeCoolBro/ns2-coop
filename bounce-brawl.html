@@ -827,7 +827,7 @@ svg.mst.on { fill: var(--gold); }
 // A fight is played out from a seed, separately in each player's browser, so
 // the simulation may only use + - * / and sqrt (the same in every engine):
 // no Math.sin/cos/atan2/hypot/pow/exp, no Math.random, no clocks.
-const VERSION = 8;
+const VERSION = 9;
 const HP_SCALE = 0.33;                     // every ball's health is scaled by this, so fights end sooner
 const TAU = 6.283185307179586, PI = 3.141592653589793, HALF_PI = 1.5707963267948966;
 const DT = 1 / 60, SUB = 3;            // 60 steps a second, 3 physics substeps each
@@ -2892,8 +2892,8 @@ BALL_LIST.push(
     desc: 'Grins and bounces around, and every 5 seconds its grin confuses a nearby enemy. Below 20% health it throws a tantrum that blasts the enemy back, grows four spider legs and chases the enemy down, hitting 2.5x harder.' },
   // only from the give command: spins for a Mythic's power and a strength change at the start,
   // then again every time it loses another 35% of its health
-  { id: 'beezap', name: 'BeeZap', rar: 'M', cat: 'trick', special: 1, hidden: 1, giveOnly: 1, col: '#2b2440', hp: 185, upright: 1,
-    init(S, f) { f.bz = { next: 1 - BZ_EVERY, admT: 7, slotT: 14, godT: 0, pend: null }; beezapRoll(S, f); },
+  { id: 'beezap', name: 'BeeZap', rar: 'M', cat: 'trick', special: 1, hidden: 1, giveOnly: 1, col: '#2b2440', hp: 170, upright: 1,
+    init(S, f) { f.bz = { next: 1 - BZ_EVERY, admT: 7, slotT: 4.5, godT: 0, pend: null }; beezapRoll(S, f); },
     desc: 'Spins two wheels at the start of the fight: one copies a Mythic ball\u2019s power, the other sets its strength from -10% to +10%. Every 35% of health it loses, it spins again. It also abuses admin commands and plays the slots.' },
 );
 const BZ_STR = [-10, -5, 0, 5, 10], BZ_EVERY = 0.35;   // spins again at 65% and 30% health
@@ -2913,7 +2913,7 @@ function beezapRoll(S, f) {
   f.bz.pow = d.id; f.bz.str = str;
   emit(S, { e: 'wheel', id: f.id, side: f.side, pow: d.id, str, opts: pool.map(b => b.id) });
 }
-// admin abuse every 16 s and the slots every 20 s. Each one is announced first (the fight
+// admin abuse every 16 s and the slots every 6.5 s. Each one is announced first (the fight
 // screen stops for it) and lands on the step after, once the fight is moving again.
 const BZ_CMDS = ['freeze', 'tp', 'god', 'nerf', 'smite'];
 // the slots pick a result off the paytable first (chance out of 100), then lay out reels that show it
@@ -2942,7 +2942,7 @@ function bzTick(S, f, dt) {
       z.pend = { t: 0.01, k: 'admin', cmd };
       emit(S, { e: 'admin', id: f.id, side: f.side, cmd, foe: f.foe.def.id });
     } else if ((z.slotT -= dt) <= 0) {
-      z.slotT = 20;
+      z.slotT = 6.5;
       const { r, res } = bzSpin(S);
       z.pend = { t: 0.01, k: 'slot', r, res };
       emit(S, { e: 'slot', id: f.id, side: f.side, r, res });
@@ -3941,8 +3941,8 @@ class Arena {
     const c = this.c;
     if (!f.alive) return;
     // a BeeZap in disguise: drawn as the ball it is pretending to be, with that ball's weapons
-    const mk = this.mask;
-    if (mk && mk.side === f.side && !mk.off) {
+    const mk = this.masks && this.masks.find(m => m.side === f.side);
+    if (mk && !mk.off) {
       const pf = Object.create(f); pf.def = BALL[mk.id];
       if (!mk.wep) { mk.wep = []; pf.wep = mk.wep; for (const w of pf.def.weapons || []) mk.wep.push(mkWeapon(null, pf, w, -0.6)); }
       pf.wep = mk.wep; f = pf;
@@ -5792,9 +5792,9 @@ function startFight(o) {
   const nf = { seed: o.seed >>> 0, a: { id: pick(0).id, lvl: pick(0).lvl }, b: { id: pick(1).id, lvl: pick(1).lvl }, keepEv: true, rule: o.rule };
   const S = newFight(nf);
   const cv = h('canvas', { 'aria-label': 'The fight' });
-  // a BeeZap you are up against hides as a plain ball until the fight starts (see bzReveal)
-  const fake = foe.id === 'beezap' && o.mode !== 'bot' ? bzFake(o.seed) : null;
-  const youP = plate('you', me), foeP = plate('foe', fake ? Object.assign({}, foe, { id: fake }) : foe);
+  // a BeeZap hides as a plain ball until the fight starts, on both players' screens (see openReveal)
+  const fake = bzFake(o.seed), hide = info => info.id === 'beezap' ? Object.assign({}, info, { id: fake }) : info;
+  const youP = plate('you', hide(me)), foeP = plate('foe', hide(foe));
   const clock = h('span', { class: 'clock', text: '0:00' }), ot = h('span', { class: 'lab', text: o.mode === 'bot' ? 'PRACTICE' : o.mode === 'friendly' ? 'FRIENDLY' : o.mode === 'cup' ? 'CUP ' + CUP_ROUNDS[o.cupRound] : o.mode === 'boss' ? 'BOSS RAID' : 'RANKED' });
   const rule = S.rule !== 'normal' ? h('span', { class: 'rule', title: RULES[S.rule].desc, text: RULES[S.rule].name.toUpperCase() }) : null;
   const pot = o.mode === 'pvp' ? h('span', { class: 'pot', html: 'POT ' + COIN_SVG + fmt(o.stake * 2) }) : null;
@@ -5815,8 +5815,8 @@ function startFight(o) {
   arena.flip = o.mySide === 1; arena.me = o.mySide; arena.pop = REDUCED ? 1 : 0;
   const F = FIGHT = Object.assign({}, o, { S, arena, root, cv, banner, clock, ot, nf, plates: [youP, foeP], acc: 0, t: 0, phase: 'count', pt: 0, slow: 1, done: false, settled: false, dmg: 0, worst: 0 });
   F.otBase = ot.textContent;
-  F.mask = arena.mask = fake ? { side: 1 - o.mySide, id: fake } : null;
-  if (S.F.some(f => f.def.id === 'beezap')) SFX.sike(true);   // decoded now, ready for the reveal
+  F.masks = arena.masks = [0, 1].filter(s => pick(s).id === 'beezap').map(s => ({ side: s, id: fake }));
+  if (F.masks.length) SFX.sike(true);   // decoded now, ready for the reveal
   if (o.mode === 'pvp') { G.coins -= o.stake; save(); }
   MUSIC.play(fightSong()); MUSIC.boost(false);
   arena.resize(); arena.draw(S, 0);
@@ -6704,7 +6704,7 @@ function beeCanvas() {
 }
 ART.beezap = c => { c.imageSmoothingQuality = 'high'; c.drawImage(beeCanvas(), -37, -36, 74, 74); };
 
-function fightSong() { return FIGHT && !FIGHT.mask && FIGHT.S.F.some(f => f.def.id === 'beezap') ? 'beezap' : 'fight'; }
+function fightSong() { return FIGHT && !(FIGHT.masks && FIGHT.masks.length) && FIGHT.S.F.some(f => f.def.id === 'beezap') ? 'beezap' : 'fight'; }
 // what a BeeZap pretends to be on the VS screen and until the fight starts: a plain common ball
 const BZ_FAKES = ['sword', 'dagger', 'axe', 'spear'];
 function bzFake(seed) { return BZ_FAKES[(seed >>> 0) % BZ_FAKES.length]; }
@@ -6968,7 +6968,7 @@ function bzConsole(F, e, kind, script, end) {
 }
 function bzStamp(F) { const s = 37 * 60 + Math.floor(F.t); return '[13:' + pad2(Math.floor(s / 60) % 60) + ':' + pad2(s % 60) + '] '; }
 function consoleFrame(F, dt) {
-  const W = F.wheel, A = F.arena, T = (W.T += dt), CH = 0.04;
+  const W = F.wheel, A = F.arena, T = (W.T += dt), CH = 0.07;
   A.cv.style.opacity = '0';
   while (W.i < W.script.length && T >= W.script[W.i][0]) {
     const [at, cls, text, then] = W.script[W.i++], d = h('div', { class: cls });
@@ -7011,43 +7011,47 @@ function bzGlitch(g, src, hit, amp) {
 }
 function openAdmin(F, e) {
   const foe = (BALL[e.foe] ? BALL[e.foe].name : 'Enemy').toUpperCase(), [cmd, out] = BZ_CMD_TXT[e.cmd](foe);
-  const TYPE0 = 0.75, run = TYPE0 + cmd.length * 0.04 + 0.6;
+  const TYPE0 = 1.3, run = TYPE0 + cmd.length * 0.07 + 1.2;
   bzConsole(F, e, 'admin', [
-    [0.12, 'sys', `[INFO] Server tick ${1000 + Math.floor(F.S.t * 60)} · 2 players · 1 world`],
-    [0.3, 'warn', '[WARN] BeeZap moved too quickly! (ignored: op)'],
-    [0.5, 'sys', '[OP] BeeZap opened the console'],
+    [0.2, 'sys', `[INFO] Server tick ${1000 + Math.floor(F.S.t * 60)} · 2 players · 1 world`],
+    [0.55, 'warn', '[WARN] BeeZap moved too quickly! (ignored: op)'],
+    [0.9, 'sys', '[OP] BeeZap opened the console'],
     [TYPE0, 'cmd', cmd],
-    [run - 0.5, 'bar', ''],
+    [run - 1.0, 'bar', ''],
     [run, 'ok', '[SERVER] ' + out, () => adminBend(F, e)],
-    [run + 0.35, 'audit', '[AUDIT] Command history wiped by BeeZap'],
-  ], run + 1.35);
+    [run + 0.7, 'audit', '[AUDIT] Command history wiped by BeeZap'],
+  ], run + 2.6);
 }
 // ---- the reveal: against a BeeZap you see a plain ball until the fight starts; then it glitches back
-// to BeeZap (with the owner's "sike" clip) and the console announces it. Its owner sees the console too.
+// to BeeZap (with the owner's "sike" clip) and the console announces it. Its owner sees all of it too.
 function bzQueue(F, wz) {
   const w = wz.find(e => e.e === 'wheel');
-  if (w && !F.bzRevealed) { F.bzRevealed = 1; wz.unshift({ e: 'reveal', side: F.mask ? F.mask.side : w.side, fake: F.mode === 'bot' ? null : bzFake(F.seed) }); }
+  if (w && !F.bzRevealed) { F.bzRevealed = 1; wz.unshift({ e: 'reveal', side: F.masks.length === 1 ? F.masks[0].side : w.side, fake: bzFake(F.seed) }); }
   return wz;
 }
-function bzPlate(F, id) {
-  const p = F.plates[1], bn = p && p.querySelector('.bn');
+function bzPlate(F, side, id) {
+  const mine = side === F.mySide, p = F.plates[mine ? 0 : 1], bn = p && p.querySelector('.bn');
   if (!p) return;
   p.replaceChild(ballImg(id, 46, ''), p.firstChild);
-  if (bn) bn.textContent = `${BALL[id].name} · LV ${F.foe.lvl}`;
+  if (bn) bn.textContent = `${BALL[id].name} · LV ${(mine ? F.me : F.foe).lvl}`;
 }
-function bzUnmask(F) { if (!F.mask) return; F.mask = F.arena.mask = null; bzPlate(F, 'beezap'); updatePlates(F); }
+function bzUnmask(F) {
+  if (!F.masks || !F.masks.length) return;
+  for (const m of F.masks) bzPlate(F, m.side, 'beezap');
+  F.masks = F.arena.masks = []; updatePlates(F);
+}
 function openReveal(F, e) {
   const cv = bzLayer(F);
-  F.wheel = { kind: 'reveal', e, cv, T: 0, D: F.mask ? 1.2 : 0.6, frame: revealFrame, close() { cv.remove(); } };
+  F.wheel = { kind: 'reveal', e, cv, T: 0, D: F.masks.length ? 2 : 1.2, frame: revealFrame, close() { cv.remove(); } };
   SFX.sike(); SFX.rip();
 }
 function revealFrame(F, dt) {
-  const W = F.wheel, A = F.arena, T = (W.T += dt), mk = F.mask, q = clamp(T / W.D, 0, 1);
+  const W = F.wheel, A = F.arena, T = (W.T += dt), q = clamp(T / W.D, 0, 1);
   A.cv.style.opacity = '0';
-  if (mk) {
+  if (F.masks.length) {
     // it flickers between the disguise and the BeeZap underneath, faster and faster
-    mk.off = Math.floor(T * (5 + 30 * q)) % 2 === 1 || Math.random() < q * 0.4;
-    if (W.shown !== mk.off) { W.shown = mk.off; bzPlate(F, mk.off ? 'beezap' : mk.id); }
+    const off = Math.floor(T * (5 + 30 * q)) % 2 === 1 || Math.random() < q * 0.4;
+    if (W.shown !== off) { W.shown = off; for (const m of F.masks) { m.off = off; bzPlate(F, m.side, off ? 'beezap' : m.id); } }
     if (Math.random() < 0.12) bzBlip(F, 90);
   }
   bzGlitch(bzFit(F, W.cv), A.cv, 0.3 + 0.7 * q, 10 + 50 * q);
@@ -7057,26 +7061,26 @@ function revealFrame(F, dt) {
     W.close(); A.cv.style.opacity = '';
     const mine = W.e.side === F.mySide, fake = W.e.fake && BALL[W.e.fake].name;
     bzConsole(F, W.e, 'reveal', [
-      [0.1, 'big', 'ADMIN HAS JOINED THE GAME'],
-      [0.6, 'sys', '[+] BeeZap joined the game (op)'],
-      [0.85, 'warn', '[WARN] Anti-cheat disabled by BeeZap'],
-      [1.1, 'warn', fake ? (mine ? `[WARN] They thought you were a ${fake}.` : `[WARN] That was never a ${fake}.`) : '[WARN] Logging paused by BeeZap'],
-      [1.4, 'ok', mine ? '[SERVER] Your BeeZap runs this server now.' : '[SERVER] Good luck.'],
-    ], 2.8);
+      [0.15, 'big', 'ADMIN HAS JOINED THE GAME'],
+      [1.0, 'sys', '[+] BeeZap joined the game (op)'],
+      [1.5, 'warn', '[WARN] Anti-cheat disabled by BeeZap'],
+      [2.0, 'warn', fake ? (mine ? `[WARN] They thought you were a ${fake}.` : `[WARN] That was never a ${fake}.`) : '[WARN] Logging paused by BeeZap'],
+      [2.6, 'ok', mine ? '[SERVER] Your BeeZap runs this server now.' : '[SERVER] Good luck.'],
+    ], 4.4);
   }
 }
 // what each command does to the screen itself
 function adminBend(F, e) {
   const { bee, foe } = bzPlates(F, e), wrap = F.root.querySelector('.arena');
-  if (e.cmd === 'freeze') { bzMark(foe, 'bz-frozen', 2.8); SFX.freeze(); }
+  if (e.cmd === 'freeze') { bzMark(foe, 'bz-frozen', 4.3); SFX.freeze(); }
   else if (e.cmd === 'tp') { bzJolt(wrap, BZ_TP, 700); SFX.warp(); }
-  else if (e.cmd === 'god') { bzMark(bee, 'bz-god', 3.6); SFX.reveal(2); }
-  else if (e.cmd === 'nerf') { bzMark(foe, 'bz-nerf', 5); SFX.drop(); }
+  else if (e.cmd === 'god') { bzMark(bee, 'bz-god', 5.4); SFX.reveal(2); }
+  else if (e.cmd === 'nerf') { bzMark(foe, 'bz-nerf', 6.9); SFX.drop(); }
   else { bzSmite(F); SFX.zap(); SFX.boom(); }
 }
 
 // ---- the slots: the box turns out to be the screen of a slot machine ----
-const BZ_SLOT = { OUT: 0.6, FLK: 0.32, PULL: 1.0, SPIN: 1.12, STOP: [1.8, 2.15, 2.5], HOLD: 3.5, IN: 0.55, FLK2: 0.3 };
+const BZ_SLOT = { OUT: 0.95, FLK: 0.45, PULL: 1.6, SPIN: 1.75, STOP: [2.9, 3.6, 4.4], HOLD: 6.2, IN: 0.85, FLK2: 0.4 };
 const BZ_SYMS = ['7', 'bar', 'cherry', 'bee', 'bell', 'diamond', 'skull'];
 // each result: what the plaque says, its colour, what the cabinet's little screen says, and whether it went BeeZap's way
 const BZ_PAY = {
@@ -7672,7 +7676,8 @@ function ghostMatch() {
 }
 function showVs(me, foe, stake, friendly, seed, go) {
   const rule = RULES[ruleOf(seed)];
-  if (foe.id === 'beezap') foe = Object.assign({}, foe, { id: bzFake(seed) });   // it hides until the fight starts
+  const hide = p => p.id === 'beezap' ? Object.assign({}, p, { id: bzFake(seed) }) : p;   // it hides until the fight starts
+  me = hide(me); foe = hide(foe);
   const el = h('div', { class: 'vs' },
     h('div', { class: 'side you' }, h('div', { class: 'lab', text: 'You' }), ballImg(me.id, 200, ''), h('div', { class: 'who', text: me.name.toUpperCase() }), h('div', { class: 'bn', text: `${BALL[me.id].name} · LV ${me.lvl}` })),
     h('div', { class: 'side foe' }, h('div', { class: 'lab', text: 'Opponent' }), ballImg(foe.id, 200, ''), h('div', { class: 'who', text: foe.name.toUpperCase() }), h('div', { class: 'bn', text: `${BALL[foe.id].name} · LV ${foe.lvl}` })),
