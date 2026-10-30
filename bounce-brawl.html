@@ -612,6 +612,14 @@ svg.mst.on { fill: var(--gold); }
 .crowd { position: fixed; left: 0; right: 0; bottom: 0; z-index: 80; pointer-events: none; transform: translateY(110%); will-change: transform; }
 .crowd canvas { display: block; width: 100%; }
 .crowd i { position: absolute; left: 0; right: 0; top: calc(100% - 1px); height: 60vh; background: #000; }
+.lockstage { display: grid; place-items: center; }
+.lockstage canvas:where(.pic) { width: min(220px, 60%); height: auto; filter: grayscale(1) brightness(.4); }
+.keyrow { display: flex; gap: 8px; }
+.keyin { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line2); background: #08080a; color: #fff; font: 400 18px/1 var(--fd); letter-spacing: 3px; }
+.keyin:focus-visible { outline: none; border-color: #ffd60a; }
+.keymsg { min-height: 18px; margin-top: 8px; font-size: 13px; font-weight: 600; color: #ff6b6b; }
+.keybox.nope { animation: keyNope .4s ease; }
+@keyframes keyNope { 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
 .confetti { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 70; pointer-events: none; }
 /* the VS screen: both sides slide in, VS slams down, then the halves part to show the fight */
 .vs { animation: fadeIn .2s ease, vsShake .32s linear .62s; }
@@ -5493,7 +5501,7 @@ function panelBalls() {
   body.append(f, h('div', { class: 'sec', text: 'Duplicates from crates level a ball up, to LV ' + MAXLVL }));
   const g = h('div', { class: 'bgrid' });
   const order = { off: 0, def: 1, trick: 2 };
-  const list = BALLS.concat(BALL_LIST.filter(b => b.hidden && !b.boss && G.owned[b.id])).filter(b => BFILTER === 'all' || (BFILTER === 'mine' ? G.owned[b.id] : BFILTER === 'gim' ? b.special : b.cat === BFILTER))
+  const list = BALLS.concat(BALL_LIST.filter(b => b.giveOnly)).filter(b => BFILTER === 'all' || (BFILTER === 'mine' ? G.owned[b.id] : BFILTER === 'gim' ? b.special : b.cat === BFILTER))
     .sort((a, b) => order[a.cat] - order[b.cat] || RARITY[a.rar].rank - RARITY[b.rar].rank);
   for (const b of list) {
     const o = G.owned[b.id];
@@ -5502,8 +5510,8 @@ function panelBalls() {
     g.append(h('button', { class: 'bc' + (o ? '' : ' locked') + (G.eq === b.id ? ' sel' : ''), 'data-r': b.rar, style: { '--c': b.col }, onclick: () => openBall(b.id) },
       G.eq === b.id ? h('span', { class: 'eq', text: 'IN USE' }) : null,
       ballImg(b.id, 58, ''),
-      h('span', { class: 'n', html: '' }, b.name.toUpperCase(), o ? h('span', { class: 'mstars', html: starsHtml(b.id) }) : null),
-      h('span', { class: 'r', text: o ? `${RARITY[b.rar].name} · LV ${o.lvl}` + (o.lvl < MAXLVL ? ` · ${o.copies}/${need(o.lvl)}` : ' · MAX') : `${RARITY[b.rar].name} · locked`, style: { color: RARITY[b.rar].col } }),
+      h('span', { class: 'n', html: '' }, !o && b.giveOnly ? 'LOCKED' : b.name.toUpperCase(), o ? h('span', { class: 'mstars', html: starsHtml(b.id) }) : null),
+      h('span', { class: 'r', text: !o && b.giveOnly ? 'Locked · keyphrase' : o ? `${RARITY[b.rar].name} · LV ${o.lvl}` + (o.lvl < MAXLVL ? ` · ${o.copies}/${need(o.lvl)}` : ' · MAX') : `${RARITY[b.rar].name} · locked`, style: { color: RARITY[b.rar].col } }),
       pips));
   }
   if (!list.length) g.append(h('p', { class: 'empty', text: 'Nothing here yet. Open a crate to get balls.' }));
@@ -5513,6 +5521,7 @@ function panelBalls() {
 function openBall(id) {
   SFX.ui();
   const d = BALL[id], o = G.owned[id], lv = o ? o.lvl : 1;
+  if (d.giveOnly && !o) { lockedBall(id); return; }
   const cv = h('canvas', { 'aria-label': d.name + ' practising on a dummy' });
   const from = CRATES.filter(c => c.pool().includes(d)).map(c => c.name).join(', ');
   const hp = Math.round((d.hp || 100) * (1 + 0.07 * (lv - 1)));
@@ -5530,7 +5539,7 @@ function openBall(id) {
             h('dt', { text: 'Health' }), h('dd', { text: fmt(hp) + ' HP' }),
             h('dt', { text: 'Damage' }), h('dd', { text: lv > 1 ? `+${(lv - 1) * 5}% from levels` : 'Base' }),
             h('dt', { text: 'Copies' }), h('dd', { text: o ? (lv < MAXLVL ? `${o.copies} of ${need(lv)} to LV ${lv + 1}` : 'Max level') : 'Not owned yet' }),
-            h('dt', { text: 'Found in' }), h('dd', { text: from || 'A raid boss' }),
+            h('dt', { text: 'Found in' }), h('dd', { text: from || (d.giveOnly ? 'A secret keyphrase' : 'A raid boss') }),
             h('dt', { text: 'Mastery' }), h('dd', { html: starsHtml(id) + ` <span class="mono">${(G.mast && G.mast[id]) || 0} wins</span>` }))))),
     h('div', { class: 'foot' },
       o ? (G.eq === id ? h('span', { class: 'lab', text: 'In use' }) : h('button', { class: 'btn2 on', text: 'USE THIS BALL', onclick: () => { G.eq = id; save(); SFX.coin(); closeSheet(s); renderView(); toast(d.name + ' is now your fighter'); } }))
@@ -6748,6 +6757,53 @@ function wheelFrame(F, dt) {
 function closeWheels(F) {
   if (F.wheel) { F.wheel.cv.remove(); F.wheel.plq.remove(); F.arena.cv.style.opacity = ''; }
   F.wheel = null; F.wheelQ = [];
+}
+
+// ---- locked in the collection until someone types the keyphrase --------------------
+// Only the phrase's SHA-256 is here, so reading the page's code doesn't give it away.
+const BZ_KEY = '63b8f1d894b583c32b59f679500673957ed235f2fa0cb85863a8f97250e643a4';
+async function sha256(s) {
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return [...new Uint8Array(d)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function lockedBall(id) {
+  const L = 'Locked';
+  const inp = h('input', { class: 'keyin', id: 'keyphrase', type: 'text', maxlength: 40, placeholder: 'Type the keyphrase', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', 'aria-label': 'Keyphrase' });
+  const msg = h('div', { class: 'keymsg', role: 'status', text: '' });
+  const box = h('div', { class: 'box keybox' }, h('div', { class: 'h', text: 'Keyphrase' }), h('div', { class: 'keyrow' }, inp, h('button', { class: 'btn2 on', text: 'UNLOCK', onclick: () => tryKey() })), msg);
+  const s = sheet([
+    h('h2', { text: 'LOCKED' }), h('div', { class: 'lsub', text: 'LOCKED · LOCKED' }),
+    h('div', { class: 'detail' },
+      h('div', { class: 'stage lockstage' }, ballImg(id, 220, 'A locked ball')),
+      h('div', {},
+        h('div', { class: 'box' }, h('div', { class: 'h', text: 'Ability' }), h('p', { style: { margin: 0, color: '#c8c8d0', fontSize: '15px', maxWidth: 'none' }, text: L })),
+        h('div', { class: 'box' }, h('div', { class: 'h', text: 'Stats' }),
+          h('dl', { class: 'kv' }, ...['Health', 'Damage', 'Copies', 'Found in', 'Mastery'].flatMap(k => [h('dt', { text: k }), h('dd', { text: L })]))),
+        box)),
+    h('div', { class: 'foot' }, h('span', { class: 'lab', text: L }))]);
+  let busy = false;
+  async function tryKey() {
+    if (busy) return;
+    const v = inp.value.trim().toUpperCase();
+    if (!v) { inp.focus(); return; }
+    if (!(window.crypto && crypto.subtle)) { msg.textContent = "Keyphrases can't be checked on this page."; return; }
+    busy = true;
+    const ok = (await sha256(v)) === BZ_KEY;
+    busy = false;
+    if (!ok) {
+      msg.textContent = "That's not it."; SFX.tink();
+      box.classList.remove('nope'); void box.offsetWidth; box.classList.add('nope');
+      inp.select();
+      return;
+    }
+    G.owned[id] = G.owned[id] || { lvl: 1, copies: 0 }; G.eq = id; save();
+    SFX.reveal(4); confetti(['#ffd60a', '#ffffff', '#2b2440'], 140);
+    closeSheet(s); renderView();
+    toast(BALL[id].name + ' unlocked and equipped');
+    setTimeout(() => openBall(id), 350);
+  }
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') tryKey(); });
+  setTimeout(() => inp.focus(), 250);
 }
 
 // ---- the crowd: rises from the bottom, bounces with a "hey!" each time, then drops away ----
