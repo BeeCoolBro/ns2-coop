@@ -633,18 +633,9 @@ svg.mst.on { fill: var(--gold); }
 .plate.bz-god::after { content: "GOD MODE"; background: #ffd60a; }
 .plate.bz-nerf::after { content: "NERFED"; background: #ff6b6b; }
 .plate.foe.bz-frozen::after, .plate.foe.bz-god::after, .plate.foe.bz-nerf::after { right: auto; left: 0; }
-.arena.bz-tp { animation: bzTp .7s steps(1, end); }
-@keyframes bzTp { 0% { transform: translateX(-46px); opacity: .3; } 20% { transform: translateX(38px); opacity: .7; } 40% { transform: translate(-18px, 12px); } 60% { transform: translate(10px, -8px); opacity: 1; } 80% { transform: none; } }
-#fight.bz-smite { animation: bzSmite .5s linear; }
 #fight.bz-smite::after { content: ""; position: absolute; inset: 0; z-index: 60; pointer-events: none; background: #fff8d0; animation: bzFlash .35s ease forwards; }
 @keyframes bzFlash { from { opacity: .65; } to { opacity: 0; } }
-@keyframes bzSmite { 10% { transform: translate(-12px, 6px); } 25% { transform: translate(10px, -8px); } 40% { transform: translate(-6px, 4px); } 60% { transform: translate(4px, -2px); } 100% { transform: none; } }
-#fight.bz-blip { animation: bzBlip .15s steps(2, end); }
-@keyframes bzBlip { 0% { transform: translate(7px, -3px); filter: hue-rotate(150deg) contrast(1.5); } 50% { transform: translate(-5px, 2px); filter: invert(.85) hue-rotate(40deg); } }
-.plate.bz-wob { animation: bzWob .5s ease; }
-@keyframes bzWob { 25% { transform: translateY(-6px); } 50% { transform: translateY(4px); filter: hue-rotate(180deg); } 75% { transform: translateY(-2px); } }
-.slotplq { bottom: auto; top: 3%; }
-@media (prefers-reduced-motion: reduce) { #fight.bz-blip, #fight.bz-smite, .arena.bz-tp, .plate.bz-wob { animation: none; } }
+.slotplq { position: absolute; width: 1px; height: 1px; min-width: 0; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); animation: none; }
 .crowd { position: fixed; left: 0; right: 0; bottom: 0; z-index: 80; pointer-events: none; transform: translateY(110%); will-change: transform; }
 .crowd canvas { display: block; width: 100%; }
 .crowd i { position: absolute; left: 0; right: 0; top: calc(100% - 1px); height: 60vh; background: #000; }
@@ -811,7 +802,7 @@ svg.mst.on { fill: var(--gold); }
 // A fight is played out from a seed, separately in each player's browser, so
 // the simulation may only use + - * / and sqrt (the same in every engine):
 // no Math.sin/cos/atan2/hypot/pow/exp, no Math.random, no clocks.
-const VERSION = 7;
+const VERSION = 8;
 const HP_SCALE = 0.33;                     // every ball's health is scaled by this, so fights end sooner
 const TAU = 6.283185307179586, PI = 3.141592653589793, HALF_PI = 1.5707963267948966;
 const DT = 1 / 60, SUB = 3;            // 60 steps a second, 3 physics substeps each
@@ -2876,8 +2867,8 @@ BALL_LIST.push(
     desc: 'Grins and bounces around, and every 5 seconds its grin confuses a nearby enemy. Below 20% health it throws a tantrum that blasts the enemy back, grows four spider legs and chases the enemy down, hitting 2.5x harder.' },
   // only from the give command: spins for a Mythic's power and a strength change at the start,
   // then again every time it loses another 35% of its health
-  { id: 'beezap', name: 'BeeZap', rar: 'M', cat: 'trick', special: 1, hidden: 1, giveOnly: 1, col: '#2b2440', hp: 175, upright: 1,
-    init(S, f) { f.bz = { next: 1 - BZ_EVERY, admT: 4.5, slotT: 8.5, godT: 0, pend: null }; beezapRoll(S, f); },
+  { id: 'beezap', name: 'BeeZap', rar: 'M', cat: 'trick', special: 1, hidden: 1, giveOnly: 1, col: '#2b2440', hp: 185, upright: 1,
+    init(S, f) { f.bz = { next: 1 - BZ_EVERY, admT: 7, slotT: 14, godT: 0, pend: null }; beezapRoll(S, f); },
     desc: 'Spins two wheels at the start of the fight: one copies a Mythic ball\u2019s power, the other sets its strength from -10% to +10%. Every 35% of health it loses, it spins again. It also abuses admin commands and plays the slots.' },
 );
 const BZ_STR = [-10, -5, 0, 5, 10], BZ_EVERY = 0.35;   // spins again at 65% and 30% health
@@ -2897,24 +2888,37 @@ function beezapRoll(S, f) {
   f.bz.pow = d.id; f.bz.str = str;
   emit(S, { e: 'wheel', id: f.id, side: f.side, pow: d.id, str, opts: pool.map(b => b.id) });
 }
-// admin abuse every 8 s and the slots every 10 s. Each one is announced first (the fight
+// admin abuse every 16 s and the slots every 20 s. Each one is announced first (the fight
 // screen stops for it) and lands on the step after, once the fight is moving again.
 const BZ_CMDS = ['freeze', 'tp', 'god', 'nerf', 'smite'];
-const BZ_REEL = ['7', '7', 'bar', 'cherry', 'bee'];
+// the slots pick a result off the paytable first (chance out of 100), then lay out reels that show it
+const BZ_ODDS = [['jackpot', 7, '7'], ['swarm', 5, 'bee'], ['diamond', 6, 'diamond'], ['bell', 7, 'bell'], ['bars', 8, 'bar'],
+  ['cherries', 6, 'cherry'], ['skulls', 4, 'skull'], ['pair', 20], ['omen', 7], ['cherry', 10], ['bust', 20]];
+function bzSpin(S) {
+  let u = S.rng() * 100, o;
+  for (o of BZ_ODDS) if ((u -= o[1]) < 0) break;
+  const res = o[0], pick = a => a[Math.floor(S.rng() * a.length)], plain = ['7', 'bar', 'bee', 'bell', 'diamond'];
+  if (o[2]) return { res, r: [o[2], o[2], o[2]] };
+  const a = res === 'omen' ? 'skull' : pick(plain), b = pick(plain.filter(s => s !== a));
+  const r = res === 'pair' || res === 'omen' ? [a, a, b]
+    : res === 'cherry' ? ['cherry', a, b]
+    : [a, b, pick(['skull'].concat(plain.filter(s => s !== a && s !== b)))];   // the house wins: three different
+  for (let i = 2; i > 0; i--) { const j = Math.floor(S.rng() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; }
+  return { res, r };
+}
 function bzTick(S, f, dt) {
   const z = f.bz;
   if (z.godT > 0) z.godT -= dt;
   if (z.pend && (z.pend.t -= dt) <= 0) { const p = z.pend; z.pend = null; bzLand(S, f, p); }
   if (f.alive && !z.pend) {
     if ((z.admT -= dt) <= 0) {
-      z.admT = 8;
+      z.admT = 16;
       const cmd = BZ_CMDS[Math.floor(S.rng() * BZ_CMDS.length)];
       z.pend = { t: 0.01, k: 'admin', cmd };
       emit(S, { e: 'admin', id: f.id, side: f.side, cmd, foe: f.foe.def.id });
     } else if ((z.slotT -= dt) <= 0) {
-      z.slotT = 10;
-      const r = [0, 1, 2].map(() => BZ_REEL[Math.floor(S.rng() * BZ_REEL.length)]);
-      const res = r[0] === r[1] && r[1] === r[2] ? (r[0] === '7' ? 'jackpot' : 'triple') : r[0] === r[1] || r[1] === r[2] || r[0] === r[2] ? 'pair' : 'bust';
+      z.slotT = 20;
+      const { r, res } = bzSpin(S);
       z.pend = { t: 0.01, k: 'slot', r, res };
       emit(S, { e: 'slot', id: f.id, side: f.side, r, res });
     }
@@ -2932,9 +2936,15 @@ function bzLand(S, f, p) {
     else if (p.cmd === 'nerf') applyFx(S, f, t, { weak: 4 });
     else { hurt(S, f, t, 7, 'zap', t.x, t.y); emit(S, { e: 'bolt', x: t.x, y: t.y, r: 60 }); }
   } else if (p.res === 'jackpot') { aoe(S, f, t.x, t.y, 80, 16, 600, 0, 'blast'); applyFx(S, f, t, { stun: 1 }); emit(S, { e: 'boom', x: t.x, y: t.y, r: 110, big: 1, crit: 1 }); }
-  else if (p.res === 'triple') { hurt(S, f, t, 9, 'zap', t.x, t.y); emit(S, { e: 'boom', x: t.x, y: t.y, r: 70, small: 1 }); }
+  else if (p.res === 'swarm') { hurt(S, f, t, 10, 'zap', t.x, t.y); applyFx(S, f, t, { confuse: 1.5 }); emit(S, { e: 'boom', x: t.x, y: t.y, r: 80, small: 1 }); }
+  else if (p.res === 'diamond') { f.bz.godT = 3; emit(S, { e: 'shieldup', id: f.id }); }
+  else if (p.res === 'bell') { applyFx(S, f, t, { stun: 1.3 }); emit(S, { e: 'boom', x: t.x, y: t.y, r: 60, small: 1 }); }
+  else if (p.res === 'bars') { hurt(S, f, t, 9, 'zap', t.x, t.y); emit(S, { e: 'boom', x: t.x, y: t.y, r: 70, small: 1 }); }
+  else if (p.res === 'cherries') heal(S, f, 14 * f.hpMul);
   else if (p.res === 'pair') heal(S, f, 8 * f.hpMul);
-  else if (f.alive) { f.hp = Math.max(1, f.hp - 5); emit(S, { e: 'puff', x: f.x, y: f.y }); }   // the house wins
+  else if (p.res === 'cherry') heal(S, f, 4 * f.hpMul);
+  else if (p.res === 'omen') applyFx(S, f, f, { vuln: 3 });
+  else if (f.alive) { f.hp = Math.max(1, f.hp - (p.res === 'skulls' ? 12 : 5)); emit(S, { e: 'puff', x: f.x, y: f.y }); }   // the house wins
 }
 function bzCheck(S, f) {
   if (!f.alive || f.bz.next <= 0 || f.hp > f.maxHp * f.bz.next) return;
@@ -6839,7 +6849,7 @@ function wheelFrame(F, dt) {
     r.style.color = stage === 0 ? shade(BALL[e.pow].col, 0.35) : shade(BZ_STR_COL[e.str], 0.35);
     r.classList.add('pop');
     SFX.reveal(stage === 0 ? 3 : 1);
-    if (stage === 0) crowdCheer();
+    if (stage === 1 && e.str > 0) crowdCheer();   // the crowd only cheers a good roll
   }
   bzDraw(F, W, 1, 1, 1);
   if (W.t < dur + hold) return;
@@ -6866,6 +6876,20 @@ function bzFit(F, cv) {
 }
 const bzPlates = (F, e) => ({ bee: F.plates[e.side === F.mySide ? 0 : 1], foe: F.plates[e.side === F.mySide ? 1 : 0] });
 function bzMark(el, cls, secs) { if (!el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); setTimeout(() => el.classList.remove(cls), secs * 1000); }
+// shakes run through el.animate, never a CSS class: swapping a class animation back off replays the
+// screen's own fade-in, which used to blink the menu through the fight. The fight screen itself never
+// moves either (it would uncover the menu at its edges); its parts shake inside it.
+function bzJolt(el, frames, ms) { if (el && el.animate && !REDUCED) el.animate(frames, { duration: ms }); }
+const bzStep = (a, b) => [Object.assign({}, a), Object.assign({ offset: 0.5 }, a), Object.assign({ offset: 0.5 }, b), Object.assign({}, b)];
+function bzShake(F, frames, ms) { for (const ch of F.root.children) bzJolt(ch, frames, ms); }
+const BZ_SHAKE = [{ transform: 'none' }, { transform: 'translate(-12px, 6px)', offset: 0.1 }, { transform: 'translate(10px, -8px)', offset: 0.25 }, { transform: 'translate(-6px, 4px)', offset: 0.4 }, { transform: 'translate(4px, -2px)', offset: 0.6 }, { transform: 'none' }];
+const BZ_TP = [{ transform: 'translateX(-46px)', opacity: 0.3, easing: 'steps(1, end)' }, { transform: 'translateX(38px)', opacity: 0.7, offset: 0.2, easing: 'steps(1, end)' }, { transform: 'translate(-18px, 12px)', offset: 0.4, easing: 'steps(1, end)' }, { transform: 'translate(10px, -8px)', opacity: 1, offset: 0.6, easing: 'steps(1, end)' }, { transform: 'none', offset: 0.8 }, { transform: 'none' }];
+const BZ_WOB = [{ transform: 'none' }, { transform: 'translateY(-6px)', offset: 0.25 }, { transform: 'translateY(4px)', filter: 'hue-rotate(180deg)', offset: 0.5 }, { transform: 'translateY(-2px)', offset: 0.75 }, { transform: 'none' }];
+function bzSmite(F) { bzMark(F.root, 'bz-smite', 0.6); bzShake(F, BZ_SHAKE, 500); }
+function bzBlip(F, ms) {
+  bzShake(F, bzStep({ transform: 'translate(7px, -3px)' }, { transform: 'translate(-5px, 2px)' }), ms);
+  bzJolt(F.root, bzStep({ filter: 'hue-rotate(150deg) contrast(1.5)' }, { filter: 'invert(.85) hue-rotate(40deg)' }), ms);
+}
 
 // ---- admin abuse: a server console drops over the whole fight and the arena glitches ----
 const BZ_CMD_TXT = {
@@ -6915,99 +6939,285 @@ function adminFrame(F, dt) {
 function adminBend(F, e) {
   const { bee, foe } = bzPlates(F, e), wrap = F.root.querySelector('.arena');
   if (e.cmd === 'freeze') { bzMark(foe, 'bz-frozen', 2.8); SFX.freeze(); }
-  else if (e.cmd === 'tp') { bzMark(wrap, 'bz-tp', 0.8); SFX.warp(); }
+  else if (e.cmd === 'tp') { bzJolt(wrap, BZ_TP, 700); SFX.warp(); }
   else if (e.cmd === 'god') { bzMark(bee, 'bz-god', 3.6); SFX.reveal(2); }
   else if (e.cmd === 'nerf') { bzMark(foe, 'bz-nerf', 5); SFX.drop(); }
-  else { bzMark(F.root, 'bz-smite', 0.6); SFX.zap(); SFX.boom(); }
+  else { bzSmite(F); SFX.zap(); SFX.boom(); }
 }
 
-// ---- the slots: the box itself splits into three reels inside a gold cabinet ----
-const BZ_SLOT = { IN: 0.45, PULL: 0.45, SPIN: 0.62, STOP: [1.55, 1.95, 2.35], HOLD: 3.35, OUT: 0.5 };
-const BZ_SYMS = ['7', 'bar', 'cherry', 'bee'];
-const BZ_PAY = { jackpot: ['JACKPOT!', '#ffd60a'], triple: ['THREE OF A KIND', '#7bd23a'], pair: ['PAIR · BEEZAP HEALS', '#9fdcff'], bust: ['THE HOUSE WINS', '#ff6b6b'] };
+// ---- the slots: the box turns out to be the screen of a slot machine ----
+const BZ_SLOT = { OUT: 0.6, FLK: 0.32, PULL: 1.0, SPIN: 1.12, STOP: [1.8, 2.15, 2.5], HOLD: 3.5, IN: 0.55, FLK2: 0.3 };
+const BZ_SYMS = ['7', 'bar', 'cherry', 'bee', 'bell', 'diamond', 'skull'];
+// each result: what the plaque says, its colour, what the cabinet's little screen says, and whether it went BeeZap's way
+const BZ_PAY = {
+  jackpot: ['JACKPOT!', '#ffd60a', 'BOOM 16', 1], swarm: ['BEE SWARM', '#ffd60a', 'ZAP 10', 1],
+  diamond: ['DIAMOND HANDS · GOD MODE', '#9fe8ff', 'GOD 3S', 1], bell: ['DING DING DING · STUNNED', '#f0c75a', 'STUN', 1],
+  bars: ['TRIPLE BAR', '#7bd23a', 'ZAP 9', 1], cherries: ['CHERRY PICKED · BIG HEAL', '#ff7a8a', 'HEAL 14', 1],
+  pair: ['PAIR · BEEZAP HEALS', '#9fdcff', 'HEAL 8', 1], cherry: ['LUCKY CHERRY', '#ff9aa8', 'HEAL 4', 1],
+  omen: ['BAD OMEN · BEEZAP CURSED', '#c58cff', 'CURSED', 0], skulls: ["DEAD MAN'S SPIN", '#ff6b6b', 'LOSE 12', 0],
+  bust: ['THE HOUSE WINS', '#ff6b6b', 'LOSE 5', 0] };
+const BZ_COINS = { jackpot: 46, swarm: 26, diamond: 22, bell: 22, bars: 22, cherries: 22, pair: 12, cherry: 8 };
+// the reels that light up when it pays: all three, the matching two, or the lone cherry
+function bzWinCells(e) {
+  if (e.res === 'cherry') return [e.r.indexOf('cherry')];
+  if (e.res === 'bust') return [];
+  return [0, 1, 2].filter(i => e.r.filter(s => s === e.r[i]).length > 1);
+}
 function openSlots(F, e) {
   const mine = e.side === F.mySide, cv = bzLayer(F);
   const res = h('div', { class: 'bzres' });
-  const plq = h('div', { class: 'bzplq slotplq' + (mine ? '' : ' foe') }, h('div', { class: 'bzh', text: (mine ? 'YOUR' : 'THEIR') + ' BEEZAP PLAYS THE SLOTS' }), res);
+  // the words live on the cabinet itself; this copy is for screen readers
+  const plq = h('div', { class: 'bzplq slotplq' + (mine ? '' : ' foe'), 'aria-live': 'polite' }, h('div', { class: 'bzh', text: (mine ? 'YOUR' : 'THEIR') + ' BEEZAP PLAYS THE SLOTS' }), res);
   F.root.querySelector('.arena').append(plq);
   // each reel: a run of random symbols that ends on what the fight picked
-  const seq = e.r.map((s, i) => { const n = 16 + i * 5, a = []; for (let k = 0; k < n + 4; k++) a.push(BZ_SYMS[Math.floor(Math.random() * 4)]); a[n] = s; return { n, a }; });
-  F.wheel = { kind: 'slot', e, cv, plq, res, seq, T: 0, stopped: 0, paid: false, pulled: false, frame: slotsFrame, close() { cv.remove(); plq.remove(); } };
-  SFX.charge(); SFX.blip();
+  const seq = e.r.map((s, i) => { const n = 16 + i * 5, a = []; for (let k = 0; k < n + 4; k++) a.push(BZ_SYMS[Math.floor(Math.random() * BZ_SYMS.length)]); a[n] = s; return { n, a }; });
+  F.wheel = { kind: 'slot', e, mine, cv, plq, res, seq, T: 0, stopped: 0, paid: false, pulled: false, pos: [0, 0, 0], speed: [0, 0, 0], wins: bzWinCells(e), coins: [], flash: 0,
+    frame: slotsFrame, close() { cv.remove(); plq.remove(); } };
 }
 function bzSym(c, s, x, y, z) {
-  c.save(); c.translate(x, y);
-  if (s === '7') { c.font = `400 ${Math.round(z * 1.05)}px ${FONT_D}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineWidth = z * 0.09; c.strokeStyle = '#2a0508'; c.strokeText('7', 0, z * 0.04); c.fillStyle = '#e8203a'; c.fillText('7', 0, z * 0.04); }
-  else if (s === 'bar') { rrect(c, -z * 0.55, -z * 0.24, z * 1.1, z * 0.48, z * 0.08); c.fillStyle = '#f0c75a'; c.fill(); c.lineWidth = z * 0.05; c.strokeStyle = '#3d2c08'; c.stroke(); c.font = `400 ${Math.round(z * 0.38)}px ${FONT_D}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#2a1d05'; c.fillText('BAR', 0, z * 0.02); }
-  else if (s === 'cherry') {
+  c.save(); c.translate(x, y); c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineJoin = 'round';
+  const lin = (x0, y0, x1, y1, stops) => { const gr = c.createLinearGradient(x0, y0, x1, y1); stops.forEach((col, i) => gr.addColorStop(i / (stops.length - 1), col)); return gr; };
+  if (s === '7') {
+    c.font = `400 ${Math.round(z * 1.05)}px ${FONT_D}`;
+    c.lineWidth = z * 0.17; c.strokeStyle = '#f0c75a'; c.strokeText('7', 0, z * 0.04);
+    c.lineWidth = z * 0.07; c.strokeStyle = '#2a0508'; c.strokeText('7', 0, z * 0.04);
+    c.fillStyle = lin(0, -z * 0.45, 0, z * 0.45, ['#ff6a78', '#e8203a', '#8a0c1e']); c.fillText('7', 0, z * 0.04);
+  } else if (s === 'bar') {
+    rrect(c, -z * 0.56, -z * 0.27, z * 1.12, z * 0.54, z * 0.08);
+    c.fillStyle = lin(0, -z * 0.27, 0, z * 0.27, ['#fff0b8', '#f0c75a', '#b88a2c']); c.fill(); c.lineWidth = z * 0.05; c.strokeStyle = '#3d2c08'; c.stroke();
+    c.fillStyle = '#3d2c08'; c.fillRect(-z * 0.46, -z * 0.21, z * 0.92, z * 0.045); c.fillRect(-z * 0.46, z * 0.165, z * 0.92, z * 0.045);
+    c.font = `400 ${Math.round(z * 0.3)}px ${FONT_D}`; c.fillStyle = '#2a1d05'; c.fillText('BAR', 0, z * 0.01);
+  } else if (s === 'cherry') {
     c.lineWidth = z * 0.06; c.strokeStyle = '#3f8a2a'; c.beginPath(); c.moveTo(-z * 0.2, z * 0.05); c.quadraticCurveTo(-z * 0.05, -z * 0.3, z * 0.12, -z * 0.38); c.moveTo(z * 0.22, z * 0.12); c.quadraticCurveTo(z * 0.2, -z * 0.15, z * 0.12, -z * 0.38); c.stroke();
-    for (const [cx, cy] of [[-z * 0.2, z * 0.15], [z * 0.22, z * 0.22]]) { circ(c, cx, cy, z * 0.2); c.fillStyle = '#d8203a'; c.fill(); c.lineWidth = z * 0.04; c.strokeStyle = '#3a0610'; c.stroke(); }
-  } else c.drawImage(beeCanvas(), -z * 0.5, -z * 0.5, z, z);
+    c.beginPath(); c.ellipse(z * 0.27, -z * 0.38, z * 0.16, z * 0.07, -0.4, 0, Math.PI * 2); c.fillStyle = '#4fae35'; c.fill(); c.lineWidth = z * 0.03; c.strokeStyle = '#1f4d14'; c.stroke();
+    for (const [cx, cy] of [[-z * 0.2, z * 0.15], [z * 0.22, z * 0.22]]) {
+      circ(c, cx, cy, z * 0.2); c.fillStyle = lin(cx - z * 0.2, cy - z * 0.2, cx + z * 0.2, cy + z * 0.2, ['#ff5a6a', '#d8203a', '#7a0818']); c.fill(); c.lineWidth = z * 0.04; c.strokeStyle = '#3a0610'; c.stroke();
+      circ(c, cx - z * 0.07, cy - z * 0.07, z * 0.05); c.fillStyle = 'rgba(255,255,255,0.75)'; c.fill();
+    }
+  } else if (s === 'bell') {
+    c.beginPath(); c.moveTo(-z * 0.4, z * 0.24); c.quadraticCurveTo(-z * 0.3, z * 0.1, -z * 0.28, -z * 0.1); c.quadraticCurveTo(-z * 0.25, -z * 0.42, 0, -z * 0.42);
+    c.quadraticCurveTo(z * 0.25, -z * 0.42, z * 0.28, -z * 0.1); c.quadraticCurveTo(z * 0.3, z * 0.1, z * 0.4, z * 0.24); c.closePath();
+    c.fillStyle = lin(-z * 0.4, 0, z * 0.4, 0, ['#c9962a', '#ffe58a', '#d9a93a', '#8a6316']); c.fill(); c.lineWidth = z * 0.045; c.strokeStyle = '#4a3508'; c.stroke();
+    circ(c, 0, z * 0.36, z * 0.08); c.fillStyle = '#8a6a1c'; c.fill(); c.stroke();
+    rrect(c, -z * 0.45, z * 0.2, z * 0.9, z * 0.1, z * 0.05); c.fillStyle = '#e8bd52'; c.fill(); c.stroke();
+    circ(c, 0, -z * 0.47, z * 0.06); c.fillStyle = '#d9a93a'; c.fill(); c.stroke();
+    c.beginPath(); c.moveTo(-z * 0.14, -z * 0.28); c.quadraticCurveTo(-z * 0.2, -z * 0.05, -z * 0.22, z * 0.12); c.lineWidth = z * 0.05; c.strokeStyle = 'rgba(255,250,220,0.7)'; c.stroke();
+  } else if (s === 'diamond') {
+    const P = [[-0.42, -0.12], [-0.22, -0.36], [0.22, -0.36], [0.42, -0.12], [0, 0.42]];
+    c.beginPath(); P.forEach(([px, py], i) => i ? c.lineTo(px * z, py * z) : c.moveTo(px * z, py * z)); c.closePath();
+    c.fillStyle = lin(-z * 0.3, -z * 0.36, z * 0.3, z * 0.42, ['#e6fbff', '#5fd2f2', '#1a7fb5', '#0d4f7a']); c.fill(); c.lineWidth = z * 0.045; c.strokeStyle = '#0b3550'; c.stroke();
+    c.beginPath(); c.moveTo(-z * 0.42, -z * 0.12); c.lineTo(z * 0.42, -z * 0.12);
+    for (const d of [-1, 1]) { c.moveTo(d * z * 0.22, -z * 0.36); c.lineTo(d * z * 0.12, -z * 0.12); c.lineTo(0, z * 0.42); c.moveTo(0, -z * 0.36); c.lineTo(d * z * 0.12, -z * 0.12); }
+    c.lineWidth = z * 0.022; c.strokeStyle = 'rgba(11,53,80,0.6)'; c.stroke();
+    c.beginPath(); c.moveTo(-z * 0.2, -z * 0.33); c.lineTo(-z * 0.17, -z * 0.24); c.lineTo(-z * 0.08, -z * 0.21); c.lineTo(-z * 0.17, -z * 0.18); c.lineTo(-z * 0.2, -z * 0.09); c.lineTo(-z * 0.23, -z * 0.18); c.lineTo(-z * 0.32, -z * 0.21); c.lineTo(-z * 0.23, -z * 0.24); c.closePath(); c.fillStyle = '#fff'; c.fill();
+  } else if (s === 'skull') {
+    const bone = () => { c.beginPath(); c.arc(0, -z * 0.08, z * 0.34, 0, Math.PI * 2); rrect(c, -z * 0.21, z * 0.1, z * 0.42, z * 0.28, z * 0.07); };
+    bone(); c.lineWidth = z * 0.09; c.strokeStyle = '#231d14'; c.stroke();
+    bone(); c.fillStyle = lin(0, -z * 0.42, 0, z * 0.38, ['#fffaf0', '#e6dcc4', '#b8ab8c']); c.fill();
+    for (const d of [-1, 1]) { c.beginPath(); c.ellipse(d * z * 0.13, -z * 0.06, z * 0.095, z * 0.11, 0, 0, Math.PI * 2); c.fillStyle = '#1a1410'; c.fill(); }
+    c.beginPath(); c.moveTo(0, z * 0.06); c.lineTo(-z * 0.05, z * 0.14); c.lineTo(z * 0.05, z * 0.14); c.closePath(); c.fill();
+    c.lineWidth = z * 0.03; c.strokeStyle = '#3a3020'; c.beginPath(); for (const tx of [-0.1, 0, 0.1]) { c.moveTo(tx * z, z * 0.24); c.lineTo(tx * z, z * 0.37); } c.stroke();
+  } else {
+    circ(c, 0, 0, z * 0.48); c.fillStyle = '#2b2440'; c.fill(); c.lineWidth = z * 0.04; c.strokeStyle = '#f0c75a'; c.stroke();
+    c.drawImage(beeCanvas(), -z * 0.46, -z * 0.46, z * 0.92, z * 0.92);
+  }
   c.restore();
 }
+// the camera pulls back and the box turns out to be the screen of a slot machine. The screen flickers
+// over to the reels, they spin, then the camera pushes back in and the screen flickers back to the fight.
 function slotsFrame(F, dt) {
-  const W = F.wheel, A = F.arena, T = (W.T += dt), S = BZ_SLOT, e = W.e;
+  const W = F.wheel, A = F.arena, T = (W.T += dt), S = BZ_SLOT, e = W.e, pay = BZ_PAY[e.res];
   A.cv.style.opacity = '0';
-  const outT = T - S.HOLD, frameA = outT > 0 ? 1 - ease(outT / S.OUT) : ease(T / S.IN);
+  const g = bzFit(F, W.cv), c = g.c, d = g.dpr, s = g.size, X = g.x, Y = g.y;
+  const inAt = S.HOLD, backAt = S.HOLD + S.IN, endT = backAt + S.FLK2;
+  // the camera: tight on the screen (so the box sits exactly where it was), out to the whole cabinet, and in again
+  const zt = T < S.OUT ? easeIO(T / S.OUT) : T < inAt ? 1 : 1 - easeIO((T - inAt) / S.IN);
+  const cab = { x0: X - s * 0.25, x1: X + s * 1.33, y0: Y - s * 0.52, y1: Y + s * 1.62 };
+  const z = Math.min(g.w * 0.94 / (cab.x1 - cab.x0), g.h * 0.94 / (cab.y1 - cab.y0), 1);
+  const sc = 1 + (z - 1) * zt, sx = X + s / 2, sy = Y + s / 2;
+  const camX = sx + ((cab.x0 + cab.x1) / 2 - sx) * zt, camY = sy + ((cab.y0 + cab.y1) / 2 - sy) * zt;
+  const vx = sx + (g.w / 2 - sx) * zt, vy = sy + (g.h / 2 - sy) * zt;
+  if (!W.s0) { W.s0 = 1; SFX.warp(); }
+  if (!W.s1 && T > S.OUT) { W.s1 = 1; SFX.rip(); SFX.blip(); }
   if (!W.pulled && T > S.PULL) { W.pulled = true; SFX.drop(); SFX.charge(); }
-  const g = bzFit(F, W.cv), c = g.c, sw = g.size / 3, gap = sw * 0.92, cy = g.y + g.size / 2;
-  // where each reel has got to, in symbols; and the matching scroll of its slice of the box
-  const pos = W.seq.map((q, i) => {
+  if (!W.s2 && T > inAt) { W.s2 = 1; SFX.warp(); }
+  if (!W.s3 && T > backAt) { W.s3 = 1; SFX.rip(); SFX.blip(); }
+  // where each reel has got to, in symbols, and how fast it is going
+  W.pos = W.seq.map((q, i) => {
     if (T < S.SPIN) return 0;
     const u = (T - S.SPIN) / (S.STOP[i] - S.SPIN);
     if (u >= 1 && W.stopped <= i) { W.stopped = i + 1; SFX.tink(); }
     return q.n * ease(u);
   });
-  const settle = outT > 0 ? 1 - easeIO(outT / S.OUT) : 1, symA = outT > 0 ? Math.max(0, 1 - outT / (S.OUT * 0.6)) : clamp((T - S.SPIN + 0.15) / 0.2, 0, 1);
-  for (let i = 0; i < 3; i++) {
-    const x = g.x + i * sw, off = ((pos[i] * gap) % g.size) * settle;
-    c.save(); c.beginPath(); c.rect(x, g.y, sw, g.size); c.clip();
-    c.filter = `grayscale(${(0.5 * frameA).toFixed(2)}) brightness(${(1 - 0.35 * frameA).toFixed(2)})`;
-    c.drawImage(A.cv, x, g.y, sw, g.size, x, g.y + off - g.size, sw, g.size);
-    c.drawImage(A.cv, x, g.y, sw, g.size, x, g.y + off, sw, g.size);
-    c.filter = 'none';
-    if (symA > 0) {
-      c.globalAlpha = symA;
-      const p = pos[i], k0 = Math.floor(p) - 2;
-      for (let k = k0; k <= k0 + 5; k++) { const s = W.seq[i].a[(k % W.seq[i].a.length + W.seq[i].a.length) % W.seq[i].a.length]; bzSym(c, s, x + sw / 2, cy + (k - p) * gap, sw * 0.5); }
-      c.globalAlpha = 1;
-    }
-    c.restore();
+  W.speed = W.pos.map((p, i) => dt > 0 ? (p - (W.prev ? W.prev[i] : 0)) / dt : 0); W.prev = W.pos;
+  // the room behind the cabinet goes dark as the camera pulls back
+  const room = clamp(zt * 3, 0, 1);
+  if (room > 0) { c.fillStyle = `rgba(6,5,10,${(0.97 * room).toFixed(3)})`; c.fillRect(0, 0, g.w, g.h); }
+  c.setTransform(sc, 0, 0, sc, vx - camX * sc, vy - camY * sc);
+  if (room > 0) { c.globalAlpha = room; bzCabinet(c, W, g, T, pay); c.globalAlpha = 1; }
+  // what the screen shows: the fight, then a flicker of static over to the reels, and the same on the way back
+  const flick = (t0, dur, from, to) => { const p = (T - t0) / dur; if (p < 0 || p >= 1) return null; if (p > 0.82) return to; const r = Math.random(); return r < 0.3 ? 'static' : r < 0.42 ? 'black' : Math.random() < p ? to : from; };
+  const mode = flick(S.OUT, S.FLK, 'arena', 'reels') || flick(backAt, S.FLK2, 'reels', 'arena') || (T >= S.OUT && T < backAt ? 'reels' : 'arena');
+  const flk = (T >= S.OUT && T < S.OUT + S.FLK) || (T >= backAt && T < endT);
+  c.save(); c.beginPath(); c.rect(X, Y, s, s); c.clip();
+  if (mode === 'arena') c.drawImage(A.cv, X, Y, s, s, X, Y, s, s);
+  else if (mode === 'reels') bzReels(c, W, g, T, pay);
+  else if (mode === 'static') { c.imageSmoothingEnabled = false; c.drawImage(bzNoise(W), X, Y, s, s); c.imageSmoothingEnabled = true; }
+  else { c.fillStyle = '#000'; c.fillRect(X, Y, s, s); }
+  if (flk || room > 0.4) { c.fillStyle = 'rgba(0,0,0,0.2)'; const step = 3 * d / sc; for (let y = Y; y < Y + s; y += step) c.fillRect(X, y, s, d / sc); }
+  if (flk) {
+    c.fillStyle = 'rgba(255,255,255,0.14)'; c.fillRect(X, Y + ((T * 2.6) % 1) * s, s, s * 0.08);
+    c.fillStyle = `rgba(255,255,255,${(Math.random() * 0.22).toFixed(2)})`; c.fillRect(X, Y, s, s);
   }
-  // the payline, the reel dividers and the cabinet with its bulbs and lever
-  c.save(); c.globalAlpha = frameA;
-  c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(g.x, g.y, g.size, cy - gap * 0.5 - g.y); c.fillRect(g.x, cy + gap * 0.5, g.size, g.y + g.size - cy - gap * 0.5);
-  c.lineWidth = 3 * g.dpr; c.strokeStyle = '#e8203a'; c.beginPath(); c.moveTo(g.x, cy - gap * 0.5); c.lineTo(g.x + g.size, cy - gap * 0.5); c.moveTo(g.x, cy + gap * 0.5); c.lineTo(g.x + g.size, cy + gap * 0.5); c.stroke();
-  c.strokeStyle = '#d9a93a'; c.lineWidth = 4 * g.dpr; c.beginPath(); c.moveTo(g.x + sw, g.y); c.lineTo(g.x + sw, g.y + g.size); c.moveTo(g.x + sw * 2, g.y); c.lineTo(g.x + sw * 2, g.y + g.size); c.stroke();
-  const fw = Math.max(10 * g.dpr, g.size * 0.045), fx = g.x - fw, fy = g.y - fw, fs = g.size + fw * 2;
-  c.beginPath(); c.rect(fx, fy, fs, fs); c.rect(g.x, g.y, g.size, g.size); c.fillStyle = '#b88a2c'; c.fill('evenodd');
-  c.lineWidth = 2 * g.dpr; c.strokeStyle = '#5c4210'; c.strokeRect(fx, fy, fs, fs); c.strokeRect(g.x, g.y, g.size, g.size);
-  const NB = 40, run = Math.floor(T * 14), done = W.stopped >= 3;
-  for (let i = 0; i < NB; i++) {
-    const u = i / NB * 4, side = Math.floor(u), f = u - side, d = fs * f;
-    const [bx, by] = side === 0 ? [fx + d, fy + fw / 2] : side === 1 ? [fx + fs - fw / 2, fy + d] : side === 2 ? [fx + fs - d, fy + fs - fw / 2] : [fx + fw / 2, fy + fs - d];
-    const on = done ? Math.floor(T * 8) % 2 === 0 : (i + run) % 4 === 0;
-    circ(c, bx, by, fw * 0.24); c.fillStyle = on ? '#fff3c4' : '#5e4a1c'; c.fill();
+  if (room > 0) {
+    const gl = c.createLinearGradient(X, Y, X + s, Y + s);
+    gl.addColorStop(0, `rgba(255,255,255,${(0.12 * room).toFixed(3)})`); gl.addColorStop(0.35, 'rgba(255,255,255,0)'); gl.addColorStop(1, 'rgba(255,255,255,0)');
+    c.fillStyle = gl; c.fillRect(X, Y, s, s);
   }
-  // the lever on the right: yanked down, then springs back
-  const lx = Math.min(g.w - fw * 0.9, fx + fs + fw * 0.9), ly = cy, pull = T < S.PULL ? 0 : T < S.PULL + 0.18 ? (T - S.PULL) / 0.18 : Math.max(0, 1 - (T - S.PULL - 0.18) / 0.35);
-  const ang = -0.9 + pull * 1.8, len = g.size * 0.22;
-  c.lineWidth = fw * 0.35; c.lineCap = 'round'; c.strokeStyle = '#8a8a96'; c.beginPath(); c.moveTo(lx, ly); c.lineTo(lx + Math.sin(ang) * len * 0.2, ly - Math.cos(ang) * len); c.stroke(); c.lineCap = 'butt';
-  circ(c, lx + Math.sin(ang) * len * 0.2, ly - Math.cos(ang) * len, fw * 0.5); c.fillStyle = '#e8203a'; c.fill();
   c.restore();
+  // coins spray out of the tray when it pays
+  for (const k of W.coins) {
+    k.vy += s * 3.2 * dt; k.x += k.vx * dt; k.y += k.vy * dt; k.a += k.s * dt;
+    const wv = Math.max(0.15, Math.abs(Math.cos(k.a)));
+    c.beginPath(); c.ellipse(k.x, k.y, k.r * wv, k.r, 0, 0, Math.PI * 2); c.fillStyle = wv > 0.55 ? '#ffd60a' : '#c9962a'; c.fill(); c.lineWidth = k.r * 0.18; c.strokeStyle = '#6a4a08'; c.stroke();
+  }
+  c.setTransform(1, 0, 0, 1, 0, 0);
   // the payout, once the last reel stops
   if (!W.paid && W.stopped >= 3) {
-    W.paid = true;
-    const [txt, col] = BZ_PAY[e.res];
-    W.res.textContent = txt; W.res.style.color = col; W.res.classList.add('pop');
-    if (e.res === 'jackpot') { SFX.reveal(4); SFX.coin(); confetti(['#ffd60a', '#fff3c4', '#e8203a'], 160); bzMark(F.root, 'bz-smite', 0.6); crowdCheer(); }
-    else if (e.res === 'triple') { SFX.reveal(2); SFX.coin(); }
-    else if (e.res === 'pair') SFX.coin();
-    else SFX.boom(true);
+    W.paid = true; W.flash = 1;
+    W.res.textContent = pay[0]; W.res.style.color = pay[1];
+    for (let i = 0; i < (BZ_COINS[e.res] || 0); i++) W.coins.push({ x: X + s / 2 + (Math.random() - 0.5) * s * 0.4, y: Y + s * 1.38, vx: (Math.random() - 0.5) * s * 1.5, vy: -(0.8 + Math.random() * 1.1) * s, a: Math.random() * 6, s: 8 + Math.random() * 10, r: s * (0.016 + Math.random() * 0.01) });
+    const r = e.res;
+    if (pay[3]) crowdCheer();
+    if (r === 'jackpot') { SFX.reveal(4); SFX.coin(); confetti(['#ffd60a', '#fff3c4', '#e8203a'], 160); bzSmite(F); }
+    else if (r === 'swarm') { SFX.reveal(3); SFX.zap(); bzSmite(F); }
+    else if (r === 'diamond') { SFX.reveal(3); SFX.ping(); }
+    else if (r === 'bell') [0, 160, 320].forEach(ms => setTimeout(() => SFX.ping(), ms));
+    else if (r === 'bars') { SFX.reveal(2); SFX.coin(); }
+    else if (r === 'cherries') { SFX.heal(); SFX.coin(); }
+    else if (r === 'pair' || r === 'cherry') SFX.coin();
+    else if (r === 'omen') { SFX.mark(); SFX.drop(); }
+    else { SFX.boom(r !== 'skulls'); if (r === 'skulls') SFX.mark(); }
   }
-  if (outT > 0 && !W.out) { W.out = 1; W.plq.classList.add('out'); }
-  if (outT > S.OUT) { A.cv.style.opacity = ''; W.close(); openTake(F); }
+  if (T > endT) { A.cv.style.opacity = ''; W.close(); openTake(F); }
 }
+function bzNoise(W) {
+  const n = W.noise || (W.noise = Object.assign(document.createElement('canvas'), { width: 72, height: 72 })), x = n.getContext('2d'), im = x.createImageData(72, 72);
+  for (let i = 0; i < im.data.length; i += 4) { const v = Math.random() * 230 | 0; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; }
+  x.putImageData(im, 0, 0);
+  return n;
+}
+// the reels on the screen: three cream drums with the symbols, the payline and the paying boxes
+function bzReels(c, W, g, T, pay) {
+  const s = g.size, X = g.x, Y = g.y, sw = s / 3, gap = sw * 0.92, cy = Y + s / 2, pulse = 0.5 + 0.5 * Math.sin(T * 14), lw = s / 300;
+  c.fillStyle = '#0d0b12'; c.fillRect(X, Y, s, s);
+  for (let i = 0; i < 3; i++) {
+    const x = X + i * sw, q = W.seq[i], p = W.pos[i], blur = clamp(W.speed[i] / 28, 0, 1), k0 = Math.floor(p) - 2;
+    c.save(); c.beginPath(); c.rect(x + sw * 0.04, Y, sw * 0.92, s); c.clip();
+    const bg = c.createLinearGradient(0, Y, 0, Y + s); bg.addColorStop(0, '#5e574b'); bg.addColorStop(0.5, '#fbf6ea'); bg.addColorStop(1, '#5e574b');
+    c.fillStyle = bg; c.fillRect(x, Y, sw, s);
+    for (let k = k0; k <= k0 + 5; k++) {
+      const sym = q.a[(k % q.a.length + q.a.length) % q.a.length], yy = cy + (k - p) * gap, win = W.paid && k === q.n && W.wins.includes(i);
+      // a fast reel smears: ghost copies above and below
+      if (blur > 0.15) { c.globalAlpha = 0.3 * blur; bzSym(c, sym, x + sw / 2, yy - gap * 0.2 * blur, sw * 0.5); bzSym(c, sym, x + sw / 2, yy + gap * 0.2 * blur, sw * 0.5); }
+      c.globalAlpha = 1 - 0.4 * blur; bzSym(c, sym, x + sw / 2, yy, sw * 0.5 * (win ? 1 + 0.12 * pulse : 1));
+    }
+    c.globalAlpha = 1;
+    const sh = c.createLinearGradient(0, Y, 0, Y + s);
+    [[0, 0.6], [0.28, 0.08], [0.5, 0], [0.72, 0.08], [1, 0.6]].forEach(([at, a]) => sh.addColorStop(at, `rgba(0,0,0,${a})`));
+    c.fillStyle = sh; c.fillRect(x, Y, sw, s);
+    const gl = c.createLinearGradient(x, 0, x + sw, 0);
+    [[0, 'rgba(255,255,255,0)'], [0.14, 'rgba(255,255,255,0.3)'], [0.24, 'rgba(255,255,255,0)'], [0.85, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0.3)']].forEach(([at, col]) => gl.addColorStop(at, col));
+    c.fillStyle = gl; c.fillRect(x, Y, sw, s);
+    c.restore();
+  }
+  // the win (or the loss) flashes over the glass, and the paying symbols get a blinking box
+  if (W.flash > 0) { W.flash = Math.max(0, W.flash - 1 / 60 * 1.6); c.fillStyle = pay[3] ? `rgba(255,214,10,${(0.35 * W.flash).toFixed(3)})` : `rgba(232,32,58,${(0.45 * W.flash).toFixed(3)})`; c.fillRect(X, Y, s, s); }
+  if (W.paid) for (const i of W.wins) {
+    rrect(c, X + i * sw + sw * 0.08, cy - gap * 0.47, sw * 0.84, gap * 0.94, sw * 0.08);
+    c.lineWidth = (2.5 + 2 * pulse) * lw; c.strokeStyle = pay[3] ? '#e0a800' : '#e8203a'; c.stroke();
+  }
+  // red rails for the payline, with arrows pointing in from both sides
+  c.lineWidth = 3 * lw; c.strokeStyle = '#e8203a'; c.beginPath(); c.moveTo(X, cy - gap * 0.5); c.lineTo(X + s, cy - gap * 0.5); c.moveTo(X, cy + gap * 0.5); c.lineTo(X + s, cy + gap * 0.5); c.stroke();
+  const ah = gap * 0.15; c.fillStyle = '#e8203a'; c.strokeStyle = '#3a0610'; c.lineWidth = 1.5 * lw;
+  for (const [ax, dir] of [[X, 1], [X + s, -1]]) { c.beginPath(); c.moveTo(ax, cy - ah); c.lineTo(ax + dir * ah * 1.3, cy); c.lineTo(ax, cy + ah); c.closePath(); c.fill(); c.stroke(); }
+  // chrome strips between the drums
+  for (const dx of [X + sw, X + sw * 2]) { c.fillStyle = lin2(c, dx - sw * 0.04, 0, dx + sw * 0.04, 0, '#5c4210', '#fff0b8'); c.fillRect(dx - sw * 0.04, Y, sw * 0.08, s); }
+}
+// the machine round the screen: a marquee on top, a gold bezel of bulbs, the control panel with its little
+// screen and buttons, the coin tray, the base and the lever
+function bzCabinet(c, W, g, T, pay) {
+  const s = g.size, X = g.x, Y = g.y, S = BZ_SLOT, done = W.stopped >= 3, bad = done && !pay[3];
+  const gold = (x0, y0, x1, y1) => { const gr = c.createLinearGradient(x0, y0, x1, y1); [[0, '#f3d27a'], [0.35, '#b88a2c'], [0.6, '#e3b54a'], [1, '#6a4c12']].forEach(([at, col]) => gr.addColorStop(at, col)); return gr; };
+  const bulb = (x, y, r, on) => {
+    if (on) { circ(c, x, y, r * 1.8); c.fillStyle = bad ? 'rgba(255,90,90,0.22)' : 'rgba(255,230,150,0.22)'; c.fill(); }
+    circ(c, x, y, r); c.fillStyle = on ? (bad ? '#ff8a8a' : '#fff3c4') : '#5e4a1c'; c.fill(); c.lineWidth = r * 0.25; c.strokeStyle = '#3d2c08'; c.stroke();
+    if (on) { circ(c, x - r * 0.3, y - r * 0.3, r * 0.3); c.fillStyle = '#fff'; c.fill(); }
+  };
+  const ring = (x0, y0, w, h, n, r, speed) => {
+    const run = Math.floor(T * speed), per = 2 * (w + h);
+    for (let i = 0; i < n; i++) {
+      let t = i / n * per, x, y;
+      if (t < w) { x = x0 + t; y = y0; } else if ((t -= w) < h) { x = x0 + w; y = y0 + t; } else if ((t -= h) < w) { x = x0 + w - t; y = y0 + h; } else { x = x0; y = y0 + h - (t - w); }
+      bulb(x, y, r, done ? Math.floor(T * 8) % 2 === 0 : (i + run) % 4 === 0);
+    }
+  };
+  const bx0 = X - s * 0.2, bx1 = X + s * 1.2, by0 = Y - s * 0.17, by1 = Y + s * 1.5;
+  // the base and the body
+  rrect(c, X - s * 0.25, Y + s * 1.47, s * 1.5, s * 0.15, s * 0.02); c.fillStyle = '#121016'; c.fill(); c.lineWidth = s * 0.006; c.strokeStyle = '#b88a2c'; c.stroke();
+  const bd = c.createLinearGradient(bx0, 0, bx1, 0);
+  [[0, '#120e18'], [0.12, '#3a3052'], [0.5, '#2b2440'], [0.88, '#3a3052'], [1, '#120e18']].forEach(([at, col]) => bd.addColorStop(at, col));
+  rrect(c, bx0, by0, bx1 - bx0, by1 - by0, s * 0.03); c.fillStyle = bd; c.fill(); c.lineWidth = s * 0.008; c.strokeStyle = '#b88a2c'; c.stroke();
+  c.fillStyle = gold(0, by0, 0, by1); c.fillRect(bx0 + s * 0.035, by0 + s * 0.05, s * 0.016, by1 - by0 - s * 0.1); c.fillRect(bx1 - s * 0.051, by0 + s * 0.05, s * 0.016, by1 - by0 - s * 0.1);
+  // the lever, bolted to the right side: yanked down, then springs back
+  const lx = bx1 + s * 0.06, ly = Y + s * 0.5, len = s * 0.3, pull = T < S.PULL ? 0 : T < S.PULL + 0.18 ? (T - S.PULL) / 0.18 : Math.max(0, 1 - (T - S.PULL - 0.18) / 0.35);
+  const kx = lx + Math.sin(pull * Math.PI) * len * 0.25, ky = ly - Math.cos(pull * Math.PI) * len;
+  rrect(c, bx1 - s * 0.01, ly - s * 0.07, s * 0.09, s * 0.14, s * 0.02); c.fillStyle = gold(0, ly - s * 0.07, 0, ly + s * 0.07); c.fill(); c.lineWidth = s * 0.005; c.strokeStyle = '#4a3308'; c.stroke();
+  c.lineCap = 'round'; c.lineWidth = s * 0.03; c.strokeStyle = '#4a4a55'; c.beginPath(); c.moveTo(lx, ly); c.lineTo(kx, ky); c.stroke();
+  c.lineWidth = s * 0.011; c.strokeStyle = '#e6e6ee'; c.beginPath(); c.moveTo(lx - s * 0.005, ly); c.lineTo(kx - s * 0.005, ky); c.stroke(); c.lineCap = 'butt';
+  circ(c, lx, ly, s * 0.03); c.fillStyle = '#8a8a96'; c.fill(); c.lineWidth = s * 0.004; c.strokeStyle = '#2a2a33'; c.stroke();
+  const kb = c.createRadialGradient(kx - s * 0.015, ky - s * 0.015, s * 0.004, kx, ky, s * 0.045); kb.addColorStop(0, '#ff9aa4'); kb.addColorStop(0.45, '#e8203a'); kb.addColorStop(1, '#6a0814');
+  circ(c, kx, ky, s * 0.045); c.fillStyle = kb; c.fill(); c.strokeStyle = '#3a0610'; c.stroke();
+  // the marquee: the machine's name in lights, and what it paid once it stops
+  const mx0 = X - s * 0.25, mw = s * 1.5, my0 = Y - s * 0.52, mh = s * 0.37;
+  rrect(c, mx0, my0, mw, mh, s * 0.07); c.fillStyle = lin2(c, 0, my0, 0, my0 + mh, '#5a0e1c', '#1a0408'); c.fill(); c.lineWidth = s * 0.012; c.strokeStyle = gold(mx0, my0, mx0 + mw, my0 + mh); c.stroke();
+  rrect(c, mx0 + s * 0.05, my0 + s * 0.05, mw - s * 0.1, mh - s * 0.1, s * 0.04); c.fillStyle = '#0c0306'; c.fill();
+  ring(mx0 + s * 0.025, my0 + s * 0.025, mw - s * 0.05, mh - s * 0.05, 34, s * 0.011, 12);
+  for (const side of [-1, 1]) c.drawImage(beeCanvas(), X + s / 2 + side * s * 0.6 - s * 0.075, my0 + mh / 2 - s * 0.075, s * 0.15, s * 0.15);
+  c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineJoin = 'round';
+  c.font = `400 ${Math.round(s * 0.14)}px ${FONT_D}`; c.lineWidth = s * 0.02; c.strokeStyle = '#2a1d05'; c.strokeText('BEEZAP SLOTS', X + s / 2, my0 + mh * 0.42);
+  c.fillStyle = gold(0, my0 + mh * 0.3, 0, my0 + mh * 0.55); c.fillText('BEEZAP SLOTS', X + s / 2, my0 + mh * 0.42);
+  c.font = `400 ${Math.round(s * 0.05)}px ${FONT_D}`;
+  const sub = W.paid ? pay[0] : (W.mine ? 'YOUR' : 'THEIR') + ' BEEZAP PULLS THE LEVER';
+  if (!W.paid || Math.floor(T * 5) % 3) { c.fillStyle = W.paid ? pay[1] : '#fff3c4'; c.fillText(sub, X + s / 2, my0 + mh * 0.73); }
+  // the gold bezel round the screen, with its bulbs chasing while it spins
+  const bw = s * 0.07;
+  c.beginPath(); c.rect(X - bw, Y - bw, s + bw * 2, s + bw * 2); c.rect(X, Y, s, s); c.fillStyle = gold(X - bw, Y - bw, X + s + bw, Y + s + bw); c.fill('evenodd');
+  c.lineWidth = s * 0.005; c.strokeStyle = '#4a3308'; c.strokeRect(X - bw, Y - bw, s + bw * 2, s + bw * 2); c.strokeRect(X, Y, s, s);
+  ring(X - bw / 2, Y - bw / 2, s + bw, s + bw, 40, bw * 0.24, 14);
+  // the control panel: the little screen and three buttons, SPIN lighting up as the lever goes
+  const py0 = Y + s + bw + s * 0.02, ph = s * 0.2;
+  c.beginPath(); c.moveTo(X - s * 0.12, py0); c.lineTo(X + s * 1.12, py0); c.lineTo(X + s * 1.16, py0 + ph); c.lineTo(X - s * 0.16, py0 + ph); c.closePath();
+  c.fillStyle = lin2(c, 0, py0, 0, py0 + ph, '#4a4060', '#1c1826'); c.fill(); c.lineWidth = s * 0.006; c.strokeStyle = '#b88a2c'; c.stroke();
+  const lw2 = s * 0.46, lh = s * 0.09, lx0 = X + (s - lw2) / 2, ly0 = py0 + s * 0.035;
+  rrect(c, lx0, ly0, lw2, lh, s * 0.015); c.fillStyle = '#140806'; c.fill(); c.lineWidth = s * 0.006; c.strokeStyle = '#d9a93a'; c.stroke();
+  if (W.paid || Math.floor(T * 4) % 2 === 0) {
+    c.font = `400 ${Math.round(lh * 0.6)}px ${FONT_D}`; c.fillStyle = bad ? '#ff4646' : '#ffb02e';
+    c.fillText(W.paid ? pay[2] : T < S.SPIN ? 'INSERT COIN' : 'GOOD LUCK', X + s / 2, ly0 + lh / 2 + s * 0.004);
+  }
+  const press = T > S.PULL && T < S.PULL + 0.3;
+  for (const [bxx, col, lab, lit] of [[X - s * 0.02, '#f0c75a', 'BET', false], [X + s * 0.12, '#7bd23a', 'MAX', false], [X + s * 0.95, '#e8203a', 'SPIN', press || (!W.pulled && Math.floor(T * 6) % 2 === 0)]]) {
+    const r = s * (lab === 'SPIN' ? 0.042 : 0.032), byy = ly0 + lh / 2;
+    circ(c, bxx, byy + r * 0.25, r); c.fillStyle = '#0c0a10'; c.fill();
+    circ(c, bxx, byy + (press && lab === 'SPIN' ? r * 0.2 : 0), r); c.fillStyle = lit ? '#fff3c4' : col; c.fill(); c.lineWidth = s * 0.004; c.strokeStyle = '#1a1420'; c.stroke();
+    c.font = `400 ${Math.round(s * 0.026)}px ${FONT_D}`; c.fillStyle = '#c8c0d8'; c.fillText(lab, bxx, byy + r + s * 0.025);
+  }
+  // the coin tray, with a pile in it once it pays
+  const tx = X + s * 0.2, ty = Y + s * 1.36, tw = s * 0.6, th = s * 0.09;
+  rrect(c, tx, ty, tw, th, s * 0.02); c.fillStyle = lin2(c, 0, ty, 0, ty + th, '#020203', '#1c1826'); c.fill(); c.lineWidth = s * 0.006; c.strokeStyle = '#b88a2c'; c.stroke();
+  if (W.paid && pay[3]) for (let i = 0; i < 9; i++) { c.beginPath(); c.ellipse(tx + tw * (0.15 + i * 0.087), ty + th * (0.72 - (i % 3) * 0.12), s * 0.024, s * 0.01, 0, 0, Math.PI * 2); c.fillStyle = i % 2 ? '#ffd60a' : '#c9962a'; c.fill(); }
+}
+function lin2(c, x0, y0, x1, y1, a, b) { const gr = c.createLinearGradient(x0, y0, x1, y1); gr.addColorStop(0, a); gr.addColorStop(1, b); return gr; }
 
 // ---- in between: while a BeeZap is in the fight, the screen never quite behaves ----
 function bzChaos(F, dt) {
@@ -7017,9 +7227,9 @@ function bzChaos(F, dt) {
   if (F.bzT <= 0) {
     F.bzT = 1.6 + Math.random() * 3;
     const r = Math.random();
-    if (r < 0.5) { bzMark(F.root, 'bz-blip', 0.18); SFX.tick(0.05); }
-    else if (r < 0.8) { F.bzClock = ['6:66', '??:??', 'ERR', '4:04', 'BZZT'][Math.floor(Math.random() * 5)]; F.bzClockT = 0.45; bzMark(F.root, 'bz-blip', 0.12); }
-    else { const p = F.plates[Math.random() < 0.5 ? 0 : 1]; bzMark(p, 'bz-wob', 0.5); SFX.blip(); }
+    if (r < 0.5) { bzBlip(F, 150); SFX.tick(0.05); }
+    else if (r < 0.8) { F.bzClock = ['6:66', '??:??', 'ERR', '4:04', 'BZZT'][Math.floor(Math.random() * 5)]; F.bzClockT = 0.45; bzBlip(F, 120); }
+    else { bzJolt(F.plates[Math.random() < 0.5 ? 0 : 1], BZ_WOB, 500); SFX.blip(); }
   }
   if (F.bzClockT > 0) { F.bzClockT -= dt; F.clock.textContent = F.bzClock; }
 }
