@@ -4898,6 +4898,12 @@ const SFX = (() => {
     resume() { if (init() && ac.state === 'suspended') ac.resume(); },
     hey(load, at) { clip('hey', HEY_MP3, 0.9, !load, at); },
     sike(load) { clip('sike', SIKE_MP3, 1, !load); },
+    // a struck bell: the note plus a real bell's out-of-tune overtones, ringing out
+    ding(f, delay) { if (!ac || !sfxOn) return; f = f || 1568; for (const [m, v, d] of [[1, 0.1, 1.1], [2.76, 0.04, 0.6], [5.4, 0.022, 0.35], [0.5, 0.03, 1.2]]) tone('sine', f * m, f * m, d, v, delay || 0); },
+    // the slots' payout: DING DING DING, alternating two notes like a casino bell
+    dings(n, delay) { for (let k = 0; k < n; k++) this.ding(k % 2 ? 1760 : 1568, (delay || 0) + k * 0.2); },
+    // a losing spin: wah wah wahhh
+    wah() { if (!ac || !sfxOn) return; tone('triangle', 330, 311, 0.32, 0.09); tone('triangle', 294, 277, 0.32, 0.09, 0.34); tone('triangle', 262, 196, 0.8, 0.09, 0.68); },
     get sfx() { return sfxOn; },
     set sfx(v) { sfxOn = !!v; if (sfxBus) sfxBus.gain.value = sfxOn ? 0.7 : 0; },
     get music() { return musOn; },
@@ -7180,10 +7186,12 @@ function slotsFrame(F, dt) {
   W.pos = W.seq.map((q, i) => {
     if (T < S.SPIN) return 0;
     const u = (T - S.SPIN) / (S.STOP[i] - S.SPIN);
-    if (u >= 1 && W.stopped <= i) { W.stopped = i + 1; SFX.tink(); }
+    if (u >= 1 && W.stopped <= i) { W.stopped = i + 1; SFX.ding([1047, 1319, 1568][i]); }   // each reel stops on a bell, rising
     return q.n * ease(u);
   });
   W.speed = W.pos.map((p, i) => dt > 0 ? (p - (W.prev ? W.prev[i] : 0)) / dt : 0); W.prev = W.pos;
+  // the reels clatter as each symbol goes past
+  W.pos.forEach((p, i) => { const k = Math.floor(p); if (k !== (W.click || (W.click = []))[i]) { W.click[i] = k; if (k) SFX.tick(0.15 + i * 0.1); } });
   // the room behind the cabinet goes dark as the camera pulls back
   const room = clamp(zt * 3, 0, 1);
   if (room > 0) { c.fillStyle = `rgba(6,5,10,${(0.97 * room).toFixed(3)})`; c.fillRect(0, 0, g.w, g.h); }
@@ -7222,11 +7230,11 @@ function slotsFrame(F, dt) {
     W.res.textContent = pay[0]; W.res.style.color = pay[1];
     for (let i = 0; i < (BZ_COINS[e.res] || 0); i++) W.coins.push({ x: X + s / 2 + (Math.random() - 0.5) * s * 0.4, y: Y + s * 1.38, vx: (Math.random() - 0.5) * s * 1.5, vy: -(0.8 + Math.random() * 1.1) * s, a: Math.random() * 6, s: 8 + Math.random() * 10, r: s * (0.016 + Math.random() * 0.01) });
     const r = e.res;
-    if (pay[3]) crowdCheer();
+    if (pay[3]) { crowdCheer(); SFX.dings(r === 'jackpot' ? 10 : r === 'bell' ? 6 : r === 'pair' || r === 'cherry' ? 2 : 3, 0.12); }
+    else SFX.wah();
     if (r === 'jackpot') { SFX.reveal(4); SFX.coin(); confetti(['#ffd60a', '#fff3c4', '#e8203a'], 160); bzSmite(F); }
     else if (r === 'swarm') { SFX.reveal(3); SFX.zap(); bzSmite(F); }
     else if (r === 'diamond') { SFX.reveal(3); SFX.ping(); }
-    else if (r === 'bell') [0, 160, 320].forEach(ms => setTimeout(() => SFX.ping(), ms));
     else if (r === 'bars') { SFX.reveal(2); SFX.coin(); }
     else if (r === 'cherries') { SFX.heal(); SFX.coin(); }
     else if (r === 'pair' || r === 'cherry') SFX.coin();
