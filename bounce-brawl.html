@@ -609,6 +609,42 @@ svg.mst.on { fill: var(--gold); }
 .bzres { font: 400 20px/1 var(--fd); letter-spacing: 3px; color: #fff; text-align: center; }
 .bzres:empty { display: none; }
 .bzres.pop { animation: popIn .45s var(--spring); }
+.bzcon { position: absolute; left: 0; right: 0; top: 0; z-index: 30; min-height: min(44%, 340px); padding: 14px max(18px, env(safe-area-inset-left, 0px)) 16px; box-sizing: border-box; background: rgba(5,6,5,.95); border-bottom: 2px solid #ffd60a; font: 600 15px/1.55 var(--fm); animation: bzDrop .28s var(--ease); }
+.bzcon.out { animation: bzLift .3s ease forwards; }
+@keyframes bzDrop { from { transform: translateY(-100%); } }
+@keyframes bzLift { to { transform: translateY(-100%); } }
+.bzcon-top { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-bottom: 8px; margin-bottom: 10px; border-bottom: 1px solid #2a2a31; font: 400 15px/1 var(--fd); letter-spacing: 3px; }
+.bzcon-top b { color: #ffd60a; font-weight: 400; }
+.bzcon-top span { color: #7bd23a; }
+.bzcon-top span.foe { color: #ff6b6b; }
+.bzlines .sys { color: #77777f; }
+.bzlines .cmd { color: #fff; }
+.bzlines .cmd::before { content: "> "; color: #ffd60a; }
+.bzlines .cmd:not(.sent)::after { content: "_"; animation: recBlink .6s steps(1, end) infinite; }
+.bzlines .ok { color: #ffd60a; }
+#fight.bz-hacked .plate { filter: hue-rotate(70deg) saturate(1.6); }
+.plate { position: relative; transition: transform .25s var(--ease); }
+.plate.bz-frozen { filter: saturate(.25) brightness(1.25) hue-rotate(160deg); }
+.plate.bz-god .hp i { background: linear-gradient(180deg, #fff3c4, #ffd60a 55%, #b88a2c); }
+.plate.bz-nerf { transform: scale(.8); }
+.plate.bz-nerf .who { text-decoration: line-through; text-decoration-thickness: 3px; }
+.plate.bz-frozen::after, .plate.bz-god::after, .plate.bz-nerf::after { position: absolute; top: -4px; right: 0; padding: 3px 7px 2px; border-radius: 4px; font: 400 12px/1 var(--fd); letter-spacing: 2px; color: #08080a; }
+.plate.bz-frozen::after { content: "FROZEN"; background: #9fdcff; }
+.plate.bz-god::after { content: "GOD MODE"; background: #ffd60a; }
+.plate.bz-nerf::after { content: "NERFED"; background: #ff6b6b; }
+.plate.foe.bz-frozen::after, .plate.foe.bz-god::after, .plate.foe.bz-nerf::after { right: auto; left: 0; }
+.arena.bz-tp { animation: bzTp .7s steps(1, end); }
+@keyframes bzTp { 0% { transform: translateX(-46px); opacity: .3; } 20% { transform: translateX(38px); opacity: .7; } 40% { transform: translate(-18px, 12px); } 60% { transform: translate(10px, -8px); opacity: 1; } 80% { transform: none; } }
+#fight.bz-smite { animation: bzSmite .5s linear; }
+#fight.bz-smite::after { content: ""; position: absolute; inset: 0; z-index: 60; pointer-events: none; background: #fff8d0; animation: bzFlash .35s ease forwards; }
+@keyframes bzFlash { from { opacity: .65; } to { opacity: 0; } }
+@keyframes bzSmite { 10% { transform: translate(-12px, 6px); } 25% { transform: translate(10px, -8px); } 40% { transform: translate(-6px, 4px); } 60% { transform: translate(4px, -2px); } 100% { transform: none; } }
+#fight.bz-blip { animation: bzBlip .15s steps(2, end); }
+@keyframes bzBlip { 0% { transform: translate(7px, -3px); filter: hue-rotate(150deg) contrast(1.5); } 50% { transform: translate(-5px, 2px); filter: invert(.85) hue-rotate(40deg); } }
+.plate.bz-wob { animation: bzWob .5s ease; }
+@keyframes bzWob { 25% { transform: translateY(-6px); } 50% { transform: translateY(4px); filter: hue-rotate(180deg); } 75% { transform: translateY(-2px); } }
+.slotplq { bottom: auto; top: 3%; }
+@media (prefers-reduced-motion: reduce) { #fight.bz-blip, #fight.bz-smite, .arena.bz-tp, .plate.bz-wob { animation: none; } }
 .crowd { position: fixed; left: 0; right: 0; bottom: 0; z-index: 80; pointer-events: none; transform: translateY(110%); will-change: transform; }
 .crowd canvas { display: block; width: 100%; }
 .crowd i { position: absolute; left: 0; right: 0; top: calc(100% - 1px); height: 60vh; background: #000; }
@@ -775,7 +811,7 @@ svg.mst.on { fill: var(--gold); }
 // A fight is played out from a seed, separately in each player's browser, so
 // the simulation may only use + - * / and sqrt (the same in every engine):
 // no Math.sin/cos/atan2/hypot/pow/exp, no Math.random, no clocks.
-const VERSION = 6;
+const VERSION = 7;
 const HP_SCALE = 0.33;                     // every ball's health is scaled by this, so fights end sooner
 const TAU = 6.283185307179586, PI = 3.141592653589793, HALF_PI = 1.5707963267948966;
 const DT = 1 / 60, SUB = 3;            // 60 steps a second, 3 physics substeps each
@@ -2840,9 +2876,9 @@ BALL_LIST.push(
     desc: 'Grins and bounces around, and every 5 seconds its grin confuses a nearby enemy. Below 20% health it throws a tantrum that blasts the enemy back, grows four spider legs and chases the enemy down, hitting 2.5x harder.' },
   // only from the give command: spins for a Mythic's power and a strength change at the start,
   // then again every time it loses another 35% of its health
-  { id: 'beezap', name: 'BeeZap', rar: 'M', cat: 'trick', special: 1, hidden: 1, giveOnly: 1, col: '#2b2440', hp: 210, upright: 1,
-    init(S, f) { f.bz = { next: 1 - BZ_EVERY }; beezapRoll(S, f); },
-    desc: 'Spins two wheels at the start of the fight: one copies a Mythic ball\u2019s power, the other sets its strength from -10% to +10%. Every 35% of health it loses, it spins again.' },
+  { id: 'beezap', name: 'BeeZap', rar: 'M', cat: 'trick', special: 1, hidden: 1, giveOnly: 1, col: '#2b2440', hp: 175, upright: 1,
+    init(S, f) { f.bz = { next: 1 - BZ_EVERY, admT: 4.5, slotT: 8.5, godT: 0, pend: null }; beezapRoll(S, f); },
+    desc: 'Spins two wheels at the start of the fight: one copies a Mythic ball\u2019s power, the other sets its strength from -10% to +10%. Every 35% of health it loses, it spins again. It also abuses admin commands and plays the slots.' },
 );
 const BZ_STR = [-10, -5, 0, 5, 10], BZ_EVERY = 0.35;   // spins again at 65% and 30% health
 function bzPool() { return BALLS.filter(b => b.rar === 'M' && !b.boss && b.id !== 'copycat'); }
@@ -2853,12 +2889,52 @@ function beezapRoll(S, f) {
   f.wep = []; f.u = {}; f.cd = {};
   f.def = Object.assign({}, d, { id: me.id, name: me.name, col: me.col, rar: me.rar, cat: me.cat, special: 1, hidden: 1, giveOnly: 1, upright: 1, copied: d.id,
     dmgMod: d.dmgMod ? (S2, f2, t, k) => mul * d.dmgMod(S2, f2, t, k) : () => mul,
-    always: d.always ? (S2, f2, dt) => { d.always(S2, f2, dt); bzCheck(S2, f2); } : bzCheck });
+    takeMod: (S2, t, src, k) => (t.bz.godT > 0 ? 0 : 1) * (d.takeMod ? d.takeMod(S2, t, src, k) : 1),
+    always: d.always ? (S2, f2, dt) => { d.always(S2, f2, dt); bzTick(S2, f2, dt); } : bzTick });
   f.contact = d.contact || 1; f.armor = d.armor || 0; f.marmor = d.marmor || 0;
   addWeapons(S, f, d.weapons);
   if (d.init) d.init(S, f);
   f.bz.pow = d.id; f.bz.str = str;
   emit(S, { e: 'wheel', id: f.id, side: f.side, pow: d.id, str, opts: pool.map(b => b.id) });
+}
+// admin abuse every 8 s and the slots every 10 s. Each one is announced first (the fight
+// screen stops for it) and lands on the step after, once the fight is moving again.
+const BZ_CMDS = ['freeze', 'tp', 'god', 'nerf', 'smite'];
+const BZ_REEL = ['7', '7', 'bar', 'cherry', 'bee'];
+function bzTick(S, f, dt) {
+  const z = f.bz;
+  if (z.godT > 0) z.godT -= dt;
+  if (z.pend && (z.pend.t -= dt) <= 0) { const p = z.pend; z.pend = null; bzLand(S, f, p); }
+  if (f.alive && !z.pend) {
+    if ((z.admT -= dt) <= 0) {
+      z.admT = 8;
+      const cmd = BZ_CMDS[Math.floor(S.rng() * BZ_CMDS.length)];
+      z.pend = { t: 0.01, k: 'admin', cmd };
+      emit(S, { e: 'admin', id: f.id, side: f.side, cmd, foe: f.foe.def.id });
+    } else if ((z.slotT -= dt) <= 0) {
+      z.slotT = 10;
+      const r = [0, 1, 2].map(() => BZ_REEL[Math.floor(S.rng() * BZ_REEL.length)]);
+      const res = r[0] === r[1] && r[1] === r[2] ? (r[0] === '7' ? 'jackpot' : 'triple') : r[0] === r[1] || r[1] === r[2] || r[0] === r[2] ? 'pair' : 'bust';
+      z.pend = { t: 0.01, k: 'slot', r, res };
+      emit(S, { e: 'slot', id: f.id, side: f.side, r, res });
+    }
+  }
+  bzCheck(S, f);
+}
+function bzLand(S, f, p) {
+  const t = f.foe;
+  if (p.k === 'admin') {
+    if (p.cmd === 'freeze') { applyFx(S, f, t, { freeze: 1.4 }); emit(S, { e: 'freeze', x: t.x, y: t.y }); }
+    else if (p.cmd === 'tp') {
+      const b = S.box, cx = f.x < (b.x0 + b.x1) / 2 ? b.x1 : b.x0, cy = f.y < (b.y0 + b.y1) / 2 ? b.y1 : b.y0;
+      warpTo(S, t, cx, cy); applyFx(S, f, t, { stun: 0.4 });
+    } else if (p.cmd === 'god') { f.bz.godT = 2.5; emit(S, { e: 'shieldup', id: f.id }); }
+    else if (p.cmd === 'nerf') applyFx(S, f, t, { weak: 4 });
+    else { hurt(S, f, t, 7, 'zap', t.x, t.y); emit(S, { e: 'bolt', x: t.x, y: t.y, r: 60 }); }
+  } else if (p.res === 'jackpot') { aoe(S, f, t.x, t.y, 80, 16, 600, 0, 'blast'); applyFx(S, f, t, { stun: 1 }); emit(S, { e: 'boom', x: t.x, y: t.y, r: 110, big: 1, crit: 1 }); }
+  else if (p.res === 'triple') { hurt(S, f, t, 9, 'zap', t.x, t.y); emit(S, { e: 'boom', x: t.x, y: t.y, r: 70, small: 1 }); }
+  else if (p.res === 'pair') heal(S, f, 8 * f.hpMul);
+  else if (f.alive) { f.hp = Math.max(1, f.hp - 5); emit(S, { e: 'puff', x: f.x, y: f.y }); }   // the house wins
 }
 function bzCheck(S, f) {
   if (!f.alive || f.bz.next <= 0 || f.hp > f.maxHp * f.bz.next) return;
@@ -4762,11 +4838,11 @@ const SFX = (() => {
   const HEAVY = { axe: 1, hammer: 1, flail: 1 };
   // the few recorded sounds (base64 mp3), decoded once with Web Audio, not loaded from a URL
   const clips = {};
-  function clip(name, b64, vol, play) {
+  function clip(name, b64, vol, play, at) {
     if (!init()) return;
     const c = clips[name];
     if (c === 'wait') return;
-    const go = buf => { if (!play || !sfxOn) return; const s = ac.createBufferSource(), g = ac.createGain(); g.gain.value = vol; s.buffer = buf; s.connect(g); g.connect(sfxBus); s.start(); };
+    const go = buf => { if (!play || !sfxOn) return; const s = ac.createBufferSource(), g = ac.createGain(); g.gain.value = vol; s.buffer = buf; s.connect(g); g.connect(sfxBus); s.start(Math.max(ac.currentTime, at || 0)); };
     if (c) { go(c); return; }
     clips[name] = 'wait';
     const raw = atob(b64), bytes = new Uint8Array(raw.length);
@@ -4775,7 +4851,7 @@ const SFX = (() => {
   }
   const api = {
     resume() { if (init() && ac.state === 'suspended') ac.resume(); },
-    hey(load) { clip('hey', HEY_MP3, 0.9, !load); },
+    hey(load, at) { clip('hey', HEY_MP3, 0.9, !load, at); },
     get sfx() { return sfxOn; },
     set sfx(v) { sfxOn = !!v; if (sfxBus) sfxBus.gain.value = sfxOn ? 0.7 : 0; },
     get music() { return musOn; },
@@ -4864,6 +4940,11 @@ const MUSIC = (() => {
       bass: [45, 45, 57, 45, 45, 57, 45, 55, 41, 41, 53, 41, 43, 43, 55, 43, 45, 45, 57, 45, 45, 57, 45, 55, 41, 41, 53, 41, 40, 40, 52, 44],
       lead: [69, 0, 0, 72, 0, 0, 76, 0, 74, 0, 72, 0, 71, 0, 67, 0, 69, 0, 0, 72, 0, 0, 77, 0, 76, 0, 74, 0, 72, 0, 71, 0],
       kick: 'x...x...x...x...x...x...x..xx...', snare: '....x.......x.......x.......x.x.', hat: 'x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.xx' },
+    // BeeZap's: fast, four on the floor, a bass that bounces between octaves and a lead that never lets up
+    beezap: { bpm: 168, swing: 0, lead2: 1,
+      bass: [38, 50, 38, 50, 38, 50, 38, 50, 41, 53, 41, 53, 41, 53, 43, 55, 36, 48, 36, 48, 36, 48, 36, 48, 45, 57, 45, 57, 43, 55, 41, 53],
+      lead: [74, 0, 77, 74, 81, 0, 79, 77, 76, 0, 77, 0, 79, 0, 81, 0, 72, 0, 76, 72, 79, 0, 77, 76, 74, 0, 76, 0, 77, 79, 81, 84],
+      kick: 'x...x...x...x...x...x...x...x.x.', snare: '....x.......x.......x.......x.xx', hat: 'xxx.xxx.xxx.xxx.xxx.xxx.xxx.xxxx' },
   };
   function hit(kind, t) {
     const ac = SFX.ctx, bus = SFX.musBus;
@@ -4899,7 +4980,7 @@ const MUSIC = (() => {
       if (S.snare[i] === 'x') hit('snare', t);
       if (S.hat[i] === 'x') hit('hat', t);
       if (S.bass[i]) note('sawtooth', S.bass[i] - 12, t, spb * 1.6, 0.22);
-      if (S.lead[i] && (song === 'menu' || stepN % 64 >= 32 || boost)) note('triangle', S.lead[i], t, spb * 2.2, 0.07);
+      if (S.lead[i] && (song === 'menu' || S.lead2 || stepN % 64 >= 32 || boost)) note('triangle', S.lead[i], t, spb * 2.2, 0.07);
       next += spb; stepN++;
     }
   }
@@ -4913,6 +4994,15 @@ const MUSIC = (() => {
       if (!timer) timer = setInterval(tick, 40);
     },
     stop() { song = null; },
+    // when the next beat (a quarter note) lands at least `after` seconds from now, in the audio clock
+    beat(after) {
+      const ac = SFX.ctx;
+      if (!ac || !song || !SFX.music) return null;
+      const S = SONGS[song], spb = 60 / (S.bpm * (1 + boost * 0.12)) / 4, want = ac.currentTime + (after || 0);
+      let j = stepN + Math.max(0, Math.ceil((want - next) / spb));
+      while (j % 4) j++;
+      return { at: next + (j - stepN) * spb, len: spb * 4 };
+    },
     boost(v) { boost = v ? 1 : 0; },
     get song() { return song; },
   };
@@ -5600,7 +5690,7 @@ function panelSettings() {
     h('div', { class: 'st-row' }, h('div', {}, h('div', { class: 'l', text: 'YOUR NAME' }), h('div', { class: 'd', text: 'Shown to the players you fight' })), nick),
     h('div', { class: 'sec', text: 'Sound' }),
     h('div', { class: 'st-row' }, h('div', {}, h('div', { class: 'l', text: 'SOUND EFFECTS' }), h('div', { class: 'd', text: 'Hits, clangs, explosions' })), seg([[true, 'ON'], [false, 'OFF']], G.sfx, v => { G.sfx = v; SFX.sfx = v; })),
-    h('div', { class: 'st-row' }, h('div', {}, h('div', { class: 'l', text: 'MUSIC' }), h('div', { class: 'd', text: 'Menu and fight music' })), seg([[true, 'ON'], [false, 'OFF']], G.music, v => { G.music = v; SFX.music = v; if (v) { SFX.resume(); MUSIC.play(FIGHT ? 'fight' : 'menu'); } })),
+    h('div', { class: 'st-row' }, h('div', {}, h('div', { class: 'l', text: 'MUSIC' }), h('div', { class: 'd', text: 'Menu and fight music' })), seg([[true, 'ON'], [false, 'OFF']], G.music, v => { G.music = v; SFX.music = v; if (v) { SFX.resume(); MUSIC.play(FIGHT ? fightSong() : 'menu'); } })),
     h('div', { class: 'sec', text: 'Arena' }), skinPicker(),
     h('div', { class: 'sec', text: 'Danger zone' }), reset);
   return p;
@@ -5678,7 +5768,7 @@ function startFight(o) {
   const F = FIGHT = Object.assign({}, o, { S, arena, root, cv, banner, clock, ot, nf, plates: [youP, foeP], acc: 0, t: 0, phase: 'count', pt: 0, slow: 1, done: false, settled: false, dmg: 0, worst: 0 });
   F.otBase = ot.textContent;
   if (o.mode === 'pvp') { G.coins -= o.stake; save(); }
-  MUSIC.play('fight'); MUSIC.boost(false);
+  MUSIC.play(fightSong()); MUSIC.boost(false);
   arena.resize(); arena.draw(S, 0);
   updatePlates(F);
   return F;
@@ -5732,15 +5822,15 @@ function fightFrame(F, dt) {
     if (F.pt > 2.6) { F.phase = 'run'; showBanner(F, ''); }
   } else if (F.phase === 'run') {
     F.arena.pop = 1;
-    if (F.wheel) wheelFrame(F, dt);
+    if (F.wheel) F.wheel.frame(F, dt);
     else if (F.arena.hitstop > 0) F.arena.hitstop -= dt;
     else {
       F.acc = Math.min(F.acc + dt * FIGHT_SPEED * F.slow, 0.25);
       while (F.acc >= DT && !S.over) {
         F.acc -= DT; step(S); tally(F);
-        const wz = S.ev.filter(e => e.e === 'wheel');
+        const wz = S.ev.filter(e => BZ_TAKE[e.e]);
         F.arena.events(S);
-        if (wz.length) { F.wheelQ = wz; F.acc = 0; openWheel(F); break; }
+        if (wz.length) { F.wheelQ = wz; F.acc = 0; openTake(F); break; }
       }
     }
     if (S.over && !F.wheel) {
@@ -5756,6 +5846,7 @@ function fightFrame(F, dt) {
   }
   F.arena.step(dt * (F.phase === 'ko' ? 0.35 : 1));
   F.arena.draw(S, F.t);
+  bzChaos(F, dt);
 }
 function skipFight() {
   const F = FIGHT;
@@ -5864,7 +5955,7 @@ function botFight(force) {
 function onKey(e) {
   if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
   const k = e.key;
-  if (k === 'm' || k === 'M') { G.sfx = G.music = !(G.sfx || G.music); SFX.sfx = G.sfx; SFX.music = G.music; if (G.music) { SFX.resume(); MUSIC.play(FIGHT ? 'fight' : 'menu'); } save(); toast(G.sfx ? 'Sound on' : 'Sound off', 1200); return; }
+  if (k === 'm' || k === 'M') { G.sfx = G.music = !(G.sfx || G.music); SFX.sfx = G.sfx; SFX.music = G.music; if (G.music) { SFX.resume(); MUSIC.play(FIGHT ? fightSong() : 'menu'); } save(); toast(G.sfx ? 'Sound on' : 'Sound off', 1200); return; }
   if (FIGHT) {
     if (k === 'Escape') { if (FIGHT.done) { endFightScreen(); renderView(); } else FIGHT.root.leave.click(); }
     else if (k === 'Enter' && FIGHT.done) { const b = FIGHT.result && FIGHT.result.querySelector('.btn2'); if (b) b.click(); }
@@ -6563,6 +6654,7 @@ function beeCanvas() {
 }
 ART.beezap = c => { c.imageSmoothingQuality = 'high'; c.drawImage(beeCanvas(), -37, -36, 74, 74); };
 
+function fightSong() { return FIGHT && FIGHT.S.F.some(f => f.def.id === 'beezap') ? 'beezap' : 'fight'; }
 const BZ_IN = 1.05, BZ_SPIN = [2.0, 1.5], BZ_HOLD = [0.6, 0.8], BZ_OUT = 0.7, BZ_SHRINK = 0.5;
 const BZ_STR_COL = { '-10': '#c8283a', '-5': '#d9762a', '0': '#5b5b66', '5': '#4f9a2a', '10': '#1f9a58' };
 const BZ_CASINO = ['#a3122a', '#16161c'];
@@ -6577,17 +6669,22 @@ const BZ_HEX = (() => {
   return { s, cells: out };
 })();
 
-// the next spin waiting in F.wheelQ
-function openWheel(F) {
+// BeeZap's moments that take the screen over; the fight waits for each in turn (F.wheelQ)
+const BZ_TAKE = { wheel: 1, admin: 1, slot: 1 };
+function openTake(F) {
   const e = F.wheelQ.shift();
   if (!e) { F.wheel = null; return; }
+  (e.e === 'wheel' ? openWheel : e.e === 'admin' ? openAdmin : openSlots)(F, e);
+}
+function openWheel(F, e) {
   const mine = e.side === F.mySide, wrap = F.root.querySelector('.arena');
   const cv = h('canvas', { class: 'bzring', 'aria-hidden': 'true' });
   const res = [h('div', { class: 'bzres' }), h('div', { class: 'bzres' })];
   const plq = h('div', { class: 'bzplq' + (mine ? '' : ' foe') }, h('div', { class: 'bzh', text: (mine ? 'YOUR' : 'THEIR') + ' BEEZAP SPINS' }), ...res);
   wrap.append(cv, plq);
   const f = F.S.F[e.side];
-  F.wheel = { e, cv, plq, res, T: 0, stage: -1, t: 0, last: -1, ang: 0, speed: 0, at: [f.x, f.y], zap: [], zapT: 0, out: 0 };
+  F.wheel = { kind: 'wheel', e, cv, plq, res, T: 0, stage: -1, t: 0, last: -1, ang: 0, speed: 0, at: [f.x, f.y], zap: [], zapT: 0, out: 0,
+    frame: wheelFrame, close() { cv.remove(); plq.remove(); } };
   SFX.freeze(); SFX.charge();
   SFX.hey(true); crowdMask();   // ready for the cheer when the wheel lands
 }
@@ -6717,9 +6814,8 @@ function wheelFrame(F, dt) {
     bzDraw(F, W, 1 - easeIO((q - 0.15) / 0.75), 1 - ease(q / 0.4), 1 - ease((q - 0.35) / 0.65));
     if (q < 1) return;
     A.cv.style.opacity = '';
-    W.cv.remove(); W.plq.remove();
-    F.wheel = null;
-    if (F.wheelQ.length) openWheel(F);
+    W.close();
+    openTake(F);
     return;
   }
   // the way in: freeze, then shrink, then the wheel turns up round it
@@ -6755,8 +6851,177 @@ function wheelFrame(F, dt) {
   W.out = 1e-6;
 }
 function closeWheels(F) {
-  if (F.wheel) { F.wheel.cv.remove(); F.wheel.plq.remove(); F.arena.cv.style.opacity = ''; }
+  if (F.wheel) { F.wheel.close(); F.arena.cv.style.opacity = ''; }
   F.wheel = null; F.wheelQ = [];
+}
+
+// a canvas over the box, sized to it, for the takeovers that bend the arena itself
+function bzLayer(F) { const cv = h('canvas', { class: 'bzring', 'aria-hidden': 'true' }); F.root.querySelector('.arena').append(cv); return cv; }
+function bzFit(F, cv) {
+  const A = F.arena, r = cv.getBoundingClientRect(), dpr = A.dpr || 1;
+  const w = Math.max(1, Math.round(r.width * dpr)), hh = Math.max(1, Math.round(r.height * dpr));
+  if (cv.width !== w || cv.height !== hh) { cv.width = w; cv.height = hh; }
+  const c = cv.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, w, hh);
+  return { c, w, h: hh, A, dpr, x: A.ox, y: A.oy, size: ARENA * A.k };
+}
+const bzPlates = (F, e) => ({ bee: F.plates[e.side === F.mySide ? 0 : 1], foe: F.plates[e.side === F.mySide ? 1 : 0] });
+function bzMark(el, cls, secs) { if (!el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); setTimeout(() => el.classList.remove(cls), secs * 1000); }
+
+// ---- admin abuse: a server console drops over the whole fight and the arena glitches ----
+const BZ_CMD_TXT = {
+  freeze: n => [`/freeze ${n} 1.4s`, `${n} was frozen solid.`],
+  tp: n => [`/tp ${n} ~corner`, `Teleported ${n} into a corner.`],
+  god: () => ['/god BeeZap', 'God mode on. BeeZap takes no damage.'],
+  nerf: n => [`/nerf ${n} -35%`, `${n} has been nerfed.`],
+  smite: n => [`/smite ${n}`, `${n} was struck by lightning.`],
+};
+function openAdmin(F, e) {
+  const mine = e.side === F.mySide, foe = (BALL[e.foe] ? BALL[e.foe].name : 'Enemy').toUpperCase(), [cmd, out] = BZ_CMD_TXT[e.cmd](foe);
+  const lines = h('div', { class: 'bzlines' });
+  const con = h('div', { class: 'bzcon', 'aria-live': 'polite' },
+    h('div', { class: 'bzcon-top' }, h('b', { text: 'BEESIDE SERVER · ADMIN CONSOLE' }), h('span', { class: mine ? '' : 'foe', text: (mine ? 'YOUR' : 'THEIR') + ' BEEZAP HAS OP' })), lines);
+  F.root.append(con);
+  const cv = bzLayer(F);
+  F.root.classList.add('bz-hacked');
+  F.wheel = { kind: 'admin', e, cv, con, lines, T: 0, typed: -1, cmd, out, done: 0, cmdEl: null,
+    frame: adminFrame, close() { cv.remove(); con.remove(); F.root.classList.remove('bz-hacked'); } };
+  SFX.warp(); SFX.blip();
+}
+function adminFrame(F, dt) {
+  const W = F.wheel, A = F.arena, T = (W.T += dt), TYPE0 = 0.55, CH = 0.04, typeEnd = TYPE0 + W.cmd.length * CH, run = typeEnd + 0.18, end = run + 1.25;
+  A.cv.style.opacity = '0';
+  const line = (cls, text) => { const d = h('div', { class: cls, text }); W.lines.append(d); return d; };
+  if (W.typed < 0 && T > 0.2) { line('sys', '[+] BeeZap joined the game (op)'); W.typed = 0; W.cmdEl = line('cmd', ''); }
+  if (W.typed >= 0 && T > TYPE0) {
+    const n = Math.min(W.cmd.length, Math.floor((T - TYPE0) / CH));
+    if (n > W.typed) { W.typed = n; W.cmdEl.textContent = W.cmd.slice(0, n); SFX.tick(0.1); }
+  }
+  if (!W.done && T > run) { W.done = 1; W.cmdEl.classList.add('sent'); line('ok', '[SERVER] ' + W.out); adminBend(F, W.e); }
+  // the box glitches: slices torn sideways, colour split, scanlines; hardest as it opens and as the command runs
+  const g = bzFit(F, W.cv), c = g.c, hit = Math.max(Math.max(0, 1 - T / 0.35), W.done ? Math.max(0, 1 - (T - run) / 0.4) : 0), amp = 6 + 46 * hit;
+  c.drawImage(A.cv, 0, 0);
+  c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.25 + 0.35 * hit;
+  c.drawImage(A.cv, -amp * 0.4 * g.dpr, 0); c.drawImage(A.cv, amp * 0.4 * g.dpr, 0);
+  c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+  for (let i = 0; i < 4 + Math.round(8 * hit); i++) {
+    const y = g.y + Math.random() * g.size, hh = (4 + Math.random() * 30) * g.dpr, dx = (Math.random() - 0.5) * amp * 2 * g.dpr;
+    c.drawImage(A.cv, 0, y, g.w, hh, dx, y, g.w, hh);
+  }
+  c.fillStyle = 'rgba(0,0,0,0.22)'; for (let y = 0; y < g.h; y += 3 * g.dpr) c.fillRect(0, y, g.w, g.dpr);
+  if (T > end) W.con.classList.add('out');
+  if (T > end + 0.32) { A.cv.style.opacity = ''; W.close(); openTake(F); }
+}
+// what each command does to the screen itself
+function adminBend(F, e) {
+  const { bee, foe } = bzPlates(F, e), wrap = F.root.querySelector('.arena');
+  if (e.cmd === 'freeze') { bzMark(foe, 'bz-frozen', 2.8); SFX.freeze(); }
+  else if (e.cmd === 'tp') { bzMark(wrap, 'bz-tp', 0.8); SFX.warp(); }
+  else if (e.cmd === 'god') { bzMark(bee, 'bz-god', 3.6); SFX.reveal(2); }
+  else if (e.cmd === 'nerf') { bzMark(foe, 'bz-nerf', 5); SFX.drop(); }
+  else { bzMark(F.root, 'bz-smite', 0.6); SFX.zap(); SFX.boom(); }
+}
+
+// ---- the slots: the box itself splits into three reels inside a gold cabinet ----
+const BZ_SLOT = { IN: 0.45, PULL: 0.45, SPIN: 0.62, STOP: [1.55, 1.95, 2.35], HOLD: 3.35, OUT: 0.5 };
+const BZ_SYMS = ['7', 'bar', 'cherry', 'bee'];
+const BZ_PAY = { jackpot: ['JACKPOT!', '#ffd60a'], triple: ['THREE OF A KIND', '#7bd23a'], pair: ['PAIR · BEEZAP HEALS', '#9fdcff'], bust: ['THE HOUSE WINS', '#ff6b6b'] };
+function openSlots(F, e) {
+  const mine = e.side === F.mySide, cv = bzLayer(F);
+  const res = h('div', { class: 'bzres' });
+  const plq = h('div', { class: 'bzplq slotplq' + (mine ? '' : ' foe') }, h('div', { class: 'bzh', text: (mine ? 'YOUR' : 'THEIR') + ' BEEZAP PLAYS THE SLOTS' }), res);
+  F.root.querySelector('.arena').append(plq);
+  // each reel: a run of random symbols that ends on what the fight picked
+  const seq = e.r.map((s, i) => { const n = 16 + i * 5, a = []; for (let k = 0; k < n + 4; k++) a.push(BZ_SYMS[Math.floor(Math.random() * 4)]); a[n] = s; return { n, a }; });
+  F.wheel = { kind: 'slot', e, cv, plq, res, seq, T: 0, stopped: 0, paid: false, pulled: false, frame: slotsFrame, close() { cv.remove(); plq.remove(); } };
+  SFX.charge(); SFX.blip();
+}
+function bzSym(c, s, x, y, z) {
+  c.save(); c.translate(x, y);
+  if (s === '7') { c.font = `400 ${Math.round(z * 1.05)}px ${FONT_D}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineWidth = z * 0.09; c.strokeStyle = '#2a0508'; c.strokeText('7', 0, z * 0.04); c.fillStyle = '#e8203a'; c.fillText('7', 0, z * 0.04); }
+  else if (s === 'bar') { rrect(c, -z * 0.55, -z * 0.24, z * 1.1, z * 0.48, z * 0.08); c.fillStyle = '#f0c75a'; c.fill(); c.lineWidth = z * 0.05; c.strokeStyle = '#3d2c08'; c.stroke(); c.font = `400 ${Math.round(z * 0.38)}px ${FONT_D}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#2a1d05'; c.fillText('BAR', 0, z * 0.02); }
+  else if (s === 'cherry') {
+    c.lineWidth = z * 0.06; c.strokeStyle = '#3f8a2a'; c.beginPath(); c.moveTo(-z * 0.2, z * 0.05); c.quadraticCurveTo(-z * 0.05, -z * 0.3, z * 0.12, -z * 0.38); c.moveTo(z * 0.22, z * 0.12); c.quadraticCurveTo(z * 0.2, -z * 0.15, z * 0.12, -z * 0.38); c.stroke();
+    for (const [cx, cy] of [[-z * 0.2, z * 0.15], [z * 0.22, z * 0.22]]) { circ(c, cx, cy, z * 0.2); c.fillStyle = '#d8203a'; c.fill(); c.lineWidth = z * 0.04; c.strokeStyle = '#3a0610'; c.stroke(); }
+  } else c.drawImage(beeCanvas(), -z * 0.5, -z * 0.5, z, z);
+  c.restore();
+}
+function slotsFrame(F, dt) {
+  const W = F.wheel, A = F.arena, T = (W.T += dt), S = BZ_SLOT, e = W.e;
+  A.cv.style.opacity = '0';
+  const outT = T - S.HOLD, frameA = outT > 0 ? 1 - ease(outT / S.OUT) : ease(T / S.IN);
+  if (!W.pulled && T > S.PULL) { W.pulled = true; SFX.drop(); SFX.charge(); }
+  const g = bzFit(F, W.cv), c = g.c, sw = g.size / 3, gap = sw * 0.92, cy = g.y + g.size / 2;
+  // where each reel has got to, in symbols; and the matching scroll of its slice of the box
+  const pos = W.seq.map((q, i) => {
+    if (T < S.SPIN) return 0;
+    const u = (T - S.SPIN) / (S.STOP[i] - S.SPIN);
+    if (u >= 1 && W.stopped <= i) { W.stopped = i + 1; SFX.tink(); }
+    return q.n * ease(u);
+  });
+  const settle = outT > 0 ? 1 - easeIO(outT / S.OUT) : 1, symA = outT > 0 ? Math.max(0, 1 - outT / (S.OUT * 0.6)) : clamp((T - S.SPIN + 0.15) / 0.2, 0, 1);
+  for (let i = 0; i < 3; i++) {
+    const x = g.x + i * sw, off = ((pos[i] * gap) % g.size) * settle;
+    c.save(); c.beginPath(); c.rect(x, g.y, sw, g.size); c.clip();
+    c.filter = `grayscale(${(0.5 * frameA).toFixed(2)}) brightness(${(1 - 0.35 * frameA).toFixed(2)})`;
+    c.drawImage(A.cv, x, g.y, sw, g.size, x, g.y + off - g.size, sw, g.size);
+    c.drawImage(A.cv, x, g.y, sw, g.size, x, g.y + off, sw, g.size);
+    c.filter = 'none';
+    if (symA > 0) {
+      c.globalAlpha = symA;
+      const p = pos[i], k0 = Math.floor(p) - 2;
+      for (let k = k0; k <= k0 + 5; k++) { const s = W.seq[i].a[(k % W.seq[i].a.length + W.seq[i].a.length) % W.seq[i].a.length]; bzSym(c, s, x + sw / 2, cy + (k - p) * gap, sw * 0.5); }
+      c.globalAlpha = 1;
+    }
+    c.restore();
+  }
+  // the payline, the reel dividers and the cabinet with its bulbs and lever
+  c.save(); c.globalAlpha = frameA;
+  c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(g.x, g.y, g.size, cy - gap * 0.5 - g.y); c.fillRect(g.x, cy + gap * 0.5, g.size, g.y + g.size - cy - gap * 0.5);
+  c.lineWidth = 3 * g.dpr; c.strokeStyle = '#e8203a'; c.beginPath(); c.moveTo(g.x, cy - gap * 0.5); c.lineTo(g.x + g.size, cy - gap * 0.5); c.moveTo(g.x, cy + gap * 0.5); c.lineTo(g.x + g.size, cy + gap * 0.5); c.stroke();
+  c.strokeStyle = '#d9a93a'; c.lineWidth = 4 * g.dpr; c.beginPath(); c.moveTo(g.x + sw, g.y); c.lineTo(g.x + sw, g.y + g.size); c.moveTo(g.x + sw * 2, g.y); c.lineTo(g.x + sw * 2, g.y + g.size); c.stroke();
+  const fw = Math.max(10 * g.dpr, g.size * 0.045), fx = g.x - fw, fy = g.y - fw, fs = g.size + fw * 2;
+  c.beginPath(); c.rect(fx, fy, fs, fs); c.rect(g.x, g.y, g.size, g.size); c.fillStyle = '#b88a2c'; c.fill('evenodd');
+  c.lineWidth = 2 * g.dpr; c.strokeStyle = '#5c4210'; c.strokeRect(fx, fy, fs, fs); c.strokeRect(g.x, g.y, g.size, g.size);
+  const NB = 40, run = Math.floor(T * 14), done = W.stopped >= 3;
+  for (let i = 0; i < NB; i++) {
+    const u = i / NB * 4, side = Math.floor(u), f = u - side, d = fs * f;
+    const [bx, by] = side === 0 ? [fx + d, fy + fw / 2] : side === 1 ? [fx + fs - fw / 2, fy + d] : side === 2 ? [fx + fs - d, fy + fs - fw / 2] : [fx + fw / 2, fy + fs - d];
+    const on = done ? Math.floor(T * 8) % 2 === 0 : (i + run) % 4 === 0;
+    circ(c, bx, by, fw * 0.24); c.fillStyle = on ? '#fff3c4' : '#5e4a1c'; c.fill();
+  }
+  // the lever on the right: yanked down, then springs back
+  const lx = Math.min(g.w - fw * 0.9, fx + fs + fw * 0.9), ly = cy, pull = T < S.PULL ? 0 : T < S.PULL + 0.18 ? (T - S.PULL) / 0.18 : Math.max(0, 1 - (T - S.PULL - 0.18) / 0.35);
+  const ang = -0.9 + pull * 1.8, len = g.size * 0.22;
+  c.lineWidth = fw * 0.35; c.lineCap = 'round'; c.strokeStyle = '#8a8a96'; c.beginPath(); c.moveTo(lx, ly); c.lineTo(lx + Math.sin(ang) * len * 0.2, ly - Math.cos(ang) * len); c.stroke(); c.lineCap = 'butt';
+  circ(c, lx + Math.sin(ang) * len * 0.2, ly - Math.cos(ang) * len, fw * 0.5); c.fillStyle = '#e8203a'; c.fill();
+  c.restore();
+  // the payout, once the last reel stops
+  if (!W.paid && W.stopped >= 3) {
+    W.paid = true;
+    const [txt, col] = BZ_PAY[e.res];
+    W.res.textContent = txt; W.res.style.color = col; W.res.classList.add('pop');
+    if (e.res === 'jackpot') { SFX.reveal(4); SFX.coin(); confetti(['#ffd60a', '#fff3c4', '#e8203a'], 160); bzMark(F.root, 'bz-smite', 0.6); crowdCheer(); }
+    else if (e.res === 'triple') { SFX.reveal(2); SFX.coin(); }
+    else if (e.res === 'pair') SFX.coin();
+    else SFX.boom(true);
+  }
+  if (outT > 0 && !W.out) { W.out = 1; W.plq.classList.add('out'); }
+  if (outT > S.OUT) { A.cv.style.opacity = ''; W.close(); openTake(F); }
+}
+
+// ---- in between: while a BeeZap is in the fight, the screen never quite behaves ----
+function bzChaos(F, dt) {
+  if (F.bzOn === undefined) F.bzOn = F.S.F.some(f => f.def.id === 'beezap');
+  if (!F.bzOn || F.phase !== 'run' || F.wheel || REDUCED) return;
+  F.bzT = (F.bzT === undefined ? 1.5 + Math.random() * 2 : F.bzT) - dt;
+  if (F.bzT <= 0) {
+    F.bzT = 1.6 + Math.random() * 3;
+    const r = Math.random();
+    if (r < 0.5) { bzMark(F.root, 'bz-blip', 0.18); SFX.tick(0.05); }
+    else if (r < 0.8) { F.bzClock = ['6:66', '??:??', 'ERR', '4:04', 'BZZT'][Math.floor(Math.random() * 5)]; F.bzClockT = 0.45; bzMark(F.root, 'bz-blip', 0.12); }
+    else { const p = F.plates[Math.random() < 0.5 ? 0 : 1]; bzMark(p, 'bz-wob', 0.5); SFX.blip(); }
+  }
+  if (F.bzClockT > 0) { F.bzClockT -= dt; F.clock.textContent = F.bzClock; }
 }
 
 // ---- locked in the collection until someone types the keyphrase --------------------
@@ -6843,17 +7108,18 @@ function crowdCheer() {
     }
     const el = h('div', { class: 'crowd', 'aria-hidden': 'true' }, cv, h('i'));
     document.body.append(el);
-    const RISE = 0.3, HOP = 0.36, HOPS = 3, FALL = 0.34, up = Math.min(ch * 0.2, 46), drop = ch + 8;
-    let t0 = 0, heys = 0;
-    const frame = now => {
+    // two hops, each starting on a beat of the music (heys booked on the audio clock, so they land on it)
+    const RISE = 0.3, HOPS = 2, FALL = 0.34, up = Math.min(ch * 0.2, 46), drop = ch + 8, ac = SFX.ctx;
+    const clock = () => ac ? ac.currentTime : performance.now() / 1000;
+    const B = MUSIC.beat(RISE + 0.03), HOP = B ? B.len : 0.36, b0 = B ? B.at : clock() + RISE, start = b0 - RISE;
+    for (let k = 0; k < HOPS; k++) SFX.hey(false, b0 + k * HOP);
+    const frame = () => {
       if (!el.isConnected) return;
-      if (!t0) t0 = now;
-      const t = (now - t0) / 1000;
+      const t = clock() - start;
       let y;
       if (t < RISE) y = drop * (1 - ease(t / RISE));
       else if (t < RISE + HOP * HOPS) {
         const k = Math.floor((t - RISE) / HOP), u = (t - RISE - k * HOP) / HOP;
-        if (heys <= k) { heys = k + 1; SFX.hey(); }
         y = -up * Math.sin(PI * u);
       } else if (t < RISE + HOP * HOPS + FALL) { const u = (t - RISE - HOP * HOPS) / FALL; y = drop * u * u; }
       else { el.remove(); return; }
@@ -7291,7 +7557,7 @@ function intro() {
 }
 function boot() {
   applySettings();
-  const wake = () => { SFX.resume(); if (G.music) MUSIC.play(FIGHT ? 'fight' : 'menu'); };
+  const wake = () => { SFX.resume(); if (G.music) MUSIC.play(FIGHT ? fightSong() : 'menu'); };
   addEventListener('pointerdown', wake, { once: true });
   addEventListener('keydown', wake, { once: true });
   addEventListener('keydown', onKey);
