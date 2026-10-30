@@ -660,6 +660,35 @@ svg.mst.on { fill: var(--gold); }
 .plate.foe.bz-frozen::after, .plate.foe.bz-god::after, .plate.foe.bz-nerf::after { right: auto; left: 0; }
 #fight.bz-smite::after { content: ""; position: absolute; inset: 0; z-index: 60; pointer-events: none; background: #fff8d0; animation: bzFlash .35s ease forwards; }
 @keyframes bzFlash { from { opacity: .65; } to { opacity: 0; } }
+/* ---- free for all: the field in the fight, the lobby seats, the invite ---- */
+.ffaf { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px 12px; min-width: 0; align-self: center; }
+#fight .ffaf { animation: inR .6s var(--ease) .1s backwards; }
+.ffaf .fm { display: grid; grid-template-columns: 22px minmax(0, 1fr); grid-template-rows: auto 4px; gap: 3px 7px; align-items: center; min-width: 0; transition: opacity .3s; }
+.ffaf .fm canvas:where(.pic) { grid-row: span 2; width: 22px; height: 22px; }
+.ffaf .fn { font: 700 11px/1 var(--fb); letter-spacing: 1px; color: #c8c8d0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: uppercase; }
+.ffaf .fb { display: block; height: 4px; border-radius: 2px; background: #1d1d23; overflow: hidden; }
+.ffaf .fb b { display: block; height: 100%; width: 100%; background: var(--foe); transition: width .2s; }
+.ffaf .fm.out { opacity: .32; filter: grayscale(1); }
+.ffaf .fm.out .fn { text-decoration: line-through; }
+.mid .pot.left { font: 400 15px/1 var(--fd); letter-spacing: 2px; color: var(--gold); }
+@media (max-width: 860px) { .ffaf { gap: 5px 6px; } .ffaf .fn { display: none; } .ffaf .fm { grid-template-columns: 1fr; justify-items: center; } .ffaf .fm canvas:where(.pic) { grid-row: auto; } .ffaf .fb { width: 100%; } }
+.ffslots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; width: min(720px, 100%); margin: 20px auto 8px; }
+.ffslot { display: grid; justify-items: center; align-content: start; gap: 7px; min-width: 0; padding: 14px 8px 12px; border: 1px solid #2a2a31; border-radius: 10px; background: #0e0e12; animation: popIn .35s var(--spring); }
+.ffslot b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 18px/1 var(--fd); letter-spacing: 1px; color: var(--txt); }
+.ffslot small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 9px/1 var(--fb); letter-spacing: 2px; color: var(--mute); }
+.ffslot.me { border-color: var(--you); }
+.ffslot.empty { border-style: dashed; animation: none; }
+.ffslot.empty b { color: var(--dim); }
+.ffslot .q { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 2px dashed #33333b; font: 400 22px/1 var(--fd); color: var(--dim); }
+.mmline.ffwide { max-width: min(720px, 100%); text-align: center; }
+.mmline.dimline { color: var(--mute); display: flex; justify-content: center; align-items: center; gap: 6px; flex-wrap: wrap; }
+@media (max-width: 560px) { .ffslots { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.ffabox .ffad { margin: 0 0 8px; color: #9a9aa4; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.ffabox .ffgo { margin-top: 6px; font-size: 24px; letter-spacing: 3px; }
+.ffinv { position: fixed; right: 16px; bottom: 16px; z-index: 95; width: min(340px, calc(100vw - 32px)); box-sizing: border-box; padding: 14px 16px; border-radius: 12px; background: #111116; border: 1px solid #3a3a44; box-shadow: 0 12px 34px rgba(0,0,0,.55); animation: popIn .4s var(--spring); }
+.ffinv .h { font: 400 22px/1 var(--fd); letter-spacing: 3px; color: var(--gold); }
+.ffinv p { margin: 6px 0 12px; color: #c8c8d0; font-size: 14px; font-weight: 600; }
+.ffinv .row { display: flex; gap: 8px; }
 .slotplq { position: absolute; width: 1px; height: 1px; min-width: 0; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); animation: none; }
 .crowd { position: fixed; left: 0; right: 0; bottom: 0; z-index: 80; pointer-events: none; transform: translateY(110%); will-change: transform; }
 .crowd canvas { display: block; width: 100%; }
@@ -827,7 +856,7 @@ svg.mst.on { fill: var(--gold); }
 // A fight is played out from a seed, separately in each player's browser, so
 // the simulation may only use + - * / and sqrt (the same in every engine):
 // no Math.sin/cos/atan2/hypot/pow/exp, no Math.random, no clocks.
-const VERSION = 9;
+const VERSION = 10;
 const HP_SCALE = 0.33;                     // every ball's health is scaled by this, so fights end sooner
 const TAU = 6.283185307179586, PI = 3.141592653589793, HALF_PI = 1.5707963267948966;
 const DT = 1 / 60, SUB = 3;            // 60 steps a second, 3 physics substeps each
@@ -884,7 +913,7 @@ function segSeg2(a, b) {
 function rotv(x, y, a) { const c = dcos(a), s = dsin(a); return [x * c - y * s, x * s + y * c]; }
 
 // ===== the fight simulation ==============================================
-// S.F = the two fighters (side 0 and side 1), S.bodies = fighters + drones,
+// S.F = the fighters (side 0 and side 1, or sides 0-7 in a free for all), S.bodies = fighters + drones,
 // S.projs = projectiles, S.hz = hazards (fire, bombs, holes, walls, zones...).
 // S.ev collects what happened this step for the renderer (sounds, numbers).
 const BALL = {};                         // id -> ball definition (filled below)
@@ -920,7 +949,7 @@ function mkSt() {
 function newFight(o) {
   const S = { t: 0, n: 0, rng: rng(o.seed >>> 0), nid: 1, bodies: [], F: [], projs: [], hz: [], ev: [],
     keep: !!o.keepEv, over: false, winner: -2, box: { x0: 0, y0: 0, x1: ARENA, y1: ARENA }, ot: 1, tstop: [0, 0],
-    half0: ARENA / 2, vmul: 1, dmul: 1, grav: GRAV, otStart: OT_START, rmul: 1, paint: null };
+    half0: ARENA / 2, vmul: 1, dmul: 1, grav: GRAV, otStart: OT_START, rmul: 1, paint: null, out: [] };
   // the box rule comes from the seed through its own generator, so it never shifts the fight's own dice
   const rr = rng(hashStr('rule:' + (o.seed >>> 0)));
   S.rule = RULES[o.rule] ? o.rule : RULE_BAG[Math.floor(rr() * RULE_BAG.length)];
@@ -933,15 +962,44 @@ function newFight(o) {
   const c = ARENA / 2, h = S.half0;
   S.box = { x0: c - h, y0: c - h, x1: c + h, y1: c + h };
   const a = S.rng() * TAU, sp = 520, j = (S.rng() - 0.5) * 0.12;
-  const f0 = mkFighter(S, 0, o.a, c - h * 0.42, c - h * 0.24, dcos(a) * sp, dsin(a) * sp);
-  const f1 = mkFighter(S, 1, o.b, c + h * 0.42, c - h * 0.24, -dcos(a + j) * sp, dsin(a + j) * sp);
-  f0.foe = f1; f1.foe = f0;
+  if (o.all) {
+    // a free for all (o.all = one pick per side): everyone starts round a ring, heading off sideways
+    S.tstop = o.all.map(() => 0);
+    o.all.forEach((p, i) => {
+      const b = a + i * TAU / o.all.length, d = S.rng() < 0.5 ? 1 : -1;
+      mkFighter(S, i, p, c + dcos(b) * h * 0.66, c + dsin(b) * h * 0.66, -dsin(b) * sp * d, dcos(b) * sp * d);
+    });
+    aim(S, true);
+  } else {
+    const f0 = mkFighter(S, 0, o.a, c - h * 0.42, c - h * 0.24, dcos(a) * sp, dsin(a) * sp);
+    const f1 = mkFighter(S, 1, o.b, c + h * 0.42, c - h * 0.24, -dcos(a + j) * sp, dsin(a + j) * sp);
+    f0.foe = f1; f1.foe = f0;
+  }
   if (S.rule === 'bumpers') for (const [x, y] of [[c - 150, c - 150], [c + 150, c - 150], [c - 150, c + 150], [c + 150, c + 150]])
     S.hz.push({ k: 'bumper', side: -1, owner: null, alive: true, cd: {}, x, y, r: 26, life: 1e9, push: 760, dmg: 2 });
   for (const f of S.F) if (f.def.init) f.def.init(S, f);
   return S;
 }
 
+// in a free for all each ball goes after the nearest one still in; it keeps that target until it is
+// out or another comes much closer, so balls don't flick between two
+function aim(S, force) {
+  for (const f of S.F) {
+    if (!f.alive) continue;
+    let best = null, bd = Infinity;
+    for (const g of S.F) if (g !== f && g.alive) { const d = (g.x - f.x) * (g.x - f.x) + (g.y - f.y) * (g.y - f.y); if (d < bd) { bd = d; best = g; } }
+    if (!best) continue;
+    const cur = f.foe && f.foe.alive ? (f.foe.x - f.x) * (f.foe.x - f.x) + (f.foe.y - f.y) * (f.foe.y - f.y) : Infinity;
+    if (force || cur === Infinity || bd < cur * 0.45) f.foe = best;
+  }
+}
+// where a side finished in a free for all: 1 = last one standing
+function placeOf(S, side) {
+  const order = [];
+  for (let i = S.out.length - 1; i >= 0; i--) if (!order.includes(S.out[i])) order.push(S.out[i]);
+  const k = order.indexOf(side);
+  return k < 0 ? order.length + 1 : k + 1;
+}
 function mkFighter(S, side, pick, x, y, vx, vy) {
   const d = BALL[pick.id] || BALL.sword, L = clamp(pick.lvl | 0, 1, MAXLVL);
   const hpMul = 1 + 0.07 * (L - 1), dmgMul = 1 + 0.05 * (L - 1);
@@ -1021,7 +1079,7 @@ function hurt(S, src, t, amt, kind, x, y) {
       t.st.burnT = 0; t.st.poison = 0;
       emit(S, { e: 'revive', id: t.id, x: t.x, y: t.y, k: t.def.id });
       if (t.def.onRevive) t.def.onRevive(S, t);
-    } else { t.hp = 0; t.alive = false; emit(S, { e: t.main ? 'ko' : 'pop', id: t.id, x: t.x, y: t.y, side: t.side }); }
+    } else { t.hp = 0; t.alive = false; if (t.main) S.out.push(t.side); emit(S, { e: t.main ? 'ko' : 'pop', id: t.id, x: t.x, y: t.y, side: t.side }); }
   }
   return a;
 }
@@ -1258,7 +1316,9 @@ function weaponHits(S, f, w) {
 
 // two weapons meeting bounce off each other and both reverse their spin
 function clashes(S) {
-  const a = S.F[0], b = S.F[1];
+  for (let i = 0; i < S.F.length; i++) for (let j = i + 1; j < S.F.length; j++) clash(S, S.F[i], S.F[j]);
+}
+function clash(S, a, b) {
   if (!tangible(a) || !tangible(b)) return;
   for (const wa of a.wep) for (const wb of b.wep) {
     if (wa.cc > S.t || wb.cc > S.t) continue;
@@ -1590,7 +1650,8 @@ function step(S) {
   const k = clamp((S.t - S.otStart) / OT_SHRINK, 0, 1), half = S.half0 * (1 - (1 - OT_MIN) * k);
   S.box.x0 = S.box.y0 = ARENA * 0.5 - half; S.box.x1 = S.box.y1 = ARENA * 0.5 + half;
   S.ot = S.t > OT_DMG ? 1 + (S.t - OT_DMG) * 0.04 : 1;
-  for (let s = 0; s < 2; s++) if (S.tstop[s] > 0) S.tstop[s] -= dt;
+  for (let s = 0; s < S.tstop.length; s++) if (S.tstop[s] > 0) S.tstop[s] -= dt;
+  if (S.F.length > 2) aim(S);
   if (S.rule === 'chaos' && Math.floor(S.t / 3) !== Math.floor((S.t - dt) / 3)) {
     for (const f of S.F) if (canMove(S, f)) { const a = S.rng() * TAU; f.vx += dcos(a) * 700; f.vy += dsin(a) * 700; }
     emit(S, { e: 'chaos' });
@@ -1620,6 +1681,7 @@ function step(S) {
   if (S.projs.some(p => !p.alive)) S.projs = S.projs.filter(p => p.alive);
   if (S.hz.some(z => !z.alive)) S.hz = S.hz.filter(z => z.alive);
   if (S.bodies.some(b => !b.alive && !b.main)) S.bodies = S.bodies.filter(b => b.alive || b.main);
+  if (S.F.length > 2) { ffaEnd(S); return; }
   const [a, b] = S.F;
   if (!a.alive || !b.alive || S.t >= T_LIMIT) {
     S.over = true;
@@ -1629,6 +1691,17 @@ function step(S) {
     else { const fa = a.hp / a.maxHp, fb = b.hp / b.maxHp; S.winner = Math.abs(fa - fb) < 0.005 ? -1 : fa > fb ? 0 : 1; }
     emit(S, { e: 'end', w: S.winner });
   }
+}
+
+function ffaEnd(S) {
+  const left = S.F.filter(f => f.alive);
+  if (left.length > 1 && S.t < T_LIMIT) return;
+  S.over = true;
+  // at the time limit the ones still in are placed by the share of health they have left
+  left.sort((p, q) => (q.hp / q.maxHp - p.hp / p.maxHp) || (p.side - q.side));
+  for (let i = left.length - 1; i >= 0; i--) S.out.push(left[i].side);
+  S.winner = S.out[S.out.length - 1];
+  emit(S, { e: 'end', w: S.winner });
 }
 
 function fightHash(S) { return hashStr(S.winner + ':' + S.n + ':' + S.F.map(f => Math.round(f.hp * 1000)).join(',')).toString(36); }
@@ -3723,8 +3796,8 @@ class Arena {
         if (kf) this.shatter(kf);
         this.sparks(e.x, e.y, 26, '#ffffff', 900);
         this.decal(e.x, e.y, 70, 0.6);
-        // the camera leans in on the knockout (only in a real fight, not the menu's)
-        if (this.opt.sound) this.cam = { x: e.x, y: e.y, t: 0, z: 0 };
+        // the camera leans in on the knockout that ends it (only in a real fight, not the menu's)
+        if (this.opt.sound && S.F.filter(f => f.alive).length <= 1) this.cam = { x: e.x, y: e.y, t: 0, z: 0 };
         this.burst(e.x, e.y, 40, '#ffffff', 600, 0.8, 5);
         this.ring(e.x, e.y, 20, 240, '#ffffff', 10, 0.6);
         this.flash = 0.6; this.shake = 18;
@@ -3875,7 +3948,7 @@ class Arena {
     for (const p of S.projs) drawProj(c, p, t);
     for (const b of S.bodies) if (!b.main && b.alive) drawDrone(c, b, t);
     // pop (0 to 1) grows the balls in at the start of a fight, one after the other
-    const grow = f => { if (this.pop === undefined || this.pop >= 1) return 1; const x = clamp((this.pop - f.side * 0.25) / 0.5, 0, 1); return x <= 0 ? 0 : 1 + 2.70158 * Math.pow(x - 1, 3) + 1.70158 * Math.pow(x - 1, 2); };
+    const many = S.F.length > 2, grow = f => { if (this.pop === undefined || this.pop >= 1) return 1; const x = clamp((this.pop - f.side * (many ? 0.09 : 0.25)) / (many ? 0.3 : 0.5), 0, 1); return x <= 0 ? 0 : 1 + 2.70158 * Math.pow(x - 1, 3) + 1.70158 * Math.pow(x - 1, 2); };
     for (const f of S.F) {
       const q = grow(f);
       if (q >= 1) { this.fighter(S, f, t); continue; }
@@ -5064,8 +5137,8 @@ const MUSIC = (() => {
 const Q = new URLSearchParams(location.search);
 const SAVE_KEY = 'bouncebrawl.v1' + (Q.get('save') ? '.' + Q.get('save') : '');
 const STAKES = [50, 200, 800, 3000];
-const BOT_PAY = 50;                           // a bot fight pays this win or lose; bots are only for when you can't afford a bet
-const WIN_BONUS = 0.1;                       // a PvP winner also gets 10% of the stake from the house
+const BOT_PAY = 100;                          // a bot fight pays this win or lose; bots are only for when you can't afford a bet
+const WIN_BONUS = 0.25;                      // a PvP winner also gets 25% of the stake from the house
 const RANKS = [['Bronze', 0, '#c98a55'], ['Silver', 200, '#c3ccd8'], ['Gold', 500, '#ffd633'], ['Platinum', 900, '#7fe0d4'], ['Diamond', 1400, '#8fb8ff'], ['Champion', 2000, '#ff2d78']];
 const CRATES = [
   { id: 'mixed', name: 'Mixed Crate', price: 250, col: '#8a93a6', odds: { C: 64, R: 26, E: 7.4, L: 2, M: 0.6, S: 0.15 }, pool: () => BALLS, blurb: 'Any ball in the game, even a Mythic.' },
@@ -5105,7 +5178,7 @@ function rankOf(tro) { let r = RANKS[0], i = 0; RANKS.forEach((x, j) => { if (tr
 function grant(id, crate) {
   const o = G.owned[id];
   if (!o) { G.owned[id] = { lvl: 1, copies: 0 }; if (!G.eq) G.eq = id; return { kind: 'new' }; }
-  if (o.lvl >= MAXLVL) { const c = Math.round((crate.price || 100) * 0.4); G.coins += c; return { kind: 'max', coins: c }; }
+  if (o.lvl >= MAXLVL) { const c = Math.round((crate.price || 100) * 0.6); G.coins += c; return { kind: 'max', coins: c }; }
   o.copies++;
   if (o.copies >= need(o.lvl)) { o.copies -= need(o.lvl); o.lvl++; return { kind: 'up', lvl: o.lvl }; }
   return { kind: 'copy', copies: o.copies, need: need(o.lvl), lvl: o.lvl };
@@ -5470,6 +5543,7 @@ function panelFight() {
       broke ? h('button', { class: 'go', style: { marginTop: '14px' }, onclick: () => { SFX.ui(); botFight(); }, html: 'FIGHT A BOT <i class="kbd">ENTER</i>' })
         : h('button', { class: 'go', style: { marginTop: '14px' }, onclick: () => { SFX.ui(); findMatch(G.stake); }, html: 'FIND OPPONENT <i class="kbd">ENTER</i>' }),
       h('div', { class: 'status', id: 'fstatus' }, ...statusBits(broke))),
+    ffaBox(),
     h('div', { class: 'box' }, h('div', { class: 'h', text: 'Rank' }),
       h('div', { class: 'rank' }, rcv, h('div', { class: 'rn', text: rk.name.toUpperCase(), style: { color: rk.col } }),
         h('div', { class: 'bar' }, h('i', { style: { width: (rk.next ? clamp((G.tro - RANKS[rk.i][1]) / (rk.next[1] - RANKS[rk.i][1]), 0, 1) * 100 : 100) + '%' } })),
@@ -5484,6 +5558,14 @@ function panelFight() {
   new Preview(cv, G.eq, lv);
   requestAnimationFrame(() => rankIcon(rcv, G.tro));
   return p;
+}
+function ffaBox() {
+  const open = NET.room ? ffaLobbies()[0] : null;
+  return h('div', { class: 'box ffabox' }, h('div', { class: 'h', text: 'Free for all' }),
+    h('p', { class: 'ffad', text: `${FFA_N} balls in one box, last one standing wins. Free to enter. Seats nobody takes in 30 seconds get bots.` }),
+    h('p', { class: 'ffad', html: `1ST ${COIN_SVG}${fmt(FFA_PRIZE[0])} · 2ND ${COIN_SVG}${fmt(FFA_PRIZE[1])} · 3RD ${COIN_SVG}${fmt(FFA_PRIZE[2])} · EVERYONE ${COIN_SVG}${fmt(FFA_PRIZE[FFA_N - 1])}+` }),
+    h('button', { class: 'go ffgo', onclick: () => { SFX.ui(); ffaOpen(); },
+      text: open ? `JOIN ${NET.nameFor(open.by, open.presence.nick).toUpperCase()}'S FREE FOR ALL` : 'START A FREE FOR ALL' }));
 }
 function statusBits(broke) {
   if (broke) return [h('i', { class: 'dot' }), `OUT OF COINS. BOTS PAY ${BOT_PAY} COINS A FIGHT, WIN OR LOSE.`];
@@ -5666,7 +5748,8 @@ function openBall(id) {
   if (d.giveOnly && !o) { lockedBall(id); return; }
   const cv = h('canvas', { 'aria-label': d.name + ' practising on a dummy' });
   const from = CRATES.filter(c => c.pool().includes(d)).map(c => c.name).join(', ');
-  const hp = Math.round((d.hp || 100) * (1 + 0.07 * (lv - 1)));
+  // the health it has in a fight (the same sum as mkFighter), and where it sits among all the balls
+  const hp = Math.ceil((d.hp || 100) * (1 + 0.07 * (lv - 1)) * HP_SCALE), hpBar = 1 + [120, 150, 185, 230].filter(n => (d.hp || 100) >= n).length;
   const bar = (n, max) => { const b = h('div', { class: 'bar' }); for (let i = 0; i < max; i++) b.append(h('i', { class: i < n ? 'on' : '' })); return b; };
   const s = sheet([
     h('h2', { text: d.name.toUpperCase() }), h('div', { class: 'lsub', text: `${RARITY[d.rar].name} · ${CATS[d.cat]}` + (d.special ? ' · Gimmick' : '') }),
@@ -5675,7 +5758,7 @@ function openBall(id) {
       h('div', {},
         h('div', { class: 'box' }, h('div', { class: 'h', text: 'Ability' }), h('p', { style: { margin: 0, color: '#c8c8d0', fontSize: '15px', maxWidth: 'none' }, text: d.desc })),
         h('div', { class: 'box' }, h('div', { class: 'h', text: 'Stats' }),
-          h('div', { class: 'stat' }, h('span', { text: 'Health' }), bar(clamp(Math.round(hp / 34), 1, 5), 5)),
+          h('div', { class: 'stat' }, h('span', { text: 'Health' }), bar(hpBar, 5)),
           h('div', { class: 'stat' }, h('span', { text: 'Level' }), bar(o ? lv : 0, MAXLVL)),
           h('dl', { class: 'kv', style: { marginTop: '12px' } },
             h('dt', { text: 'Health' }), h('dd', { text: fmt(hp) + ' HP' }),
@@ -5787,41 +5870,48 @@ function plate(cls, info) {
     h('div', { class: 'top' }, h('span', { class: 'who', text: info.name.toUpperCase() }), h('span', { class: 'bn', text: `${BALL[info.id].name} · LV ${info.lvl}` })),
     h('div', { class: 'hpw' }, h('div', { class: 'hp' }, h('b'), h('i')), h('span', { class: 'hpn', text: '' })));
 }
-// o: {mode: 'bot'|'pvp'|'friendly', seed, mySide, me:{id,lvl,name}, foe:{id,lvl,name,tro}, stake, mid}
+// o: {mode: 'bot'|'pvp'|'friendly'|'ffa', seed, mySide, me:{id,lvl,name}, foe:{id,lvl,name,tro}, stake, mid}
+// a free for all also has o.all: everyone's {id,lvl,name}, by side (o.me is o.all[o.mySide])
 function startFight(o) {
   closeAllSheets();
   stopPreviews();
   if (FIGHT) endFightScreen();
   SFX.resume();
+  const ffa = o.mode === 'ffa';
+  if (ffa) { o.me = o.all[o.mySide]; o.foe = o.all[(o.mySide + 1) % o.all.length]; o.rule = 'normal'; }
   const me = o.me, foe = o.foe;
-  const pick = s => (s === o.mySide ? me : foe);
-  const nf = { seed: o.seed >>> 0, a: { id: pick(0).id, lvl: pick(0).lvl }, b: { id: pick(1).id, lvl: pick(1).lvl }, keepEv: true, rule: o.rule };
+  const pick = s => ffa ? o.all[s] : (s === o.mySide ? me : foe);
+  const nf = ffa ? { seed: o.seed >>> 0, all: o.all.map(p => ({ id: p.id, lvl: p.lvl })), keepEv: true, rule: 'normal' }
+    : { seed: o.seed >>> 0, a: { id: pick(0).id, lvl: pick(0).lvl }, b: { id: pick(1).id, lvl: pick(1).lvl }, keepEv: true, rule: o.rule };
   const S = newFight(nf);
   const cv = h('canvas', { 'aria-label': 'The fight' });
   // a BeeZap hides as a plain ball until the fight starts, on both players' screens (see openReveal)
-  const fake = bzFake(o.seed), hide = info => info.id === 'beezap' ? Object.assign({}, info, { id: fake }) : info;
-  const youP = plate('you', hide(me)), foeP = plate('foe', hide(foe));
-  const clock = h('span', { class: 'clock', text: '0:00' }), ot = h('span', { class: 'lab', text: o.mode === 'bot' ? 'PRACTICE' : o.mode === 'friendly' ? 'FRIENDLY' : o.mode === 'cup' ? 'CUP ' + CUP_ROUNDS[o.cupRound] : o.mode === 'boss' ? 'BOSS RAID' : 'RANKED' });
+  const fake = bzFake(o.seed), hide = info => info.id === 'beezap' && !ffa ? Object.assign({}, info, { id: fake }) : info;
+  const youP = plate('you', hide(me)), foeP = ffa ? ffaField(o) : plate('foe', hide(foe));
+  const clock = h('span', { class: 'clock', text: '0:00' }), ot = h('span', { class: 'lab', text: o.mode === 'bot' ? 'PRACTICE' : o.mode === 'friendly' ? 'FRIENDLY' : o.mode === 'cup' ? 'CUP ' + CUP_ROUNDS[o.cupRound] : o.mode === 'boss' ? 'BOSS RAID' : ffa ? 'FREE FOR ALL' : 'RANKED' });
   const rule = S.rule !== 'normal' ? h('span', { class: 'rule', title: RULES[S.rule].desc, text: RULES[S.rule].name.toUpperCase() }) : null;
-  const pot = o.mode === 'pvp' ? h('span', { class: 'pot', html: 'POT ' + COIN_SVG + fmt(o.stake * 2) }) : null;
+  const pot = o.mode === 'pvp' ? h('span', { class: 'pot', html: 'POT ' + COIN_SVG + fmt(o.stake * 2) }) : ffa ? h('span', { class: 'pot left', text: o.all.length + ' LEFT' }) : null;
   const banner = h('div', { class: 'banner' });
   const stage = h('div', { class: 'arena' }, cv, banner);
   const leave = h('button', { class: 'btn2', text: 'LEAVE' });
   let armed = false;
   leave.onclick = () => {
     if (F.done) return;
-    if ((o.mode === 'pvp' || o.mode === 'cup') && !armed) { armed = true; leave.textContent = o.mode === 'cup' ? 'TAP AGAIN: YOU ARE OUT OF THE CUP' : 'TAP AGAIN: YOU LOSE THE STAKE'; setTimeout(() => { armed = false; leave.textContent = 'LEAVE'; }, 3000); return; }
+    if ((o.mode === 'pvp' || o.mode === 'cup' || (ffa && F.S.F[F.mySide].alive)) && !armed) { armed = true; leave.textContent = o.mode === 'cup' ? 'TAP AGAIN: YOU ARE OUT OF THE CUP' : ffa ? 'TAP AGAIN: YOU GET NOTHING' : 'TAP AGAIN: YOU LOSE THE STAKE'; setTimeout(() => { armed = false; leave.textContent = 'LEAVE'; }, 3000); return; }
     forfeit();
   };
-  const bar = h('div', { class: 'fbar' }, leave, h('span', { class: 'hint', html: '<i class="kbd">ESC</i> LEAVE' }));
+  // in a free for all, once you are out you can skip to where you finished
+  const skip = ffa ? h('button', { class: 'btn2 on', text: 'SKIP TO RESULTS', hidden: true, onclick: () => skipFight() }) : null;
+  const bar = h('div', { class: 'fbar' }, leave, skip, h('span', { class: 'hint', html: '<i class="kbd">ESC</i> LEAVE' }));
   const root = h('div', { id: 'fight' }, h('div', { class: 'hud' }, youP, h('div', { class: 'mid' }, clock, ot, rule, pot), foeP), stage, bar);
   root.leave = leave;
   document.body.append(root);
   const arena = new Arena(cv, { sound: true, pad: 8 });
-  arena.flip = o.mySide === 1; arena.me = o.mySide; arena.pop = REDUCED ? 1 : 0;
-  const F = FIGHT = Object.assign({}, o, { S, arena, root, cv, banner, clock, ot, nf, plates: [youP, foeP], acc: 0, t: 0, phase: 'count', pt: 0, slow: 1, done: false, settled: false, dmg: 0, worst: 0 });
+  arena.flip = !ffa && o.mySide === 1; arena.me = o.mySide; arena.pop = REDUCED ? 1 : 0;
+  const F = FIGHT = Object.assign({}, o, { S, arena, root, cv, banner, clock, ot, nf, plates: ffa ? [youP] : [youP, foeP], field: ffa ? foeP : null, leftEl: ffa ? pot : null, skip,
+    acc: 0, t: 0, phase: 'count', pt: 0, slow: 1, done: false, settled: false, dmg: 0, worst: 0 });
   F.otBase = ot.textContent;
-  F.masks = arena.masks = [0, 1].filter(s => pick(s).id === 'beezap').map(s => ({ side: s, id: fake }));
+  F.masks = arena.masks = ffa ? [] : [0, 1].filter(s => pick(s).id === 'beezap').map(s => ({ side: s, id: fake }));
   if (F.masks.length) SFX.sike(true);   // decoded now, ready for the reveal
   if (o.mode === 'pvp') { G.coins -= o.stake; save(); }
   MUSIC.play(fightSong()); MUSIC.boost(false);
@@ -5837,7 +5927,7 @@ function showBanner(F, txt, accent, sub) {
 function tally(F) {
   const S = F.S;
   for (const e of S.ev) if (e.e === 'hit') { const b = F.arena.byId(S, e.id); if (b && b.side !== F.mySide) F.dmg += e.a; }
-  const a = S.F[F.mySide], b = S.F[1 - F.mySide];
+  const a = S.F[F.mySide], b = F.all ? S.F.reduce((m, x) => x === a ? m : !m || x.hp / x.maxHp > m.hp / m.maxHp ? x : m, null) : S.F[1 - F.mySide];
   F.worst = Math.min(F.worst, a.hp / a.maxHp - b.hp / b.maxHp);
 }
 function updatePlates(F) {
@@ -5850,6 +5940,7 @@ function updatePlates(F) {
     p.lastHp = f.hp;
     p.querySelector('.hpn').textContent = Math.ceil(f.hp) + ' / ' + Math.ceil(f.maxHp) + ' HP';
   });
+  if (F.field) ffaHud(F);
   const t = Math.floor(S.t);
   F.clock.textContent = Math.floor(t / 60) + ':' + pad2(t % 60);
   const over = S.t > OT_START;
@@ -5874,7 +5965,7 @@ function fightFrame(F, dt) {
     // the balls drop into the box one after the other
     const p0 = F.arena.pop;
     F.arena.pop = Math.min(1, F.pt / 0.9);
-    for (const f of S.F) { const at = 0.25 + f.side * 0.25; if (p0 < at && F.arena.pop >= at) { F.arena.ring(f.x, f.y, f.r, f.r * 2.2, TEAM[f.side === F.mySide ? 0 : 1], 4, 0.4); SFX.pop(); } }
+    for (const f of S.F) { const at = 0.25 + f.side * (S.F.length > 2 ? 0.09 : 0.25); if (p0 < at && F.arena.pop >= at) { F.arena.ring(f.x, f.y, f.r, f.r * 2.2, TEAM[f.side === F.mySide ? 0 : 1], 4, 0.4); SFX.pop(); } }
     if (F.pt > 2.6) { F.phase = 'run'; showBanner(F, ''); }
   } else if (F.phase === 'run') {
     F.arena.pop = 1;
@@ -5891,7 +5982,7 @@ function fightFrame(F, dt) {
     }
     if (S.over && !F.wheel) {
       F.phase = 'ko'; F.pt = 0; F.slow = 0.3;
-      showBanner(F, S.winner === -1 ? 'DRAW' : S.t >= T_LIMIT ? 'TIME!' : 'K.O.', true);
+      showBanner(F, F.all ? (S.winner === F.mySide ? 'YOU WIN!' : F.all[S.winner].name.toUpperCase() + ' WINS') : S.winner === -1 ? 'DRAW' : S.t >= T_LIMIT ? 'TIME!' : 'K.O.', true);
       F.tag = fightTag(F);
       if (F.tag) F.arena.callout(F.tag[0], F.tag[1]);
     }
@@ -5919,6 +6010,7 @@ function forfeit() {
   if (!F) return;
   if (F.mode === 'pvp' && !F.settled) { G.l++; G.streak = 0; G.tro = Math.max(0, G.tro - 20); save(); NET.fightOver(F, true); }
   if (F.mode === 'cup' && !F.settled) { cupRecord(F, true); endFightScreen(); setTab('cup'); return; }
+  if (F.mode === 'ffa' && !F.settled) NET.fightOver(F, true);
   if (F.mode === 'boss' && !F.settled) { const r = raidPay(F, true); trackFight(F, false, false, r.coins); save(); endFightScreen(); setTab('cup'); toast(`You left the raid with ${fmt(r.dmg)} damage: +${fmt(r.coins)} coins.`, 3600); return; }
   endFightScreen();
   renderView();
@@ -5934,6 +6026,11 @@ function settleFight(F) {
   if (F.mode === 'bot') {
     paid = coins = BOT_PAY;
     if (mine) G.bw++; else if (!draw) G.bl++;
+  } else if (F.mode === 'ffa') {
+    F.place = placeOf(F.S, F.mySide);
+    paid = coins = FFA_PRIZE[F.place - 1]; tro = FFA_TRO[F.place - 1];
+    G.ffa = G.ffa || [0, 0]; G.ffa[0]++; if (F.place === 1) G.ffa[1]++;
+    F.foe = F.all[w === F.mySide ? F.S.out[F.S.out.length - 2] : w];   // for the history: who won, or who came second
   } else if (F.mode === 'pvp') {
     paid = draw ? F.stake : mine ? Math.round(F.stake * (2 + WIN_BONUS)) : 0;
     coins = paid - F.stake;
@@ -5952,7 +6049,7 @@ function settleFight(F) {
   const sign = n => (n > 0 ? '+' : n < 0 ? '-' : '') + fmt(Math.abs(n));
   const cu = n => `<span data-cu="${n}">${sign(n)}</span>`;
   const tiles = h('div', { class: 'tiles' }, h('div', { class: 'tile' + (coins > 0 ? ' hi' : '') }, h('div', { class: 'l', text: 'Coins' }), h('div', { class: 'v', html: COIN_SVG + cu(coins) })));
-  if (F.mode === 'pvp') tiles.append(h('div', { class: 'tile' + (tro > 0 ? ' hi' : '') }, h('div', { class: 'l', text: 'Trophies' }), h('div', { class: 'v', html: TRO_SVG + cu(tro) })));
+  if (F.mode === 'pvp' || F.mode === 'ffa') tiles.append(h('div', { class: 'tile' + (tro > 0 ? ' hi' : '') }, h('div', { class: 'l', text: 'Trophies' }), h('div', { class: 'v', html: TRO_SVG + cu(tro) })));
   if (raid) tiles.append(h('div', { class: 'tile hi' }, h('div', { class: 'l', text: 'Damage' }), h('div', { class: 'v', html: cu(raid.dmg) })));
   if (bonus) tiles.append(h('div', { class: 'tile hi' }, h('div', { class: 'l', text: `Streak x${G.streak}` }), h('div', { class: 'v', html: COIN_SVG + cu(bonus) })));
   const extra = h('div', { class: 'rlines' });
@@ -5960,19 +6057,20 @@ function settleFight(F) {
   if (xp) extra.append(h('div', { class: 'rl' }, h('span', { class: 'mono', text: `+${xp} XP` }), h('span', { class: 'xpmini' }, xpBar), h('span', { text: 'LV ' + G.plv })));
   for (const u of ups) extra.append(h('div', { class: 'rl up', text: upText(u) }));
   for (const q of quests) extra.append(h('div', { class: 'rl q', text: 'QUEST DONE · ' + questText(q).toUpperCase() }));
-  const again = F.mode === 'cup' || F.mode === 'boss' ? () => { endFightScreen(); setTab('cup'); } : F.mode === 'bot' ? (G.coins < STAKES[0] ? () => botFight() : () => { endFightScreen(); setTab('fight'); findMatch(STAKES.filter(s => s <= G.coins).pop()); }) : F.mode === 'pvp' ? () => { endFightScreen(); setTab('fight'); findMatch(G.coins >= F.stake ? F.stake : (STAKES.filter(s => s <= G.coins).pop() || 50)); } : null;
-  const note = raid ? (raid.kill ? `You brought ${F.foe.name} down! +1,000 coins and a Legend Crate (in Daily).` : `You dealt ${fmt(raid.dmg)} damage to ${F.foe.name}.`) : F.mode === 'cup' ? cupNote(F) : F.mode === 'bot' ? (G.coins < STAKES[0] ? `Bots pay ${BOT_PAY} coins a fight, win or lose. Fight another until you can afford a bet.` : `Bots pay ${BOT_PAY} coins a fight, win or lose. You can bet against real players again.`) : F.mode === 'friendly' ? 'A fight against your own other tab: no coins or trophies change.' : '';
+  const again = F.mode === 'ffa' ? () => { endFightScreen(); setTab('fight'); ffaOpen(); } : F.mode === 'cup' || F.mode === 'boss' ? () => { endFightScreen(); setTab('cup'); } : F.mode === 'bot' ? (G.coins < STAKES[0] ? () => botFight() : () => { endFightScreen(); setTab('fight'); findMatch(STAKES.filter(s => s <= G.coins).pop()); }) : F.mode === 'pvp' ? () => { endFightScreen(); setTab('fight'); findMatch(G.coins >= F.stake ? F.stake : (STAKES.filter(s => s <= G.coins).pop() || 50)); } : null;
+  const note = F.mode === 'ffa' ? ffaNote() : raid ? (raid.kill ? `You brought ${F.foe.name} down! +1,000 coins and a Legend Crate (in Daily).` : `You dealt ${fmt(raid.dmg)} damage to ${F.foe.name}.`) : F.mode === 'cup' ? cupNote(F) : F.mode === 'bot' ? (G.coins < STAKES[0] ? `Bots pay ${BOT_PAY} coins a fight, win or lose. Fight another until you can afford a bet.` : `Bots pay ${BOT_PAY} coins a fight, win or lose. You can bet against real players again.`) : F.mode === 'friendly' ? 'A fight against your own other tab: no coins or trophies change.' : '';
   F.result = h('div', { class: 'result' },
     h('div', { class: 'lab', text: F.tag ? '// ' + F.tag[0].replace('!', '') + ' //' : '// RESULT //' }),
     raid ? h('h2', { class: raid.kill ? '' : 'draw', text: raid.kill ? 'BOSS DOWN' : 'RAID OVER' })
       : F.mode === 'cup' ? h('h2', { class: F.cupWon ? '' : 'lose', text: F.cupWon ? 'VICTORY' : 'DEFEAT' })
+      : F.mode === 'ffa' ? h('h2', { class: F.place === 1 ? '' : F.place <= 3 ? 'draw' : 'lose', text: F.place === 1 ? 'VICTORY' : placeText(F.place) + ' PLACE' })
       : h('h2', { class: draw ? 'draw' : mine ? '' : 'lose', text: draw ? 'DRAW' : mine ? 'VICTORY' : 'DEFEAT' }),
-    h('div', { class: 'lsub', text: raid ? `BOSS RAID · ${F.foe.name}` : `VS ${F.foe.name} · ${BALL[F.foe.id].name} LV ${F.foe.lvl}` }),
+    h('div', { class: 'lsub', text: F.mode === 'ffa' ? `FREE FOR ALL · ${F.all.length} BALLS · WINNER ${F.all[w].name}` : raid ? `BOSS RAID · ${F.foe.name}` : `VS ${F.foe.name} · ${BALL[F.foe.id].name} LV ${F.foe.lvl}` }),
     F.mode === 'friendly' || (F.mode === 'cup' && !coins) ? null : tiles,
     extra.children.length ? extra : null,
     note ? h('p', { text: note }) : null,
     h('div', { class: 'foot' },
-      again ? h('button', { class: 'btn2 on', text: F.mode === 'cup' ? 'BACK TO THE BRACKET' : F.mode === 'boss' ? 'BACK TO EVENTS' : F.mode === 'pvp' ? 'FIND ANOTHER' : G.coins < STAKES[0] ? 'FIGHT AGAIN' : 'FIND OPPONENT', disabled: F.mode === 'pvp' && G.coins < STAKES[0], onclick: again }) : null,
+      again ? h('button', { class: 'btn2 on', text: F.mode === 'ffa' ? 'PLAY AGAIN' : F.mode === 'cup' ? 'BACK TO THE BRACKET' : F.mode === 'boss' ? 'BACK TO EVENTS' : F.mode === 'pvp' ? 'FIND ANOTHER' : G.coins < STAKES[0] ? 'FIGHT AGAIN' : 'FIND OPPONENT', disabled: F.mode === 'pvp' && G.coins < STAKES[0], onclick: again }) : null,
       F.S.t > 2 ? h('button', { class: 'btn2', html: '<svg class="i" viewBox="0 0 16 16"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg> REPLAY', onclick: () => replayKO(F) }) : null,
       F.mode === 'cup' || F.mode === 'boss' ? null : h('button', { class: 'btn2', text: 'DONE', onclick: () => { endFightScreen(); renderView(); } })));
   F.root.querySelector('.arena').append(F.result);
@@ -6039,16 +6137,16 @@ function onKey(e) {
 
 // ===== daily quests, the daily crate, player levels and win streaks ==========
 const QUESTS = {
-  play:    { n: [3, 5], coins: 120, txt: n => `Play ${n} fights` },
-  win:     { n: [2, 4], coins: 160, txt: n => `Win ${n} fights` },
-  rank:    { n: [2, 3], coins: 260, txt: n => `Win ${n} ranked fights` },
-  dmg:     { n: [12, 24], coins: 150, txt: n => `Deal ${fmt(n)} damage` },
-  crate:   { n: [1, 2], coins: 120, txt: n => n > 1 ? `Open ${n} crates` : 'Open a crate' },
-  fast:    { n: [1, 1], coins: 180, txt: () => 'Win a fight in under 30 seconds' },
-  clutch:  { n: [1, 1], coins: 200, txt: () => 'Win with under 20% health left' },
-  perfect: { n: [1, 1], coins: 180, txt: () => 'Win with over 75% health left' },
-  twist:   { n: [2, 3], coins: 180, txt: n => `Win ${n} fights in a box with a twist` },
-  gim:     { n: [2, 3], coins: 200, txt: n => `Win ${n} fights with a gimmick ball` },
+  play:    { n: [3, 5], coins: 180, txt: n => `Play ${n} fights` },
+  win:     { n: [2, 4], coins: 240, txt: n => `Win ${n} fights` },
+  rank:    { n: [2, 3], coins: 390, txt: n => `Win ${n} ranked fights` },
+  dmg:     { n: [12, 24], coins: 225, txt: n => `Deal ${fmt(n)} damage` },
+  crate:   { n: [1, 2], coins: 180, txt: n => n > 1 ? `Open ${n} crates` : 'Open a crate' },
+  fast:    { n: [1, 1], coins: 270, txt: () => 'Win a fight in under 30 seconds' },
+  clutch:  { n: [1, 1], coins: 300, txt: () => 'Win with under 20% health left' },
+  perfect: { n: [1, 1], coins: 270, txt: () => 'Win with over 75% health left' },
+  twist:   { n: [2, 3], coins: 270, txt: n => `Win ${n} fights in a box with a twist` },
+  gim:     { n: [2, 3], coins: 300, txt: n => `Win ${n} fights with a gimmick ball` },
 };
 const QUEST_XP = 50;
 const STREAK_STEP = 0.1, STREAK_MAX = 5;   // each ranked win in a row adds 10% of the stake, up to +50%
@@ -6085,10 +6183,10 @@ function dailySub() { const n = dailyReady(); return n ? `${n} ${n === 1 ? 'rewa
 
 // ---- player level --------------------------------------------------------------
 function xpNeed(l) { return 100 + (l - 1) * 40; }
-function levelReward(l) { return { coins: 100 + l * 20, crate: l % 10 === 0 ? 'gimmick' : l % 5 === 0 ? 'mixed' : null }; }
+function levelReward(l) { return { coins: 150 + l * 30, crate: l % 10 === 0 ? 'gimmick' : l % 5 === 0 ? 'mixed' : null }; }
 function crateById(id) { id = String(id).split('@')[0]; return CRATES.find(c => c.id === id) || CRATES[0]; }
 // G.free entries are 'crate@where' ('legend@raid'); older saves have just the crate
-const FREE_FROM = { lvl: 'A level-up reward.', cup: 'Won at The Box Cup.', raid: 'For beating a raid boss.' };
+const FREE_FROM = { lvl: 'A level-up reward.', cup: 'Won at The Box Cup.', raid: 'For beating a raid boss.', medal: 'A medal reward.' };
 function freeFrom(e) { const [id, at] = String(e).split('@'); return FREE_FROM[at || (id === 'legend' ? 'raid' : 'lvl')] || FREE_FROM.lvl; }
 function addXp(n) {
   const ups = [];
@@ -6108,6 +6206,7 @@ function xpForFight(F, mine, draw) {
   if (F.mode === 'bot') return mine ? 12 : 5;
   if (F.mode === 'cup') return F.cupWon ? 25 : 10;
   if (F.mode === 'boss') return F.bossKill ? 80 : 25;
+  if (F.mode === 'ffa') return [60, 35, 25, 15, 12, 10, 10, 10][F.place - 1] || 10;
   return 0;
 }
 
@@ -6489,6 +6588,12 @@ function trackFight(F, mine, draw, coins) {
     const f = F.S.F[F.mySide];
     if (f.hp >= f.maxHp - 0.01) st.flawless = (st.flawless || 0) + 1;
   }
+  // beating someone's BeeZap: in a duel by winning, in a free for all by finishing above it
+  const bz = F.S.F.filter(x => x.side !== F.mySide && x.def.id === 'beezap');
+  if (bz.length && (F.all ? bz.some(x => placeOf(F.S, F.mySide) < placeOf(F.S, x.side)) : won && F.mode !== 'bot')) {
+    st.bzWins = (st.bzWins || 0) + 1;
+    if (st.bzWins === 1) setTimeout(() => toast('You beat a BeeZap! Claim the Bee Zapped medal in Ranks.', 4200), 1800);
+  }
   G.hist = G.hist || [];
   G.hist.unshift({ m: F.mode, a: F.me.id, b: F.foe.id, n: F.foe.name, r: F.mode === 'boss' && !won ? 'R' : draw && F.mode !== 'cup' ? 'D' : won ? 'W' : 'L', c: coins || 0, t: Date.now() });
   if (G.hist.length > 12) G.hist.length = 12;
@@ -6508,7 +6613,7 @@ function medalStats() {
     mythic: ids.filter(id => BALL[id] && BALL[id].rar === 'M').length,
     maxed: ids.filter(id => G.owned[id].lvl >= MAXLVL).length,
     mastery3: Object.keys(G.mast || {}).filter(id => stars(id) >= 3).length,
-    bstreak: G.bstreak || 0, cups: G.cups || 0, bossKills: G.bossKills || 0, bossBest: G.bossBest || 0, plv: G.plv || 1, peak: G.peak || 0,
+    bzWins: st.bzWins || 0, bstreak: G.bstreak || 0, cups: G.cups || 0, bossKills: G.bossKills || 0, bossBest: G.bossBest || 0, plv: G.plv || 1, peak: G.peak || 0,
   };
 }
 const MEDALS = [
@@ -6536,6 +6641,8 @@ const MEDALS = [
   ['lvl25', 'Level 25', 'Reach player level 25', s => s.plv >= 25, 1000],
   ['gold', 'Gold', 'Reach Gold rank', s => s.peak >= 500, 400],
   ['diamond', 'Diamond', 'Reach Diamond rank', s => s.peak >= 1400, 1000],
+  // [id, name, what to do, done?, coins, a free crate too]
+  ['beezap', 'Bee Zapped', 'Beat a BeeZap. Also gives a Mixed Crate', s => s.bzWins >= 1, 1500, 'mixed'],
 ];
 function medalsReady() { const s = medalStats(), got = G.medals || {}; return MEDALS.filter(m => !got[m[0]] && m[3](s)).length; }
 function claimMedal(id) {
@@ -6543,9 +6650,10 @@ function claimMedal(id) {
   G.medals = G.medals || {};
   if (!m || G.medals[id] || !m[3](s)) return;
   G.medals[id] = true; G.coins += m[4];
+  if (m[5]) G.free.push(m[5] + '@medal');
   const ups = addXp(40);
   save(); SFX.reveal(2);
-  toast(`${m[1]}: +${fmt(m[4])} coins` + (ups.length ? ' · ' + upText(ups[ups.length - 1]) : ''), 3000);
+  toast(`${m[1]}: +${fmt(m[4])} coins` + (m[5] ? ' and a ' + crateById(m[5]).name + ' (in Daily)' : '') + (ups.length ? ' · ' + upText(ups[ups.length - 1]) : ''), 3600);
   renderView();
 }
 const MEDAL_SVG = '<svg viewBox="0 0 24 24"><path d="M7 2h4l1 5H8zM13 2h4l-2 5h-3z" fill="#ff2d78"/><circle cx="12" cy="15" r="7" fill="currentColor" stroke="#0b0b0e" stroke-width="1.6"/><path d="M12 10.8l1.3 2.6 2.9.4-2.1 2 .5 2.9-2.6-1.4-2.6 1.4.5-2.9-2.1-2 2.9-.4z" fill="#0b0b0e" opacity=".55"/></svg>';
@@ -6570,7 +6678,7 @@ function historySection() {
   if (!hs.length) box.append(h('p', { class: 'empty', text: 'No fights yet.' }));
   for (const r of hs) {
     if (!BALL[r.a] || !BALL[r.b]) continue;
-    const mode = { pvp: 'Ranked', bot: 'Practice', cup: 'Cup', boss: 'Raid' }[r.m] || r.m;
+    const mode = { pvp: 'Ranked', bot: 'Practice', cup: 'Cup', boss: 'Raid', ffa: 'Free for all' }[r.m] || r.m;
     box.append(h('div', { class: 'hrow ' + r.r },
       h('span', { class: 'hr', text: { W: 'WIN', L: 'LOSS', D: 'DRAW', R: 'RAID' }[r.r] }),
       ballImg(r.a, 26, ''), h('span', { class: 'hv', text: 'vs' }), ballImg(r.b, 26, ''),
@@ -7482,6 +7590,220 @@ function crowdCheer() {
   });
 }
 
+// ===== free for all: eight balls in one box, last one standing ======================
+// Someone opens a lobby (their presence: ffa {id, h: 1, end, n}); others join it (ffa {id, at}).
+// After 30 seconds, or once it is full, the host fills the empty seats with bots and posts the
+// seating and a seed (ffa.go); every player then plays the same fight in their own browser.
+// Every open game is pinged when a lobby opens, and so is every other page on the site
+// (beeside-sound.js asks /api/brawl/ffa).
+const FFA_N = 8, FFA_WAIT = 30000;
+const FFA_PRIZE = [500, 300, 200, 120, 80, 60, 50, 50];   // free to enter; everyone gets something
+const FFA_TRO = [40, 25, 15, 5, 0, 0, 0, 0];
+const FFA = { lobby: null, sheet: null, timer: 0, seen: {}, card: null };
+function placeText(n) { return n + (n === 1 ? 'ST' : n === 2 ? 'ND' : n === 3 ? 'RD' : 'TH'); }
+function ffaNote() { return `Free for all: 1st ${FFA_PRIZE[0]} coins, 2nd ${FFA_PRIZE[1]}, 3rd ${FFA_PRIZE[2]}, and everyone gets at least ${FFA_PRIZE[FFA_N - 1]}.`; }
+
+// ---- in the fight: the other seven along the top, with their health ----------------------
+function ffaField(o) {
+  const box = h('div', { class: 'ffaf' });
+  box.rows = [];
+  o.all.forEach((p, side) => {
+    if (side === o.mySide) return;
+    const bar = h('b'), el = h('div', { class: 'fm' }, ballImg(p.id, 22, ''), h('span', { class: 'fn', text: p.name }), h('i', { class: 'fb' }, bar));
+    box.append(el); box.rows.push({ el, bar, side });
+  });
+  return box;
+}
+function ffaHud(F) {
+  const S = F.S, left = S.F.filter(f => f.alive).length;
+  for (const r of F.field.rows) { const f = S.F[r.side]; r.bar.style.width = clamp(f.hp / f.maxHp, 0, 1) * 100 + '%'; r.el.classList.toggle('out', !f.alive); }
+  F.leftEl.textContent = left + ' LEFT';
+  if (!S.F[F.mySide].alive && !F.outShown && !S.over) {
+    F.outShown = true;
+    showBanner(F, 'OUT · ' + placeText(left + 1), true, 'The rest fight on. Skip to see how it ends.');
+    setTimeout(() => { if (FIGHT === F && F.phase === 'run') showBanner(F, ''); }, 2400);
+    if (F.skip) F.skip.hidden = false;
+  }
+}
+
+// ---- lobbies ---------------------------------------------------------------------------
+// open lobbies other games are hosting
+function ffaLobbies() {
+  const now = Date.now();
+  return NET.others().filter(p => { const f = p.presence.ffa; return p.presence.st === 'f' && f && f.h && !f.go && f.end > now - 1500; })
+    .sort((a, b) => a.presence.ffa.end - b.presence.ffa.end);
+}
+// who is in my lobby, host first, then in the order they joined
+function ffaPeople() {
+  const L = FFA.lobby, me = { peer: NET.me(), name: myNick() || 'You', id: G.eq, lvl: lvlOf(G.eq), me: true };
+  const mem = NET.others().filter(p => { const f = p.presence.ffa; return p.presence.st === 'f' && f && f.id === L.id && !f.h; })
+    .sort((a, b) => ((a.presence.ffa.at || 0) - (b.presence.ffa.at || 0)) || (a.peer < b.peer ? -1 : 1))
+    .map(p => Object.assign(safePick(p.presence), { peer: p.peer, name: NET.nameFor(p.by, p.presence.nick) }));
+  if (L.host) return [me].concat(mem).slice(0, FFA_N);
+  const hp = NET.others().find(p => p.peer === L.hostPeer);
+  const host = hp ? Object.assign(safePick(hp.presence), { peer: hp.peer, name: NET.nameFor(hp.by, hp.presence.nick), host: true }) : null;
+  const list = (host ? [host] : []).concat(mem.map(m => m.peer === me.peer ? me : m));
+  if (!list.some(m => m.me)) list.push(me);
+  return list.slice(0, FFA_N);
+}
+// the big button: join the lobby that starts soonest, or open one (id: a lobby from an invite)
+function ffaOpen(id) {
+  if (!G.eq) { toast('You need a ball first. Open your free starter crate.'); return; }
+  if (FIGHT || FFA.lobby) return;
+  if (MM.active) { if (MM.sheet) { const s = MM.sheet.s; MM.sheet = null; s.onclose = null; closeSheet(s); } cancelMatch(); }
+  const open = ffaLobbies().filter(p => !id || p.presence.ffa.id === id);
+  if (open.length) ffaJoin(open[0]);
+  else if (id) toast('That free for all has already started. Start your own from the Fight tab.', 3600);
+  else ffaHost();
+}
+function ffaHost() {
+  const id = 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  FFA.lobby = { id, host: true, end: Date.now() + (Q.has('ffawait') ? +Q.get('ffawait') : FFA_WAIT), at: Date.now() };
+  NET.set({ st: 'f', ffa: { id, h: 1, end: FFA.lobby.end, n: 1 }, ball: G.eq, lvl: lvlOf(G.eq), want: null, mid: null, vs: null });
+  ffaSheet();
+}
+function ffaJoin(p) {
+  const f = p.presence.ffa;
+  FFA.seen[f.id] = true; ffaHideCard();
+  FFA.lobby = { id: f.id, host: false, hostPeer: p.peer, end: f.end, at: Date.now() };
+  NET.set({ st: 'f', ffa: { id: f.id, at: Date.now() }, ball: G.eq, lvl: lvlOf(G.eq), want: null, mid: null, vs: null });
+  ffaSheet();
+}
+function ffaLeave() {
+  clearInterval(FFA.timer);
+  FFA.lobby = null;
+  NET.set({ st: FIGHT ? 'm' : 'idle', ffa: null });
+  if (FFA.sheet) { const s = FFA.sheet.s; FFA.sheet = null; s.onclose = null; closeSheet(s); }
+}
+function ffaTick() {
+  const L = FFA.lobby;
+  if (!L || L.go) return;
+  const now = Date.now();
+  if (L.host) {
+    const n = ffaPeople().length;
+    if (NET.my.ffa && NET.my.ffa.n !== n) NET.set({ ffa: Object.assign({}, NET.my.ffa, { n }) });
+    if (now >= L.end || n >= FFA_N || L.now) { ffaGo(); return; }
+  } else {
+    const hp = NET.peers.find(x => x.peer === L.hostPeer), f = hp && hp.presence && hp.presence.ffa;
+    if (!f || f.id !== L.id) {
+      // the host's game went quiet: give it a few seconds (a reconnect), then call it off
+      L.lost = L.lost || now;
+      if (now - L.lost > 4000) { ffaLeave(); toast('The host left, so that free for all was called off.', 3600); }
+      return;
+    }
+    L.lost = 0; L.end = f.end;
+    if (f.go) {
+      L.go = true;
+      const side = Array.isArray(f.go.r) ? f.go.r.findIndex(r => r.p === NET.me()) : -1;
+      if (side < 0) { ffaLeave(); toast('That free for all filled up before you got a seat.', 3600); return; }
+      ffaStart(f.go, side);
+      return;
+    }
+  }
+  ffaSheetUpdate();
+}
+// the host seats everyone, fills the rest with bots and posts the seed
+function ffaGo() {
+  const L = FFA.lobby, seed = (Math.random() * 4294967296) >>> 0, lv = lvlOf(G.eq);
+  const r = ffaPeople().map(p => ({ p: p.peer, b: p.id, l: p.lvl, n: (p.me ? myNick() : p.name) || 'Player' }));
+  const pool = BALLS.filter(b => (b.rar !== 'M' || Math.random() < 0.2) && (b.rar !== 'S' || Math.random() < 0.05));
+  while (r.length < FFA_N) {
+    const b = pool[Math.floor(Math.random() * pool.length)];
+    r.push({ p: '', b: b.id, l: clamp(lv + Math.floor(Math.random() * 3) - 1, 1, MAXLVL), n: ghostName() });
+  }
+  // the seats are shuffled so the host is not always first
+  const rr = rng(seed);
+  for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(rr() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; }
+  L.go = true;
+  const go = { s: seed, r };
+  NET.set({ ffa: Object.assign({}, NET.my.ffa, { go }) });
+  if (FFA.sheet) FFA.sheet.status.textContent = 'STARTING...';
+  // a moment for everyone else to read the seating
+  setTimeout(() => { if (FFA.lobby === L) ffaStart(go, r.findIndex(x => x.p === NET.me())); }, 1200);
+}
+function ffaStart(go, side) {
+  clearInterval(FFA.timer);
+  if (FFA.sheet) { const s = FFA.sheet.s; FFA.sheet = null; s.onclose = null; closeSheet(s); }
+  const all = go.r.map(x => {
+    const b = BALL[x.b], id = b && (!b.hidden || b.giveOnly) ? x.b : 'sword';
+    return { id, lvl: clamp(Math.floor(+x.l) || 1, 1, MAXLVL), name: String(x.n || 'Player').slice(0, 16), bot: !x.p, peer: x.p || null };
+  });
+  if (side >= 0) all[side].name = NET.nameFor(null, myNick());
+  startFight({ mode: 'ffa', seed: go.s >>> 0, mySide: side, all, mid: FFA.lobby && FFA.lobby.id });
+  SFX.clang();
+}
+
+// ---- the lobby screen: eight seats filling up, and a countdown -------------------------
+function ffaSheet() {
+  const slots = h('div', { class: 'ffslots' }), status = h('p', { class: 'mmline ffwide' }), foot = h('div', { class: 'foot' });
+  if (FFA.lobby.host) foot.append(h('button', { class: 'btn2 on', text: 'START NOW', onclick: () => { if (FFA.lobby) FFA.lobby.now = true; ffaTick(); } }));
+  foot.append(h('button', { class: 'btn2', text: 'LEAVE', onclick: () => ffaLeave() }));
+  const s = sheet([
+    h('h2', { text: 'FREE FOR ALL' }),
+    h('div', { class: 'lsub', text: `${FFA_N} BALLS · ONE BOX · LAST ONE STANDING` }),
+    slots, status,
+    h('p', { class: 'mmline dimline ffwide', html: `FREE TO ENTER · 1ST ${COIN_SVG}${fmt(FFA_PRIZE[0])} · 2ND ${COIN_SVG}${fmt(FFA_PRIZE[1])} · 3RD ${COIN_SVG}${fmt(FFA_PRIZE[2])}` }),
+    foot]);
+  s.onclose = () => { FFA.sheet = null; if (FFA.lobby && !FFA.lobby.go) ffaLeave(); };
+  FFA.sheet = { s, slots, status, sig: '' };
+  clearInterval(FFA.timer);
+  FFA.timer = setInterval(ffaTick, 400);
+  ffaTick();
+}
+function ffaSheetUpdate() {
+  const ui = FFA.sheet, L = FFA.lobby;
+  if (!ui || !L) return;
+  const people = ffaPeople(), secs = Math.max(0, Math.ceil((L.end - Date.now()) / 1000));
+  const sig = people.map(p => p.peer + p.id).join('|');
+  if (sig !== ui.sig) {
+    ui.sig = sig;
+    if (ui.count && people.length > ui.count) SFX.pop();
+    ui.count = people.length;
+    ui.slots.replaceChildren(...Array.from({ length: FFA_N }, (_, i) => {
+      const p = people[i];
+      if (!p) return h('div', { class: 'ffslot empty' }, h('span', { class: 'q', text: '?' }), h('b', { text: 'OPEN SEAT' }), h('small', { text: 'A BOT IF NOBODY JOINS' }));
+      return h('div', { class: 'ffslot' + (p.me ? ' me' : '') }, ballImg(p.id, 44, ''), h('b', { text: p.name }),
+        h('small', { text: (p.me ? 'YOU' : p.host || (L.host && i === 0) ? 'HOST' : 'PLAYER') + ' · ' + BALL[p.id].name.toUpperCase() }));
+    }));
+  }
+  ui.status.textContent = `STARTING IN ${secs}s · ${people.length} OF ${FFA_N} PLAYERS · EMPTY SEATS GET BOTS`;
+}
+
+// ---- the ping: someone opened a lobby, so every open game offers to join it -------------
+function ffaWatch() {
+  if (!NET.room) return;
+  const open = FFA.lobby ? [] : ffaLobbies().filter(p => !FFA.seen[p.presence.ffa.id]);
+  const p = open[0];
+  if (!p || FIGHT) { ffaHideCard(); return; }   // during a fight it waits; it shows after if still open
+  const f = p.presence.ffa, name = NET.nameFor(p.by, p.presence.nick), secs = Math.max(0, Math.ceil((f.end - Date.now()) / 1000));
+  if (!FFA.card || FFA.card.id !== f.id) {
+    ffaHideCard();
+    const txt = h('p', {});
+    const card = h('div', { class: 'ffinv', role: 'alert' },
+      h('div', { class: 'h', text: 'FREE FOR ALL' }), txt,
+      h('div', { class: 'row' },
+        h('button', { class: 'btn2 on', text: 'JOIN', onclick: () => { SFX.ui(); ffaOpen(f.id); } }),
+        h('button', { class: 'btn2', text: 'NO THANKS', onclick: () => { FFA.seen[f.id] = true; ffaHideCard(); } })));
+    document.body.append(card);
+    FFA.card = { id: f.id, el: card, txt };
+    SFX.ping(); setTimeout(() => SFX.ping(), 180);
+  }
+  FFA.card.txt.textContent = `${name} started one: ${f.n || 1} of ${FFA_N} players, ${secs}s to join.`;
+}
+function ffaHideCard() { if (FFA.card) { FFA.card.el.remove(); FFA.card = null; } }
+setInterval(ffaWatch, 1000);
+// arriving from an invite on another page (/bounce-brawl?ffa=<id>): join it once the lobby shows up
+if (Q.has('ffa')) {
+  let tries = 0;
+  const want = Q.get('ffa'), go = () => {
+    if (FFA.lobby || FIGHT) return;
+    if (G.eq && ffaLobbies().some(p => p.presence.ffa.id === want)) { ffaOpen(want); return; }
+    if (++tries < 16) setTimeout(go, 500);
+    else if (G.eq) toast('That free for all has already started. Start your own from the Fight tab.', 3600);
+  };
+  setTimeout(go, 1200);
+}
+
 // ===== players online: presence, matchmaking, leaderboard =================
 // Everything goes through each viewer's presence (the platform's "who is here"
 // object), which every viewer may set. A match is two players who each name
@@ -7519,7 +7841,7 @@ const NET = {
     if (this.room) this.room.presence(patch).catch(() => {});
   },
   pushPresence() {
-    this.set({ app: 'bb', v: VERSION, nick: myNick() || null, ball: G.eq, lvl: G.eq ? lvlOf(G.eq) : 0, tro: G.tro, st: FIGHT ? 'm' : MM.active ? 'q' : 'idle', uid: ON_SITE ? myUid() : null });
+    this.set({ app: 'bb', v: VERSION, nick: myNick() || null, ball: G.eq, lvl: G.eq ? lvlOf(G.eq) : 0, tro: G.tro, st: FIGHT ? 'm' : FFA.lobby ? 'f' : MM.active ? 'q' : 'idle', uid: ON_SITE ? myUid() : null });
   },
   saveSoon() {
     if (!this.db || !this.uid || this.noSave) return;
@@ -7534,6 +7856,7 @@ const NET = {
     this.saving = false;
   },
   fightOver(F, forfeited) {
+    if (F.mode === 'ffa') { clearInterval(FFA.timer); FFA.lobby = null; this.set({ st: 'idle', ffa: null }); return; }
     if (F.mode !== 'pvp' && F.mode !== 'friendly') return;
     if (F.ghost) {
       MM.active = false; MM.match = null;
@@ -7942,7 +8265,7 @@ window.BB = {
     toast(BALL[id].name + ' added and equipped');
     return BALL[id].name + ' added and equipped';
   },
-  tab: setTab, find: findMatch, cancel: cancelMatch, ball: openBall, ghost: ghostMatch, xp: addXp, daily: () => { ensureDaily(); return G.quests; },
+  ffa: ffaOpen, ffaNow: () => { if (FFA.lobby) { FFA.lobby.now = true; ffaTick(); } }, tab: setTab, find: findMatch, cancel: cancelMatch, ball: openBall, ghost: ghostMatch, xp: addXp, daily: () => { ensureDaily(); return G.quests; },
 };
 
 boot();

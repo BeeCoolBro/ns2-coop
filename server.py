@@ -1770,6 +1770,59 @@ def brawl_name(v):
     return name
 
 
+BB_FFA_ID_RE = re.compile(r'[0-9a-z]{4,24}')
+BB_FFA_SEATS = 8
+
+
+def brawl_ffa(v):
+    """A free-for-all lobby in a presence: the host's {id, h: 1, end, n, go?} or a
+    player's {id, at}. go is the seating the host posts when it starts: a seed and
+    up to eight seats, each a player (their lobby id) or a bot (p: '')."""
+    if not isinstance(v, dict) or not isinstance(v.get('id'), str) or not BB_FFA_ID_RE.fullmatch(v['id']):
+        return None
+    out = {'id': v['id']}
+    if v.get('h') == 1:
+        out['h'] = 1
+        out['end'] = brawl_int(v.get('end'), 1, 10 ** 14)
+        out['n'] = brawl_int(v.get('n'), 1, BB_FFA_SEATS) or 1
+        if out['end'] is None:
+            return None
+    else:
+        out['at'] = brawl_int(v.get('at'), 1, 10 ** 14)
+    go = v.get('go')
+    if out.get('h') and isinstance(go, dict):
+        seed = brawl_int(go.get('s'), 0, 2 ** 32 - 1)
+        seats = go.get('r')
+        if seed is not None and isinstance(seats, list) and 2 <= len(seats) <= BB_FFA_SEATS:
+            r = []
+            for x in seats:
+                if not isinstance(x, dict):
+                    return None
+                peer = x.get('p') if isinstance(x.get('p'), str) and (x.get('p') == '' or BB_PEER_RE.fullmatch(x.get('p'))) else None
+                ball = x.get('b') if isinstance(x.get('b'), str) and re.fullmatch(r'[a-z]{1,16}', x.get('b')) else None
+                lvl = brawl_int(x.get('l'), 1, 7)
+                if peer is None or ball is None or lvl is None:
+                    return None
+                r.append({'p': peer, 'b': ball, 'l': lvl, 'n': brawl_name(x.get('n')) or 'Player'})
+            out['go'] = {'s': seed, 'r': r}
+    return out
+
+
+def brawl_ffa_open():
+    """Free-for-all lobbies still taking players, for the invite on every page of the site."""
+    now = time.time() * 1000
+    rows = []
+    with BB_LOCK:
+        for p in BB['peers']:
+            f = p.p.get('ffa')
+            if p.p.get('app') == 'bb' and p.p.get('st') == 'f' and f and f.get('h') and not f.get('go'):
+                left = (f['end'] - now) / 1000
+                if 0 < left <= 35:
+                    rows.append({'id': f['id'], 'name': p.p.get('nick') or 'Someone', 'n': f.get('n', 1), 'left': int(left)})
+    rows.sort(key=lambda r: r['left'])
+    return rows[:3]
+
+
 def brawl_clean(raw):
     """A presence update with only the fields the game uses, each checked;
     anything else is dropped. None means "remove this field"."""
@@ -1790,7 +1843,9 @@ def brawl_clean(raw):
         elif k == 'tro':
             out[k] = brawl_int(v, 0, 10 ** 7)
         elif k == 'st':
-            out[k] = v if v in ('idle', 'q', 'm') else 'idle'
+            out[k] = v if v in ('idle', 'q', 'm', 'f') else 'idle'
+        elif k == 'ffa':
+            out[k] = brawl_ffa(v)
         elif k == 'stake':
             out[k] = v if v in BB_STAKES else None
         elif k == 'qt':
@@ -2059,6 +2114,11 @@ class Handler(SimpleHTTPRequestHandler):
             if 'bounce-brawl' in closed_places():
                 return self.send_json(503, {'ok': False, 'error': 'Bounce Brawl is closed for a moment.'})
             return self.brawl_socket()
+        if route == '/api/brawl/ffa':
+            # open free-for-all lobbies: every page on the site offers to join them (beeside-sound.js)
+            if 'bounce-brawl' in closed_places():
+                return self.send_json(200, {'open': []})
+            return self.send_json(200, {'open': brawl_ffa_open()})
         if route == '/api/brawl':
             # Bounce Brawl's leaderboard: trophies from player-vs-player fights both players agreed on
             return self.send_json(200, {'board': brawl_board(), 'online': brawl_online(), 'ready': BB['loaded']})

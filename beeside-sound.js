@@ -145,3 +145,48 @@
   };
   window.BSND = S;
 })();
+
+/* Bounce Brawl's free for all: when someone opens a lobby, every page on the site
+   offers to join it. The game page has its own invite, so this one stays out of it. */
+(function () {
+  if (window.BBFFA || !/^https?:$/.test(location.protocol) || /^\/bounce-brawl/.test(location.pathname)) return;
+  window.BBFFA = true;
+  var seen = {}, card = null, shown = null, left = 0, tick = 0;
+  try { seen = JSON.parse(sessionStorage.getItem('bb-ffa-seen') || '{}') || {}; } catch (e) {}
+  function keep() { try { sessionStorage.setItem('bb-ffa-seen', JSON.stringify(seen)); } catch (e) {} }
+  function hide() { if (card) { card.remove(); card = null; shown = null; clearInterval(tick); } }
+  function el(tag, css, text) { var e = document.createElement(tag); if (css) e.style.cssText = css; if (text) e.textContent = text; return e; }
+  var BTN = 'font:700 13px/1 system-ui,sans-serif;letter-spacing:2px;padding:10px 14px;border-radius:8px;cursor:pointer;text-decoration:none;';
+  function show(l) {
+    hide();
+    shown = l.id; left = l.left;
+    card = el('div', 'position:fixed;right:16px;bottom:16px;z-index:2147483000;width:min(340px,calc(100vw - 32px));box-sizing:border-box;padding:14px 16px;border-radius:12px;background:#111116;border:1px solid #3a3a44;box-shadow:0 12px 34px rgba(0,0,0,.55);color:#e6e6ec;font:600 14px/1.4 system-ui,sans-serif;');
+    card.setAttribute('role', 'alert');
+    var h = el('div', 'font:800 15px/1 system-ui,sans-serif;letter-spacing:3px;color:#ffd633;', 'BOUNCE BRAWL · FREE FOR ALL');
+    var p = el('p', 'margin:8px 0 12px;color:#c8c8d0;');
+    var row = el('div', 'display:flex;gap:8px;');
+    var go = el('a', BTN + 'background:#ff2d78;color:#fff;border:0;', 'JOIN');
+    go.href = '/bounce-brawl?ffa=' + encodeURIComponent(l.id);
+    go.onclick = function () { seen[l.id] = 1; keep(); };
+    var no = el('button', BTN + 'background:transparent;color:#c8c8d0;border:1px solid #3a3a44;', 'NO THANKS');
+    no.onclick = function () { seen[l.id] = 1; keep(); hide(); };
+    row.appendChild(go); row.appendChild(no);
+    card.appendChild(h); card.appendChild(p); card.appendChild(row);
+    var say = function () { p.textContent = l.name + ' started a free for all: ' + l.n + ' of 8 players, ' + Math.max(0, left) + 's to join.'; if (left <= 0) hide(); };
+    say(); tick = setInterval(function () { left--; say(); }, 1000);
+    document.body.appendChild(card);
+    var B = window.BSND;
+    if (B && B.live()) { B.bell({ f: 1568, vol: 0.05 }); B.bell({ f: 1760, vol: 0.05, at: 0.18 }); }
+  }
+  function poll() {
+    if (document.hidden) return;
+    fetch('/api/brawl/ffa', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      var open = j && Array.isArray(j.open) ? j.open.filter(function (l) { return l && typeof l.id === 'string' && !seen[l.id]; }) : [];
+      if (!open.length) { if (shown) hide(); return; }
+      if (shown !== open[0].id) show(open[0]);
+      else { left = open[0].left; }
+    }).catch(function () {});
+  }
+  setTimeout(poll, 1500);
+  setInterval(poll, 7000);
+})();
