@@ -599,16 +599,15 @@ svg.mst.on { fill: var(--gold); }
 .promise { margin: -10px 0 16px; font-size: 13px; color: #8a8a94; font-weight: 600; }
 .promise b { font: 700 10px var(--fb); letter-spacing: 3px; color: var(--gold); margin-right: 6px; }
 .promise .mono { color: #ddd; }
-.bzw { position: absolute; z-index: 5; left: 50%; top: 50%; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 10px; padding: 18px 22px 16px; border-radius: 16px; background: rgba(6,6,8,.9); border: 1px solid var(--line2); animation: bzIn .35s var(--spring); width: min(320px, 82%); }
-.bzw.out { animation: bzOut .25s ease forwards; }
-@keyframes bzIn { from { opacity: 0; transform: translate(-50%, -50%) scale(.7); } }
-@keyframes bzOut { to { opacity: 0; transform: translate(-50%, -50%) scale(.85); } }
-.bzh { font: 400 18px/1 var(--fd); letter-spacing: 4px; color: #ffd60a; }
-.bzw.foe .bzh { color: #ff6b6b; }
-.bzwheel { position: relative; width: 100%; aspect-ratio: 1; }
-.bzwheel canvas { width: 100%; height: 100%; display: block; }
-.bzptr { position: absolute; left: 50%; top: -4px; transform: translateX(-50%); width: 0; height: 0; border-left: 13px solid transparent; border-right: 13px solid transparent; border-top: 22px solid #ffd60a; filter: drop-shadow(0 2px 0 #08080a); }
-.bzres { min-height: 22px; font: 400 22px/1 var(--fd); letter-spacing: 3px; color: #fff; text-align: center; }
+.arena canvas.bzring { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+.bzplq { position: absolute; z-index: 5; left: 50%; bottom: 3%; transform: translateX(-50%); display: grid; justify-items: center; gap: 5px; padding: 9px 16px 8px; min-width: 190px; border-radius: 10px; background: #16110a; border: 2px solid #b88a2c; box-shadow: 0 4px 0 #5c4210; animation: bzIn .4s var(--spring) .6s backwards; }
+.bzplq.out { animation: bzOut .3s ease forwards; }
+@keyframes bzIn { from { opacity: 0; transform: translateX(-50%) translateY(14px) scale(.85); } }
+@keyframes bzOut { to { opacity: 0; transform: translateX(-50%) translateY(10px) scale(.9); } }
+.bzh { font: 400 15px/1 var(--fd); letter-spacing: 4px; color: #ffd60a; }
+.bzplq.foe .bzh { color: #ff6b6b; }
+.bzres { font: 400 20px/1 var(--fd); letter-spacing: 3px; color: #fff; text-align: center; }
+.bzres:empty { display: none; }
 .bzres.pop { animation: popIn .45s var(--spring); }
 .confetti { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 70; pointer-events: none; }
 /* the VS screen: both sides slide in, VS slams down, then the halves part to show the fight */
@@ -2829,19 +2828,19 @@ BALL_LIST.push(
     },
     desc: 'Grins and bounces around, and every 5 seconds its grin confuses a nearby enemy. Below 20% health it throws a tantrum that blasts the enemy back, grows four spider legs and chases the enemy down, hitting 2.5x harder.' },
   // only from the give command: spins for a Mythic's power and a strength change at the start,
-  // then again every time it loses another 20% of its health
-  { id: 'beezap', name: 'BeeZap', rar: 'M', cat: 'trick', special: 1, hidden: 1, col: '#2b2440', hp: 180, upright: 1,
-    init(S, f) { f.bz = { next: 0.8 }; beezapRoll(S, f); },
-    desc: 'Spins two wheels at the start of the fight: one copies a Mythic ball\u2019s power, the other sets its strength from -10% to +10%. Every 20% of health it loses, it spins again.' },
+  // then again every time it loses another 35% of its health
+  { id: 'beezap', name: 'BeeZap', rar: 'M', cat: 'trick', special: 1, hidden: 1, giveOnly: 1, col: '#2b2440', hp: 210, upright: 1,
+    init(S, f) { f.bz = { next: 1 - BZ_EVERY }; beezapRoll(S, f); },
+    desc: 'Spins two wheels at the start of the fight: one copies a Mythic ball\u2019s power, the other sets its strength from -10% to +10%. Every 35% of health it loses, it spins again.' },
 );
-const BZ_STR = [-10, -5, 0, 5, 10];
+const BZ_STR = [-10, -5, 0, 5, 10], BZ_EVERY = 0.35;   // spins again at 65% and 30% health
 function bzPool() { return BALLS.filter(b => b.rar === 'M' && !b.boss && b.id !== 'copycat'); }
 // the spin: drops the last power (its weapons, timers and state) and takes a new one, like Copycat does
 function beezapRoll(S, f) {
   const pool = bzPool(), d = pool[Math.floor(S.rng() * pool.length)], str = BZ_STR[Math.floor(S.rng() * BZ_STR.length)];
   const me = BALL.beezap, mul = 1 + str / 100;
   f.wep = []; f.u = {}; f.cd = {};
-  f.def = Object.assign({}, d, { id: me.id, name: me.name, col: me.col, rar: me.rar, cat: me.cat, special: 1, hidden: 1, upright: 1, copied: d.id,
+  f.def = Object.assign({}, d, { id: me.id, name: me.name, col: me.col, rar: me.rar, cat: me.cat, special: 1, hidden: 1, giveOnly: 1, upright: 1, copied: d.id,
     dmgMod: d.dmgMod ? (S2, f2, t, k) => mul * d.dmgMod(S2, f2, t, k) : () => mul,
     always: d.always ? (S2, f2, dt) => { d.always(S2, f2, dt); bzCheck(S2, f2); } : bzCheck });
   f.contact = d.contact || 1; f.armor = d.armor || 0; f.marmor = d.marmor || 0;
@@ -2852,7 +2851,8 @@ function beezapRoll(S, f) {
 }
 function bzCheck(S, f) {
   if (!f.alive || f.bz.next <= 0 || f.hp > f.maxHp * f.bz.next) return;
-  f.bz.next = (Math.ceil(f.hp / f.maxHp * 5) - 1) / 5;   // a big hit past two marks still spins once
+  do f.bz.next = Math.round((f.bz.next - BZ_EVERY) * 100) / 100;   // a big hit past two marks still spins once
+  while (f.bz.next > 0 && f.hp <= f.maxHp * f.bz.next);
   beezapRoll(S, f);
 }
 for (const b of BALL_LIST) BALL[b.id] = b;
@@ -6517,6 +6517,10 @@ function raidCard() {
 // ===== BeeZap: the headphone bee, and the two wheels it spins ===============
 // The sim picks the power and the strength (S.rng, so both players get the same);
 // the fight screen stops stepping while the wheels spin to what it picked.
+// The spin: the box freezes (it greys out, honeycomb sets over it from BeeZap,
+// sparks crackle round it), shrinks into the middle, and a prize wheel turns
+// round it. The real arena canvas keeps drawing underneath, hidden; the wheel's
+// own canvas shows a shrunken copy of it.
 let BEE_CV = null;
 function beeCanvas() {
   if (BEE_CV) return BEE_CV;
@@ -6528,82 +6532,197 @@ function beeCanvas() {
 }
 ART.beezap = c => { c.imageSmoothingQuality = 'high'; c.drawImage(beeCanvas(), -37, -36, 74, 74); };
 
-const BZ_SPIN = [2.0, 1.5], BZ_HOLD = [0.7, 0.9];
-const BZ_STR_COL = { '-10': '#ff4646', '-5': '#ff9a3c', '0': '#8a8a96', '5': '#7bd23a', '10': '#2fd67a' };
+const BZ_IN = 1.05, BZ_SPIN = [2.0, 1.5], BZ_HOLD = [0.6, 0.8], BZ_OUT = 0.7, BZ_SHRINK = 0.5;
+const BZ_STR_COL = { '-10': '#c8283a', '-5': '#d9762a', '0': '#5b5b66', '5': '#4f9a2a', '10': '#1f9a58' };
+const BZ_CASINO = ['#a3122a', '#16161c'];
 function strText(n) { return (n > 0 ? '+' : '') + n + '%'; }
+const ease = q => 1 - Math.pow(1 - clamp(q, 0, 1), 3);
+const easeIO = q => { q = clamp(q, 0, 1); return q < 0.5 ? 4 * q * q * q : 1 - Math.pow(-2 * q + 2, 3) / 2; };
 
-// the next spin waiting in F.wheelQ goes up over the box
+// honeycomb cells over the box, in arena units
+const BZ_HEX = (() => {
+  const s = 24, out = [], w = s * Math.sqrt(3);
+  for (let row = -1, y = 0; y < ARENA + s * 2; row++, y = row * s * 1.5) for (let x = (row & 1) * w / 2 - w; x < ARENA + w; x += w) out.push([x, y]);
+  return { s, cells: out };
+})();
+
+// the next spin waiting in F.wheelQ
 function openWheel(F) {
   const e = F.wheelQ.shift();
   if (!e) { F.wheel = null; return; }
-  const mine = e.side === F.mySide;
-  const cv = h('canvas', { width: 520, height: 520 });
+  const mine = e.side === F.mySide, wrap = F.root.querySelector('.arena');
+  const cv = h('canvas', { class: 'bzring', 'aria-hidden': 'true' });
   const res = [h('div', { class: 'bzres' }), h('div', { class: 'bzres' })];
-  const el = h('div', { class: 'bzw' + (mine ? ' you' : ' foe') },
-    h('div', { class: 'bzh', text: (mine ? 'YOUR' : 'THEIR') + ' BEEZAP SPINS' }),
-    h('div', { class: 'bzwheel' }, cv, h('i', { class: 'bzptr' })), ...res);
-  F.root.querySelector('.arena').append(el);
-  F.wheel = { e, el, cv, res, stage: 0, t: 0, last: -1 };
-  bzSetup(F.wheel);
-  SFX.charge();
+  const plq = h('div', { class: 'bzplq' + (mine ? '' : ' foe') }, h('div', { class: 'bzh', text: (mine ? 'YOUR' : 'THEIR') + ' BEEZAP SPINS' }), ...res);
+  wrap.append(cv, plq);
+  const f = F.S.F[e.side];
+  F.wheel = { e, cv, plq, res, T: 0, stage: -1, t: 0, last: -1, ang: 0, speed: 0, at: [f.x, f.y], zap: [], zapT: 0, out: 0 };
+  SFX.freeze(); SFX.charge();
 }
-// the segments for this stage, and the angle that puts the picked one under the pointer
-function bzSetup(W) {
+// the segments for this stage, and the turn that stops the picked one under the flapper
+function bzSetup(W, stage) {
   const e = W.e;
-  W.segs = W.stage === 0 ? e.opts : BZ_STR;
-  const i = W.segs.indexOf(W.stage === 0 ? e.pow : e.str), n = W.segs.length, seg = TAU / n;
-  const jitter = (Math.random() - 0.5) * seg * 0.6;
-  W.to = (W.stage === 0 ? 5 : 4) * TAU - (i + 0.5) * seg + jitter;
-  W.t = 0; W.last = -1;
+  W.stage = stage; W.t = 0; W.landed = false; W.last = -1;
+  W.segs = stage === 0 ? e.opts : BZ_STR;
+  const i = W.segs.indexOf(stage === 0 ? e.pow : e.str), seg = TAU / W.segs.length;
+  W.from = W.ang % TAU;
+  W.to = W.from + (stage === 0 ? 5 : 4) * TAU + (((-(i + 0.5) * seg - W.from) % TAU) + TAU) % TAU + (Math.random() - 0.5) * seg * 0.6;
 }
-function bzDraw(W, ang) {
-  const c = W.cv.getContext('2d'), R = 236, n = W.segs.length, seg = TAU / n;
-  c.setTransform(1, 0, 0, 1, 260, 260); c.clearRect(-260, -260, 520, 520);
-  c.rotate(ang - HALF_PI);
+
+function bzDraw(F, W, shrink, ring, freeze) {
+  const A = F.arena, cv = W.cv, r = cv.getBoundingClientRect(), dpr = A.dpr || 1;
+  const w = Math.max(1, Math.round(r.width * dpr)), hh = Math.max(1, Math.round(r.height * dpr));
+  if (cv.width !== w || cv.height !== hh) { cv.width = w; cv.height = hh; }
+  const c = cv.getContext('2d');
+  c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, w, hh);
+  const k = A.k, cx = A.ox + ARENA * k / 2, cy = A.oy + ARENA * k / 2, S = Math.min(w, hh);
+  const sc = 1 - (1 - BZ_SHRINK) * shrink;
+  // the box, frozen: a grey copy of the live arena, shrunk about its middle
+  c.save();
+  c.translate(cx, cy); c.scale(sc, sc); c.translate(-cx, -cy);
+  c.filter = `grayscale(${freeze.toFixed(2)}) brightness(${(1 - 0.28 * freeze).toFixed(2)}) contrast(${(1 + 0.15 * freeze).toFixed(2)})`;
+  c.drawImage(A.cv, 0, 0);
+  c.filter = 'none';
+  // honeycomb sets over it, spreading out from BeeZap
+  c.beginPath(); c.rect(A.ox, A.oy, ARENA * k, ARENA * k); c.clip();
+  c.translate(A.ox, A.oy); c.scale(k, k);
+  const reach = W.hexR, s = BZ_HEX.s;
+  c.lineWidth = 1.6 / k * dpr;
+  for (const [x, y] of BZ_HEX.cells) {
+    const d = Math.hypot(x - W.at[0], y - W.at[1]);
+    if (d > reach) continue;
+    const edge = clamp((reach - d) / 90, 0, 1), a = freeze * (0.35 + 0.65 * (1 - edge * 0.6));
+    c.beginPath();
+    for (let i = 0; i < 6; i++) { const t = PI / 6 + i * PI / 3, px = x + Math.cos(t) * s * 0.96, py = y + Math.sin(t) * s * 0.96; i ? c.lineTo(px, py) : c.moveTo(px, py); }
+    c.closePath();
+    c.fillStyle = `rgba(255,176,32,${(0.1 * a).toFixed(3)})`; c.fill();
+    c.strokeStyle = `rgba(255,${Math.round(190 + 60 * (1 - edge))},${Math.round(70 + 150 * (1 - edge))},${(0.55 * a).toFixed(3)})`; c.stroke();
+  }
+  // sparks crackling round the frozen box
+  c.lineJoin = 'round';
+  for (const z of W.zap) {
+    c.beginPath(); c.moveTo(z[0], z[1]); for (let i = 2; i < z.length; i += 2) c.lineTo(z[i], z[i + 1]);
+    c.globalAlpha = freeze; c.lineWidth = 5; c.strokeStyle = '#ffd60a'; c.stroke();
+    c.lineWidth = 1.8; c.strokeStyle = '#ffffff'; c.stroke(); c.globalAlpha = 1;
+  }
+  c.restore();
+  // the flash as it hits
+  if (W.T < 0.3 && !W.out) { c.fillStyle = `rgba(255,250,225,${(0.55 * (1 - W.T / 0.3)).toFixed(3)})`; c.fillRect(0, 0, w, hh); }
+  if (ring > 0 && W.segs) bzWheel(c, W, cx, cy, S, ring, dpr);
+}
+// the prize wheel: brass rim and bulbs, red and black pockets, gold pegs, a flapper on top
+function bzWheel(c, W, cx, cy, S, ring, dpr) {
+  const Ro = S / 2 - 2 * dpr, Ri = S * BZ_SHRINK * 0.7071 + 3 * dpr, rim = S * 0.042, Rs = Ro - rim;
+  const n = W.segs.length, seg = TAU / n, pop = 1 + (1 - ring) * 0.25;
+  c.save(); c.globalAlpha = ring;
+  c.translate(cx, cy); c.scale(pop, pop);
+  // brass rim
+  c.beginPath(); c.arc(0, 0, Ro, 0, TAU); c.arc(0, 0, Rs, 0, TAU, true); c.fillStyle = '#b88a2c'; c.fill();
+  c.lineWidth = 2 * dpr; c.strokeStyle = '#5c4210'; c.beginPath(); c.arc(0, 0, Ro, 0, TAU); c.stroke(); c.beginPath(); c.arc(0, 0, Rs, 0, TAU); c.stroke();
+  // chasing bulbs: they run while it spins and all blink when it lands
+  const NB = 36, run = Math.floor(W.ang * 2.2 + W.T * 6);
+  for (let i = 0; i < NB; i++) {
+    const a = i * TAU / NB, on = W.landed ? Math.floor(W.t * 8) % 2 === 0 : (i + run) % 3 === 0;
+    circ(c, Math.cos(a) * (Ro - rim / 2), Math.sin(a) * (Ro - rim / 2), rim * 0.26);
+    c.fillStyle = on ? '#fff3c4' : '#5e4a1c'; c.fill(); c.lineWidth = 1 * dpr; c.strokeStyle = '#3d2c08'; c.stroke();
+  }
+  // the pockets
+  c.save(); c.rotate(W.ang - HALF_PI);
   for (let i = 0; i < n; i++) {
     const s = W.segs[i], a0 = i * seg;
-    c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, R, a0, a0 + seg); c.closePath();
-    c.fillStyle = W.stage === 0 ? shade(BALL[s].col, i % 2 ? -0.35 : -0.15) : shade(BZ_STR_COL[s], i % 2 ? -0.3 : -0.1);
-    c.fill(); c.lineWidth = 4; c.strokeStyle = '#08080a'; c.stroke();
+    c.beginPath(); c.arc(0, 0, Rs, a0, a0 + seg); c.arc(0, 0, Ri, a0 + seg, a0, true); c.closePath();
+    c.fillStyle = W.stage === 0 ? BZ_CASINO[i % 2] : BZ_STR_COL[s]; c.fill();
     c.save(); c.rotate(a0 + seg / 2);
-    if (W.stage === 0) drawBall(c, BALL[s], R * 0.66, 0, 34, null, 0, HALF_PI);
-    else { c.translate(R * 0.64, 0); c.rotate(HALF_PI); c.font = `400 50px ${FONT_D}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#ffffff'; c.fillText(strText(s), 0, 0); }
+    const mid = (Rs + Ri) / 2, band = Rs - Ri;
+    if (W.stage === 0) { c.translate(mid, 0); c.rotate(HALF_PI); drawBall(c, BALL[s], 0, 0, band * 0.3, null, 0); }
+    else { c.translate(mid, 0); c.rotate(HALF_PI); c.font = `400 ${Math.round(band * 0.36)}px ${FONT_D}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#ffffff'; c.fillText(strText(s), 0, 0); }
     c.restore();
+    // a gold divider and a peg at its outer end
+    c.beginPath(); c.moveTo(Math.cos(a0) * Ri, Math.sin(a0) * Ri); c.lineTo(Math.cos(a0) * Rs, Math.sin(a0) * Rs);
+    c.lineWidth = 2.5 * dpr; c.strokeStyle = '#d9a93a'; c.stroke();
+    circ(c, Math.cos(a0) * (Rs - rim * 0.3), Math.sin(a0) * (Rs - rim * 0.3), rim * 0.22); c.fillStyle = '#f0c75a'; c.fill();
   }
-  c.setTransform(1, 0, 0, 1, 260, 260);
-  circ(c, 0, 0, R); c.lineWidth = 8; c.strokeStyle = '#08080a'; c.stroke();
-  circ(c, 0, 0, 42); c.fillStyle = '#121016'; c.fill(); c.lineWidth = 4; c.strokeStyle = '#ffd60a'; c.stroke();
-  c.save(); c.scale(0.5, 0.5); c.drawImage(beeCanvas(), -60, -60, 120, 120); c.restore();
+  c.restore();
+  c.beginPath(); c.arc(0, 0, Ri, 0, TAU); c.lineWidth = 4 * dpr; c.strokeStyle = '#d9a93a'; c.stroke();
+  // the flapper, knocked aside as each peg goes by
+  const frac = (((W.ang % seg) + seg) % seg) / seg, kick = W.landed ? 0 : Math.max(0, 1 - frac / 0.3) * 0.5 * clamp(W.speed / 6, 0.3, 1);
+  c.save(); c.translate(0, -Ro + rim * 0.2); c.rotate(-kick);
+  c.beginPath(); c.moveTo(-rim * 0.55, -rim * 0.15); c.lineTo(rim * 0.55, -rim * 0.15); c.lineTo(0, rim * 1.9); c.closePath();
+  c.fillStyle = '#e8203a'; c.fill(); c.lineWidth = 2 * dpr; c.strokeStyle = '#3d0a12'; c.stroke();
+  circ(c, 0, 0, rim * 0.28); c.fillStyle = '#f0c75a'; c.fill(); c.stroke();
+  c.restore();
+  c.restore();
 }
-// called from fightFrame while a wheel is up; the fight doesn't step until it closes
+// fresh jagged sparks along the box's edges and across it
+function bzSparks(W) {
+  W.zap = [];
+  for (let n = 0; n < 4; n++) {
+    const side = Math.floor(Math.random() * 4), t0 = Math.random() * ARENA, len = 90 + Math.random() * 160;
+    const pts = [], steps = 7;
+    for (let i = 0; i <= steps; i++) {
+      const u = t0 + (i / steps) * len, j = (Math.random() - 0.5) * 26;
+      pts.push(...(side === 0 ? [u, 6 + Math.abs(j)] : side === 1 ? [ARENA - 6 - Math.abs(j), u] : side === 2 ? [u, ARENA - 6 - Math.abs(j)] : [6 + Math.abs(j), u]));
+    }
+    W.zap.push(pts);
+  }
+  if (Math.random() < 0.5) {
+    const pts = [], [x0, y0] = W.at, a = Math.random() * TAU;
+    for (let i = 0; i <= 6; i++) pts.push(x0 + Math.cos(a) * i * 34 + (Math.random() - 0.5) * 30, y0 + Math.sin(a) * i * 34 + (Math.random() - 0.5) * 30);
+    W.zap.push(pts);
+  }
+}
+// called from fightFrame while a spin is on; the fight doesn't step until it ends
 function wheelFrame(F, dt) {
-  const W = F.wheel, dur = BZ_SPIN[W.stage], hold = BZ_HOLD[W.stage];
+  const W = F.wheel, A = F.arena;
+  W.T += dt;
+  A.cv.style.opacity = '0';
+  if ((W.zapT -= dt) <= 0) { W.zapT = 0.07 + Math.random() * 0.06; bzSparks(W); }
+  // the way out: the wheel goes, the box grows back and thaws
+  if (W.out) {
+    W.out += dt;
+    const q = W.out / BZ_OUT;
+    W.hexR = 1400;
+    bzDraw(F, W, 1 - easeIO((q - 0.15) / 0.75), 1 - ease(q / 0.4), 1 - ease((q - 0.35) / 0.65));
+    if (q < 1) return;
+    A.cv.style.opacity = '';
+    W.cv.remove(); W.plq.remove();
+    F.wheel = null;
+    if (F.wheelQ.length) openWheel(F);
+    return;
+  }
+  // the way in: freeze, then shrink, then the wheel turns up round it
+  W.hexR = ease(W.T / 0.7) * 1400;
+  if (W.T < BZ_IN) {
+    if (!W.segs) bzSetup(W, 0);
+    bzDraw(F, W, easeIO((W.T - 0.4) / 0.6), ease((W.T - 0.6) / 0.45), ease(W.T / 0.25));
+    return;
+  }
+  const stage = W.stage, dur = BZ_SPIN[stage], hold = BZ_HOLD[stage];
   W.t += dt;
-  const q = Math.min(1, W.t / dur), ang = W.to * (1 - Math.pow(1 - q, 3));
-  bzDraw(W, ang);
-  const idx = Math.floor((ang + 1e-6) / (TAU / W.segs.length));
-  if (idx !== W.last && q < 1) { W.last = idx; SFX.tick(0.3 + q * 0.5); }
+  const q = clamp(W.t / dur, 0, 1), prev = W.ang;
+  W.ang = W.from + (W.to - W.from) * ease(q);
+  W.speed = dt > 0 ? (W.ang - prev) / dt : 0;
+  const idx = Math.floor(W.ang / (TAU / W.segs.length));
+  if (idx !== W.last && q > 0 && q < 1) { W.last = idx; SFX.tick(0.3 + q * 0.5); }
   if (q >= 1 && !W.landed) {
     W.landed = true;
-    const e = W.e;
-    const r = W.res[W.stage];
-    r.textContent = W.stage === 0 ? `COPIED: ${BALL[e.pow].name.toUpperCase()}` : `STRENGTH ${strText(e.str)}`;
-    r.style.color = W.stage === 0 ? shade(BALL[e.pow].col, 0.35) : BZ_STR_COL[e.str];
+    const e = W.e, r = W.res[stage];
+    r.textContent = stage === 0 ? `COPIED: ${BALL[e.pow].name.toUpperCase()}` : `STRENGTH ${strText(e.str)}`;
+    r.style.color = stage === 0 ? shade(BALL[e.pow].col, 0.35) : shade(BZ_STR_COL[e.str], 0.35);
     r.classList.add('pop');
-    SFX.reveal(W.stage === 0 ? 3 : 1);
+    SFX.reveal(stage === 0 ? 3 : 1);
   }
+  bzDraw(F, W, 1, 1, 1);
   if (W.t < dur + hold) return;
-  if (W.stage === 0) { W.stage = 1; W.landed = false; bzSetup(W); return; }
-  // both wheels done: say what it has now on its plate, then let the fight go on
+  if (stage === 0) { bzSetup(W, 1); SFX.charge(); return; }
+  // both spins done: its plate says what it has now, then the box comes back
   const p = F.plates[W.e.side === F.mySide ? 0 : 1], bn = p && p.querySelector('.bn');
   if (bn) bn.textContent = `BeeZap · ${BALL[W.e.pow].name} ${strText(W.e.str)}`;
-  W.el.classList.add('out');
-  const el = W.el; setTimeout(() => el.remove(), 250);
-  F.wheel = null;
-  if (F.wheelQ.length) openWheel(F);
+  W.plq.classList.add('out');
+  W.out = 1e-6;
 }
 function closeWheels(F) {
-  if (F.wheel) F.wheel.el.remove();
+  if (F.wheel) { F.wheel.cv.remove(); F.wheel.plq.remove(); F.arena.cv.style.opacity = ''; }
   F.wheel = null; F.wheelQ = [];
 }
 
@@ -6744,7 +6863,8 @@ function mmTick() {
   }
 }
 function safePick(pr) {
-  const id = BALL[pr.ball] && !BALL[pr.ball].hidden ? pr.ball : 'sword';
+  // hidden balls (the raid bosses) can't be brought to a fight; give-only ones like BeeZap can
+  const b = BALL[pr.ball], id = b && (!b.hidden || b.giveOnly) ? pr.ball : 'sword';
   return { id, lvl: clamp(Math.floor(+pr.lvl) || 1, 1, MAXLVL) };
 }
 function beginMatch(p, mid) {
