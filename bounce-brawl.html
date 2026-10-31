@@ -706,6 +706,35 @@ svg.mst.on { fill: var(--gold); }
 .bside input[type=range] { width: 100%; accent-color: var(--gold); }
 .bside .foot { justify-content: flex-start; margin: 0; }
 @media (max-width: 760px) { .bwrap { grid-template-columns: 1fr; } .brgrid { max-height: 34vh; } }
+/* ---- the tutorial: a spotlight, a speech bubble and the bee ---- */
+#tour { position: fixed; inset: 0; z-index: 120; opacity: 0; transition: opacity .3s ease; }
+#tour.on { opacity: 1; }
+#tour .tscrim { position: fixed; inset: 0; background: rgba(3,3,6,.72); transition: opacity .35s ease; }
+#tour.spot .tscrim { opacity: 0; }
+#tour .tring { position: fixed; left: 50%; top: 50%; width: 0; height: 0; border-radius: 14px; opacity: 0; pointer-events: none; box-shadow: 0 0 0 200vmax rgba(3,3,6,.72); transition: left .45s var(--ease), top .45s var(--ease), width .45s var(--ease), height .45s var(--ease), opacity .3s ease; }
+#tour.spot .tring { opacity: 1; }
+#tour .tring::after { content: ""; position: absolute; inset: -5px; border-radius: inherit; border: 2px solid #ffd633; animation: tourRing 1.6s ease-out infinite; }
+@keyframes tourRing { from { opacity: .9; transform: scale(1); } to { opacity: 0; transform: scale(1.04); } }
+#tour .tbub { position: fixed; z-index: 2; width: min(360px, calc(100vw - 24px)); box-sizing: border-box; padding: 16px 18px 14px; border-radius: 14px; background: #111116; border: 1px solid #3a3a44; box-shadow: 0 14px 40px rgba(0,0,0,.6); transition: left .45s var(--ease), top .45s var(--ease); }
+#tour .tbub.swap .tcontent { animation: tourSwap .3s var(--ease); }
+@keyframes tourSwap { from { opacity: 0; transform: translateY(5px); } }
+#tour .thead { display: flex; align-items: center; margin-bottom: 8px; }
+#tour .tnum { font: 400 12px/1 var(--fm); letter-spacing: 2px; color: #ffd633; }
+#tour .tskip { margin-left: auto; padding: 4px 2px; border: 0; background: none; cursor: pointer; font: 700 11px/1 var(--fb); letter-spacing: 2px; color: var(--mute); }
+#tour .tskip:hover { color: var(--txt); }
+#tour .tskip[hidden], #tour .btn2[hidden] { display: none; }
+#tour .ttitle { font: 400 28px/1.05 var(--fd); letter-spacing: 2px; color: var(--txt); margin-bottom: 6px; }
+#tour .tbody { color: #c8c8d0; font-size: 15px; font-weight: 600; line-height: 1.45; }
+#tour .tbtns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+#tour .tbee { position: fixed; z-index: 3; width: 92px; height: 92px; cursor: pointer; transition: left .45s var(--ease), top .45s var(--ease); animation: tourHover 2.4s ease-in-out infinite; filter: drop-shadow(0 6px 10px rgba(0,0,0,.5)); }
+#tour .tbee:focus-visible { outline: 2px solid #ffd633; outline-offset: 4px; border-radius: 50%; }
+#tour .tbee.wig { animation: tourWig .5s ease-in-out, tourHover 2.4s ease-in-out .5s infinite; }
+@keyframes tourHover { 0%, 100% { translate: 0 0; } 50% { translate: 0 -8px; } }
+@keyframes tourWig { 0%, 100% { rotate: 0deg; } 25% { rotate: -12deg; scale: 1.08; } 75% { rotate: 12deg; scale: 1.08; } }
+#tour .tform { display: flex; gap: 8px; margin-top: 4px; }
+#tour .tsecret { flex: 1; min-width: 0; box-sizing: border-box; padding: 10px 12px; border-radius: 8px; border: 1px solid #3a3a44; background: #0a0a0d; color: var(--txt); font: 400 15px var(--fm); letter-spacing: 1px; text-transform: uppercase; }
+#tour .tsecret:focus { outline: none; border-color: #ffd633; }
+@media (prefers-reduced-motion: reduce) { #tour .tbee, #tour .tbee.wig, #tour .tring::after { animation: none; } #tour .tring, #tour .tbub, #tour .tbee { transition: none; } }
 .slotplq { position: absolute; width: 1px; height: 1px; min-width: 0; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); animation: none; }
 .crowd { position: fixed; left: 0; right: 0; bottom: 0; z-index: 80; pointer-events: none; transform: translateY(110%); will-change: transform; }
 .crowd canvas { display: block; width: 100%; }
@@ -6446,6 +6475,8 @@ function panelSettings() {
     h('div', { class: 'st-row' }, h('div', {}, h('div', { class: 'l', text: 'SOUND EFFECTS' }), h('div', { class: 'd', text: 'Hits, clangs, explosions' })), seg([[true, 'ON'], [false, 'OFF']], G.sfx, v => { G.sfx = v; SFX.sfx = v; })),
     h('div', { class: 'st-row' }, h('div', {}, h('div', { class: 'l', text: 'MUSIC' }), h('div', { class: 'd', text: 'Menu and fight music' })), seg([[true, 'ON'], [false, 'OFF']], G.music, v => { G.music = v; SFX.music = v; if (v) { SFX.resume(); MUSIC.play(FIGHT ? fightSong() : 'menu'); } })),
     h('div', { class: 'sec', text: 'Arena' }), skinPicker(),
+    h('div', { class: 'sec', text: 'Help' }),
+    h('div', { class: 'st-row' }, h('div', {}, h('div', { class: 'l', text: 'TUTORIAL' }), h('div', { class: 'd', text: 'The bee shows you around again' })), h('button', { class: 'btn2', text: 'REPLAY TUTORIAL', onclick: () => startTour() })),
     h('div', { class: 'sec', text: 'Danger zone' }), reset);
   return p;
 }
@@ -8105,49 +8136,22 @@ function bzChaos(F, dt) {
 
 // ---- locked in the collection until someone types the keyphrase --------------------
 // Only the phrase's SHA-256 is here, so reading the page's code doesn't give it away.
-const BZ_KEY = '63b8f1d894b583c32b59f679500673957ed235f2fa0cb85863a8f97250e643a4';
+const BZ_KEY = '468fcc281527de3250178e00cdb55cc79cc3c0278294def3c0bbb07483b74305';
 async function sha256(s) {
   const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
   return [...new Uint8Array(d)].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 function lockedBall(id) {
   const L = 'Locked';
-  const inp = h('input', { class: 'keyin', id: 'keyphrase', type: 'text', maxlength: 40, placeholder: 'Type the keyphrase', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', 'aria-label': 'Keyphrase' });
-  const msg = h('div', { class: 'keymsg', role: 'status', text: '' });
-  const box = h('div', { class: 'box keybox' }, h('div', { class: 'h', text: 'Keyphrase' }), h('div', { class: 'keyrow' }, inp, h('button', { class: 'btn2 on', text: 'UNLOCK', onclick: () => tryKey() })), msg);
-  const s = sheet([
+  sheet([
     h('h2', { text: 'LOCKED' }), h('div', { class: 'lsub', text: 'LOCKED · LOCKED' }),
     h('div', { class: 'detail' },
       h('div', { class: 'stage lockstage' }, ballImg(id, 220, 'A locked ball')),
       h('div', {},
         h('div', { class: 'box' }, h('div', { class: 'h', text: 'Ability' }), h('p', { style: { margin: 0, color: '#c8c8d0', fontSize: '15px', maxWidth: 'none' }, text: L })),
         h('div', { class: 'box' }, h('div', { class: 'h', text: 'Stats' }),
-          h('dl', { class: 'kv' }, ...['Health', 'Damage', 'Copies', 'Found in', 'Mastery'].flatMap(k => [h('dt', { text: k }), h('dd', { text: L })]))),
-        box)),
+          h('dl', { class: 'kv' }, ...['Health', 'Damage', 'Copies', 'Found in', 'Mastery'].flatMap(k => [h('dt', { text: k }), h('dd', { text: L })]))))),
     h('div', { class: 'foot' }, h('span', { class: 'lab', text: L }))]);
-  let busy = false;
-  async function tryKey() {
-    if (busy) return;
-    const v = inp.value.trim().toUpperCase();
-    if (!v) { inp.focus(); return; }
-    if (!(window.crypto && crypto.subtle)) { msg.textContent = "Keyphrases can't be checked on this page."; return; }
-    busy = true;
-    const ok = (await sha256(v)) === BZ_KEY;
-    busy = false;
-    if (!ok) {
-      msg.textContent = "That's not it."; SFX.tink();
-      box.classList.remove('nope'); void box.offsetWidth; box.classList.add('nope');
-      inp.select();
-      return;
-    }
-    G.owned[id] = G.owned[id] || { lvl: 1, copies: 0 }; G.eq = id; save();
-    SFX.reveal(4); confetti(['#ffd60a', '#ffffff', '#2b2440'], 140);
-    closeSheet(s); renderView();
-    toast(BALL[id].name + ' unlocked and equipped');
-    setTimeout(() => openBall(id), 350);
-  }
-  inp.addEventListener('keydown', e => { if (e.key === 'Enter') tryKey(); });
-  setTimeout(() => inp.focus(), 250);
 }
 
 // ---- the crowd: rises from the bottom, bounces with a "hey!" each time, then drops away ----
@@ -8421,6 +8425,145 @@ if (Q.has('ffa')) {
   };
   setTimeout(go, 1200);
 }
+
+// ===== the tutorial: the vault's headphone bee shows you around ========================
+// A spotlight glides from one part of the game to the next with the bee beside a speech bubble.
+// Click the bee three times and it gets confused: "HUH??", and asks for a secret.
+// The right one (checked against BZ_KEY, never written here) gets you BeeZap.
+const TOUR = [
+  { tab: 'menu', t: 'Hi! I’m the Bee.', b: 'Welcome to Bounce Brawl. Balls fight on their own in a box, and you bet on yours. Let me show you around.' },
+  { tab: 'menu', at: '#mnav', t: 'The menu', b: 'Everything is in here: fights, events, daily stuff, crates, your balls, ranks and settings.' },
+  { tab: 'fight', at: '.stakes', t: 'Pick a stake', b: 'You bet coins against a real player. Win and you take the whole pot, plus a bonus from the house.' },
+  { tab: 'fight', at: '.fp .go', t: 'Find an opponent', b: 'Press this and you are matched with someone near your trophies. Out of coins? It turns into a bot fight, which pays win or lose.' },
+  { tab: 'fight', at: '.ffabox', t: 'Free for all', b: 'Eight balls, one box, last one standing. Free to enter, and everyone gets paid. Empty seats get bots.' },
+  { tab: 'cup', at: '.raid', t: 'Events', b: 'A giant boss every day: hit it for coins, bring it down for a Legend Crate. And The Box Cup, an eight-ball tournament.' },
+  { tab: 'daily', at: '.quest', t: 'Daily', b: 'Quests that pay coins, a free crate every day, and your level. Levelling up gives you crates too.' },
+  { tab: 'crates', at: '.cgrid', t: 'Hardware’s crates', b: 'Spend coins on crates. A ball you already have levels up instead, and an Epic or better is promised every 10 crates.' },
+  { tab: 'crates', at: '.bribedeal', t: 'Bribe Hardware', b: 'Want one ball in particular? Slip Hardware some coins. The more you pay, the likelier it comes out.' },
+  { tab: 'balls', at: '.bgrid', t: 'Your balls', b: 'Every ball in the game. Tap one to see what it does, and equip the one you want to fight with.' },
+  { tab: 'players', at: '.pcols', t: 'Ranks', b: 'The leaderboard, your record, and medals to claim for things you have done.' },
+  { tab: 'settings', at: '.panel', t: 'Settings', b: 'Sound, music, your name and arena skins. And if you ever want me back, there is Replay tutorial.' },
+  { tab: 'menu', t: 'That’s it!', b: 'Go win something. I’ll be around.' },
+];
+let TR = null;
+function startTour(from) {
+  if (TR || FIGHT) return;
+  closeAllSheets();
+  const ring = h('div', { class: 'tring' }), num = h('span', { class: 'tnum' }), title = h('div', { class: 'ttitle' }), body = h('div', { class: 'tbody' });
+  const back = h('button', { class: 'btn2', text: 'BACK', onclick: () => tourGo(TR.i - 1) }), next = h('button', { class: 'btn2 on', onclick: () => tourGo(TR.i + 1) });
+  const skip = h('button', { class: 'tskip', text: 'SKIP', onclick: () => endTour() });
+  const bubble = h('div', { class: 'tbub', role: 'dialog', 'aria-live': 'polite' }, h('div', { class: 'thead' }, num, skip), h('div', { class: 'tcontent' }, title, body), h('div', { class: 'tbtns' }, back, next));
+  const bee = h('canvas', { class: 'tbee', width: 184, height: 184, 'aria-label': 'The bee. Try clicking it.', role: 'button', tabindex: 0 });
+  bee.getContext('2d').drawImage(beeCanvas(), 0, 0, 184, 184);
+  const root = h('div', { id: 'tour' }, h('div', { class: 'tscrim' }), ring, bubble, bee);
+  document.body.append(root);
+  TR = { root, ring, bubble, num, title, body, back, next, skip, bee, i: 0, clicks: 0, secret: false };
+  bee.addEventListener('click', beeClick);
+  bee.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); beeClick(); } });
+  TR.onKey = e => {
+    if (!TR || TR.secret) { if (e.key === 'Escape' && TR) endTour(); return; }
+    if (e.key === 'Escape') endTour(); else if (e.key === 'ArrowRight' || e.key === 'Enter') tourGo(TR.i + 1); else if (e.key === 'ArrowLeft') tourGo(TR.i - 1); else return;
+    e.preventDefault(); e.stopPropagation();
+  };
+  addEventListener('keydown', TR.onKey, true);
+  TR.onResize = () => tourPlace();
+  addEventListener('resize', TR.onResize);
+  requestAnimationFrame(() => root.classList.add('on'));
+  SFX.resume(); SFX.pop();
+  tourGo(from || 0);
+}
+function tourGo(i) {
+  if (!TR) return;
+  if (i >= TOUR.length) { endTour(true); return; }
+  if (i < 0) return;
+  TR.i = i; TR.secret = false;
+  const s = TOUR[i];
+  if (TAB !== s.tab) setTab(s.tab);
+  TR.num.textContent = `${i + 1} / ${TOUR.length}`;
+  TR.title.textContent = s.t; TR.body.replaceChildren(s.b);
+  TR.back.hidden = i === 0; TR.next.hidden = false; TR.skip.hidden = false;
+  TR.next.textContent = i === TOUR.length - 1 ? 'DONE' : 'NEXT';
+  TR.bubble.classList.remove('swap'); void TR.bubble.offsetWidth; TR.bubble.classList.add('swap');
+  SFX.tick(0.4);
+  // the tab has just been drawn: find the target, bring it into view, then put everything round it
+  setTimeout(() => { const el = s.at && document.querySelector(s.at); if (el) el.scrollIntoView({ block: 'center', behavior: REDUCED ? 'auto' : 'smooth' }); tourPlace(); setTimeout(tourPlace, 420); }, 60);
+}
+function tourPlace() {
+  if (!TR) return;
+  const s = TOUR[TR.i], el = !TR.secret && s.at && document.querySelector(s.at), vw = innerWidth, vh = innerHeight, pad = 10;
+  const B = TR.bubble, bw = B.offsetWidth, bh = B.offsetHeight, beeW = TR.bee.offsetWidth;
+  let bx, by;
+  if (el) {
+    const r = el.getBoundingClientRect(), x = Math.max(6, r.left - pad), y = Math.max(6, r.top - pad), w = Math.min(vw - 12, r.width + pad * 2), hh = Math.min(vh - 12, r.height + pad * 2);
+    Object.assign(TR.ring.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: hh + 'px' });
+    TR.root.classList.add('spot');
+    // the bubble goes under the target if there is room, else above it, else inside at the bottom
+    bx = clamp(x + w / 2 - bw / 2, 12, vw - bw - 12);
+    by = y + hh + 16 + bh < vh - 12 ? y + hh + 16 : y - bh - 16 > 12 ? y - bh - 16 : vh - bh - 12;
+  } else {
+    TR.root.classList.remove('spot');
+    bx = (vw - bw) / 2; by = (vh - bh) / 2 + 40;
+  }
+  B.style.left = bx + 'px'; B.style.top = by + 'px';
+  // the bee hovers at the bubble's top corner, on whichever side has room
+  const left = bx > beeW + 4 || bx + bw + beeW + 4 > vw;
+  TR.bee.style.left = (left ? Math.max(4, bx - beeW * 0.7) : Math.min(vw - beeW - 4, bx + bw - beeW * 0.3)) + 'px';
+  TR.bee.style.top = Math.max(4, by - beeW * 0.62) + 'px';
+}
+function endTour(done) {
+  if (!TR) return;
+  removeEventListener('keydown', TR.onKey, true); removeEventListener('resize', TR.onResize);
+  const r = TR.root; r.classList.remove('on'); setTimeout(() => r.remove(), 300);
+  TR = null;
+  G.tut = 1; save();
+  setTab('menu');
+  if (done) SFX.reveal(1);
+}
+// three clicks on the bee: it loses the plot and asks for a secret
+function beeClick() {
+  if (!TR) return;
+  const b = TR.bee; b.classList.remove('wig'); void b.offsetWidth; b.classList.add('wig');
+  SFX.pop();
+  if (TR.secret || ++TR.clicks < 3) return;
+  TR.clicks = 0; TR.secret = true;
+  SFX.drop(); SFX.tink();
+  const inp = h('input', { class: 'tsecret', type: 'text', maxlength: 32, placeholder: 'tell the bee a secret...', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', 'aria-label': 'Tell the bee a secret' });
+  const ask = h('button', { class: 'btn2 on', text: 'ASK' });
+  const form = h('form', { class: 'tform', onsubmit: e => { e.preventDefault(); beeSecret(inp.value); } }, inp, ask);
+  TR.num.textContent = '?'; TR.title.textContent = 'HUH??'; TR.body.replaceChildren(form);
+  TR.back.hidden = true; TR.next.textContent = 'NEVER MIND'; TR.next.onclick = () => { TR.next.onclick = () => tourGo(TR.i + 1); tourGo(TR.i); };
+  TR.bubble.classList.remove('swap'); void TR.bubble.offsetWidth; TR.bubble.classList.add('swap');
+  tourPlace();
+  setTimeout(() => inp.focus(), 120);
+}
+async function beeSecret(v) {
+  if (!TR || TR.busy) return;
+  v = String(v || '').trim().toUpperCase();
+  if (!v) return;
+  if (!(window.crypto && crypto.subtle)) { TR.title.textContent = 'Hmm?'; TR.body.replaceChildren("I can't hear secrets on this page."); return; }
+  TR.busy = true;
+  const ok = (await sha256(v)) === BZ_KEY;
+  if (!TR) return;
+  TR.busy = false;
+  const back = () => { if (TR) { TR.next.onclick = () => tourGo(TR.i + 1); tourGo(TR.i); } };
+  TR.next.onclick = back;
+  if (!ok) {
+    TR.title.textContent = '...what?'; TR.body.replaceChildren('I have no idea what that means.'); TR.next.textContent = 'BACK TO THE TOUR';
+    SFX.tink(); b2wig();
+    return;
+  }
+  const had = !!G.owned.beezap;
+  G.owned.beezap = G.owned.beezap || { lvl: 1, copies: 0 }; G.eq = 'beezap'; save();
+  TR.title.textContent = 'They Sure Can!';
+  TR.body.replaceChildren(had ? 'You already have my ball. Go zap someone.' : 'Here. Take my ball. BeeZap is yours, and it’s equipped.');
+  TR.next.textContent = 'BACK TO THE TOUR';
+  SFX.reveal(4); confetti(['#ffd60a', '#ffffff', '#2b2440'], 160); b2wig();
+  if (!had) toast('BeeZap unlocked and equipped', 3000);
+  tourPlace();
+}
+function b2wig() { if (!TR) return; const b = TR.bee; b.classList.remove('wig'); void b.offsetWidth; b.classList.add('wig'); }
+// the first time, once you have a ball and nothing else is open, the bee shows you around
+setInterval(() => { if (!G.tut && G.starter && G.eq && !FIGHT && !TR && TAB === 'menu' && !topSheet() && !document.querySelector('#intro')) startTour(); }, 1500);
 
 // ===== players online: presence, matchmaking, leaderboard =================
 // Everything goes through each viewer's presence (the platform's "who is here"
@@ -8879,6 +9022,7 @@ window.BB = {
   coins(n) { G.coins = n; save(); renderView(); },
   give(id, lvl) {
     if (!BALL[id]) return 'No ball called "' + id + '"';
+    if (BALL[id].giveOnly) return BALL[id].name + ' can only come from the bee.';
     G.owned[id] = { lvl: lvl || 1, copies: 0 }; G.eq = id; G.starter = true; save(); renderView();
     toast(BALL[id].name + ' added and equipped');
     return BALL[id].name + ' added and equipped';
