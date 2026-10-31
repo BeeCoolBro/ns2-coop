@@ -653,11 +653,14 @@ svg.mst.on { fill: var(--gold); }
 .plate.bz-god .hp i { background: linear-gradient(180deg, #fff3c4, #ffd60a 55%, #b88a2c); }
 .plate.bz-nerf { transform: scale(.8); }
 .plate.bz-nerf .who { text-decoration: line-through; text-decoration-thickness: 3px; }
-.plate.bz-frozen::after, .plate.bz-god::after, .plate.bz-nerf::after { position: absolute; top: -4px; right: 0; padding: 3px 7px 2px; border-radius: 4px; font: 400 12px/1 var(--fd); letter-spacing: 2px; color: #08080a; }
+.plate.bz-kicked > * { opacity: .35; filter: grayscale(1); }
+.plate.bz-kicked .who { text-decoration: line-through; text-decoration-thickness: 3px; }
+.plate.bz-kicked::after { content: "KICKED"; background: #c8c8d0; }
+.plate.bz-frozen::after, .plate.bz-god::after, .plate.bz-nerf::after, .plate.bz-kicked::after { position: absolute; top: -4px; right: 0; padding: 3px 7px 2px; border-radius: 4px; font: 400 12px/1 var(--fd); letter-spacing: 2px; color: #08080a; }
 .plate.bz-frozen::after { content: "FROZEN"; background: #9fdcff; }
 .plate.bz-god::after { content: "GOD MODE"; background: #ffd60a; }
 .plate.bz-nerf::after { content: "NERFED"; background: #ff6b6b; }
-.plate.foe.bz-frozen::after, .plate.foe.bz-god::after, .plate.foe.bz-nerf::after { right: auto; left: 0; }
+.plate.foe.bz-frozen::after, .plate.foe.bz-god::after, .plate.foe.bz-nerf::after, .plate.foe.bz-kicked::after { right: auto; left: 0; }
 #fight.bz-smite::after { content: ""; position: absolute; inset: 0; z-index: 60; pointer-events: none; background: #fff8d0; animation: bzFlash .35s ease forwards; }
 @keyframes bzFlash { from { opacity: .65; } to { opacity: 0; } }
 /* ---- free for all: the field in the fight, the lobby seats, the invite ---- */
@@ -902,7 +905,7 @@ svg.mst.on { fill: var(--gold); }
 // A fight is played out from a seed, separately in each player's browser, so
 // the simulation may only use + - * / and sqrt (the same in every engine):
 // no Math.sin/cos/atan2/hypot/pow/exp, no Math.random, no clocks.
-const VERSION = 11;
+const VERSION = 12;
 const HP_SCALE = 0.33;                     // every ball's health is scaled by this, so fights end sooner
 const TAU = 6.283185307179586, PI = 3.141592653589793, HALF_PI = 1.5707963267948966;
 const DT = 1 / 60, SUB = 3;            // 60 steps a second, 3 physics substeps each
@@ -3013,11 +3016,11 @@ BALL_LIST.push(
     desc: 'Grins and bounces around, and every 5 seconds its grin confuses a nearby enemy. Below 20% health it throws a tantrum that blasts the enemy back, grows four spider legs and chases the enemy down, hitting 2.5x harder.' },
   // only from the give command: spins for a Mythic's power and a strength change at the start,
   // then again every time it loses another 35% of its health
-  { id: 'beezap', name: 'BeeZap', rar: 'M', cat: 'trick', special: 1, hidden: 1, giveOnly: 1, col: '#2b2440', hp: 170, upright: 1,
-    init(S, f) { f.bz = { next: 1 - BZ_EVERY, admT: 7, slotT: 4.5, godT: 0, pend: null }; beezapRoll(S, f); },
-    desc: 'Spins two wheels at the start of the fight: one copies a Mythic ball\u2019s power, the other sets its strength from -10% to +10%. Every 35% of health it loses, it spins again. It also abuses admin commands and plays the slots.' },
+  { id: 'beezap', name: 'BeeZap', rar: 'M', cat: 'trick', special: 1, hidden: 1, giveOnly: 1, col: '#2b2440', hp: 235, upright: 1,
+    init(S, f) { f.bz = { next: 1 - BZ_EVERY, admT: 11, slotT: 6, godT: 0, pend: null }; beezapRoll(S, f); },
+    desc: 'Spins two wheels at the start of the fight: one copies a Mythic ball\u2019s power, the other sets its strength from -10% to +10%. Every 45% of health it loses, it spins again. It also abuses admin commands and plays the slots.' },
 );
-const BZ_STR = [-10, -5, 0, 5, 10], BZ_EVERY = 0.35;   // spins again at 65% and 30% health
+const BZ_STR = [-10, -5, 0, 5, 10], BZ_EVERY = 0.45;   // spins again at 55% and 10% health
 function bzPool() { return BALLS.filter(b => b.rar === 'M' && !b.boss && b.id !== 'copycat'); }
 // the spin: drops the last power (its weapons, timers and state) and takes a new one, like Copycat does
 function beezapRoll(S, f) {
@@ -3034,9 +3037,9 @@ function beezapRoll(S, f) {
   f.bz.pow = d.id; f.bz.str = str;
   emit(S, { e: 'wheel', id: f.id, side: f.side, pow: d.id, str, opts: pool.map(b => b.id) });
 }
-// admin abuse every 16 s and the slots every 6.5 s. Each one is announced first (the fight
+// admin abuse every 25 s and the slots every 12 s. Each one is announced first (the fight
 // screen stops for it) and lands on the step after, once the fight is moving again.
-const BZ_CMDS = ['freeze', 'tp', 'god', 'nerf', 'smite'];
+const BZ_CMDS = ['freeze', 'tp', 'god', 'nerf', 'smite', 'kick'];
 // the slots pick a result off the paytable first (chance out of 100), then lay out reels that show it
 const BZ_ODDS = [['jackpot', 7, '7'], ['swarm', 5, 'bee'], ['diamond', 6, 'diamond'], ['bell', 7, 'bell'], ['bars', 8, 'bar'],
   ['cherries', 6, 'cherry'], ['skulls', 4, 'skull'], ['pair', 20], ['omen', 7], ['cherry', 10], ['bust', 20]];
@@ -3058,12 +3061,12 @@ function bzTick(S, f, dt) {
   if (z.pend && (z.pend.t -= dt) <= 0) { const p = z.pend; z.pend = null; bzLand(S, f, p); }
   if (f.alive && !z.pend) {
     if ((z.admT -= dt) <= 0) {
-      z.admT = 16;
+      z.admT = 25;
       const cmd = BZ_CMDS[Math.floor(S.rng() * BZ_CMDS.length)];
       z.pend = { t: 0.01, k: 'admin', cmd };
       emit(S, { e: 'admin', id: f.id, side: f.side, cmd, foe: f.foe.def.id });
     } else if ((z.slotT -= dt) <= 0) {
-      z.slotT = 6.5;
+      z.slotT = 12;
       const { r, res } = bzSpin(S);
       z.pend = { t: 0.01, k: 'slot', r, res };
       emit(S, { e: 'slot', id: f.id, side: f.side, r, res });
@@ -3080,6 +3083,11 @@ function bzLand(S, f, p) {
       warpTo(S, t, cx, cy); applyFx(S, f, t, { stun: 0.4 });
     } else if (p.cmd === 'god') { f.bz.godT = 2.5; emit(S, { e: 'shieldup', id: f.id }); }
     else if (p.cmd === 'nerf') applyFx(S, f, t, { weak: 4 });
+    else if (p.cmd === 'kick') {          // kicked from the game: gone for a moment, then rejoins in the far corner
+      const b = S.box, cx = f.x < (b.x0 + b.x1) / 2 ? b.x1 : b.x0, cy = f.y < (b.y0 + b.y1) / 2 ? b.y1 : b.y0;
+      warpTo(S, t, cx, cy); t.vx = t.vy = 0; t.st.phaseT = Math.max(t.st.phaseT, 1.8); applyFx(S, f, t, { stun: 1.8 });
+      emit(S, { e: 'phase', id: t.id });
+    }
     else { hurt(S, f, t, 7, 'zap', t.x, t.y); emit(S, { e: 'bolt', x: t.x, y: t.y, r: 60 }); }
   } else if (p.res === 'jackpot') { aoe(S, f, t.x, t.y, 80, 16, 600, 0, 'blast'); applyFx(S, f, t, { stun: 1 }); emit(S, { e: 'boom', x: t.x, y: t.y, r: 110, big: 1, crit: 1 }); }
   else if (p.res === 'swarm') { hurt(S, f, t, 10, 'zap', t.x, t.y); applyFx(S, f, t, { confuse: 1.5 }); emit(S, { e: 'boom', x: t.x, y: t.y, r: 80, small: 1 }); }
@@ -7706,6 +7714,7 @@ const BZ_CMD_TXT = {
   god: () => ['/god BeeZap', 'God mode on. BeeZap takes no damage.'],
   nerf: n => [`/nerf ${n} -35%`, `${n} has been nerfed.`],
   smite: n => [`/smite ${n}`, `${n} was struck by lightning.`],
+  kick: n => [`/kick ${n} "skill issue"`, `${n} was kicked from the game.`],
 };
 const BZ_BLOCK = String.fromCharCode(9608), BZ_SHADE = String.fromCharCode(9617);
 // the console: a title bar, the server log on the left, and the players and server settings on the right.
@@ -7840,6 +7849,7 @@ function adminBend(F, e) {
   else if (e.cmd === 'tp') { bzJolt(wrap, BZ_TP, 700); SFX.warp(); }
   else if (e.cmd === 'god') { bzMark(bee, 'bz-god', 5.4); SFX.reveal(2); }
   else if (e.cmd === 'nerf') { bzMark(foe, 'bz-nerf', 6.9); SFX.drop(); }
+  else if (e.cmd === 'kick') { bzMark(foe, 'bz-kicked', 4.7); SFX.rip(); SFX.drop(); }
   else { bzSmite(F); SFX.zap(); SFX.boom(); }
 }
 
