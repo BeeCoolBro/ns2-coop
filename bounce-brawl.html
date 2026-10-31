@@ -905,7 +905,7 @@ svg.mst.on { fill: var(--gold); }
 // A fight is played out from a seed, separately in each player's browser, so
 // the simulation may only use + - * / and sqrt (the same in every engine):
 // no Math.sin/cos/atan2/hypot/pow/exp, no Math.random, no clocks.
-const VERSION = 12;
+const VERSION = 13;
 const HP_SCALE = 0.33;                     // every ball's health is scaled by this, so fights end sooner
 const TAU = 6.283185307179586, PI = 3.141592653589793, HALF_PI = 1.5707963267948966;
 const DT = 1 / 60, SUB = 3;            // 60 steps a second, 3 physics substeps each
@@ -3016,9 +3016,9 @@ BALL_LIST.push(
     desc: 'Grins and bounces around, and every 5 seconds its grin confuses a nearby enemy. Below 20% health it throws a tantrum that blasts the enemy back, grows four spider legs and chases the enemy down, hitting 2.5x harder.' },
   // only from the give command: spins for a Mythic's power and a strength change at the start,
   // then again every time it loses another 35% of its health
-  { id: 'beezap', name: 'BeeZap', rar: 'M', cat: 'trick', special: 1, hidden: 1, giveOnly: 1, col: '#2b2440', hp: 235, upright: 1,
-    init(S, f) { f.bz = { next: 1 - BZ_EVERY, admT: 11, slotT: 6, godT: 0, pend: null }; beezapRoll(S, f); },
-    desc: 'Spins two wheels at the start of the fight: one copies a Mythic ball\u2019s power, the other sets its strength from -10% to +10%. Every 45% of health it loses, it spins again. It also abuses admin commands and plays the slots.' },
+  { id: 'beezap', name: 'BeeZap', rar: 'M', cat: 'trick', special: 1, hidden: 1, giveOnly: 1, col: '#2b2440', hp: 225, upright: 1,
+    init(S, f) { f.bz = { next: 1 - BZ_EVERY, admT: 11, slotT: 6, gameT: 14, godT: 0, pend: null }; beezapRoll(S, f); },
+    desc: 'Spins two wheels at the start of the fight: one copies a Mythic ball\u2019s power, the other sets its strength from -10% to +10%. Every 45% of health it loses, it spins again. It also abuses admin commands, plays the slots, and drags its enemy into a quick game (tic tac toe, Connect Four, rock paper scissors or Battleship) where the winner hits the loser.' },
 );
 const BZ_STR = [-10, -5, 0, 5, 10], BZ_EVERY = 0.45;   // spins again at 55% and 10% health
 function bzPool() { return BALLS.filter(b => b.rar === 'M' && !b.boss && b.id !== 'copycat'); }
@@ -3055,6 +3055,94 @@ function bzSpin(S) {
   for (let i = 2; i > 0; i--) { const j = Math.floor(S.rng() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; }
   return { res, r };
 }
+// let's play a game: every 30 s BeeZap drags its enemy into a quick two player game. The sim plays the
+// whole game out here (S.rng, so both screens watch the same game) and the winner hits the loser.
+// Player 0 is BeeZap, player 1 the enemy. BeeZap plays better (it's the admin) but it can still lose.
+const BZ_GAMES = ['ttt', 'c4', 'rps', 'ship'], BZ_GAME_DMG = 15, BZ_SKILL = [0.85, 0.55];
+const TTT_LINES = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
+function bzGame(S) {
+  const g = BZ_GAMES[Math.floor(S.rng() * BZ_GAMES.length)], pick = a => a[Math.floor(S.rng() * a.length)];
+  if (g === 'ttt') {
+    // a good player takes a win, else blocks one, else the middle, else a corner
+    const b = Array(9).fill(-1), mv = [], first = S.rng() < 0.5 ? 0 : 1;
+    const two = p => { for (const l of TTT_LINES) { const free = l.filter(i => b[i] < 0); if (free.length === 1 && l.every(i => b[i] === p || b[i] < 0)) return free[0]; } return -1; };
+    for (let k = 0, p = first; k < 9; k++, p = 1 - p) {
+      const free = []; for (let i = 0; i < 9; i++) if (b[i] < 0) free.push(i);
+      let i = -1;
+      if (S.rng() < BZ_SKILL[p]) {
+        i = two(p); if (i < 0) i = two(1 - p);
+        if (i < 0 && b[4] < 0) i = 4;
+        if (i < 0) { const cs = [0, 2, 6, 8].filter(j => b[j] < 0); if (cs.length) i = pick(cs); }
+      }
+      if (i < 0) i = pick(free);
+      b[i] = p; mv.push(i);
+      const line = TTT_LINES.find(l => l.every(j => b[j] === p));
+      if (line) return { g, first, mv, win: p, line };
+    }
+    return { g, first, mv, win: -1 };
+  }
+  if (g === 'c4') {
+    // seven columns of six; a good player takes a win or blocks one, and leans to the middle
+    const b = Array(42).fill(-1), H = Array(7).fill(0), mv = [], first = S.rng() < 0.5 ? 0 : 1, PREF = [3, 2, 4, 1, 5, 0, 6];
+    const at = (c, r) => c < 0 || c > 6 || r < 0 || r > 5 ? -2 : b[c * 6 + r];
+    const four = (c, r, p) => {
+      for (const [dc, dr] of [[1, 0], [0, 1], [1, 1], [1, -1]]) {
+        const l = [[c, r]];
+        for (const s of [1, -1]) for (let k = 1; at(c + dc * k * s, r + dr * k * s) === p; k++) l.push([c + dc * k * s, r + dr * k * s]);
+        if (l.length >= 4) return l.slice(0, 4);
+      }
+      return null;
+    };
+    const wins = (c, p) => { b[c * 6 + H[c]] = p; const w = !!four(c, H[c], p); b[c * 6 + H[c]] = -1; return w; };
+    for (let k = 0, p = first; k < 42; k++, p = 1 - p) {
+      const free = PREF.filter(c => H[c] < 6);
+      let i = -1;
+      if (S.rng() < BZ_SKILL[p]) { i = free.findIndex(c => wins(c, p)); if (i < 0) i = free.findIndex(c => wins(c, 1 - p)); }
+      const c = i >= 0 ? free[i] : S.rng() < 0.5 ? free[Math.floor(S.rng() * Math.min(3, free.length))] : pick(free);
+      const r = H[c]++; b[c * 6 + r] = p; mv.push(c);
+      const line = four(c, r, p);
+      if (line) return { g, first, mv, win: p, line };
+    }
+    return { g, first, mv, win: -1 };
+  }
+  if (g === 'rps') {
+    // best of three (ties don't count); now and then BeeZap peeks at the enemy's hand first
+    const rounds = [], sc = [0, 0];
+    while (sc[0] < 2 && sc[1] < 2 && rounds.length < 7) {
+      const e = Math.floor(S.rng() * 3), a = S.rng() < 0.15 ? (e + 1) % 3 : Math.floor(S.rng() * 3), w = (a - e + 3) % 3;
+      if (w === 1) sc[0]++; else if (w === 2) sc[1]++;
+      rounds.push([a, e]);
+    }
+    return { g, rounds, win: sc[0] >= 2 ? 0 : sc[1] >= 2 ? 1 : -1 };
+  }
+  // battleship: a 5x5 sea each with a 3 and a 2 long ship. BeeZap fires first; a good player
+  // shoots next to a hit it hasn't sunk yet. First to sink both wins.
+  const fleet = () => {
+    const own = Array(25).fill(-1), ships = [];
+    for (const n of [3, 2]) for (let tries = 0; tries < 60; tries++) {
+      const v = S.rng() < 0.5, c = Math.floor(S.rng() * (v ? 5 : 6 - n)), r = Math.floor(S.rng() * (v ? 6 - n : 5)), cells = [];
+      for (let k = 0; k < n; k++) cells.push((r + (v ? k : 0)) * 5 + c + (v ? 0 : k));
+      if (cells.some(i => own[i] >= 0)) continue;
+      cells.forEach(i => { own[i] = ships.length; }); ships.push(cells); break;
+    }
+    return { own, ships };
+  };
+  const fl = [fleet(), fleet()], seen = [Array(25).fill(0), Array(25).fill(0)], sunk = [[], []], hits = [0, 0], shots = [];
+  const need = fl.map(x => x.ships.reduce((n, sh) => n + sh.length, 0));
+  const nb = i => [i - 5, i + 5, i % 5 ? i - 1 : -1, i % 5 < 4 ? i + 1 : -1].filter(j => j >= 0 && j < 25);
+  for (let k = 0, p = 0; k < 50; k++, p = 1 - p) {
+    const foe = fl[1 - p], sn = seen[p], free = [], near = [];
+    for (let i = 0; i < 25; i++) if (!sn[i]) free.push(i);
+    if (S.rng() < BZ_SKILL[p]) for (let i = 0; i < 25; i++) if (sn[i] === 1 && !sunk[1 - p][foe.own[i]]) for (const j of nb(i)) if (!sn[j] && !near.includes(j)) near.push(j);
+    const i = pick(near.length ? near : free), hit = foe.own[i] >= 0;
+    sn[i] = hit ? 1 : 2;
+    let sk = -1;
+    if (hit) { hits[p]++; const n = foe.own[i]; if (foe.ships[n].every(j => sn[j] === 1)) { sunk[1 - p][n] = 1; sk = n; } }
+    shots.push([p, i, hit ? 1 : 0, sk]);
+    if (hits[p] >= need[1 - p]) return { g, ships: [fl[0].ships, fl[1].ships], shots, win: p };
+  }
+  return { g, ships: [fl[0].ships, fl[1].ships], shots, win: -1 };
+}
 function bzTick(S, f, dt) {
   const z = f.bz;
   if (z.godT > 0) z.godT -= dt;
@@ -3070,12 +3158,22 @@ function bzTick(S, f, dt) {
       const { r, res } = bzSpin(S);
       z.pend = { t: 0.01, k: 'slot', r, res };
       emit(S, { e: 'slot', id: f.id, side: f.side, r, res });
+    } else if ((z.gameT -= dt) <= 0) {
+      z.gameT = 30;
+      const t = f.foe, rec = bzGame(S);
+      z.pend = { t: 0.01, k: 'game', win: rec.win, ts: t.side };
+      emit(S, Object.assign({ e: 'game', id: f.id, side: f.side, ts: t.side, foe: t.def.id }, rec));
     }
   }
   bzCheck(S, f);
 }
 function bzLand(S, f, p) {
   const t = f.foe;
+  if (p.k === 'game') {          // the game's winner hits the loser; a draw hurts nobody
+    const o = S.F[p.ts] && S.F[p.ts].alive ? S.F[p.ts] : t, [w, l] = p.win === 0 ? [f, o] : [o, f];
+    if (p.win >= 0 && l.alive) { hurt(S, w, l, BZ_GAME_DMG, 'zap', l.x, l.y); emit(S, { e: 'boom', x: l.x, y: l.y, r: 80, small: 1 }); }
+    return;
+  }
   if (p.k === 'admin') {
     if (p.cmd === 'freeze') { applyFx(S, f, t, { freeze: 1.4 }); emit(S, { e: 'freeze', x: t.x, y: t.y }); }
     else if (p.cmd === 'tp') {
@@ -5537,6 +5635,10 @@ const SFX = (() => {
     ding(f, delay) { if (!ac || !sfxOn) return; f = f || 1568; for (const [m, v, d] of [[1, 0.1, 1.1], [2.76, 0.04, 0.6], [5.4, 0.022, 0.35], [0.5, 0.03, 1.2]]) tone('sine', f * m, f * m, d, v, delay || 0); },
     // the slots' payout: DING DING DING, alternating two notes like a casino bell
     dings(n, delay) { for (let k = 0; k < n; k++) this.ding(k % 2 ? 1760 : 1568, (delay || 0) + k * 0.2); },
+    // let's play a game: a low, sour drone
+    game() { if (!ac || !sfxOn) return; tone('sawtooth', 110, 104, 1.5, 0.05); tone('sawtooth', 116.5, 110, 1.5, 0.04); tone('sine', 55, 50, 1.7, 0.22); noise(1.1, 0.06, 'lowpass', 500, 160); },
+    clack() { if (ok('clack', 40)) { noise(0.05, 0.22, 'lowpass', 1800, 600); tone('sine', 260, 140, 0.06, 0.12); } },
+    splash() { if (ok('splash', 40)) noise(0.25, 0.16, 'bandpass', 900, 380, 1.2); },
     // a losing spin: wah wah wahhh
     wah() { if (!ac || !sfxOn) return; tone('triangle', 330, 311, 0.32, 0.09); tone('triangle', 294, 277, 0.32, 0.09, 0.34); tone('triangle', 262, 196, 0.8, 0.09, 0.68); },
     get sfx() { return sfxOn; },
@@ -7495,11 +7597,11 @@ const BZ_HEX = (() => {
 })();
 
 // BeeZap's moments that take the screen over; the fight waits for each in turn (F.wheelQ)
-const BZ_TAKE = { wheel: 1, admin: 1, slot: 1 };
+const BZ_TAKE = { wheel: 1, admin: 1, slot: 1, game: 1 };
 function openTake(F) {
   const e = F.wheelQ.shift();
   if (!e) { F.wheel = null; return; }
-  (e.e === 'reveal' ? openReveal : e.e === 'wheel' ? openWheel : e.e === 'admin' ? openAdmin : openSlots)(F, e);
+  (e.e === 'reveal' ? openReveal : e.e === 'wheel' ? openWheel : e.e === 'admin' ? openAdmin : e.e === 'game' ? openGame : openSlots)(F, e);
 }
 function openWheel(F, e) {
   const mine = e.side === F.mySide, wrap = F.root.querySelector('.arena');
@@ -8128,6 +8230,251 @@ function bzCabinet(c, W, g, T, pay) {
   if (W.paid && pay[3]) for (let i = 0; i < 9; i++) { c.beginPath(); c.ellipse(tx + tw * (0.15 + i * 0.087), ty + th * (0.72 - (i % 3) * 0.12), s * 0.024, s * 0.01, 0, 0, Math.PI * 2); c.fillStyle = i % 2 ? '#ffd60a' : '#c9962a'; c.fill(); }
 }
 function lin2(c, x0, y0, x1, y1, a, b) { const gr = c.createLinearGradient(x0, y0, x1, y1); gr.addColorStop(0, a); gr.addColorStop(1, b); return gr; }
+
+// ---- let's play a game: the fight tears away, the screen goes dark and BeeZap picks a game ----
+// The sim already played it out (both screens get the same game); this shows it move by move, then
+// the winner's hit lands once the fight starts moving again.
+const BZ_GAME = { OUT: 0.35, FLK: 0.25, TITLE: 0.6, CH: 0.06, PICK: 1.9, PICKD: 1.0, PLAY: 3.3, RES: 2.1, BACK: 0.4 };
+const BZ_GAME_LIST = ['ttt', 'c4', 'rps', 'ship'];
+const BZ_GAME_NAMES = { ttt: 'TIC TAC TOE', c4: 'CONNECT FOUR', rps: 'ROCK PAPER SCISSORS', ship: 'BATTLESHIP' };
+const BZ_RPS = ['ROCK', 'PAPER', 'SCISSORS'];
+function openGame(F, e) {
+  const cv = bzLayer(F), you = e.ts === F.mySide, foe = (BALL[e.foe] ? BALL[e.foe].name : 'Enemy').toUpperCase();
+  const n = e.mv ? e.mv.length : e.rounds ? e.rounds.length : e.shots.length;
+  const step = e.g === 'ttt' ? 0.42 : e.g === 'c4' ? Math.min(0.3, 4.4 / n) : e.g === 'rps' ? 1.1 : Math.min(0.2, 4.8 / n);
+  const res = h('div', { class: 'bzres' });
+  const plq = h('div', { class: 'bzplq slotplq' + (e.side === F.mySide ? '' : ' foe'), 'aria-live': 'polite' }, h('div', { class: 'bzh', text: "BEEZAP: LET'S PLAY A GAME" }), res);
+  F.root.querySelector('.arena').append(plq);
+  F.wheel = { kind: 'game', e, cv, plq, res, T: 0, n, step, dur: n * step + (e.g === 'rps' ? 0 : 0.3),
+    names: ['BEEZAP', foe], you: [e.side === F.mySide, you], col: ['#ffd633', TEAM[you ? 0 : 1]], snd: 0, pickAt: -1,
+    frame: gameFrame, close() { cv.remove(); plq.remove(); } };
+}
+function gameFrame(F, dt) {
+  const W = F.wheel, A = F.arena, T = (W.T += dt), G = BZ_GAME, e = W.e;
+  A.cv.style.opacity = '0';
+  const g = bzFit(F, W.cv), c = g.c, s = g.size, X = g.x, Y = g.y, d = g.dpr;
+  const over = G.PLAY + W.dur, endT = over + G.RES, closeT = endT + G.BACK;
+  if (!W.s0) { W.s0 = 1; SFX.rip(); SFX.warp(); }
+  if (!W.s1 && T > G.OUT) { W.s1 = 1; SFX.game(); }
+  if (!W.s2 && T > G.PICK + G.PICKD) { W.s2 = 1; SFX.reveal(1); W.res.textContent = BZ_GAME_NAMES[e.g]; }
+  if (!W.s3 && T > over) {
+    W.s3 = 1;
+    const loser = e.win === 0 ? (W.you[1] ? 'YOU TAKE' : W.names[1] + ' TAKES') : 'BEEZAP TAKES';
+    W.res.textContent = e.win < 0 ? 'DRAW. NOBODY GETS HURT.' : `${e.win === 0 ? 'BEEZAP' : W.you[1] ? 'YOU' : W.names[1]} WIN${e.win === 1 && W.you[1] ? '' : 'S'}. ${loser} THE HIT.`;
+    if (e.win === 0) { crowdCheer(); SFX.dings(3, 0.1); bzBlip(F, 160); }
+    else if (e.win === 1) { SFX.wah(); bzBlip(F, 160); }
+    else SFX.drop();
+  }
+  if (!W.s4 && T > endT) { W.s4 = 1; SFX.rip(); SFX.blip(); }
+  // what the box shows: the fight tearing, a flicker of static, the game, and the same on the way back
+  const flick = (t0, dur, from, to) => { const p = (T - t0) / dur; if (p < 0 || p >= 1) return null; if (p > 0.8) return to; const r = Math.random(); return r < 0.3 ? 'static' : r < 0.42 ? 'black' : Math.random() < p ? to : from; };
+  const mode = T < G.OUT ? 'tear' : flick(G.OUT, G.FLK, 'arena', 'game') || flick(endT, G.BACK, 'game', 'arena') || (T < endT ? 'game' : 'arena');
+  if (mode === 'tear') { const q = T / G.OUT; bzGlitch(g, A.cv, 0.4 + 0.6 * q, 14 + 60 * q); return; }
+  c.drawImage(A.cv, 0, 0);
+  if (mode !== 'arena') { c.fillStyle = 'rgba(4,3,8,0.9)'; c.fillRect(0, 0, g.w, g.h); }
+  c.save(); c.beginPath(); c.rect(X, Y, s, s); c.clip();
+  if (mode === 'game') bzGameScreen(c, W, X, Y, s, T, d);
+  else if (mode === 'static') { c.imageSmoothingEnabled = false; c.drawImage(bzNoise(W), X, Y, s, s); c.imageSmoothingEnabled = true; }
+  else if (mode === 'black') { c.fillStyle = '#000'; c.fillRect(X, Y, s, s); }
+  if (mode !== 'arena') { c.fillStyle = 'rgba(0,0,0,0.18)'; for (let y = Y; y < Y + s; y += 3 * d) c.fillRect(X, y, s, d); }
+  c.restore();
+  if (T > closeT) { A.cv.style.opacity = ''; W.close(); openTake(F); }
+}
+// the game screen inside the box: the title, the picker, then the game itself
+function bzGameScreen(c, W, X, Y, s, T, d) {
+  const G = BZ_GAME, e = W.e;
+  const txt = (str, x, y, px, col, max) => { c.font = `400 ${Math.round(px)}px ${FONT_D}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = col; c.fillText(str, x, y, max || s * 0.92); };
+  const bg = c.createRadialGradient(X + s / 2, Y + s / 2, s * 0.1, X + s / 2, Y + s / 2, s * 0.75);
+  bg.addColorStop(0, '#14111c'); bg.addColorStop(1, '#050408');
+  c.fillStyle = bg; c.fillRect(X, Y, s, s);
+  const jit = () => (Math.random() < 0.06 ? (Math.random() - 0.5) * s * 0.02 : 0);
+  if (T < G.PICK) {
+    // LET'S PLAY / A GAME, typed out a letter at a time
+    const A1 = "LET'S PLAY", A2 = 'A GAME', k = Math.max(0, Math.floor((T - G.TITLE) / G.CH));
+    if (k > (W.typed || 0) && k <= A1.length + A2.length) SFX.tick(0.05);
+    W.typed = k;
+    c.drawImage(beeCanvas(), X + s / 2 - s * 0.09, Y + s * 0.13, s * 0.18, s * 0.18);
+    txt(A1.slice(0, k), X + s / 2 + jit(), Y + s * 0.47, s * 0.15, '#e8203a');
+    txt(A2.slice(0, Math.max(0, k - A1.length)), X + s / 2 + jit(), Y + s * 0.63, s * 0.15, '#e8203a');
+    if (k >= A1.length + A2.length && Math.floor(T * 4) % 2) txt('BEEZAP PICKS THE GAME', X + s / 2, Y + s * 0.82, s * 0.045, '#8a8a99');
+    return;
+  }
+  if (T < G.PLAY) {
+    // the picker: the light runs down the four games, slows and stops on the one the fight rolled
+    txt("LET'S PLAY A GAME", X + s / 2, Y + s * 0.13, s * 0.07, '#e8203a');
+    const pick = BZ_GAME_LIST.indexOf(e.g), N = 8 + pick, q = clamp((T - G.PICK) / G.PICKD, 0, 1), at = Math.floor(N * ease(q)) % 4;
+    if (at !== W.pickAt) { W.pickAt = at; SFX.tick(0.3); }
+    BZ_GAME_LIST.forEach((id, i) => {
+      const y = Y + s * (0.3 + i * 0.15), on = i === at, land = q >= 1 && on, blink = land && Math.floor(T * 8) % 2 === 0;
+      rrect(c, X + s * 0.15, y, s * 0.7, s * 0.115, s * 0.02);
+      c.fillStyle = on ? (blink ? '#ffd633' : '#e8203a') : '#16161c'; c.fill();
+      c.lineWidth = s * 0.004; c.strokeStyle = on ? '#ffd633' : '#2a2a36'; c.stroke();
+      txt(BZ_GAME_NAMES[id], X + s / 2, y + s * 0.06, s * 0.06, on ? (blink ? '#16161c' : '#fff') : '#6a6a78');
+    });
+    return;
+  }
+  const t = T - G.PLAY, done = t >= W.dur, rt = t - W.dur;
+  // the two players along the top, BeeZap on the left
+  const hy = Y + s * 0.09;
+  for (const p of [0, 1]) {
+    const cx = X + s * (p ? 0.86 : 0.14), lead = done && e.win === p;
+    circ(c, cx, hy, s * 0.06); c.fillStyle = '#0a0810'; c.fill(); c.lineWidth = s * (lead ? 0.012 : 0.007); c.strokeStyle = W.col[p]; c.stroke();
+    c.drawImage(p ? ballIcon(e.foe, 96) : beeCanvas(), cx - s * 0.05, hy - s * 0.05, s * 0.1, s * 0.1);
+    c.font = `400 ${Math.round(s * 0.05)}px ${FONT_D}`; c.textBaseline = 'middle'; c.textAlign = p ? 'right' : 'left'; c.fillStyle = W.col[p];
+    c.fillText(W.names[p], cx + (p ? -1 : 1) * s * 0.08, hy - s * 0.012, s * 0.26);
+    if (W.you[p]) { c.font = `400 ${Math.round(s * 0.032)}px ${FONT_D}`; c.fillStyle = '#8a8a99'; c.fillText('YOU', cx + (p ? -1 : 1) * s * 0.08, hy + s * 0.03); }
+  }
+  const turn = p => (W.you[p] ? 'YOUR' : W.names[p] + "'S") + ' TURN';
+  let status = '';
+  if (e.g === 'ttt') status = bzTTT(c, W, X, Y, s, t, d) || (done ? '' : turn((Math.min(W.n - 1, Math.floor(t / W.step)) % 2) ? 1 - e.first : e.first));
+  else if (e.g === 'c4') status = bzC4(c, W, X, Y, s, t, d) || (done ? '' : turn((Math.min(W.n - 1, Math.floor(t / W.step)) % 2) ? 1 - e.first : e.first));
+  else if (e.g === 'rps') status = bzRPS(c, W, X, Y, s, t, d, txt);
+  else status = bzShip(c, W, X, Y, s, t, d, txt);
+  txt(e.g === 'rps' ? status || 'BEST OF THREE' : status, X + s / 2, Y + s * 0.93, s * 0.05, '#c8c8d0');
+  txt(BZ_GAME_NAMES[e.g], X + s / 2, hy, s * 0.042, '#e8203a', s * 0.36);
+  // the result, once the winning move has had a moment
+  if (done && rt > 0.6) {
+    const a = clamp((rt - 0.6) / 0.2, 0, 1), col = e.win < 0 ? '#c8c8d0' : W.col[e.win];
+    c.globalAlpha = a;
+    c.fillStyle = 'rgba(5,4,8,0.86)'; c.fillRect(X, Y + s * 0.4, s, s * 0.22);
+    c.fillStyle = col; c.fillRect(X, Y + s * 0.4, s, s * 0.006); c.fillRect(X, Y + s * 0.614, s, s * 0.006);
+    const who = e.win === 0 ? 'BEEZAP WINS' : e.win === 1 ? (W.you[1] ? 'YOU WIN' : W.names[1] + ' WINS') : 'DRAW';
+    txt(who, X + s / 2, Y + s * 0.485, s * 0.1, col);
+    txt(e.win < 0 ? 'NOBODY GETS HURT' : e.win === 0 ? (W.you[1] ? 'YOU TAKE THE HIT' : W.names[1] + ' TAKES THE HIT') : 'BEEZAP TAKES THE HIT', X + s / 2, Y + s * 0.567, s * 0.045, '#c8c8d0');
+    c.globalAlpha = 1;
+  }
+}
+function bzX(c, x, y, r, q, col, w) {
+  c.lineCap = 'round'; c.lineWidth = w; c.strokeStyle = col; c.beginPath();
+  const a = clamp(q * 2, 0, 1), b = clamp(q * 2 - 1, 0, 1);
+  c.moveTo(x - r, y - r); c.lineTo(x - r + 2 * r * a, y - r + 2 * r * a);
+  if (b > 0) { c.moveTo(x + r, y - r); c.lineTo(x + r - 2 * r * b, y - r + 2 * r * b); }
+  c.stroke(); c.lineCap = 'butt';
+}
+// tic tac toe: whoever goes first is X
+function bzTTT(c, W, X, Y, s, t, d) {
+  const e = W.e, bs = s * 0.6, bx = X + (s - bs) / 2, by = Y + s * 0.2, cs = bs / 3, lw = s * 0.012;
+  c.lineCap = 'round'; c.lineWidth = lw; c.strokeStyle = '#3a3a48'; c.beginPath();
+  for (const k of [1, 2]) { c.moveTo(bx + k * cs, by + cs * 0.08); c.lineTo(bx + k * cs, by + bs - cs * 0.08); c.moveTo(bx + cs * 0.08, by + k * cs); c.lineTo(bx + bs - cs * 0.08, by + k * cs); }
+  c.stroke(); c.lineCap = 'butt';
+  const at = i => [bx + (i % 3 + 0.5) * cs, by + (Math.floor(i / 3) + 0.5) * cs];
+  e.mv.forEach((i, k) => {
+    const q = clamp((t - k * W.step) / 0.18, 0, 1);
+    if (q <= 0) return;
+    if (W.snd <= k) { W.snd = k + 1; SFX.pop(); }
+    const p = k % 2 ? 1 - e.first : e.first, [x, y] = at(i), r = cs * 0.28;
+    if (p === e.first) bzX(c, x, y, r, q, W.col[p], s * 0.022);
+    else { c.lineWidth = s * 0.022; c.strokeStyle = W.col[p]; c.beginPath(); c.arc(x, y, r * 1.1, -Math.PI / 2, -Math.PI / 2 + TAU * q); c.stroke(); }
+  });
+  if (e.line && t > W.n * W.step) {
+    const q = clamp((t - W.n * W.step) / 0.25, 0, 1), [x0, y0] = at(e.line[0]), [x1, y1] = at(e.line[2]), dx = (x1 - x0) * 0.22, dy = (y1 - y0) * 0.22;
+    if (!W.lined) { W.lined = 1; SFX.zap(); }
+    c.lineCap = 'round'; c.lineWidth = s * 0.03; c.strokeStyle = '#fff';
+    c.beginPath(); c.moveTo(x0 - dx, y0 - dy); c.lineTo(x0 - dx + (x1 - x0 + 2 * dx) * q, y0 - dy + (y1 - y0 + 2 * dy) * q); c.stroke(); c.lineCap = 'butt';
+  }
+  return '';
+}
+// connect four: discs drop down the columns
+function bzC4(c, W, X, Y, s, t, d) {
+  const e = W.e, cw = Math.min(s * 0.84 / 7, s * 0.62 / 6), bw = cw * 7, bh = cw * 6, bx = X + (s - bw) / 2, by = Y + s * 0.21 + (s * 0.64 - bh) / 2;
+  const H = Array(7).fill(0), slot = (cI, r) => [bx + (cI + 0.5) * cw, by + bh - (r + 0.5) * cw], disc = (x, y, col, ring) => {
+    circ(c, x, y, cw * 0.4); c.fillStyle = col; c.fill();
+    circ(c, x, y, cw * 0.27); c.lineWidth = cw * 0.06; c.strokeStyle = 'rgba(0,0,0,0.25)'; c.stroke();
+    if (ring) { circ(c, x, y, cw * 0.46); c.lineWidth = cw * 0.08; c.strokeStyle = '#fff'; c.stroke(); }
+  };
+  rrect(c, bx - cw * 0.15, by - cw * 0.12, bw + cw * 0.3, bh + cw * 0.27, cw * 0.2); c.fillStyle = '#2b2440'; c.fill(); c.lineWidth = s * 0.005; c.strokeStyle = '#4a4060'; c.stroke();
+  for (let cI = 0; cI < 7; cI++) for (let r = 0; r < 6; r++) { const [x, y] = slot(cI, r); circ(c, x, y, cw * 0.4); c.fillStyle = '#07060a'; c.fill(); }
+  const win = done => e.line && done ? e.line.map(([a, b]) => a * 6 + b) : [], lined = win(t > W.n * W.step + 0.2), pulse = Math.floor(t * 6) % 2 === 0;
+  e.mv.forEach((cI, k) => {
+    const r = H[cI]++, q = clamp((t - k * W.step) / 0.22, 0, 1);
+    if (t < k * W.step) return;
+    const p = k % 2 ? 1 - e.first : e.first, [x, y] = slot(cI, r), top = by - cw * 0.6;
+    if (q >= 1 && W.snd <= k) { W.snd = k + 1; SFX.clack(); }
+    disc(x, top + (y - top) * q * q, W.col[p], pulse && lined.includes(cI * 6 + r));
+  });
+  return '';
+}
+// rock paper scissors: both shake their fists three times, then throw
+function bzHand(c, k, x, y, z, col) {
+  c.save(); c.translate(x, y); c.lineJoin = 'round';
+  circ(c, 0, 0, z * 0.58); c.fillStyle = '#0d0b12'; c.fill(); c.lineWidth = z * 0.04; c.strokeStyle = col; c.stroke();
+  if (k === 0) {
+    const P = [[-0.4, 0.08], [-0.3, -0.24], [-0.02, -0.36], [0.28, -0.3], [0.42, -0.02], [0.34, 0.28], [0.02, 0.36], [-0.3, 0.3]];
+    c.beginPath(); P.forEach(([a, b], i) => (i ? c.lineTo(a * z, b * z) : c.moveTo(a * z, b * z))); c.closePath();
+    c.fillStyle = lin2(c, 0, -z * 0.36, 0, z * 0.36, '#a4a4b0', '#4a4a55'); c.fill(); c.lineWidth = z * 0.04; c.strokeStyle = '#1a1a22'; c.stroke();
+    c.beginPath(); c.moveTo(-z * 0.18, -z * 0.18); c.lineTo(z * 0.02, -z * 0.24); c.lineWidth = z * 0.05; c.strokeStyle = 'rgba(255,255,255,0.35)'; c.stroke();
+    c.beginPath(); c.moveTo(z * 0.06, z * 0.04); c.lineTo(z * 0.22, z * 0.12); c.moveTo(-z * 0.2, z * 0.12); c.lineTo(-z * 0.06, z * 0.2); c.lineWidth = z * 0.025; c.strokeStyle = 'rgba(0,0,0,0.35)'; c.stroke();
+  } else if (k === 1) {
+    c.beginPath(); c.moveTo(-z * 0.28, -z * 0.38); c.lineTo(z * 0.12, -z * 0.38); c.lineTo(z * 0.28, -z * 0.22); c.lineTo(z * 0.28, z * 0.38); c.lineTo(-z * 0.28, z * 0.38); c.closePath();
+    c.fillStyle = '#f2efe6'; c.fill(); c.lineWidth = z * 0.035; c.strokeStyle = '#1a1a22'; c.stroke();
+    c.beginPath(); c.moveTo(z * 0.12, -z * 0.38); c.lineTo(z * 0.12, -z * 0.22); c.lineTo(z * 0.28, -z * 0.22); c.closePath(); c.fillStyle = '#cfc8b8'; c.fill(); c.stroke();
+    c.lineWidth = z * 0.025; c.strokeStyle = '#9aa6c0'; c.beginPath();
+    for (let i = 0; i < 4; i++) { const yy = -z * 0.12 + i * z * 0.12; c.moveTo(-z * 0.18, yy); c.lineTo(z * 0.18, yy); }
+    c.stroke();
+  } else {
+    for (const dd of [-1, 1]) {
+      c.lineCap = 'round'; c.lineWidth = z * 0.12; c.strokeStyle = '#1a1a22'; c.beginPath(); c.moveTo(dd * z * 0.1, z * 0.16); c.lineTo(-dd * z * 0.2, -z * 0.4); c.stroke();
+      c.lineWidth = z * 0.07; c.strokeStyle = '#dfe3ec'; c.stroke();
+      circ(c, dd * z * 0.17, z * 0.28, z * 0.11); c.lineWidth = z * 0.065; c.strokeStyle = col; c.stroke();
+    }
+    circ(c, 0, -z * 0.02, z * 0.04); c.fillStyle = '#1a1a22'; c.fill(); c.lineCap = 'butt';
+  }
+  c.restore();
+}
+function bzRPS(c, W, X, Y, s, t, d, txt) {
+  const e = W.e, R = W.step, i = Math.min(W.n - 1, Math.floor(t / R)), lt = t - i * R, SHOOT = 0.66, sc = [0, 0];
+  for (let k = 0; k < W.n; k++) if (k < i || (k === i && lt >= SHOOT)) { const [a, b] = e.rounds[k], w = (a - b + 3) % 3; if (w === 1) sc[0]++; else if (w === 2) sc[1]++; }
+  const [a, b] = e.rounds[i], thrown = lt >= SHOOT, w = thrown ? (a - b + 3) % 3 : -1, z = s * 0.2;
+  // the bobs: fists pump on ROCK, PAPER, SCISSORS, and the hands come out on SHOOT
+  const beat = Math.min(2, Math.floor(lt / (SHOOT / 3))), bob = thrown ? 0 : Math.abs(Math.sin(lt / (SHOOT / 3) * Math.PI)) * s * 0.05;
+  if (W.beat !== i * 4 + (thrown ? 3 : beat)) { W.beat = i * 4 + (thrown ? 3 : beat); if (thrown) { SFX.clang(); if (w === 1 || w === 2) SFX.pop(); } else SFX.tick(0.1 + beat * 0.2); }
+  for (const p of [0, 1]) {
+    const lose = thrown && w !== 0 && (w === 1 ? p === 1 : p === 0), big = thrown && w !== 0 && !lose;
+    c.globalAlpha = lose ? 0.4 : 1;
+    bzHand(c, thrown ? e.rounds[i][p] : 0, X + s * (p ? 0.76 : 0.24), Y + s * 0.5 - bob, z * (big ? 1.12 : 1), W.col[p]);
+    c.globalAlpha = 1;
+    if (thrown) txt(BZ_RPS[e.rounds[i][p]], X + s * (p ? 0.76 : 0.24), Y + s * 0.69, s * 0.05, lose ? '#5b5b66' : W.col[p]);
+  }
+  txt(sc[0] + ' - ' + sc[1], X + s / 2, Y + s * 0.5, s * 0.09, '#fff');
+  txt('ROUND ' + (i + 1), X + s / 2, Y + s * 0.24, s * 0.045, '#8a8a99');
+  // a dot per round played: whose colour won it, grey for a tie
+  for (let k = 0; k < W.n; k++) {
+    if (k > i || (k === i && !thrown)) continue;
+    const [x0, x1] = e.rounds[k], r = (x0 - x1 + 3) % 3;
+    circ(c, X + s / 2 + (k - (W.n - 1) / 2) * s * 0.05, Y + s * 0.8, s * 0.014); c.fillStyle = r === 1 ? W.col[0] : r === 2 ? W.col[1] : '#5b5b66'; c.fill();
+  }
+  return thrown ? (w === 0 ? 'TIE. AGAIN!' : 'SHOOT!') : BZ_RPS[beat] + '...';
+}
+// battleship: each side's sea, with its own ships showing; the shots land on the other side's sea
+function bzShip(c, W, X, Y, s, t, d, txt) {
+  const e = W.e, gs = s * 0.42, cs = gs / 5, gy = Y + s * 0.32, gx = [X + s * 0.05, X + s * 0.53], sunk = [[], []], hits = [0, 0];
+  const shown = Math.min(W.n, Math.floor(t / W.step) + 1);
+  for (let k = 0; k < shown; k++) { const [p, , hit, sk] = e.shots[k]; if (hit) hits[p]++; if (sk >= 0) sunk[1 - p][sk] = 1; }
+  for (const p of [0, 1]) {
+    txt(W.names[p] + (W.names[p].endsWith('S') ? "'" : "'S") + ' SEA', gx[p] + gs / 2, gy - s * 0.04, s * 0.04, W.col[p], gs);
+    for (let i = 0; i < 25; i++) { rrect(c, gx[p] + (i % 5) * cs + cs * 0.05, gy + Math.floor(i / 5) * cs + cs * 0.05, cs * 0.9, cs * 0.9, cs * 0.12); c.fillStyle = '#10141e'; c.fill(); }
+    e.ships[p].forEach((sh, n) => {
+      const xs = sh.map(i => i % 5), ys = sh.map(i => Math.floor(i / 5)), x0 = Math.min(...xs), y0 = Math.min(...ys);
+      rrect(c, gx[p] + x0 * cs + cs * 0.14, gy + y0 * cs + cs * 0.14, (Math.max(...xs) - x0 + 1) * cs - cs * 0.28, (Math.max(...ys) - y0 + 1) * cs - cs * 0.28, cs * 0.3);
+      c.fillStyle = sunk[p][n] ? '#4a1a20' : '#5b5b66'; c.fill(); c.lineWidth = s * 0.005; c.strokeStyle = sunk[p][n] ? '#ff4646' : '#8a8a99'; c.stroke();
+    });
+  }
+  for (let k = 0; k < shown; k++) {
+    const [p, i, hit] = e.shots[k], q = t - k * W.step, x = gx[1 - p] + (i % 5 + 0.5) * cs, y = gy + (Math.floor(i / 5) + 0.5) * cs;
+    if (W.snd <= k) { W.snd = k + 1; if (hit) SFX.boom(true); else SFX.splash(); }
+    if (q < 0.3) { circ(c, x, y, cs * (0.2 + q * 1.6)); c.lineWidth = s * 0.006; c.strokeStyle = hit ? `rgba(255,140,60,${(1 - q / 0.3).toFixed(2)})` : `rgba(200,220,255,${(1 - q / 0.3).toFixed(2)})`; c.stroke(); }
+    if (hit) bzX(c, x, y, cs * 0.2, 1, '#ff6a3a', s * 0.012);
+    else { circ(c, x, y, cs * 0.09); c.fillStyle = '#8a8a99'; c.fill(); }
+  }
+  // the last shot's crosshair, on whoever's sea it hit
+  if (shown && t - (shown - 1) * W.step < W.step) {
+    const [p, i] = e.shots[shown - 1], x = gx[1 - p] + (i % 5 + 0.5) * cs, y = gy + (Math.floor(i / 5) + 0.5) * cs;
+    c.lineWidth = s * 0.004; c.strokeStyle = W.col[p]; c.beginPath(); c.arc(x, y, cs * 0.42, 0, TAU);
+    c.moveTo(x - cs * 0.55, y); c.lineTo(x + cs * 0.55, y); c.moveTo(x, y - cs * 0.55); c.lineTo(x, y + cs * 0.55); c.stroke();
+  }
+  const need = e.ships.map(f => f.reduce((n, sh) => n + sh.length, 0));
+  return `HITS · BEEZAP ${hits[0]}/${need[1]} · ${W.you[1] ? 'YOU' : W.names[1]} ${hits[1]}/${need[0]}`;
+}
 
 // ---- in between: while a BeeZap is in the fight, the screen never quite behaves ----
 function bzChaos(F, dt) {
