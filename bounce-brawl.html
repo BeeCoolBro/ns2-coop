@@ -679,6 +679,28 @@ svg.mst.on { fill: var(--gold); }
 .bzcon-status { display: flex; align-items: center; gap: 16px; height: 24px; padding: 0 10px; overflow: hidden; background: #18181d; border-top: 1px solid #2a2a31; font: 400 11.5px/1 var(--ui); color: #85858f; white-space: nowrap; }
 .bzcon-status .live::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: #98c379; }
 @media (max-width: 640px) { .bzcon { top: 8px; font-size: 11.5px; } .bzcon-body { grid-template-columns: 1fr; } .bzside { display: none; } .bzlog { border-right: 0; } .bzcon-tabs span:nth-child(n+3), .bzhost, .bzcon-status span:nth-child(n+3) { display: none; } }
+/* the how-to-play box next to BeeZap's minigames */
+.bzhow { position: absolute; z-index: 6; box-sizing: border-box; padding: 10px 12px; overflow: hidden; background: rgba(13,12,18,.95); border: 1px solid #2f2b40; border-left: 3px solid #ffd633; border-radius: 8px; color: #c8c8d0; font: 600 14px/1.35 var(--fb); pointer-events: none; animation: bzHowIn .25s ease; transition: opacity .2s ease; }
+@keyframes bzHowIn { from { opacity: 0; transform: translateY(4px); } }
+.bzhow.hide { opacity: 0; }
+.bzhow-t { display: block; margin: 0 0 5px; padding: 0; border: 0; background: none; color: #ffd633; font: 400 12px/1 var(--fd); letter-spacing: 2px; text-align: left; cursor: default; }
+.bzhow b { display: block; margin-bottom: 4px; font: 400 20px/1.05 var(--fd); letter-spacing: 1px; color: var(--txt); }
+.bzhow p { margin: 0 0 6px; }
+.bzhow .keys { color: #8a8a99; font-size: 12.5px; letter-spacing: .4px; }
+.bzhow .foot { margin: 0; padding-top: 6px; border-top: 1px solid #24222e; color: #8a8a99; font-size: 12.5px; }
+.bzhow.under, .bzhow.over { padding: 7px 10px; font-size: 12.5px; line-height: 1.3; }
+.bzhow.under b, .bzhow.over b { display: inline; margin-right: 6px; font-size: 16px; }
+.bzhow.under .bzhow-t, .bzhow.over .bzhow-t { display: inline; margin-right: 8px; }
+.bzhow.under p, .bzhow.over p { margin: 3px 0 4px; }
+.bzhow.under .keys, .bzhow.over .keys { display: none; }
+.bzhow.under .foot, .bzhow.over .foot { padding-top: 4px; font-size: 11.5px; }
+.bzhow.in { padding: 0; border-left-width: 1px; }
+.bzhow.in > :not(.bzhow-t) { display: none; }
+.bzhow.in .bzhow-t { margin: 0; padding: 7px 10px; pointer-events: auto; cursor: pointer; }
+.bzhow.in.open { padding: 0 12px 10px; pointer-events: auto; }
+.bzhow.in.open > :not(.bzhow-t) { display: block; }
+.bzhow.in.open .bzhow-t { padding: 8px 0 4px; }
+.bzhow-t:focus-visible { outline: 2px solid #ffd633; outline-offset: 2px; }
 #fight.bz-hacked .plate { filter: hue-rotate(70deg) saturate(1.6); }
 .plate { position: relative; transition: transform .25s var(--ease); }
 .plate.bz-frozen { filter: saturate(.25) brightness(1.25) hue-rotate(160deg); }
@@ -8455,7 +8477,7 @@ function openGame(F, e) {
   const W = F.wheel = { kind: 'game', e, cv, plq, sr: res, T: 0, key, names: ['BEEZAP', foe], you: [e.side === F.mySide, you], col: ['#ffd633', TEAM[you ? 0 : 1]],
     who: [bzWho(F, e.side), bzWho(F, e.ts)], st: e.g === 'rps' ? null : BZ_RULE[e.g].init(e), seq: [], rounds: [], used: [0, 0], mine: [], pt: 0, limit: BZ_TURN[e.g],
     rr: [0, 1].map(p => rng((Math.imul(key, 2654435761) + p * 40503 + 7) >>> 0)), turnT: 0, aiAt: 0.8, hits: [], hover: -1, snd: 0, pickAt: -1,
-    frame: gameFrame, close() { cv.remove(); plq.remove(); removeEventListener('keydown', onKey); } };
+    frame: gameFrame, close() { cv.remove(); plq.remove(); if (W.how) W.how.remove(); removeEventListener('keydown', onKey); } };
   W.playing = W.who.findIndex(x => x.k === 'me');
   // clicks and taps land on the board through the takeover's own canvas
   cv.style.pointerEvents = 'auto'; cv.style.touchAction = 'manipulation';
@@ -8543,7 +8565,7 @@ function gameFrame(F, dt) {
   const endT = W.res ? G.PLAY + W.resT + G.RES : Infinity, closeT = endT + G.BACK;
   if (!W.s0) { W.s0 = 1; SFX.rip(); SFX.warp(); }
   if (!W.s1 && T > G.OUT) { W.s1 = 1; SFX.game(); }
-  if (!W.s2 && T > G.PICK + G.PICKD) { W.s2 = 1; SFX.reveal(1); W.sr.textContent = BZ_GAME_NAMES[e.g] + (W.playing >= 0 ? '. YOUR MOVE WHEN IT IS YOUR TURN.' : ''); }
+  if (!W.s2 && T > G.PICK + G.PICKD) { W.s2 = 1; bzHowOpen(F, W); SFX.reveal(1); W.sr.textContent = BZ_GAME_NAMES[e.g] + (W.playing >= 0 ? '. YOUR MOVE WHEN IT IS YOUR TURN.' : ''); }
   if (W.res && !W.s3 && W.pt > W.resT + 0.35) {
     W.s3 = 1;
     const win = W.res.win, loser = win === 0 ? (W.you[1] ? 'YOU TAKE' : W.names[1] + ' TAKES') : 'BEEZAP TAKES';
@@ -8552,7 +8574,8 @@ function gameFrame(F, dt) {
     else if (win === 1) { SFX.wah(); bzBlip(F, 160); }
     else SFX.drop();
   }
-  if (!W.s4 && T > endT) { W.s4 = 1; SFX.rip(); SFX.blip(); W.cv.style.pointerEvents = 'none'; }
+  if (!W.s4 && T > endT) { W.s4 = 1; SFX.rip(); SFX.blip(); W.cv.style.pointerEvents = 'none'; if (W.how) W.how.classList.add('hide'); }
+  if (W.how) bzHowPlace(W, g);
   // what the box shows: the fight tearing, a flicker of static, the game, and the same on the way back
   const flick = (t0, dur, from, to) => { const p = (T - t0) / dur; if (p < 0 || p >= 1) return null; if (p > 0.8) return to; const r = Math.random(); return r < 0.3 ? 'static' : r < 0.42 ? 'black' : Math.random() < p ? to : from; };
   const mode = T < G.OUT ? 'tear' : flick(G.OUT, G.FLK, 'arena', 'game') || flick(endT, G.BACK, 'game', 'arena') || (T < endT ? 'game' : 'arena');
@@ -8797,6 +8820,42 @@ function bzShip(c, W, X, Y, s, t, txt) {
   return '';
 }
 
+// the little how-to-play box: the rules of the game that came up, and its keys on a screen with a keyboard
+const BZ_HOW = {
+  ttt: ['Get three of your marks in a row: across, down or corner to corner. Tap an empty square on your turn.', '1 to 9 pick a square, top left to bottom right'],
+  c4: ['Get four of your discs in a row: across, down or diagonal. Tap a column to drop a disc into it.', '1 to 7 pick a column'],
+  rps: ['You both pick at the same time. Rock beats scissors, scissors beat paper, paper beats rock. First to win 2 rounds; ties don\u2019t count.', 'R, P or S'],
+  ship: ['You each have two hidden ships, 3 and 2 squares long. Tap a square on their sea to fire. A hit fires again. Sink both of theirs first.', ''],
+  nim: ['Take 1, 2 or 3 sticks on your turn. Whoever takes the last stick loses, so try to leave exactly one for them.', '1, 2 or 3'],
+  memo: ['Flip two cards a turn. A matching pair is yours and you go again. Remember where the cards were. First to 4 pairs wins.', ''],
+  dots: ['Tap a line between two dots. Draw the last side of a box and the box is yours, and you go again. First to 5 boxes wins.', ''],
+  pig: ['ROLL as many times as you dare; each roll adds to this turn. Roll a 1 and this turn scores nothing. HOLD banks it. First to 20 wins.', 'R roll, H hold'],
+};
+function bzHowOpen(F, W) {
+  const [rule, keys] = BZ_HOW[W.e.g], kb = window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches;
+  W.how = h('div', { class: 'bzhow', role: 'note', 'aria-label': 'How to play' },
+    h('button', { class: 'bzhow-t', type: 'button', 'aria-expanded': 'false', onclick: () => { const o = W.how.classList.toggle('open'); W.how.firstChild.setAttribute('aria-expanded', String(o)); } }, 'HOW TO PLAY'),
+    h('b', { text: BZ_GAME_NAMES[W.e.g] }), h('p', { text: rule }),
+    kb && keys ? h('p', { class: 'keys', text: 'KEYS · ' + keys.toUpperCase() }) : null,
+    h('p', { class: 'foot', text: 'The winner hits the loser for ' + BZ_GAME_DMG + '.' + (W.playing >= 0 ? ' Run out of time and the game moves for you.' : '') }));
+  // opened over the board (no room beside it), a tap anywhere on it closes it again
+  W.how.addEventListener('click', ev => { if (ev.target !== W.how.firstChild && W.how.classList.contains('open')) W.how.firstChild.click(); });
+  F.root.querySelector('.arena').append(W.how);
+}
+// where it goes: beside the board when there's room, else under or over it, else a button on the board itself
+function bzHowPlace(W, g) {
+  const d = g.dpr, bx = g.x / d, by = g.y / d, bs = g.size / d, hh = g.h / d, below = hh - by - bs;
+  let mode, st;
+  if (bx >= 200) { const w = Math.min(280, bx - 28); mode = 'side'; st = { left: bx - 14 - w, top: by + 10, width: w }; }
+  else if (below >= 84) { mode = 'under'; st = { left: bx, top: by + bs + 8, width: bs, maxHeight: below - 14 }; }
+  else if (by >= 84) { mode = 'over'; st = { left: bx, bottom: hh - by + 8, width: bs, maxHeight: by - 14 }; }
+  else { mode = 'in'; st = { left: bx + 8, bottom: hh - by - bs + 8, maxWidth: bs - 16 }; }
+  const key = mode + JSON.stringify(st);
+  if (key === W.howKey) return;
+  W.howKey = key;
+  W.how.classList.remove('side', 'under', 'over', 'in'); W.how.classList.add(mode);
+  for (const k of ['left', 'top', 'bottom', 'width', 'maxHeight', 'maxWidth']) W.how.style[k] = st[k] === undefined ? '' : Math.round(st[k]) + 'px';
+}
 // what each move sounds like (Connect Four's discs clack as they land, in bzC4)
 function bzMoveSfx(g, out) {
   if (g === 'ttt') SFX.pop();
