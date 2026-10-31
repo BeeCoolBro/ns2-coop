@@ -1856,6 +1856,14 @@ def brawl_clean(raw):
             out[k] = v if isinstance(v, str) and BB_MID_RE.fullmatch(v) else None
         elif k == 'uid':
             out[k] = v if isinstance(v, str) and BB_UID_RE.fullmatch(v) else None
+        elif k == 'gm':
+            # BeeZap's minigames: a game key and this player's moves so far, small numbers only
+            m = v.get('m') if isinstance(v, dict) else None
+            if isinstance(v.get('k') if isinstance(v, dict) else None, int) and not isinstance(v.get('k'), bool) and 0 <= v['k'] < 2 ** 31 \
+                    and isinstance(m, list) and len(m) <= 40 and all(isinstance(x, int) and not isinstance(x, bool) and 0 <= x < 64 for x in m):
+                out[k] = {'k': v['k'], 'm': m}
+            else:
+                out[k] = None
         elif k == 'res':
             if isinstance(v, dict) and isinstance(v.get('mid'), str) and BB_MID_RE.fullmatch(v['mid']) \
                     and v.get('w') in (-1, 0, 1) and isinstance(v.get('h'), str) and re.fullmatch(r'[0-9a-z]{1,16}', v['h']):
