@@ -609,44 +609,76 @@ svg.mst.on { fill: var(--gold); }
 .bzres { font: 400 20px/1 var(--fd); letter-spacing: 3px; color: #fff; text-align: center; }
 .bzres:empty { display: none; }
 .bzres.pop { animation: popIn .45s var(--spring); }
-.bzcon { position: absolute; left: 0; right: 0; top: 0; z-index: 30; min-height: min(44%, 340px); padding: 14px max(18px, env(safe-area-inset-left, 0px)) 16px; box-sizing: border-box; background: rgba(5,6,5,.95); border-bottom: 2px solid #ffd60a; font: 600 15px/1.55 var(--fm); animation: bzDrop .28s var(--ease); }
-.bzcon.out { animation: bzLift .3s ease forwards; }
-@keyframes bzDrop { from { transform: translateY(-100%); } }
-@keyframes bzLift { to { transform: translateY(-100%); } }
-.bzcon-top { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-bottom: 8px; margin-bottom: 10px; border-bottom: 1px solid #2a2a31; font: 400 15px/1 var(--fd); letter-spacing: 3px; }
-.bzcon-top b { color: #ffd60a; font-weight: 400; }
-.bzcon-top span { color: #7bd23a; }
-.bzcon-top span.foe { color: #ff6b6b; }
-.bzcon-top { align-items: center; }
-.bzdots { display: inline-flex; gap: 6px; margin-right: auto; }
-.bzdots i { width: 10px; height: 10px; border-radius: 50%; background: #ff5f57; }
-.bzdots i:nth-child(2) { background: #febc2e; }
-.bzdots i:nth-child(3) { background: #28c840; }
-.bzcon-top b { margin-right: auto; }
-.bzcon-body { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 18px; }
-.bzlines { max-height: 250px; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; }
+/* ---- BeeZap's admin console: a server console window over the fight ---- */
+.bzcon { --tm: "Cascadia Mono", Consolas, "SF Mono", Menlo, "Share Tech Mono", ui-monospace, monospace; --ui: "Segoe UI", system-ui, -apple-system, sans-serif;
+  position: absolute; left: 50%; top: max(10px, 5vh); z-index: 30; width: min(900px, calc(100% - 24px)); transform: translateX(-50%);
+  display: flex; flex-direction: column; background: #0d0d10; border: 1px solid #3a3a42; border-radius: 8px; overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0,0,0,.7), 0 2px 6px rgba(0,0,0,.5); font: 400 13px/1.5 var(--tm); color: #c9c9d1; text-align: left; animation: bzOpen .16s ease-out; }
+.bzcon.out { animation: bzClose .2s ease-in forwards; }
+@keyframes bzOpen { from { opacity: 0; transform: translateX(-50%) scale(.97); } }
+@keyframes bzClose { to { opacity: 0; transform: translateX(-50%) scale(.97); } }
+.bzcon-top { display: flex; align-items: center; gap: 8px; height: 32px; padding-left: 10px; background: #1d1d23; border-bottom: 1px solid #2a2a31; font: 400 12.5px/1 var(--ui); color: #dcdce4; white-space: nowrap; user-select: none; }
+.bzcon-top b { font-weight: 600; }
+.bzico { display: grid; place-items: center; width: 18px; height: 16px; border-radius: 3px; background: #0d0d10; border: 1px solid #4a4a55; font: 700 9px/1 var(--tm); color: #ffd60a; }
+.bzhost { color: #85858f; overflow: hidden; text-overflow: ellipsis; }
+.bzwin { display: flex; height: 100%; margin-left: auto; }
+.bzwin i { position: relative; width: 44px; height: 100%; }
+.bzwin i::before, .bzwin i::after { content: ""; position: absolute; left: 50%; top: 50%; }
+.bzwin .min::before { width: 10px; height: 1px; margin: 0 0 0 -5px; background: #b8b8c2; }
+.bzwin .max::before { width: 9px; height: 9px; margin: -5px 0 0 -5px; border: 1px solid #b8b8c2; }
+.bzwin .x::before, .bzwin .x::after { width: 12px; height: 1px; margin-left: -6px; background: #b8b8c2; transform: rotate(45deg); }
+.bzwin .x::after { transform: rotate(-45deg); }
+.bzcon-tabs { display: flex; align-items: flex-end; gap: 2px; padding: 6px 10px 0; background: #16161b; border-bottom: 1px solid #2a2a31; font: 400 12px/1 var(--ui); white-space: nowrap; overflow: hidden; }
+.bzcon-tabs span { padding: 7px 12px; color: #85858f; border: 1px solid transparent; border-radius: 5px 5px 0 0; }
+.bzcon-tabs span.on { margin-bottom: -1px; color: #ececf2; background: #0d0d10; border-color: #2a2a31 #2a2a31 #0d0d10; }
+.bzcon-tabs em { align-self: center; margin-left: auto; padding-bottom: 6px; font-style: normal; color: #98c379; }
+.bzcon-tabs em.foe { color: #e06c75; }
+.bzcon-body { display: grid; grid-template-columns: minmax(0, 1fr) 210px; }
+.bzlog { display: flex; flex-direction: column; min-width: 0; border-right: 1px solid #2a2a31; }
+.bzscroll { position: relative; display: flex; flex-direction: column; justify-content: flex-end; height: clamp(160px, 30vh, 260px); padding: 8px 20px 8px 12px; overflow: hidden; }
+.bzbar { position: absolute; top: 4px; right: 3px; bottom: 4px; width: 8px; }
+.bzbar i { position: absolute; right: 1px; bottom: 0; width: 6px; height: 30%; border-radius: 3px; background: #3a3a44; }
 .bzlines > div { white-space: pre-wrap; overflow-wrap: anywhere; }
-.bzlines .ts { color: #4d4d57; }
-.bzlines .warn { color: #ff9f43; }
-.bzlines .audit { color: #c58cff; }
-.bzlines .bar { color: #7bd23a; white-space: pre; }
-.bzlines .big { margin: 2px 0 8px; font: 400 clamp(26px, 5vw, 46px)/1.05 var(--fd); letter-spacing: 3px; color: #ff4646; animation: bzBig .4s steps(1, end) 4; }
+.bzlines .ts { color: #5c6370; }
+.bzlines .th { color: #6f7785; }
+.bzlines .warn { color: #e5c07b; }
+.bzlines .warn .th { color: #a88a52; }
+.bzlines .audit { color: #c678dd; }
+.bzlines .ok { color: #98c379; }
+.bzlines .cmdlog { color: #ececf2; }
+.bzlines .bar { color: #61afef; white-space: pre; }
+.bzlines .big { margin: 4px 0; font: 700 clamp(18px, 3vw, 28px)/1.2 var(--tm); letter-spacing: 1px; color: #ff5555; animation: bzBig .4s steps(1, end) 4; }
 @keyframes bzBig { 50% { color: #ffd60a; } }
-.bzside { border-left: 1px solid #2a2a31; padding-left: 16px; font: 600 13px/1.6 var(--fm); color: #a9a9b3; }
-.bzside h4 { margin: 0 0 6px; font: 400 13px/1 var(--fd); letter-spacing: 3px; color: #77777f; }
-.bzside ul { list-style: none; margin: 0 0 14px; padding: 0; }
-.bzside li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bzside li::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 8px; border-radius: 50%; background: #7bd23a; vertical-align: 1px; }
-.bzside li.op { color: #ffd60a; }
+.bzinwrap { position: relative; background: #121216; border-top: 1px solid #2a2a31; }
+.bzin { display: flex; align-items: center; height: 34px; padding: 0 12px; color: #ececf2; white-space: pre; overflow: hidden; }
+.bzin .pr { margin-right: 8px; color: #ffd60a; }
+.bzin .caret { width: 8px; height: 16px; background: #d8d8e0; animation: recBlink 1s steps(1, end) infinite; }
+.bzin.sent { background: #19201a; }
+.bzsug { display: none; position: absolute; left: 28px; bottom: 100%; margin-bottom: 4px; min-width: 260px; padding: 3px 0; background: #1d1d23; border: 1px solid #3a3a42; border-radius: 4px; box-shadow: 0 8px 20px rgba(0,0,0,.5); }
+.bzsug.on { display: block; }
+.bzsug div { padding: 2px 10px; color: #c9c9d1; white-space: pre; }
+.bzsug div.hi { background: #2c3a52; color: #fff; }
+.bzsug i { font-style: normal; color: #7a7a86; }
+.bzside { padding: 10px 12px; background: #101013; font: 400 12px/1.6 var(--tm); color: #a9a9b3; }
+.bzside h4 { margin: 0 0 4px; font: 600 11px/1 var(--ui); letter-spacing: .6px; text-transform: uppercase; white-space: pre; color: #6f6f7a; }
+.bzside h4 ~ h4 { margin-top: 12px; }
+.bzside ul { list-style: none; margin: 0; padding: 0; }
+.bzside li { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.bzside li::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: #98c379; }
+.bzside li span { overflow: hidden; text-overflow: ellipsis; }
+.bzside li small { padding: 0 4px; border-radius: 3px; background: #e5c07b; color: #0d0d10; font: 700 9px/1.5 var(--ui); }
+.bzside li em { margin-left: auto; font-style: normal; color: #6f6f7a; }
 .bzside .kv { display: flex; justify-content: space-between; gap: 10px; }
-.bzside .kv b { color: #fff; font-weight: 600; }
-.bzside .kv b.bad { color: #ff4646; }
-@media (max-width: 640px) { .bzcon-body { grid-template-columns: 1fr; } .bzside { display: none; } .bzcon { font-size: 13px; } }
-.bzlines .sys { color: #77777f; }
-.bzlines .cmd { color: #fff; }
-.bzlines .cmd::before { content: "> "; color: #ffd60a; }
-.bzlines .cmd:not(.sent)::after { content: "_"; animation: recBlink .6s steps(1, end) infinite; }
-.bzlines .ok { color: #ffd60a; }
+.bzside .kv b { font-weight: 400; color: #ececf2; }
+.bzside .kv b.bad { color: #e06c75; }
+.bzspark { display: flex; align-items: flex-end; gap: 1px; height: 22px; margin: 2px 0 4px; }
+.bzspark i { flex: 1; height: 95%; min-height: 2px; background: #5f8a4a; }
+.bzspark i.low { background: #e06c75; }
+.bzmem { height: 5px; margin: 2px 0; overflow: hidden; border-radius: 3px; background: #24242b; }
+.bzmem i { display: block; width: 45%; height: 100%; background: #61afef; }
+.bzcon-status { display: flex; align-items: center; gap: 16px; height: 24px; padding: 0 10px; overflow: hidden; background: #18181d; border-top: 1px solid #2a2a31; font: 400 11.5px/1 var(--ui); color: #85858f; white-space: nowrap; }
+.bzcon-status .live::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: #98c379; }
+@media (max-width: 640px) { .bzcon { top: 8px; font-size: 11.5px; } .bzcon-body { grid-template-columns: 1fr; } .bzside { display: none; } .bzlog { border-right: 0; } .bzcon-tabs span:nth-child(n+3), .bzhost, .bzcon-status span:nth-child(n+3) { display: none; } }
 #fight.bz-hacked .plate { filter: hue-rotate(70deg) saturate(1.6); }
 .plate { position: relative; transition: transform .25s var(--ease); }
 .plate.bz-frozen { filter: saturate(.25) brightness(1.25) hue-rotate(160deg); }
@@ -7822,52 +7854,100 @@ const BZ_CMD_TXT = {
   kick: n => [`/kick ${n} "skill issue"`, `${n} was kicked from the game.`],
 };
 const BZ_BLOCK = String.fromCharCode(9608), BZ_SHADE = String.fromCharCode(9617);
-// the console: a title bar, the server log on the left, and the players and server settings on the right.
-// script: [[secs, kind, text, then()]] lines that appear in order; 'cmd' types out, 'bar' fills until the next line.
+// the console: a server console window. A title bar, tabs, the server log with its scrollbar and the command
+// box under it, the players and the server's health down the side, and a status bar along the bottom.
+// script: [[secs, kind, text, then()]] lines that appear in order; 'cmd' is typed into the command box (with
+// the console's suggestions) and sent when the next line comes; 'bar' fills until the next line.
+const BZ_LVL = { warn: 'WARN', audit: 'INFO', bar: 'INFO' };
+const BZ_USAGE = { '/ban': '<player> [reason]', '/deop': '<player>', '/effect': '<target> <effect> [seconds]', '/freeze': '<player> [time]', '/gamemode': '<mode> [player]',
+  '/give': '<player> <item> [count]', '/god': '[player]', '/kick': '<player> [reason]', '/kill': '<target>', '/list': '', '/nerf': '<player> <amount>', '/op': '<player>',
+  '/say': '<message>', '/smite': '<player>', '/stop': '', '/tp': '<player> <destination>', '/tps': '', '/whitelist': 'on|off|add|remove' };
 function bzConsole(F, e, kind, script, end) {
   const mine = e.side === F.mySide, bee = (mine ? F.me : F.foe).name, other = (mine ? F.foe : F.me).name;
-  const lines = h('div', { class: 'bzlines' }), tps = h('b', { text: '20.0' });
+  const lines = h('div', { class: 'bzlines' }), tps = h('b', { text: '20.0' }), mspt = h('b', { text: '11.8 ms' }), cpu = h('b', { text: '14%' });
+  const memT = h('b', { text: '1.8 / 4.0 GB' }), mem = h('i'), spark = h('div', { class: 'bzspark' }, Array.from({ length: 30 }, () => h('i')));
+  const pings = [h('em', { text: '2ms' }), h('em', { text: '41ms' })], typed = h('span'), sug = h('div', { class: 'bzsug' });
+  const input = h('div', { class: 'bzin' }, h('span', { class: 'pr', text: '>' }), typed, h('span', { class: 'caret' }));
   const kv = (k, v, bad) => h('div', { class: 'kv' }, h('span', { text: k }), typeof v === 'string' ? h('b', { class: bad ? 'bad' : '', text: v }) : v);
   const side = h('div', { class: 'bzside' },
-    h('h4', { text: 'PLAYERS · 2 ONLINE' }),
-    h('ul', {}, h('li', { class: 'op', text: '[OP] ' + bee + ' · BeeZap' }), h('li', { text: other })),
-    h('h4', { text: 'SERVER' }),
-    kv('ANTI-CHEAT', 'OFF', 1), kv('LOGGING', 'PAUSED', 1), kv('OP LEVEL', '4'), kv('TPS', tps));
-  const con = h('div', { class: 'bzcon', 'aria-live': 'polite' },
-    h('div', { class: 'bzcon-top' }, h('span', { class: 'bzdots' }, h('i'), h('i'), h('i')), h('b', { text: 'BEESIDE SERVER · ADMIN CONSOLE' }),
-      h('span', { class: mine ? '' : 'foe', text: (mine ? 'YOUR' : 'THEIR') + ' BEEZAP HAS OP' })),
-    h('div', { class: 'bzcon-body' }, lines, side));
+    h('h4', { text: 'Players  2/20' }),
+    h('ul', {}, h('li', { class: 'op' }, h('span', { text: bee }), h('small', { text: 'OP' }), pings[0]), h('li', {}, h('span', { text: other }), pings[1])),
+    h('h4', { text: 'Performance' }),
+    kv('TPS', tps), spark, kv('MSPT', mspt), kv('CPU', cpu), kv('Memory', memT), h('div', { class: 'bzmem' }, mem),
+    h('h4', { text: 'Server' }),
+    kv('Anti-cheat', 'off', 1), kv('Logging', 'paused', 1), kv('Op level', '4'));
+  const con = h('div', { class: 'bzcon', role: 'dialog', 'aria-label': 'Admin console', 'aria-live': 'polite' },
+    h('div', { class: 'bzcon-top' }, h('span', { class: 'bzico', text: '>_' }), h('b', { text: 'BeeSide Server Console' }), h('span', { class: 'bzhost', text: '\u2014 bb-live-01 (RCON)' }),
+      h('span', { class: 'bzwin', 'aria-hidden': 'true' }, h('i', { class: 'min' }), h('i', { class: 'max' }), h('i', { class: 'x' }))),
+    h('div', { class: 'bzcon-tabs' }, ['Console', 'Players', 'Performance', 'Plugins', 'Files'].map((t, i) => h('span', { class: i ? '' : 'on', text: t })),
+      h('em', { class: mine ? '' : 'foe', text: (mine ? 'Your' : 'Their') + ' BeeZap has OP' })),
+    h('div', { class: 'bzcon-body' },
+      h('div', { class: 'bzlog' }, h('div', { class: 'bzscroll' }, lines, h('div', { class: 'bzbar' }, h('i'))), h('div', { class: 'bzinwrap' }, sug, input)),
+      side),
+    h('div', { class: 'bzcon-status' }, h('span', { class: 'live', text: 'Connected' }), h('span', { text: 'RCON 127.0.0.1:25575' }), h('span', { class: 'up', text: 'Uptime 3h 12m' }), h('span', { text: 'UTF-8' })));
   F.root.append(con);
   const cv = bzLayer(F);
   F.root.classList.add('bz-hacked');
-  F.wheel = { kind, e, cv, con, lines, tps, script, end, i: 0, T: 0, hit: 0, typing: null, bar: null,
+  F.wheel = { kind, e, cv, con, lines, tps, mspt, cpu, mem, memT, spark, pings, typed, sug, input, bee: 'BeeZap', script, end, i: 0, T: 0, hit: 0, typing: null, bar: null,
     frame: consoleFrame, close() { cv.remove(); con.remove(); F.root.classList.remove('bz-hacked'); } };
   SFX.warp(); SFX.blip();
 }
 function bzStamp(F) { const s = 37 * 60 + Math.floor(F.t); return '[13:' + pad2(Math.floor(s / 60) % 60) + ':' + pad2(s % 60) + '] '; }
+// a log line the way a server writes it: the time, the thread and level, then the message
+function bzLog(F, W, cls, text) {
+  const d = h('div', { class: cls });
+  if (cls === 'big') d.textContent = text;
+  else d.append(h('span', { class: 'ts', text: bzStamp(F) }), h('span', { class: 'th', text: `[Server thread/${BZ_LVL[cls] || 'INFO'}]: ` }), h('span', { text: text.replace(/^\[(INFO|WARN|SERVER|OP)\]\s*/, '') }));
+  W.lines.append(d);
+  while (W.lines.children.length > 14) W.lines.firstChild.remove();
+  return d;
+}
+// the command box sends what was typed: it shows up in the log, and the box clears
+function bzSend(F, W) {
+  bzLog(F, W, 'cmdlog', `${W.bee} issued server command: ${W.typing.text}`);
+  W.typed.textContent = ''; W.sug.classList.remove('on'); W.typing = null;
+  bzMark(W.input, 'sent', 0.3); SFX.tick(0.4);
+}
+// the suggestions over the command box: commands that match the first word, then that command's usage
+function bzSuggest(W, text) {
+  const sp = text.indexOf(' '), word = sp < 0 ? text : text.slice(0, sp), row = (cmd, use, hi) => h('div', { class: hi ? 'hi' : '' }, cmd, h('i', { text: use ? ' ' + use : '' }));
+  W.sug.textContent = '';
+  if (sp < 0 && text.length >= 2) Object.keys(BZ_USAGE).filter(c => c.startsWith(word)).slice(0, 5).forEach((c, i) => W.sug.append(row(c, BZ_USAGE[c], i === 0)));
+  else if (sp >= 0 && BZ_USAGE[word] !== undefined) W.sug.append(row(word, BZ_USAGE[word], false));
+  W.sug.classList.toggle('on', W.sug.children.length > 0);
+}
 function consoleFrame(F, dt) {
   const W = F.wheel, A = F.arena, T = (W.T += dt), CH = 0.07;
   A.cv.style.opacity = '0';
   while (W.i < W.script.length && T >= W.script[W.i][0]) {
-    const [at, cls, text, then] = W.script[W.i++], d = h('div', { class: cls });
-    if (cls !== 'cmd' && cls !== 'bar' && cls !== 'big') d.append(h('span', { class: 'ts', text: bzStamp(F) }));
-    const body = h('span', { text: cls === 'cmd' || cls === 'bar' ? '' : text }); d.append(body);
-    W.lines.append(d);
-    while (W.lines.children.length > 12) W.lines.firstChild.remove();
-    if (W.typing && cls !== 'cmd') { W.typing.body.textContent = W.typing.text; W.typing.d.classList.add('sent'); W.typing = null; }
-    if (cls === 'cmd') W.typing = { d, body, text, at, n: 0 };
-    if (cls === 'bar') W.bar = { body, at, until: W.i < W.script.length ? W.script[W.i][0] : at + 0.5 };
-    else if (W.bar) { W.bar.body.textContent = bzBar(1, 'done'); W.bar = null; }
+    const [at, cls, text, then] = W.script[W.i++];
+    if (W.typing && cls !== 'cmd') bzSend(F, W);
+    if (cls === 'cmd') W.typing = { text, at, n: 0 };
+    else {
+      const d = bzLog(F, W, cls, cls === 'bar' ? '' : text);
+      if (cls === 'bar') W.bar = { body: d.lastChild, at, until: W.i < W.script.length ? W.script[W.i][0] : at + 0.5 };
+      else if (W.bar) { W.bar.body.textContent = bzBar(1, 'done'); W.bar = null; }
+    }
     if (cls === 'big') { SFX.reveal(4); W.hit = T; }
     else if (cls === 'warn') SFX.drop(); else if (cls !== 'cmd') SFX.blip();
     if (then) { then(); W.hit = T; }
   }
   if (W.typing) {
     const q = W.typing, n = Math.min(q.text.length, Math.floor((T - q.at) / CH));
-    if (n > q.n) { q.n = n; q.body.textContent = q.text.slice(0, n); SFX.tick(0.1); }
+    if (n > q.n) { q.n = n; W.typed.textContent = q.text.slice(0, n); bzSuggest(W, q.text.slice(0, n)); SFX.tick(0.1); }
   }
   if (W.bar) { const q = clamp((T - W.bar.at) / (W.bar.until - W.bar.at), 0, 1); W.bar.body.textContent = bzBar(q, 'executing'); }
-  if ((W.tpsT = (W.tpsT || 0) - dt) <= 0) { W.tpsT = 0.3; W.tps.textContent = Math.random() < 0.2 ? ['6.66', '0.0', '99.9', 'NaN'][Math.floor(Math.random() * 4)] : (19 + Math.random()).toFixed(1); }
+  // the server's numbers flicker as it struggles, worst as each command lands
+  if ((W.tpsT = (W.tpsT || 0) - dt) <= 0) {
+    W.tpsT = 0.3;
+    const strain = W.hit && T - W.hit < 1 ? 1 : 0, v = Math.random() < 0.15 + 0.4 * strain ? 4 + Math.random() * 10 : 18.6 + Math.random() * 1.4;
+    W.tps.textContent = v.toFixed(1); W.tps.className = v < 15 ? 'bad' : '';
+    W.mspt.textContent = (v < 15 ? 60 + Math.random() * 140 : 9 + Math.random() * 9).toFixed(1) + ' ms';
+    W.cpu.textContent = Math.round(v < 15 ? 78 + Math.random() * 21 : 11 + Math.random() * 14) + '%';
+    const gb = 1.6 + Math.random() * 0.9 + strain * 0.6; W.memT.textContent = gb.toFixed(1) + ' / 4.0 GB'; W.mem.style.width = (gb / 4 * 100).toFixed(1) + '%';
+    W.pings[0].textContent = 1 + Math.floor(Math.random() * 3) + 'ms'; W.pings[1].textContent = 30 + Math.floor(Math.random() * (strain ? 400 : 40)) + 'ms';
+    const bars = W.spark.children; W.spark.append(bars[0]); const last = bars[bars.length - 1]; last.style.height = (v / 20 * 100).toFixed(0) + '%'; last.className = v < 15 ? 'low' : '';
+  }
   // the box glitches: slices torn sideways, colour split, scanlines; hardest as it opens and as each command lands
   const g = bzFit(F, W.cv), c = g.c, hit = Math.max(Math.max(0, 1 - T / 0.35), W.hit ? Math.max(0, 1 - (T - W.hit) / 0.4) : 0), amp = 6 + 46 * hit;
   bzGlitch(g, A.cv, hit, amp);
@@ -7891,9 +7971,9 @@ function openAdmin(F, e) {
   const foe = (BALL[e.foe] ? BALL[e.foe].name : 'Enemy').toUpperCase(), [cmd, out] = BZ_CMD_TXT[e.cmd](foe);
   const TYPE0 = 1.3, run = TYPE0 + cmd.length * 0.07 + 1.2;
   bzConsole(F, e, 'admin', [
-    [0.2, 'sys', `[INFO] Server tick ${1000 + Math.floor(F.S.t * 60)} · 2 players · 1 world`],
-    [0.55, 'warn', '[WARN] BeeZap moved too quickly! (ignored: op)'],
-    [0.9, 'sys', '[OP] BeeZap opened the console'],
+    [0.2, 'warn', `Tick ${1000 + Math.floor(F.S.t * 60)} took ${180 + Math.floor(F.S.t * 7) % 300}ms. Running 6 ticks behind.`],
+    [0.55, 'warn', 'BeeZap moved too quickly! (ignored: player is op)'],
+    [0.9, 'sys', 'RCON session opened by BeeZap from /127.0.0.1'],
     [TYPE0, 'cmd', cmd],
     [run - 1.0, 'bar', ''],
     [run, 'ok', '[SERVER] ' + out, () => adminBend(F, e)],
@@ -7937,12 +8017,12 @@ function revealFrame(F, dt) {
     bzUnmask(F);
     MUSIC.play(fightSong()); bzSmite(F); SFX.zap();
     W.close(); A.cv.style.opacity = '';
-    const mine = W.e.side === F.mySide, fake = W.e.fake && BALL[W.e.fake].name;
+    const mine = W.e.side === F.mySide, fake = W.e.fake && BALL[W.e.fake].name, an = fake && /^[aeiou]/i.test(fake) ? "an" : "a";
     bzConsole(F, W.e, 'reveal', [
       [0.15, 'big', 'ADMIN HAS JOINED THE GAME'],
       [1.0, 'sys', '[+] BeeZap joined the game (op)'],
       [1.5, 'warn', '[WARN] Anti-cheat disabled by BeeZap'],
-      [2.0, 'warn', fake ? (mine ? `[WARN] They thought you were a ${fake}.` : `[WARN] That was never a ${fake}.`) : '[WARN] Logging paused by BeeZap'],
+      [2.0, 'warn', fake ? (mine ? `[WARN] They thought you were ${an} ${fake}.` : `[WARN] That was never ${an} ${fake}.`) : '[WARN] Logging paused by BeeZap'],
       [2.6, 'ok', mine ? '[SERVER] Your BeeZap runs this server now.' : '[SERVER] Good luck.'],
     ], 4.4);
   }
@@ -8234,12 +8314,12 @@ function bzCabinet(c, W, g, T, pay) {
 }
 function lin2(c, x0, y0, x1, y1, a, b) { const gr = c.createLinearGradient(x0, y0, x1, y1); gr.addColorStop(0, a); gr.addColorStop(1, b); return gr; }
 
-// ---- let's play a game: the fight tears away, the screen goes dark, BeeZap picks a game and the two
+// ---- "I'm getting bored, let's switch it up": the fight tears away, the screen goes dark, BeeZap picks a game and the two
 // balls' players play it. This screen's player clicks (or presses a number key) for their side and their
 // moves go out in their presence as gm {k, m}; another screen's player's moves are read from theirs. Bots
 // and stand-ins are played by the computer from a seed every screen shares. So every screen sees the same
 // game and the same winner, and the fight waits until it's over; the winner's hit lands once it moves again.
-const BZ_GAME = { OUT: 0.35, FLK: 0.25, TITLE: 0.6, CH: 0.06, PICK: 1.9, PICKD: 1.0, PLAY: 3.3, RES: 2.1, BACK: 0.4 };
+const BZ_GAME = { OUT: 0.35, FLK: 0.25, TITLE: 0.6, CH: 0.045, PICK: 2.5, PICKD: 1.0, PLAY: 3.9, RES: 2.1, BACK: 0.4 };
 const BZ_GAME_LIST = ['ttt', 'c4', 'rps', 'ship'];
 const BZ_GAME_NAMES = { ttt: 'TIC TAC TOE', c4: 'CONNECT FOUR', rps: 'ROCK PAPER SCISSORS', ship: 'BATTLESHIP' };
 const BZ_RPS = ['ROCK', 'PAPER', 'SCISSORS'];
@@ -8328,7 +8408,7 @@ function openGame(F, e) {
   const cv = bzLayer(F), you = e.ts === F.mySide, foe = (BALL[e.foe] ? BALL[e.foe].name : 'Enemy').toUpperCase();
   F.gameN = (F.gameN || 0) + 1;
   const key = ((F.seed >>> 0) % 2000000) * 1000 + F.gameN, res = h('div', { class: 'bzres' });
-  const plq = h('div', { class: 'bzplq slotplq' + (e.side === F.mySide ? '' : ' foe'), 'aria-live': 'polite' }, h('div', { class: 'bzh', text: "BEEZAP: LET'S PLAY A GAME" }), res);
+  const plq = h('div', { class: 'bzplq slotplq' + (e.side === F.mySide ? '' : ' foe'), 'aria-live': 'polite' }, h('div', { class: 'bzh', text: "BEEZAP: I'M GETTING BORED. LET'S SWITCH IT UP." }), res);
   F.root.querySelector('.arena').append(plq);
   const onKey = ev => {
     if (!W.myTurn || ev.ctrlKey || ev.metaKey || ev.altKey) return;
@@ -8462,19 +8542,19 @@ function bzGameScreen(c, W, X, Y, s, T, d) {
   c.fillStyle = bg; c.fillRect(X, Y, s, s);
   const jit = () => (Math.random() < 0.06 ? (Math.random() - 0.5) * s * 0.02 : 0);
   if (T < G.PICK) {
-    // LET'S PLAY / A GAME, typed out a letter at a time
-    const A1 = "LET'S PLAY", A2 = 'A GAME', k = Math.max(0, Math.floor((T - G.TITLE) / G.CH));
+    // I'M GETTING BORED / LET'S SWITCH IT UP, typed out a letter at a time
+    const A1 = "I'M GETTING BORED", A2 = "LET'S SWITCH IT UP", k = Math.max(0, Math.floor((T - G.TITLE) / G.CH));
     if (k > (W.typed || 0) && k <= A1.length + A2.length) SFX.tick(0.05);
     W.typed = k;
     c.drawImage(beeCanvas(), X + s / 2 - s * 0.09, Y + s * 0.13, s * 0.18, s * 0.18);
-    txt(A1.slice(0, k), X + s / 2 + jit(), Y + s * 0.47, s * 0.15, '#e8203a');
-    txt(A2.slice(0, Math.max(0, k - A1.length)), X + s / 2 + jit(), Y + s * 0.63, s * 0.15, '#e8203a');
+    txt(A1.slice(0, k), X + s / 2 + jit(), Y + s * 0.47, s * 0.105, '#e8203a');
+    txt(A2.slice(0, Math.max(0, k - A1.length)), X + s / 2 + jit(), Y + s * 0.6, s * 0.105, '#e8203a');
     if (k >= A1.length + A2.length && Math.floor(T * 4) % 2) txt('BEEZAP PICKS THE GAME', X + s / 2, Y + s * 0.82, s * 0.045, '#8a8a99');
     return;
   }
   if (T < G.PLAY) {
     // the picker: the light runs down the four games, slows and stops on the one the fight rolled
-    txt("LET'S PLAY A GAME", X + s / 2, Y + s * 0.13, s * 0.07, '#e8203a');
+    txt("LET'S SWITCH IT UP", X + s / 2, Y + s * 0.13, s * 0.07, '#e8203a');
     const pick = BZ_GAME_LIST.indexOf(e.g), N = 8 + pick, q = clamp((T - G.PICK) / G.PICKD, 0, 1), at = Math.floor(N * ease(q)) % 4;
     if (at !== W.pickAt) { W.pickAt = at; SFX.tick(0.3); }
     BZ_GAME_LIST.forEach((id, i) => {
