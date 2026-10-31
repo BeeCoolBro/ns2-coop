@@ -1808,6 +1808,41 @@ def brawl_ffa(v):
     return out
 
 
+BB_FX_MODES = ('bot', 'pvp', 'friendly', 'cup')
+
+
+def brawl_fx(v):
+    """A one-on-one fight in a presence, for watching it and hooking into it (HOOK): its id, seed,
+    rule and mode, each side's [ball, level, name], which side is this player's, the other player's
+    peer when that's a real player, how far it has got (t seconds at time at; p 1 while paused), and
+    hk once a BeeZap has hooked in: its peer, the step it came in on, its level and its name."""
+    if not isinstance(v, dict) or not isinstance(v.get('id'), str) or not BB_MID_RE.fullmatch(v['id']):
+        return None
+
+    def pick(x):
+        if not (isinstance(x, list) and len(x) == 3 and isinstance(x[0], str) and re.fullmatch(r'[a-z]{1,16}', x[0])):
+            return None
+        lvl = brawl_int(x[1], 1, 7)
+        return None if lvl is None else [x[0], lvl, brawl_name(x[2]) or 'Player']
+    seed, at = brawl_int(v.get('s'), 0, 2 ** 32 - 1), brawl_int(v.get('at'), 1, 10 ** 14)
+    rule = v.get('r') if isinstance(v.get('r'), str) and re.fullmatch(r'[a-z]{1,16}', v['r']) else None
+    mode = v.get('m') if v.get('m') in BB_FX_MODES else None
+    side = v.get('me') if v.get('me') in (0, 1) and not isinstance(v.get('me'), bool) else None
+    a, b, t = pick(v.get('a')), pick(v.get('b')), v.get('t')
+    if None in (seed, at, rule, mode, side, a, b):
+        return None
+    t = float(t) if isinstance(t, (int, float)) and not isinstance(t, bool) and 0 <= t <= 1000 else 0.0
+    op = v.get('op') if isinstance(v.get('op'), str) and BB_PEER_RE.fullmatch(v['op']) else ''
+    out = {'id': v['id'], 's': seed, 'r': rule, 'm': mode, 'me': side, 'a': a, 'b': b, 'op': op, 't': round(t, 2), 'at': at, 'p': 1 if v.get('p') == 1 else 0}
+    hk = v.get('hk')
+    if isinstance(hk, dict):
+        peer = hk.get('p') if isinstance(hk.get('p'), str) and BB_PEER_RE.fullmatch(hk['p']) else None
+        n, lvl = brawl_int(hk.get('n'), 0, 10 ** 6), brawl_int(hk.get('l'), 1, 7)
+        if peer and n is not None and lvl is not None:
+            out['hk'] = {'p': peer, 'n': n, 'l': lvl, 'nm': brawl_name(hk.get('nm')) or 'BeeZap'}
+    return out
+
+
 def brawl_ffa_open():
     """Free-for-all lobbies still taking players, for the invite on every page of the site."""
     now = time.time() * 1000
@@ -1843,9 +1878,14 @@ def brawl_clean(raw):
         elif k == 'tro':
             out[k] = brawl_int(v, 0, 10 ** 7)
         elif k == 'st':
-            out[k] = v if v in ('idle', 'q', 'm', 'f') else 'idle'
+            out[k] = v if v in ('idle', 'q', 'm', 'f', 'w') else 'idle'
         elif k == 'ffa':
             out[k] = brawl_ffa(v)
+        elif k == 'fx':
+            out[k] = brawl_fx(v)
+        elif k == 'hook':
+            ok = isinstance(v, dict) and isinstance(v.get('id'), str) and BB_MID_RE.fullmatch(v['id']) and brawl_int(v.get('k'), 0, 2 ** 31) is not None                 and isinstance(v.get('to'), str) and BB_PEER_RE.fullmatch(v['to'])
+            out[k] = {'id': v['id'], 'to': v['to'], 'k': brawl_int(v.get('k'), 0, 2 ** 31)} if ok else None
         elif k == 'stake':
             out[k] = v if v in BB_STAKES else None
         elif k == 'qt':

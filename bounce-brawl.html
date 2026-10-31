@@ -701,6 +701,22 @@ svg.mst.on { fill: var(--gold); }
 .bzhow.in.open > :not(.bzhow-t) { display: block; }
 .bzhow.in.open .bzhow-t { padding: 8px 0 4px; }
 .bzhow-t:focus-visible { outline: 2px solid #ffd633; outline-offset: 2px; }
+/* HOOK: the list of fights to watch, and the HOOK IN button on a watched fight */
+.hkintro p { margin: 0; color: #a9a9b3; font-weight: 600; max-width: 62ch; }
+.hklist { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.hkrow { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 10px 14px; background: #111116; border: 1px solid #24242c; border-radius: 10px; }
+.hkrow.can { border-color: #4a4020; }
+.hkside { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.hkside > div { min-width: 0; }
+.hkside b { display: block; font: 400 18px/1.1 var(--fd); letter-spacing: 1px; color: var(--txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hkside span { display: block; font: 600 12px/1.2 var(--fb); color: #77777f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hkvs { font: 400 14px/1 var(--fd); letter-spacing: 2px; color: #4d4d57; }
+.hkmeta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; font: 700 11px/1 var(--fb); letter-spacing: 1.5px; color: #77777f; white-space: nowrap; }
+.hkmeta .hkclock { color: #c8c8d0; font-size: 13px; }
+.hkrow.can .hkstate { color: #ffd633; }
+@media (max-width: 640px) { .hkrow { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); } .hkmeta { grid-column: 1 / 3; flex-direction: row; gap: 10px; } .hkrow .btn2 { grid-column: 3; } }
+.fbar .hookbtn { min-width: 150px; }
+.fbar .hookbtn.on { background: #ffd633; border-color: #ffd633; color: #111; }
 #fight.bz-hacked .plate { filter: hue-rotate(70deg) saturate(1.6); }
 .plate { position: relative; transition: transform .25s var(--ease); }
 .plate.bz-frozen { filter: saturate(.25) brightness(1.25) hue-rotate(160deg); }
@@ -959,7 +975,7 @@ svg.mst.on { fill: var(--gold); }
 // A fight is played out from a seed, separately in each player's browser, so
 // the simulation may only use + - * / and sqrt (the same in every engine):
 // no Math.sin/cos/atan2/hypot/pow/exp, no Math.random, no clocks.
-const VERSION = 15;
+const VERSION = 16;
 const HP_SCALE = 0.33;                     // every ball's health is scaled by this, so fights end sooner
 const TAU = 6.283185307179586, PI = 3.141592653589793, HALF_PI = 1.5707963267948966;
 const DT = 1 / 60, SUB = 3;            // 60 steps a second, 3 physics substeps each
@@ -3074,6 +3090,23 @@ BALL_LIST.push(
     init(S, f) { f.bz = { next: 1 - BZ_EVERY, admT: 11, slotT: 6, gameT: 14, godT: 0, pend: null }; beezapRoll(S, f); },
     desc: 'Spins two wheels at the start of the fight: one copies a Mythic ball\u2019s power, the other sets its strength from -10% to +10%. Every 45% of health it loses, it spins again. It also abuses admin commands, plays the slots, and drags its enemy into a quick game (tic tac toe, Connect Four, rock paper scissors, Battleship, last stick, memory match, dots and boxes or pig) where the winner hits the loser.' },
 );
+// a BeeZap hooks into a fight (HOOK, p7h): the ball on that side leaves with everything it made, and
+// BeeZap drops in where it was, at full health, against the same foe. Every screen swaps at the same step.
+function hookIn(S, side, pick) {
+  const old = S.F[side], foe = S.F[1 - side];
+  S.bodies = S.bodies.filter(b => b !== old && b.owner !== old);
+  S.projs = S.projs.filter(p => p.owner !== old);
+  S.hz = S.hz.filter(z => z.owner !== old);
+  S.F = S.F.filter(f => f !== old);
+  const f = mkFighter(S, side, pick, old.x, old.y, old.vx, old.vy);
+  S.F.sort((a, b) => a.side - b.side);
+  f.foe = foe; foe.foe = f;
+  for (const k of ['burnBy', 'poisonBy', 'slamBy']) if (foe.st[k] === old) foe.st[k] = f;
+  f.st.phaseT = 0.6;   // it drops in untouchable for a moment
+  emit(S, { e: 'hook', side, id: f.id });
+  if (f.def.init) f.def.init(S, f);
+  return f;
+}
 const BZ_STR = [-10, -5, 0, 5, 10], BZ_EVERY = 0.45;   // spins again at 55% and 10% health
 function bzPool() { return BALLS.filter(b => b.rar === 'M' && !b.boss && b.id !== 'copycat'); }
 // the spin: drops the last power (its weapons, timers and state) and takes a new one, like Copycat does
@@ -5789,6 +5822,18 @@ const SFX = (() => {
     resume() { if (init() && ac.state === 'suspended') ac.resume(); },
     hey(load, at) { clip('hey', HEY_MP3, 0.9, !load, at); },
     sike(load) { clip('sike', SIKE_MP3, 1, !load); },
+    sikeHook() {
+      if (!init() || !sfxOn) return;
+      const b = clips.sike;
+      if (!b || b === 'wait') { clip('sike', SIKE_MP3, 1, true); return; }
+      // where the voice starts, past any quiet lead-in
+      const d = b.getChannelData(0); let i0 = 0;
+      while (i0 < d.length && Math.abs(d[i0]) < 0.06) i0++;
+      const off = Math.max(0, i0 / b.sampleRate - 0.01), at = ac.currentTime;
+      const play = (t, dur, rate, vol) => { const s = ac.createBufferSource(), g = ac.createGain(); g.gain.value = vol; s.buffer = b; s.playbackRate.value = rate; s.connect(g); g.connect(sfxBus); if (dur) s.start(at + t, off, dur); else s.start(at + t, off); };
+      for (let k = 0; k < 3; k++) play(k * 0.17, 0.1, 1, 0.9);
+      play(0.6, 0, 0.88, 1.3);
+    },
     // a struck bell: the note plus a real bell's out-of-tune overtones, ringing out
     ding(f, delay) { if (!ac || !sfxOn) return; f = f || 1568; for (const [m, v, d] of [[1, 0.1, 1.1], [2.76, 0.04, 0.6], [5.4, 0.022, 0.35], [0.5, 0.03, 1.2]]) tone('sine', f * m, f * m, d, v, delay || 0); },
     // the slots' payout: DING DING DING, alternating two notes like a casino bell
@@ -6256,9 +6301,10 @@ function bgTick(dt) {
 
 // ---- navigation: the menu, or one panel ----------------------------------------
 let TAB = 'menu', MSEL = 0;
-// [id, title, subtitle, has something waiting]
+// [id, title, subtitle, has something waiting, shown (always if missing)]
 const MENU = [
   ['fight', 'Fight', () => G.eq && G.coins < STAKES[0] ? 'Out of coins · beat bots to earn some' : G.streak > 1 ? `On a ${G.streak} win streak` : 'Bet coins against a player', () => !!G.eq && G.coins < STAKES[0]],
+  ['hook', 'Hook', () => 'Watch fights \u00b7 take someone\u2019s place', () => false, () => G.eq === 'beezap'],
   ['cup', 'Events', () => { const n = cupNext(G.cup); return raidFree() ? `Boss raid: ${bossToday().name} · free today` : n ? `The Box Cup · ${CUP_ROUNDS[n[0]].toLowerCase()} next` : 'Boss raids · The Box Cup'; }, () => raidFree() || !!cupNext(G.cup)],
   ['daily', 'Daily', () => dailySub(), () => dailyReady() > 0],
   ['crates', 'Crates', () => G.free.length ? `${G.free.length} free ${G.free.length === 1 ? 'crate' : 'crates'} waiting` : "Hardware's Crates", () => G.free.length > 0],
@@ -6267,8 +6313,9 @@ const MENU = [
   ['settings', 'Settings', () => 'Sound, music & name'],
 ];
 const isHot = it => !!(it[3] && G.starter && it[3]());
+const navItems = () => MENU.filter(m => !m[4] || m[4]());
 function setTab(t) {
-  const from = MENU.findIndex(m => m[0] === TAB), to = MENU.findIndex(m => m[0] === t);
+  const items = navItems(), from = items.findIndex(m => m[0] === TAB), to = items.findIndex(m => m[0] === t);
   TAB = t;
   const root = $('#panelroot'), old = root.querySelector('.panel:not(.under):not(.out)');
   stopPreviews(root);
@@ -6312,8 +6359,9 @@ function renderCash() {
 function renderMenu() {
   const nav = $('#mnav');
   nav.replaceChildren();
-  MENU.forEach(([id, title, sub], i) => {
-    const b = h('button', { class: 'm-item' + (i === 0 ? ' play' : '') + (i === MSEL ? ' sel' : '') + (isHot(MENU[i]) ? ' hot' : ''), 'data-go': id,
+  const items = navItems();
+  items.forEach(([id, title, sub], i) => {
+    const b = h('button', { class: 'm-item' + (i === 0 ? ' play' : '') + (i === MSEL ? ' sel' : '') + (isHot(items[i]) ? ' hot' : ''), 'data-go': id,
       onclick: () => { SFX.ui(); setTab(id); }, onmouseenter: () => { MSEL = i; for (const x of nav.children) x.classList.toggle('sel', x === b); } },
       h('span', { class: 'm-n', text: pad2(i + 1) }), h('span', { class: 'm-t', text: title }), h('span', { class: 'm-s', text: sub() }));
     nav.append(b);
@@ -6340,7 +6388,7 @@ function renderOnline() {
   if (!el) return;
   el.replaceChildren(h('i', { class: 'dot live' }), h('span', { text: 'RANKED OPEN' }));
   for (const b of document.querySelectorAll('#mnav .m-item')) {
-    const it = MENU.find(m => m[0] === b.dataset.go);
+    const it = navItems().find(m => m[0] === b.dataset.go);
     if (it) { b.querySelector('.m-s').textContent = it[2](); b.classList.toggle('hot', isHot(it)); }
   }
 }
@@ -6349,7 +6397,7 @@ function panelShell(sub, title, sign) {
   const body = h('div', {});
   // every section one tap away, without going back to the menu
   const tabs = h('nav', { class: 'ptabs', 'aria-label': 'Sections' });
-  for (const it of MENU) {
+  for (const it of navItems()) {
     const on = it[0] === TAB;
     tabs.append(h('button', { class: (on ? 'sel' : '') + (isHot(it) ? ' hot' : ''), 'aria-current': on ? 'page' : null, text: it[1].toUpperCase(),
       onclick: () => { if (!on) { SFX.ui(); setTab(it[0]); } } }));
@@ -6369,7 +6417,7 @@ function panelShell(sub, title, sign) {
 function renderPanel(keepScroll) {
   const root = $('#panelroot'), old = root.querySelector('.panel:not(.under):not(.out)'), y = old ? old.scrollTop : 0;
   stopPreviews(root);
-  const fn = { fight: panelFight, cup: panelCup, daily: panelDaily, crates: panelCrates, balls: panelBalls, players: panelPlayers, settings: panelSettings }[TAB];
+  const fn = { fight: panelFight, hook: panelHook, cup: panelCup, daily: panelDaily, crates: panelCrates, balls: panelBalls, players: panelPlayers, settings: panelSettings }[TAB];
   if (!fn) return;
   const p = fn();
   if (keepScroll && old) { p.style.animation = 'none'; p.classList.add('still'); }
@@ -6804,9 +6852,10 @@ function startFight(o) {
   const S = newFight(nf);
   const cv = h('canvas', { 'aria-label': 'The fight' });
   // a BeeZap hides as a plain ball until the fight starts, on both players' screens (see openReveal)
-  const fake = bzFake(o.seed), hide = info => info.id === 'beezap' && !ffa ? Object.assign({}, info, { id: fake }) : info;
+  const plain = ffa || o.mode === 'watch' || o.mode === 'hook';
+  const fake = bzFake(o.seed), hide = info => info.id === 'beezap' && !plain ? Object.assign({}, info, { id: fake }) : info;
   const youP = plate('you', hide(me)), foeP = ffa ? ffaField(o) : plate('foe', hide(foe));
-  const clock = h('span', { class: 'clock', text: '0:00' }), ot = h('span', { class: 'lab', text: o.mode === 'bot' ? 'PRACTICE' : o.mode === 'friendly' ? 'FRIENDLY' : o.mode === 'cup' ? 'CUP ' + CUP_ROUNDS[o.cupRound] : o.mode === 'boss' ? 'BOSS RAID' : ffa ? 'FREE FOR ALL' : 'RANKED' });
+  const clock = h('span', { class: 'clock', text: '0:00' }), ot = h('span', { class: 'lab', text: o.mode === 'bot' ? 'PRACTICE' : o.mode === 'friendly' ? 'FRIENDLY' : o.mode === 'cup' ? 'CUP ' + CUP_ROUNDS[o.cupRound] : o.mode === 'boss' ? 'BOSS RAID' : ffa ? 'FREE FOR ALL' : o.mode === 'watch' ? 'WATCHING' : o.mode === 'hook' ? 'HOOKED' : 'RANKED' });
   const rule = S.rule !== 'normal' ? h('span', { class: 'rule', title: RULES[S.rule].desc, text: RULES[S.rule].name.toUpperCase() }) : null;
   const pot = o.mode === 'pvp' ? h('span', { class: 'pot', html: 'POT ' + COIN_SVG + fmt(o.stake * 2) }) : ffa ? h('span', { class: 'pot left', text: o.all.length + ' LEFT' }) : null;
   const banner = h('div', { class: 'banner' });
@@ -6827,12 +6876,14 @@ function startFight(o) {
   const F = FIGHT = Object.assign({}, o, { S, arena, root, cv, banner, clock, ot, nf, plates: ffa ? [youP] : [youP, foeP], field: ffa ? foeP : null, leftEl: ffa ? pot : null,
     acc: 0, t: 0, phase: 'count', pt: 0, slow: 1, done: false, settled: false, dmg: 0, worst: 0 });
   F.otBase = ot.textContent;
-  F.masks = arena.masks = ffa ? [] : [0, 1].filter(s => pick(s).id === 'beezap').map(s => ({ side: s, id: fake }));
+  F.masks = arena.masks = plain ? [] : [0, 1].filter(s => pick(s).id === 'beezap').map(s => ({ side: s, id: fake }));
   if (F.masks.length) SFX.sike(true);   // decoded now, ready for the reveal
   if (o.mode === 'pvp') { G.coins -= o.stake; save(); }
   MUSIC.play(fightSong()); MUSIC.boost(false);
   arena.resize(); arena.draw(S, 0);
   updatePlates(F);
+  fxStart(F);
+  if (o.hook) hookStart(F);
   return F;
 }
 function showBanner(F, txt, accent, sub) {
@@ -6868,6 +6919,7 @@ function fightFrame(F, dt) {
   const S = F.S;
   F.t += dt;
   F.arena.resize();
+  fxTick(F, dt);
   if (F.phase === 'count') {
     F.pt += dt;
     const n = 3 - Math.floor(F.pt / 0.7);
@@ -6885,6 +6937,7 @@ function fightFrame(F, dt) {
     if (F.pt > 2.6) { F.phase = 'run'; showBanner(F, ''); }
   } else if (F.phase === 'run') {
     F.arena.pop = 1;
+    if (F.mode === 'watch') watchSync(F);
     if (F.wheel) F.wheel.frame(F, dt);
     else if (F.arena.hitstop > 0) F.arena.hitstop -= dt;
     else {
@@ -6924,6 +6977,7 @@ function skipFight() {
 function forfeit() {
   const F = FIGHT;
   if (!F) return;
+  if (F.mode === 'watch') { NET.set({ hook: null }); endFightScreen(); setTab('hook'); return; }
   if (F.mode === 'pvp' && !F.settled) { G.l++; G.streak = 0; G.tro = Math.max(0, G.tro - 20); save(); NET.fightOver(F, true); }
   if (F.mode === 'cup' && !F.settled) { cupRecord(F, true); endFightScreen(); setTab('cup'); return; }
   // out of a free for all already: leaving still pays the place you came
@@ -6934,6 +6988,7 @@ function forfeit() {
   renderView();
 }
 function settleFight(F) {
+  if (F.mode === 'watch') { watchResult(F); return; }
   F.settled = true;
   const w = F.S.winner, mine = w === F.mySide, draw = w === -1;
   let coins = 0, tro = 0, paid = 0, bonus = 0;
@@ -6949,6 +7004,9 @@ function settleFight(F) {
     paid = coins = FFA_PRIZE[F.place - 1]; tro = FFA_TRO[F.place - 1];
     G.ffa = G.ffa || [0, 0]; G.ffa[0]++; if (F.place === 1) G.ffa[1]++;
     F.foe = F.all[w === F.mySide ? F.S.out[F.S.out.length - 2] : w];   // for the history: who won, or who came second
+  } else if (F.mode === 'hook') {
+    // a hooked fight: beating the BeeZap pays well, the BeeZap winning pays a little
+    paid = coins = !mine ? 0 : F.S.F[F.mySide].def.id === 'beezap' ? 100 : 300;
   } else if (F.mode === 'pvp') {
     paid = draw ? F.stake : mine ? Math.round(F.stake * (2 + WIN_BONUS)) : 0;
     coins = paid - F.stake;
@@ -6976,7 +7034,8 @@ function settleFight(F) {
   for (const u of ups) extra.append(h('div', { class: 'rl up', text: upText(u) }));
   for (const q of quests) extra.append(h('div', { class: 'rl q', text: 'QUEST DONE · ' + questText(q).toUpperCase() }));
   const again = F.mode === 'ffa' ? () => { endFightScreen(); setTab('fight'); ffaOpen(); } : F.mode === 'cup' || F.mode === 'boss' ? () => { endFightScreen(); setTab('cup'); } : F.mode === 'bot' ? (G.coins < STAKES[0] ? () => botFight() : () => { endFightScreen(); setTab('fight'); findMatch(STAKES.filter(s => s <= G.coins).pop()); }) : F.mode === 'pvp' ? () => { endFightScreen(); setTab('fight'); findMatch(G.coins >= F.stake ? F.stake : (STAKES.filter(s => s <= G.coins).pop() || 50)); } : null;
-  const note = F.mode === 'ffa' ? ffaNote() : raid ? (raid.kill ? `You brought ${F.foe.name} down! +1,000 coins and a Legend Crate (in Daily).` : `You dealt ${fmt(raid.dmg)} damage to ${F.foe.name}.`) : F.mode === 'cup' ? cupNote(F) : F.mode === 'bot' ? (G.coins < STAKES[0] ? `Bots pay ${BOT_PAY} coins a fight, win or lose. Fight another until you can afford a bet.` : `Bots pay ${BOT_PAY} coins a fight, win or lose. You can bet against real players again.`) : F.mode === 'friendly' ? 'A fight against your own other tab: no coins or trophies change.' : '';
+  const note = F.mode === 'ffa' ? ffaNote() : raid ? (raid.kill ? `You brought ${F.foe.name} down! +1,000 coins and a Legend Crate (in Daily).` : `You dealt ${fmt(raid.dmg)} damage to ${F.foe.name}.`) : F.mode === 'cup' ? cupNote(F) : F.mode === 'bot' ? (G.coins < STAKES[0] ? `Bots pay ${BOT_PAY} coins a fight, win or lose. Fight another until you can afford a bet.` : `Bots pay ${BOT_PAY} coins a fight, win or lose. You can bet against real players again.`) : F.mode === 'friendly' ? 'A fight against your own other tab: no coins or trophies change.'
+    : F.mode === 'hook' ? (F.S.F[F.mySide].def.id === 'beezap' ? 'You hooked into their fight. A hooked fight pays 100 coins for a win.' : 'A BeeZap hooked into your fight. Beating it pays 300 coins.') : '';
   F.result = h('div', { class: 'result' },
     h('div', { class: 'lab', text: F.tag ? '// ' + F.tag[0].replace('!', '') + ' //' : '// RESULT //' }),
     raid ? h('h2', { class: raid.kill ? '' : 'draw', text: raid.kill ? 'BOSS DOWN' : 'RAID OVER' })
@@ -6989,7 +7048,7 @@ function settleFight(F) {
     note ? h('p', { text: note }) : null,
     h('div', { class: 'foot' },
       again ? h('button', { class: 'btn2 on', text: F.mode === 'ffa' ? 'PLAY AGAIN' : F.mode === 'cup' ? 'BACK TO THE BRACKET' : F.mode === 'boss' ? 'BACK TO EVENTS' : F.mode === 'pvp' ? 'FIND ANOTHER' : G.coins < STAKES[0] ? 'FIGHT AGAIN' : 'FIND OPPONENT', disabled: F.mode === 'pvp' && G.coins < STAKES[0], onclick: again }) : null,
-      F.S.t > 2 ? h('button', { class: 'btn2', html: '<svg class="i" viewBox="0 0 16 16"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg> REPLAY', onclick: () => replayKO(F) }) : null,
+      F.S.t > 2 && F.mode !== 'hook' ? h('button', { class: 'btn2', html: '<svg class="i" viewBox="0 0 16 16"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg> REPLAY', onclick: () => replayKO(F) }) : null,
       F.mode === 'cup' || F.mode === 'boss' ? null : h('button', { class: 'btn2', text: 'DONE', onclick: () => { endFightScreen(); renderView(); } })));
   F.root.querySelector('.arena').append(F.result);
   F.done = true;
@@ -7011,6 +7070,7 @@ function endFightScreen() {
   setTimeout(() => root.remove(), 260);
   FIGHT = null;
   MUSIC.play('menu');
+  if (F.fx || F.mode === 'watch') NET.set({ fx: null, hook: null });
   NET.pushPresence();
 }
 // only when you can't afford the smallest bet (tests pass force)
@@ -7038,16 +7098,16 @@ function onKey(e) {
   if (TAB === 'menu') {
     if (k === 'ArrowDown' || k === 'ArrowUp') {
       e.preventDefault();
-      MSEL = (MSEL + (k === 'ArrowDown' ? 1 : MENU.length - 1)) % MENU.length;
+      MSEL = (MSEL + (k === 'ArrowDown' ? 1 : navItems().length - 1)) % navItems().length;
       [...document.querySelectorAll('#mnav .m-item')].forEach((b, i) => b.classList.toggle('sel', i === MSEL));
       SFX.tick(0.4);
-    } else if (k === 'Enter') { e.preventDefault(); SFX.ui(); setTab(MENU[MSEL][0]); }
-    else if (k >= '1' && k <= String(MENU.length)) { MSEL = +k - 1; SFX.ui(); setTab(MENU[MSEL][0]); }
+    } else if (k === 'Enter') { e.preventDefault(); SFX.ui(); setTab(navItems()[MSEL][0]); }
+    else if (k >= '1' && k <= String(navItems().length)) { MSEL = +k - 1; SFX.ui(); setTab(navItems()[MSEL][0]); }
   } else {
     if (k === 'Escape' || k === 'Backspace') { e.preventDefault(); SFX.ui(); setTab('menu'); }
     else if (k === 'ArrowLeft' || k === 'ArrowRight') {
-      const i = MENU.findIndex(m => m[0] === TAB);
-      e.preventDefault(); SFX.ui(); setTab(MENU[(i + (k === 'ArrowRight' ? 1 : MENU.length - 1)) % MENU.length][0]);
+      const i = navItems().findIndex(m => m[0] === TAB);
+      e.preventDefault(); SFX.ui(); setTab(navItems()[(i + (k === 'ArrowRight' ? 1 : navItems().length - 1)) % navItems().length][0]);
     }
     else if (k === 'Enter' && (TAB === 'fight' || TAB === 'cup')) { const b = document.querySelector('.panel .go'); if (b && !b.disabled) b.click(); }
   }
@@ -7122,6 +7182,7 @@ function upText(u) { return `LEVEL ${u.lvl} · +${fmt(u.coins)} COINS` + (u.crat
 function xpForFight(F, mine, draw) {
   if (F.mode === 'pvp') return mine ? 40 : draw ? 20 : 15;
   if (F.mode === 'bot') return mine ? 12 : 5;
+  if (F.mode === 'hook') return mine ? 30 : 10;
   if (F.mode === 'cup') return F.cupWon ? 25 : 10;
   if (F.mode === 'boss') return F.bossKill ? 80 : 25;
   if (F.mode === 'ffa') return [60, 35, 25, 15, 12, 10, 10, 10][F.place - 1] || 10;
@@ -7596,7 +7657,7 @@ function historySection() {
   if (!hs.length) box.append(h('p', { class: 'empty', text: 'No fights yet.' }));
   for (const r of hs) {
     if (!BALL[r.a] || !BALL[r.b]) continue;
-    const mode = { pvp: 'Ranked', bot: 'Practice', cup: 'Cup', boss: 'Raid', ffa: 'Free for all' }[r.m] || r.m;
+    const mode = { pvp: 'Ranked', bot: 'Practice', cup: 'Cup', boss: 'Raid', ffa: 'Free for all', hook: 'Hooked' }[r.m] || r.m;
     box.append(h('div', { class: 'hrow ' + r.r },
       h('span', { class: 'hr', text: { W: 'WIN', L: 'LOSS', D: 'DRAW', R: 'RAID' }[r.r] }),
       ballImg(r.a, 26, ''), h('span', { class: 'hv', text: 'vs' }), ballImg(r.b, 26, ''),
@@ -7755,11 +7816,11 @@ const BZ_HEX = (() => {
 })();
 
 // BeeZap's moments that take the screen over; the fight waits for each in turn (F.wheelQ)
-const BZ_TAKE = { wheel: 1, admin: 1, slot: 1, game: 1 };
+const BZ_TAKE = { wheel: 1, admin: 1, slot: 1, game: 1, hookin: 1 };
 function openTake(F) {
   const e = F.wheelQ.shift();
   if (!e) { F.wheel = null; return; }
-  (e.e === 'reveal' ? openReveal : e.e === 'wheel' ? openWheel : e.e === 'admin' ? openAdmin : e.e === 'game' ? openGame : openSlots)(F, e);
+  (e.e === 'reveal' ? openReveal : e.e === 'hookin' ? openHookin : e.e === 'wheel' ? openWheel : e.e === 'admin' ? openAdmin : e.e === 'game' ? openGame : openSlots)(F, e);
 }
 function openWheel(F, e) {
   const mine = e.side === F.mySide, wrap = F.root.querySelector('.arena');
@@ -7986,7 +8047,7 @@ const BZ_USAGE = { '/ban': '<player> [reason]', '/deop': '<player>', '/effect': 
   '/give': '<player> <item> [count]', '/god': '[player]', '/kick': '<player> [reason]', '/kill': '<target>', '/list': '', '/nerf': '<player> <amount>', '/op': '<player>',
   '/say': '<message>', '/smite': '<player>', '/stop': '', '/tp': '<player> <destination>', '/tps': '', '/whitelist': 'on|off|add|remove' };
 function bzConsole(F, e, kind, script, end) {
-  const mine = e.side === F.mySide, bee = (mine ? F.me : F.foe).name, other = (mine ? F.foe : F.me).name;
+  const mine = e.side === F.mySide, bee = e.bee || (mine ? F.me : F.foe).name, other = e.other || (mine ? F.foe : F.me).name;
   const lines = h('div', { class: 'bzlines' }), tps = h('b', { text: '20.0' }), mspt = h('b', { text: '11.8 ms' }), cpu = h('b', { text: '14%' });
   const memT = h('b', { text: '1.8 / 4.0 GB' }), mem = h('i'), spark = h('div', { class: 'bzspark' }, Array.from({ length: 30 }, () => h('i')));
   const pings = [h('em', { text: '2ms' }), h('em', { text: '41ms' })], typed = h('span'), sug = h('div', { class: 'bzsug' });
@@ -8452,9 +8513,10 @@ const BZ_KEYS = {
   rps: (k, n) => ('rps'.indexOf(k) >= 0 ? 'rps'.indexOf(k) : n < 3 ? n : -1), pig: (k, n) => (k === 'r' || n === 0 ? 0 : k === 'h' || n === 1 ? 1 : -1) };
 // who plays each side: this screen's player, a player on another screen, or the computer
 function bzWho(F, side) {
+  if (F.mode === 'watch') { const p = F.watch.peers[side]; return p ? { k: 'net', peer: p } : { k: 'ai' }; }
   if (side === F.mySide) return { k: 'me' };
   if (F.mode === 'ffa') { const a = F.all && F.all[side]; return a && a.peer && !a.bot ? { k: 'net', peer: a.peer } : { k: 'ai' }; }
-  if ((F.mode === 'pvp' || F.mode === 'friendly') && F.peer && !F.ghost) return { k: 'net', peer: F.peer };
+  if ((F.mode === 'pvp' || F.mode === 'friendly' || F.mode === 'hook') && F.peer && !F.ghost) return { k: 'net', peer: F.peer };
   return { k: 'ai' };
 }
 function bzNetMoves(peer, key) {
@@ -9433,6 +9495,339 @@ function b2wig() { if (!TR) return; const b = TR.bee; b.classList.remove('wig');
 // the first time, once you have a ball and nothing else is open, the bee shows you around
 setInterval(() => { if (!G.tut && G.starter && G.eq && !FIGHT && !TR && TAB === 'menu' && !topSheet() && !document.querySelector('#intro')) startTour(); }, 1500);
 
+// ===== HOOK: with BeeZap equipped, watch anyone's fight and hook into it ======================
+// Everyone in a one-on-one fight puts its setup in their presence as fx: {id, s seed, r rule, m mode,
+// a and b [ball, lvl, name] by side, me their side, op the other player's peer when that's a real
+// player, t how far the fight has got (sim seconds) at time at, p 1 while their screen is paused, and
+// hk once a BeeZap has hooked in: {p its peer, n the step, l its level, nm its name}}.
+// A fight comes out the same everywhere it's played from that setup, so a watcher plays it from the
+// start and catches up. To hook in, the watcher puts hook {id, to, k} in its presence (to: the fighter
+// it's aimed at; both players in a ranked fight share the id). The fighter's screen
+// takes the first one at the step it's on, posts hk, and swaps its opponent for the BeeZap (hookIn in
+// the sim). The hooker's screen plays the fight from the start to that step and does the same swap;
+// from there the two of them are in an ordinary fight with each other. A real opponent who was swapped
+// out leaves with their stake back.
+const HOOK_MODES = { bot: 1, pvp: 1, friendly: 1 };           // fights you can hook into
+const WATCH_MODES = { bot: 1, pvp: 1, friendly: 1, cup: 1 };  // fights that are listed to watch
+const HOOK_LATE = T_LIMIT - 15;                               // too near the end to hook into
+const HOOK_MODE_TXT = { bot: 'PRACTICE', pvp: 'RANKED', friendly: 'FRIENDLY', cup: 'CUP' };
+
+// ---- the fighter's side: tell everyone what this fight is, and keep them up to date ----
+function fxStart(F) {
+  if (!WATCH_MODES[F.mode] || F.all) return;
+  const side = s => { const p = s === F.mySide ? F.me : F.foe; return [p.id, p.lvl, String(p.name || 'Player').slice(0, 16)]; };
+  F.fx = { id: F.mid || 'x' + Math.random().toString(36).slice(2, 12), s: F.seed >>> 0, r: F.S.rule, m: F.mode, a: side(0), b: side(1), me: F.mySide,
+    op: F.peer && !F.ghost ? F.peer : '', t: 0, at: Date.now(), p: 1 };
+  F.fxT = 0;
+  NET.set({ fx: F.fx });
+}
+function fxTick(F, dt) {
+  if (!F.fx || F.done || (F.fxT -= dt) > 0) return;
+  F.fxT = 1.5;
+  F.fx = Object.assign({}, F.fx, { t: Math.round(F.S.t * 100) / 100, at: Date.now(), p: F.wheel || F.phase !== 'run' ? 1 : 0 });
+  NET.set({ fx: F.fx });
+}
+// where their fight should be by now
+function fxNow(fx) { return Math.min(T_LIMIT, fx.t + (fx.p ? 0 : Math.min(4, (Date.now() - fx.at) / 1000) * FIGHT_SPEED)); }
+function fxPicks(fx) {
+  return [fx.a, fx.b].map(x => ({ id: BALL[x[0]] && (!BALL[x[0]].hidden || BALL[x[0]].giveOnly) ? x[0] : 'sword', lvl: clamp(x[1] | 0, 1, MAXLVL), name: String(x[2] || 'Player') }));
+}
+// why a fight can't be hooked into right now ('' when it can)
+function hookWhyNot(fx) {
+  if (fx.hk) return 'ALREADY HOOKED';
+  if (!HOOK_MODES[fx.m]) return fx.m === 'cup' ? 'CUP FIGHT · WATCH ONLY' : 'WATCH ONLY';
+  if (fx.a[0] === 'beezap' || fx.b[0] === 'beezap') return 'HAS A BEEZAP';
+  if (fxNow(fx) > HOOK_LATE) return 'ALMOST OVER';
+  return '';
+}
+
+// ---- the HOOK tab: everyone fighting right now ----
+function hookFights() {
+  return NET.others().filter(p => p.presence.fx && p.presence.fx.a && p.presence.fx.b && p.presence.st !== 'w')
+    .map(p => ({ peer: p.peer, fx: p.presence.fx, nick: NET.nameFor(p.by, p.presence.nick) }));
+}
+function panelHook() {
+  const [p, body] = panelShell('// BEEZAP ONLY //', 'HOOK');
+  if (G.eq !== 'beezap') {
+    body.append(h('div', { class: 'box' }, h('p', { class: 'empty', text: 'HOOK only works with BeeZap equipped.' })));
+    return p;
+  }
+  const list = h('div', { class: 'hklist', 'aria-live': 'polite' });
+  body.append(h('div', { class: 'box hkintro' },
+    h('p', { text: 'Watch anyone who is fighting right now. Press HOOK IN while you watch: the ball they are fighting glitches out, and your BeeZap takes its place.' })), list);
+  let key = null;
+  const fill = () => {
+    const fs = hookFights(), k = fs.map(f => f.peer + f.fx.id + (f.fx.hk ? 'h' : '') + hookWhyNot(f.fx)).join('|');
+    if (k !== key) {
+      key = k;
+      list.replaceChildren();
+      if (!NET.room) list.append(h('p', { class: 'empty', text: 'You are offline, so there are no fights to watch.' }));
+      else if (!fs.length) list.append(h('p', { class: 'empty', text: 'Nobody is in a fight right now. Fights show up here the moment someone starts one.' }));
+      for (const f of fs) {
+        const pk = fxPicks(f.fx), me = f.fx.me, why = hookWhyNot(f.fx), side = (x, mainName) => h('div', { class: 'hkside' }, ballImg(x.id, 40, ''),
+          h('div', {}, h('b', { text: mainName.toUpperCase() }), h('span', { text: `${BALL[x.id].name} · LV ${x.lvl}` })));
+        list.append(h('div', { class: 'hkrow' + (why ? '' : ' can') },
+          side(pk[me], f.nick), h('span', { class: 'hkvs', text: 'VS' }), side(pk[1 - me], f.fx.hk ? f.fx.hk.nm : pk[1 - me].name),
+          h('div', { class: 'hkmeta' }, h('span', { class: 'hkmode', text: HOOK_MODE_TXT[f.fx.m] || '' }), h('span', { class: 'hkclock mono', 'data-peer': f.peer }),
+            h('span', { class: 'hkstate', text: why || 'CAN HOOK IN' })),
+          h('button', { class: 'btn2 on', text: 'WATCH', onclick: () => { SFX.ui(); watchFight(f.peer); } })));
+      }
+    }
+    for (const el of list.querySelectorAll('.hkclock')) {
+      const f = fs.find(x => x.peer === el.dataset.peer);
+      if (f) { const t = Math.floor(fxNow(f.fx)); el.textContent = Math.floor(t / 60) + ':' + pad2(t % 60); }
+    }
+  };
+  fill();
+  const iv = setInterval(() => { if (!list.isConnected) { clearInterval(iv); return; } fill(); }, 1000);
+  return p;
+}
+
+// ---- watching: the fight played here from its setup, kept in step with the fighter's screen ----
+function watchFight(peer) {
+  const p = NET.peers.find(x => x.peer === peer), fx = p && p.presence && p.presence.fx;
+  if (!fx) { toast('That fight just ended.'); return; }
+  const pk = fxPicks(fx), me = fx.me, nick = NET.nameFor(p.by, p.presence.nick);
+  pk[me].name = nick;
+  const F = startFight({ mode: 'watch', seed: fx.s, rule: fx.r, mySide: me, me: pk[me], foe: pk[1 - me],
+    watch: { peer, id: fx.id, peers: [me ? (fx.hk ? fx.hk.p : fx.op) : peer, me ? peer : (fx.hk ? fx.hk.p : fx.op)] } });
+  F.phase = 'run'; F.arena.pop = 1; F.bzRevealed = 1;
+  showBanner(F, '');
+  // catch up, swapping in a BeeZap that already hooked in on the way
+  watchCatchUp(F, fx, true);
+  const btn = h('button', { class: 'btn2 hookbtn', text: 'HOOK IN', onclick: () => hookAsk(F) });
+  F.hookBtn = btn;
+  F.root.querySelector('.fbar').prepend(btn);
+  NET.pushPresence();
+}
+function watchCatchUp(F, fx, quiet) {
+  const S = F.S, goal = fxNow(fx);
+  for (let k = 0; S.t < goal && !S.over && k < 9000; k++) {
+    if (fx.hk && !F.hooked && S.n === fx.hk.n) hookSilently(F, fx);
+    step(S); S.ev.length = 0;
+  }
+  if (fx.hk && !F.hooked && S.n === fx.hk.n) hookSilently(F, fx);
+  if (quiet) F.arena.reset();
+  updatePlates(F);
+}
+// a BeeZap that hooked in before we started watching: no show, it's just there
+function hookSilently(F, fx) {
+  const side = 1 - fx.me, pick = { id: 'beezap', lvl: clamp(fx.hk.l | 0, 1, MAXLVL) };
+  hookIn(F.S, side, pick);
+  F.S.ev.length = 0;
+  F.foe = Object.assign({}, F.foe, pick, { name: fx.hk.nm });
+  F.hooked = { side, name: fx.hk.nm };
+  F.watch.peers[side] = fx.hk.p;
+  hkPlateSet(F, side, 'beezap', fx.hk.nm, pick.lvl);
+  F.bzOn = undefined; MUSIC.play(fightSong());
+}
+// every frame while watching
+function watchSync(F) {
+  const p = NET.peers.find(x => x.peer === F.watch.peer), fx = p && p.presence && p.presence.fx;
+  if (F.hookBtn) {
+    const why = !fx || fx.id !== F.watch.id ? 'FIGHT OVER' : G.eq !== 'beezap' ? 'EQUIP BEEZAP' : F.hookReq ? 'HOOKING...' : hookWhyNot(fx);
+    F.hookBtn.disabled = !!why || F.S.over; F.hookBtn.textContent = why || 'HOOK IN';
+    F.hookBtn.classList.toggle('on', !why);
+  }
+  if (!fx || fx.id !== F.watch.id) { F.slow = 1; return; }   // their fight is over: ours plays on to its end
+  if (fx.hk && !F.hooked) { hookSeen(F, fx); return; }
+  if (F.hookReq && Date.now() - F.hookReq > 8000) { F.hookReq = 0; NET.set({ hook: null }); toast('They didn’t let you in in time. Try again.', 2800); }
+  if (F.wheel) return;
+  const S = F.S, goal = fxNow(fx);
+  if (S.t < goal - 1.2) { for (let k = 0; S.t < goal - 0.2 && !S.over && k < 240; k++) { step(S); S.ev.length = 0; } }
+  F.slow = S.t > goal + 0.4 ? 0 : 1;
+}
+function hookAsk(F) {
+  if (F.hookReq || G.eq !== 'beezap') return;
+  F.hookReq = Date.now();
+  NET.set({ hook: { id: F.watch.id, to: F.watch.peer, k: Math.floor(Math.random() * 2e9) } });
+  SFX.charge(); SFX.blip();
+}
+// someone hooked in (maybe us): play the fight again from the start to that step and swap there
+function hookSeen(F, fx) {
+  const side = 1 - fx.me, pick = { id: 'beezap', lvl: clamp(fx.hk.l | 0, 1, MAXLVL) };
+  if (fx.hk.p === NET.me()) {
+    // it was us: from here we're in the fight ourselves, in the place of the ball they were fighting
+    NET.set({ hook: null });
+    const pk = fxPicks(fx), T = Object.assign({}, pk[fx.me], { name: F.me.name });
+    endFightScreen();
+    startFight({ mode: 'hook', seed: fx.s, rule: fx.r, mySide: side, me: pk[side], foe: T, peer: F.watch.peer,
+      hook: { n: fx.hk.n, side, pick, name: NET.nameFor(null, myNick()) } });
+    return;
+  }
+  const S = F.S = newFight(F.nf);
+  while (S.n < fx.hk.n && !S.over) { step(S); S.ev.length = 0; }
+  F.arena.reset();
+  F.watch.peers[side] = fx.hk.p;
+  applyHook(F, side, pick, fx.hk.nm, 'watch');
+}
+// the hooker's new fight: played up to the step, then the swap
+function hookStart(F) {
+  const o = F.hook, S = F.S;
+  while (S.n < o.n && !S.over) { step(S); S.ev.length = 0; }
+  F.phase = 'run'; F.arena.pop = 1; F.arena.reset();
+  showBanner(F, '');
+  applyHook(F, o.side, o.pick, o.name, 'hooker');
+}
+
+// ---- the fighter takes a hook, and a swapped-out real opponent leaves ----
+function hookCheck() {
+  const F = FIGHT;
+  if (!F || !NET.peers) return;
+  // swapped out: the player we were fighting took a hook
+  if (F.fx && F.fx.op && !F.kicked && !F.hooked && (F.mode === 'pvp' || F.mode === 'friendly')) {
+    const t = NET.peers.find(x => x.peer === F.peer), tfx = t && t.presence && t.presence.fx;
+    if (tfx && tfx.id === F.fx.id && tfx.hk) { hookedOut(F, tfx.hk); return; }
+  }
+  if (!F.fx || F.fx.hk || F.hooked || !HOOK_MODES[F.mode] || F.phase !== 'run' || F.S.over || F.done || F.wheel || F.S.t > HOOK_LATE) return;
+  if (F.S.F.some(f => f.def.id === 'beezap')) return;
+  const req = NET.others().find(p => p.presence.hook && p.presence.hook.id === F.fx.id && p.presence.hook.to === NET.me() && p.presence.ball === 'beezap' && p.presence.st === 'w');
+  if (req) hookAccept(F, req);
+}
+function hookAccept(F, p) {
+  const side = 1 - F.mySide, pick = { id: 'beezap', lvl: clamp(+p.presence.lvl || 1, 1, MAXLVL) }, name = NET.nameFor(p.by, p.presence.nick).slice(0, 16);
+  F.fx = Object.assign({}, F.fx, { hk: { p: p.peer, n: F.S.n, l: pick.lvl, nm: name }, t: Math.round(F.S.t * 100) / 100, at: Date.now(), p: 1 });
+  NET.set({ fx: F.fx });
+  // the fight stops counting as what it was: a stake comes back
+  if (F.mode === 'pvp' && F.stake) { G.coins += F.stake; save(); F.refund = F.stake; }
+  F.stake = 0; F.mode = 'hook'; F.peer = p.peer; F.ghost = false;
+  MM.active = false; MM.match = null;
+  applyHook(F, side, pick, name, 'victim');
+}
+function hookedOut(F, hk) {
+  F.kicked = 1;
+  closeWheels(F);
+  const back = F.mode === 'pvp' && F.stake ? F.stake : 0;
+  if (back) { G.coins += back; save(); }
+  F.stake = 0; F.settled = true;
+  bzSmite(F); SFX.rip(); SFX.sike();
+  bzConsole(F, { side: -1, bee: hk.nm, other: F.me.name }, 'hookout', [
+    [0.15, 'big', 'YOU GOT HOOKED OUT'],
+    [1.0, 'warn', `${hk.nm} hooked into this fight with a BeeZap`],
+    [1.6, 'warn', `${F.me.name} was removed from the game`],
+    [2.2, 'ok', back ? `Your ${fmt(back)} coin stake was returned. No win, no loss.` : 'No win, no loss.'],
+    [4.4, 'sys', 'Disconnecting...', () => setTimeout(() => hookLeave(F), 700)],
+  ], 6);
+}
+function hookLeave(F) {
+  if (FIGHT !== F) return;
+  F.wheelQ = []; closeWheels(F);
+  NET.set({ st: 'idle', mid: null, vs: null, want: null, fx: null });
+  MM.active = false; MM.match = null;
+  endFightScreen(); renderView();
+  toast('You were hooked out of that fight. Nothing was lost.', 3600);
+}
+
+// ---- the swap itself, on every screen: the sim swaps at once; the screen shows it over a few seconds ----
+function applyHook(F, side, pick, name, role) {
+  closeWheels(F);
+  const S = F.S, mine = side === F.mySide, oldId = S.F[side].def.id, oldName = (mine ? F.me : F.foe).name;
+  hookIn(S, side, pick);
+  const wz = S.ev.filter(e => BZ_TAKE[e.e]);
+  S.ev.length = 0;
+  const info = { id: 'beezap', lvl: pick.lvl, name };
+  if (mine) F.me = Object.assign({}, F.me, info); else F.foe = Object.assign({}, F.foe, info);
+  F.bzOn = undefined; F.bzRevealed = 1;
+  F.hooked = { side, oldId, oldName, name };
+  F.masks = F.arena.masks = [{ side, id: oldId }];
+  F.wheelQ = [{ e: 'hookin', side, role, oldId, oldName, name, lvl: pick.lvl }].concat(wz);
+  F.acc = 0;
+  openTake(F);
+}
+function watchResult(F) {
+  F.settled = true; F.done = true;
+  NET.set({ hook: null });
+  const w = F.S.winner, name = s => (s === F.mySide ? F.me : F.foe).name;
+  F.result = h('div', { class: 'result' },
+    h('div', { class: 'lab', text: '// WATCHED //' }),
+    h('h2', { class: w === -1 ? 'draw' : '', text: w === -1 ? 'DRAW' : String(name(w)).toUpperCase() + ' WINS' }),
+    h('div', { class: 'lsub', text: `${F.me.name} \u00b7 ${BALL[F.me.id].name} VS ${F.foe.name} \u00b7 ${BALL[F.foe.id].name}` }),
+    h('div', { class: 'foot' },
+      h('button', { class: 'btn2 on', text: 'WATCH ANOTHER', onclick: () => { endFightScreen(); setTab('hook'); } }),
+      h('button', { class: 'btn2', text: 'DONE', onclick: () => { endFightScreen(); renderView(); } })));
+  F.root.querySelector('.arena').append(F.result);
+}
+function hkPlateSet(F, side, id, name, lvl) {
+  const p = F.plates[side === F.mySide ? 0 : 1];
+  if (!p) return;
+  p.replaceChild(ballImg(id, 46, ''), p.firstChild);
+  p.querySelector('.who').textContent = String(name).toUpperCase();
+  p.querySelector('.bn').textContent = `${BALL[id].name} · LV ${lvl}`;
+}
+
+// ---- the big one: the ball glitches in and out, a stuttering SIKE, and BeeZap is there instead ----
+const HK = { STUT: 1.7, SLAM: 2.3, HOLD: 3.9, OUT: 4.4 };
+function openHookin(F, e) {
+  const cv = bzLayer(F), p = F.plates[e.side === F.mySide ? 0 : 1];
+  const old = { img: ballImg(e.oldId, 46, ''), who: String(e.oldName).toUpperCase(), bn: p ? p.querySelector('.bn').textContent : '' };
+  const neu = { img: ballImg('beezap', 46, ''), who: String(e.name).toUpperCase(), bn: `BeeZap · LV ${e.lvl}` };
+  F.wheel = { kind: 'hookin', e, cv, T: 0, p, old, neu, frame: hookinFrame, close() { cv.remove(); } };
+  F.root.classList.add('bz-hacked');
+  SFX.sike(true); SFX.rip(); SFX.charge(); SFX.freeze();
+}
+function hkShow(W, on) {
+  const p = W.p, s = on ? W.neu : W.old;
+  if (!p) return;
+  if (p.firstChild !== s.img) p.replaceChild(s.img, p.firstChild);
+  p.querySelector('.who').textContent = s.who; p.querySelector('.bn').textContent = s.bn;
+}
+function hookinFrame(F, dt) {
+  const W = F.wheel, A = F.arena, T = (W.T += dt), e = W.e;
+  A.cv.style.opacity = '0';
+  const g = bzFit(F, W.cv), c = g.c, s = g.size, X = g.x, Y = g.y;
+  if (T < HK.SLAM) {
+    // the ball they were fighting flickers between itself and the BeeZap underneath, faster and faster
+    const q = clamp(T / HK.SLAM, 0, 1), off = Math.floor(T * (3 + 28 * q * q)) % 2 === 1 || Math.random() < q * 0.35;
+    if (W.shown !== off) { W.shown = off; for (const m of F.masks) m.off = off; hkShow(W, off); }
+    if (Math.random() < 0.04 + 0.3 * q) { bzBlip(F, 80 + q * 160); SFX.tick(0.05 + q * 0.3); }
+    if (!W.s1 && T > HK.STUT) { W.s1 = 1; SFX.sikeHook(); }
+    if (!W.s0 && T > 0.9) { W.s0 = 1; SFX.rip(); bzShake(F, BZ_SHAKE, 400); }
+    bzGlitch(g, A.cv, 0.25 + 0.75 * q, 8 + 80 * q);
+    c.fillStyle = `rgba(190,16,36,${(0.3 * q * q).toFixed(3)})`; c.fillRect(0, 0, g.w, g.h);
+    if (q > 0.6 && Math.random() < 0.2) { c.imageSmoothingEnabled = false; c.globalAlpha = 0.5; c.drawImage(bzNoise(W), X, Y, s, s); c.globalAlpha = 1; c.imageSmoothingEnabled = true; }
+  } else {
+    if (!W.s2) {
+      W.s2 = 1;
+      F.masks = A.masks = []; hkShow(W, true); updatePlates(F);
+      bzSmite(F); bzShake(F, BZ_SHAKE, 800); SFX.boom(); SFX.zap(); SFX.reveal(4);
+      MUSIC.play(fightSong());
+    }
+    const k = T - HK.SLAM, fade = 1 - clamp((T - HK.HOLD) / (HK.OUT - HK.HOLD), 0, 1);
+    bzGlitch(g, A.cv, Math.max(0.15, 1 - k * 0.8), 14 + 50 * Math.max(0, 1 - k));
+    c.fillStyle = `rgba(20,4,10,${(0.55 * fade).toFixed(3)})`; c.fillRect(0, 0, g.w, g.h);
+    if (k < 0.14) { c.fillStyle = `rgba(255,255,255,${(0.9 * (1 - k / 0.14)).toFixed(2)})`; c.fillRect(0, 0, g.w, g.h); }
+    // SIKE, slammed down over the box: shaking, split into colours, torn in strips
+    const z = 1 + 0.8 * Math.max(0, 1 - k / 0.2), jx = (Math.random() - 0.5) * s * 0.025 * fade, jy = (Math.random() - 0.5) * s * 0.02 * fade;
+    const cx = X + s / 2 + jx, cy = Y + s * 0.47 + jy, px = Math.round(s * 0.3 * z);
+    c.save(); c.globalAlpha = fade; c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = `400 ${px}px ${FONT_D}`;
+    c.globalCompositeOperation = 'lighter';
+    c.fillStyle = 'rgba(0,200,255,0.7)'; c.fillText('SIKE', cx - s * 0.018, cy);
+    c.fillStyle = 'rgba(255,214,51,0.7)'; c.fillText('SIKE', cx + s * 0.018, cy + s * 0.006);
+    c.globalCompositeOperation = 'source-over';
+    c.lineWidth = s * 0.012; c.strokeStyle = '#120206'; c.strokeText('SIKE', cx, cy);
+    c.fillStyle = '#ff2a3d'; c.fillText('SIKE', cx, cy);
+    c.font = `400 ${Math.round(s * 0.05)}px ${FONT_D}`; c.fillStyle = '#fff';
+    const mine = e.side === F.mySide;
+    c.fillText(e.role === 'victim' ? 'YOU’RE FIGHTING BEEZAP NOW' : mine ? 'YOU HOOKED IN' : `${String(e.name).toUpperCase()} HOOKED IN`, cx, Y + s * 0.67);
+    c.restore();
+    for (let i = 0; i < 3 + Math.round(5 * fade); i++) {
+      const y = Y + s * (0.3 + Math.random() * 0.4), hh = s * (0.01 + Math.random() * 0.04), dx = (Math.random() - 0.5) * s * 0.08 * fade;
+      c.drawImage(W.cv, 0, y, g.w, hh, dx, y, g.w, hh);
+    }
+  }
+  if (T >= HK.OUT) {
+    A.cv.style.opacity = ''; W.close(); F.root.classList.remove('bz-hacked');
+    const mine = e.side === F.mySide;
+    bzConsole(F, { side: e.side }, 'hookcon', [
+      [0.15, 'big', 'BEEZAP HOOKED INTO THE GAME'],
+      [1.0, 'sys', `[+] ${e.name} hooked into this fight (op)`],
+      [1.5, 'warn', `${e.oldName} was removed from the game`],
+      [2.0, 'warn', e.role === 'victim' ? 'Your opponent has been replaced.' : mine ? 'You took their place. They never saw it coming.' : `Hooked by ${e.name}.`],
+      [2.6, 'ok', e.role === 'victim' ? (F.refund ? `Your ${fmt(F.refund)} coin stake was returned. Beat BeeZap for 300 coins.` : 'Beat BeeZap for 300 coins.') : mine ? 'Your BeeZap runs this fight now.' : 'Keep watching.'],
+    ], 4.6);
+  }
+}
+
 // ===== players online: presence, matchmaking, leaderboard =================
 // Everything goes through each viewer's presence (the platform's "who is here"
 // object), which every viewer may set. A match is two players who each name
@@ -9470,7 +9865,7 @@ const NET = {
     if (this.room) this.room.presence(patch).catch(() => {});
   },
   pushPresence() {
-    this.set({ app: 'bb', v: VERSION, nick: myNick() || null, ball: G.eq, lvl: G.eq ? lvlOf(G.eq) : 0, tro: G.tro, st: FIGHT ? 'm' : FFA.lobby ? 'f' : MM.active ? 'q' : 'idle', uid: ON_SITE ? myUid() : null });
+    this.set({ app: 'bb', v: VERSION, nick: myNick() || null, ball: G.eq, lvl: G.eq ? lvlOf(G.eq) : 0, tro: G.tro, st: FIGHT ? (FIGHT.mode === 'watch' ? 'w' : 'm') : FFA.lobby ? 'f' : MM.active ? 'q' : 'idle', uid: ON_SITE ? myUid() : null });
   },
   saveSoon() {
     if (!this.db || !this.uid || this.noSave) return;
@@ -9485,6 +9880,7 @@ const NET = {
     this.saving = false;
   },
   fightOver(F, forfeited) {
+    if (F.mode === 'hook' || F.mode === 'watch') { MM.active = false; MM.match = null; this.set({ st: 'idle', want: null, vs: null, mid: null, hook: null }); return; }
     if (F.mode === 'ffa') { clearInterval(FFA.timer); FFA.lobby = null; this.set({ st: 'idle', ffa: null }); return; }
     if (F.mode !== 'pvp' && F.mode !== 'friendly') return;
     if (F.ghost) {
@@ -9774,6 +10170,7 @@ async function netInit() {
       resolveNames();
       if (MM.active) mmTick();
       checkPending();
+      hookCheck();
       if (!FIGHT) refreshLive();
     }, () => { NET.room = null; refreshLive(); });
     NET.pushPresence();
