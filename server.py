@@ -1860,7 +1860,7 @@ def brawl_clean(raw):
             # BeeZap's minigames: a game key and this player's moves so far, small numbers only
             m = v.get('m') if isinstance(v, dict) else None
             if isinstance(v.get('k') if isinstance(v, dict) else None, int) and not isinstance(v.get('k'), bool) and 0 <= v['k'] < 2 ** 31 \
-                    and isinstance(m, list) and len(m) <= 40 and all(isinstance(x, int) and not isinstance(x, bool) and 0 <= x < 64 for x in m):
+                    and isinstance(m, list) and len(m) <= 200 and all(isinstance(x, int) and not isinstance(x, bool) and 0 <= x < 64 for x in m):
                 out[k] = {'k': v['k'], 'm': m}
             else:
                 out[k] = None
