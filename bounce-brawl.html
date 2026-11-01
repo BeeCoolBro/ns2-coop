@@ -5984,13 +5984,13 @@ const SFX = (() => {
 // looped through the music volume. Where it can't load (the all-in-one page has no file beside it) the
 // beezap loop below plays instead. bpm and at0 (where its first beat falls) keep the crowd's heys on the beat.
 const TRACK = { el: null, ok: true, on: false, bpm: 125, at0: 0.03 };
-// menu: a relaxed shuffle in F; fight: a driving loop in A minor that picks up
-// in overtime. Notes are scheduled a little ahead on the audio clock.
+// menu: a relaxed shuffle in F, with an arrangement built over it (menuStep); fight: a driving loop
+// in A minor that picks up in overtime. Notes are scheduled a little ahead on the audio clock.
 const MUSIC = (() => {
   let song = null, timer = 0, next = 0, stepN = 0, boost = 0;
   const N = (m) => 440 * Math.pow(2, (m - 69) / 12);
   const SONGS = {
-    menu: { bpm: 96, swing: 0.16,
+    menu: { bpm: 96, swing: 0.16, step: menuStep,
       bass: [41, 0, 0, 41, 0, 0, 48, 0, 46, 0, 0, 46, 0, 0, 45, 0, 43, 0, 0, 43, 0, 0, 50, 0, 48, 0, 0, 46, 0, 45, 43, 0],
       lead: [0, 0, 65, 0, 69, 0, 72, 0, 0, 0, 70, 0, 69, 0, 0, 0, 0, 0, 67, 0, 70, 0, 74, 0, 72, 0, 0, 70, 0, 69, 0, 0],
       kick: 'x.......x.......x.......x.......', snare: '....x.......x.......x.......x...', hat: '..x...x...x...x...x...x...x...x.' },
@@ -6004,8 +6004,8 @@ const MUSIC = (() => {
       lead: [74, 0, 77, 74, 81, 0, 79, 77, 76, 0, 77, 0, 79, 0, 81, 0, 72, 0, 76, 72, 79, 0, 77, 76, 74, 0, 76, 0, 77, 79, 81, 84],
       kick: 'x...x...x...x...x...x...x...x.x.', snare: '....x.......x.......x.......x.xx', hat: 'xxx.xxx.xxx.xxx.xxx.xxx.xxx.xxxx' },
   };
-  function hit(kind, t) {
-    const ac = SFX.ctx, bus = SFX.musBus;
+  function hit(kind, t, to) {
+    const ac = SFX.ctx, bus = to || SFX.musBus;
     if (kind === 'kick') {
       const o = ac.createOscillator(), g = ac.createGain();
       o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
@@ -6021,12 +6021,186 @@ const MUSIC = (() => {
       s.connect(f); f.connect(g); g.connect(bus); s.start(t); s.stop(t + len + 0.02);
     }
   }
-  function note(type, m, t, len, vol) {
+  function note(type, m, t, len, vol, to) {
     const ac = SFX.ctx, o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
     o.type = type; o.frequency.value = N(m);
     f.type = 'lowpass'; f.frequency.value = type === 'sawtooth' ? 900 : 3000;
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
-    o.connect(f); f.connect(g); g.connect(SFX.musBus); o.start(t); o.stop(t + len + 0.05);
+    o.connect(f); f.connect(g); g.connect(to || SFX.musBus); o.start(t); o.stop(t + len + 0.05);
+  }
+
+  // ----- the menu song -----
+  // Its own two-bar loop above (drums, bass line and tune) plays all the way through, untouched. Over 16 loops
+  // (about 80 s) more parts come and go on top of it: electric piano, a pad, a music box, a flute that takes the
+  // tune in the middle and answers it later, shaker, ghost snares, claps and fills, all in a small room with an
+  // echo. Then it starts over. The loop's chords, half a bar each, are F, Bb, Gm7 and C7: k is the piano's
+  // voicing of each, p the pad's and a the music box's notes.
+  const MENU_CH = [
+    { k: [57, 60, 65], p: [53, 60, 69], a: [72, 77, 81, 84] },
+    { k: [55, 62, 65], p: [53, 62, 65], a: [70, 74, 77, 82] },
+    { k: [58, 62, 65], p: [55, 62, 70], a: [70, 74, 77, 79] },
+    { k: [58, 62, 64], p: [55, 64, 70], a: [70, 72, 76, 79] },
+  ];
+  // the flute's lines from [step, note, steps long]: b1, b2 and b4 are its own tune, r1 and r2 its answers to the loop's
+  const line = v => { const a = []; for (const [i, m, l] of v) a[i] = [m, l]; return a; };
+  const MENU_FL = {
+    b1: line([[0, 77, 5], [6, 76, 2], [8, 74, 6], [14, 72, 2], [16, 70, 5], [22, 74, 2], [24, 72, 4], [28, 70, 2], [30, 72, 2]]),
+    b2: line([[0, 69, 5], [6, 72, 2], [8, 74, 3], [11, 77, 3], [14, 74, 2], [16, 79, 5], [22, 77, 2], [24, 76, 4], [28, 74, 2], [30, 72, 2]]),
+    b4: line([[0, 69, 5], [6, 72, 2], [8, 74, 3], [11, 77, 3], [14, 74, 2], [16, 79, 3], [19, 77, 3], [22, 74, 2], [24, 76, 8]]),
+    r1: line([[9, 77, 2], [11, 74, 2], [13, 70, 3], [25, 76, 2], [27, 72, 2], [29, 70, 3]]),
+    r2: line([[9, 77, 2], [11, 74, 2], [13, 70, 3], [25, 79, 2], [27, 76, 2], [29, 72, 3]]),
+  };
+  // a third under the tune (a fourth where a third would rub against the chord)
+  const MENU_HARM = [0, 0, 62, 0, 65, 0, 69, 0, 0, 0, 67, 0, 65, 0, 0, 0, 0, 0, 62, 0, 67, 0, 70, 0, 69, 0, 0, 67, 0, 64, 0, 0];
+  const MENU_POP = { 5: 41, 13: 46, 21: 43 };                // the bass's octave pops between its own notes
+  const MENU_TOMS = [196, 0, 196, 147, 0, 147, 110, 110];    // a fill over the last two beats
+  // what plays over the loop each time round. k piano (1 on the beat, 2 pushed ahead of it), p pad, a music box
+  // (1 broken chords, 2 in threes across the beat), f a flute line, l the loop's tune (0 rests, 2 only the first
+  // half of each bar, for the flute to answer), x the tune doubled high, h a harmony under it, s shaker, g ghost
+  // snares, c claps, o bass pops, z a cymbal to open on, e how the loop ends (a snare roll, a tom fill, a swell)
+  const MENU_FORM = [
+    { k: 1, s: 1, g: 1, o: 1, z: 1 }, { k: 1, s: 1, g: 1, o: 1, a: 1 },
+    { k: 1, s: 1, g: 1, o: 1, a: 1, p: 1, c: 1 }, { k: 1, s: 1, g: 1, o: 1, a: 1, p: 1, c: 1, x: 1, e: 'roll' },
+    { k: 2, p: 1, c: 1, l: 0, f: 'b1', s: 1 }, { k: 2, p: 1, c: 1, l: 0, f: 'b2', s: 1 },
+    { k: 2, p: 1, c: 1, l: 0, f: 'b1', s: 1, a: 2 }, { k: 2, p: 1, c: 1, l: 0, f: 'b4', s: 1, a: 2, e: 'toms' },
+    { k: 1, p: 1, c: 1, s: 1, a: 1, g: 1, o: 1, x: 1, z: 1 }, { k: 1, p: 1, c: 1, s: 1, a: 1, g: 1, o: 1, x: 1 },
+    { k: 1, p: 1, c: 1, s: 1, a: 1, g: 1, o: 1, x: 1, h: 1 }, { k: 1, p: 1, c: 1, s: 1, a: 1, g: 1, o: 1, x: 1, h: 1, e: 'roll' },
+    { k: 2, l: 2, f: 'r1' }, { k: 2, l: 2, f: 'r2', e: 'rise' },
+    { k: 1, p: 1, c: 1, s: 1, a: 2, g: 1, o: 1, h: 1, z: 1 }, { k: 1, p: 1, c: 1, s: 1, a: 2, g: 1, o: 1, h: 1, e: 'toms' },
+  ];
+  function menuStep(n, t, spb) {
+    const S = SONGS.menu, R = rooms(), i = n % 32, P = MENU_FORM[Math.floor(n / 32) % 16], c = i >> 3, o = i & 7, tune = P.l === undefined ? 1 : P.l;
+    const keys = (k, len, v) => MENU_CH[k].k.forEach((m, j) => ep(m, t + j * 0.008, len * spb, 0.034 * v, (j - 1) * 0.3));
+    // its own loop
+    if (S.kick[i] === 'x') hit('kick', t, R.dry);
+    if (S.snare[i] === 'x') { hit('snare', t, R.near); if (P.c) clap(t); }
+    if (S.hat[i] === 'x') hit('hat', t, R.dry);
+    if (S.bass[i]) note('sawtooth', S.bass[i] - 12, t, spb * 1.6, 0.22, R.dry);
+    if (S.lead[i] && (tune === 1 || (tune === 2 && !(c & 1)))) {
+      note('triangle', S.lead[i], t, spb * 2.2, 0.07, R.near);
+      if (P.x) pluck(S.lead[i] + 12, t, 0.02, 0.3);
+      if (P.h) flute(MENU_HARM[i], t, spb * 2, 0.028, -0.35);
+    }
+    // and what's over it this time round
+    const ch = MENU_CH[c], fl = P.f && MENU_FL[P.f][i];
+    if (P.k === 1 && (o === 0 || o === 6)) keys(c, o ? 1.5 : 3.5, o ? 0.6 : 1);
+    if (P.k === 2) { if (!i) keys(0, 3, 1); else if (o === 3) keys(c, 1.5, 0.6); else if (o === 7 && c < 3) keys(c + 1, 3.5, 1); }
+    if (P.p && !o) ch.p.forEach((m, j) => pad(m, t, spb * 8, 0.0105, (j - 1) * 0.5));
+    if (P.a === 1 && (o & 1)) pluck(ch.a[[0, 2, 1, 3][o >> 1]], t, 0.03, o & 2 ? 0.45 : -0.45, 1);
+    if (P.a === 2) pluck(ch.a[n % 3], t, 0.02, (n % 3 - 1) * 0.3);
+    if (fl) flute(fl[0], t, fl[1] * spb, 0.07, 0.1);
+    if (P.s) nz(t, 0.035, [0.025, 0.04, 0.065, 0.04][i & 3], 'highpass', 7500, 0.7, 0.3, 0);
+    if (P.g && o === 7) nz(t, 0.06, 0.075, 'bandpass', 1900, 0.9, -0.1, 1);
+    if (P.o && MENU_POP[i]) note('sawtooth', MENU_POP[i], t, spb * 0.7, 0.11, R.dry);
+    if (P.z && !i && n) crash(t);
+    if (P.e === 'roll' && i >= 29) nz(t, 0.07, [0.07, 0.11, 0.16][i - 29], 'bandpass', 1900, 0.9, 0, 1);
+    if (P.e === 'toms' && i >= 24 && MENU_TOMS[i - 24]) tom(t, MENU_TOMS[i - 24], 0.22);
+    if (P.e === 'rise' && !i) rise(t, spb * 32);
+  }
+  // the room the menu song plays in: dry, a little reverb (near) or more (far), and a dotted-eighth echo. It all
+  // goes through one fader, so leaving the menu cuts the pad, reverb and echo tails off smoothly.
+  let room = null;
+  function rooms() {
+    if (room) return room;
+    const ac = SFX.ctx, gain = v => { const g = ac.createGain(); g.gain.value = v; return g; };
+    const fade = gain(1), dry = gain(1), near = gain(1), far = gain(1), rev = ac.createConvolver();
+    // the reverb: noise dying away, a little darker as it goes
+    const len = Math.floor(ac.sampleRate * 1.8), ir = ac.createBuffer(2, len, ac.sampleRate);
+    for (let c = 0; c < 2; c++) {
+      const d = ir.getChannelData(c);
+      for (let k = 0, lp = 0; k < len; k++) { const e = 1 - k / len; lp += (Math.random() * 2 - 1 - lp) * (0.2 + 0.7 * e); d[k] = lp * e * e * e; }
+    }
+    rev.buffer = ir;
+    const echo = ac.createDelay(1), dark = ac.createBiquadFilter(), fb = gain(0.3), back = gain(0.35), ns = gain(0.2), fs = gain(0.5);
+    echo.delayTime.value = 60 / SONGS.menu.bpm * 0.75;
+    dark.type = 'lowpass'; dark.frequency.value = 2200;
+    echo.connect(dark); dark.connect(fb); fb.connect(echo); dark.connect(back);
+    near.connect(ns); far.connect(fs); back.connect(fs); ns.connect(rev); fs.connect(rev);
+    for (const x of [dry, near, far, back, rev]) x.connect(fade);
+    fade.connect(SFX.musBus);
+    const nb = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), nd = nb.getChannelData(0);
+    for (let k = 0; k < nd.length; k++) nd[k] = Math.random() * 2 - 1;
+    return (room = { fade, dry, near, far, echo, nb });
+  }
+  function menuFade(on) {
+    const ac = SFX.ctx;
+    if (!ac || (!on && !room)) return;
+    const g = rooms().fade.gain, now = ac.currentTime;
+    g.cancelScheduledValues(now); g.setValueAtTime(g.value, now); g.linearRampToValueAtTime(on ? 1 : 0, now + (on ? 0.02 : 0.4));
+  }
+  // a menu part's way out: panned, then into the room (wet 0 dry, 1 near, 2 far), and into the echo if asked
+  function out(g, pan, wet, echo) {
+    const ac = SFX.ctx, R = rooms();
+    let o = g;
+    if (pan && ac.createStereoPanner) { o = ac.createStereoPanner(); o.pan.value = pan; g.connect(o); }
+    o.connect(wet === 2 ? R.far : wet ? R.near : R.dry);
+    if (echo) o.connect(R.echo);
+  }
+  // electric piano: a sine bent by another at its own pitch, bright when struck and mellow as it rings
+  function ep(m, t, len, vol, pan) {
+    const ac = SFX.ctx, f = N(m), o = ac.createOscillator(), mo = ac.createOscillator(), mg = ac.createGain(), g = ac.createGain();
+    o.frequency.value = f; mo.frequency.value = f;
+    mg.gain.setValueAtTime(f * 1.6, t); mg.gain.exponentialRampToValueAtTime(f * 0.12, t + 0.5);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(vol * 0.3, t + len); g.gain.exponentialRampToValueAtTime(0.0001, t + len + 0.35);
+    mo.connect(mg); mg.connect(o.frequency); o.connect(g); out(g, pan, 1);
+    o.start(t); mo.start(t); o.stop(t + len + 0.4); mo.stop(t + len + 0.4);
+  }
+  // pad: two saws a hair out of tune, swelling in under a lowpass that opens while the chord holds
+  function pad(m, t, len, vol, pan) {
+    const ac = SFX.ctx, f = ac.createBiquadFilter(), g = ac.createGain();
+    f.type = 'lowpass'; f.Q.value = 0.5; f.frequency.setValueAtTime(600, t); f.frequency.linearRampToValueAtTime(1400, t + len * 0.7);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.4); g.gain.setValueAtTime(vol, t + len); g.gain.linearRampToValueAtTime(0.0001, t + len + 0.7);
+    for (const d of [-8, 8]) { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = N(m); o.detune.value = d; o.connect(f); o.start(t); o.stop(t + len + 0.75); }
+    f.connect(g); out(g, pan, 2);
+  }
+  // music box: a sine that rings for a second, with a short bright tick as it's plucked
+  function pluck(m, t, vol, pan, echo) {
+    const ac = SFX.ctx, f = N(m), o = ac.createOscillator(), o2 = ac.createOscillator(), g2 = ac.createGain(), g = ac.createGain();
+    o.frequency.value = f; o2.frequency.value = f * 4;
+    g2.gain.setValueAtTime(0.4, t); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 1);
+    o.connect(g); o2.connect(g2); g2.connect(g); out(g, pan, 2, echo);
+    o.start(t); o2.start(t); o.stop(t + 1.05); o2.stop(t + 0.1);
+  }
+  // flute: a soft triangle with a puff of breath at the start and a vibrato that grows in
+  function flute(m, t, len, vol, pan) {
+    const ac = SFX.ctx, f = N(m), e = Math.max(0.07, len - 0.06), o = ac.createOscillator(), lfo = ac.createOscillator(), lg = ac.createGain(), lp = ac.createBiquadFilter(), g = ac.createGain();
+    o.type = 'triangle'; o.frequency.value = f; lfo.frequency.value = 5;
+    lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * 0.007, t + Math.min(0.45, e));
+    lp.type = 'lowpass'; lp.frequency.value = 2400;
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.05); g.gain.setValueAtTime(vol, t + e); g.gain.linearRampToValueAtTime(0.0001, t + e + 0.16);
+    lfo.connect(lg); lg.connect(o.frequency); o.connect(lp); lp.connect(g); out(g, pan, 2, 1);
+    o.start(t); lfo.start(t); o.stop(t + e + 0.2); lfo.stop(t + e + 0.2);
+    nz(t, 0.08, vol * 0.45, 'bandpass', Math.min(f * 3, 6000), 1.2, pan, 2);
+  }
+  // filtered noise, for the drums the loop doesn't have: shaker, ghost snares, claps, cymbals
+  function nz(t, len, vol, type, f0, q, pan, wet) {
+    const ac = SFX.ctx, s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = rooms().nb; s.loop = true; f.type = type; f.frequency.value = f0; f.Q.value = q;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    s.connect(f); f.connect(g); out(g, pan, wet);
+    s.start(t, Math.random() * 0.5); s.stop(t + len + 0.02);
+  }
+  function clap(t) {
+    for (let k = 0; k < 3; k++) nz(t + k * 0.011, 0.025, 0.11, 'bandpass', 1300, 1.1, -0.15, 1);
+    nz(t + 0.033, 0.16, 0.08, 'bandpass', 1150, 0.9, -0.15, 2);
+  }
+  function tom(t, f0, vol) {
+    const ac = SFX.ctx, o = ac.createOscillator(), g = ac.createGain();
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f0 * 0.55, t + 0.22);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+    o.connect(g); out(g, (f0 - 150) / 160, 1); o.start(t); o.stop(t + 0.32);
+    nz(t, 0.04, vol * 0.3, 'lowpass', 1500, 0.7, 0, 1);
+  }
+  function crash(t) { nz(t, 1.8, 0.05, 'highpass', 5200, 0.5, 0.25, 2); nz(t, 0.7, 0.035, 'bandpass', 3400, 0.6, -0.25, 2); }
+  // a swell of noise that rises into the next loop
+  function rise(t, len) {
+    const ac = SFX.ctx, s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = rooms().nb; s.loop = true; f.type = 'bandpass'; f.Q.value = 0.9;
+    f.frequency.setValueAtTime(400, t); f.frequency.exponentialRampToValueAtTime(5000, t + len);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.045, t + len); g.gain.linearRampToValueAtTime(0.0001, t + len + 0.04);
+    s.connect(f); f.connect(g); out(g, 0, 2); s.start(t); s.stop(t + len + 0.06);
   }
   // the owner's track for BeeZap: true if it's playing
   function trackStart() {
@@ -6054,11 +6228,14 @@ const MUSIC = (() => {
     const S = SONGS[song], spb = 60 / (S.bpm * (1 + boost * 0.12)) / 4;
     while (next < ac.currentTime + 0.12) {
       const i = stepN % 32, t = next + (i % 2 ? S.swing * spb : 0);
-      if (S.kick[i] === 'x') hit('kick', t);
-      if (S.snare[i] === 'x') hit('snare', t);
-      if (S.hat[i] === 'x') hit('hat', t);
-      if (S.bass[i]) note('sawtooth', S.bass[i] - 12, t, spb * 1.6, 0.22);
-      if (S.lead[i] && (song === 'menu' || S.lead2 || stepN % 64 >= 32 || boost)) note('triangle', S.lead[i], t, spb * 2.2, 0.07);
+      if (S.step) S.step(stepN, t, spb);
+      else {
+        if (S.kick[i] === 'x') hit('kick', t);
+        if (S.snare[i] === 'x') hit('snare', t);
+        if (S.hat[i] === 'x') hit('hat', t);
+        if (S.bass[i]) note('sawtooth', S.bass[i] - 12, t, spb * 1.6, 0.22);
+        if (S.lead[i] && (S.lead2 || stepN % 64 >= 32 || boost)) note('triangle', S.lead[i], t, spb * 2.2, 0.07);
+      }
       next += spb; stepN++;
     }
   }
@@ -6070,10 +6247,11 @@ const MUSIC = (() => {
       if (!ac) return;
       if (TRACK.on && name !== 'beezap') { TRACK.el.pause(); TRACK.on = false; }
       if (name === 'beezap') TRACK.on = trackStart();
+      menuFade(name === 'menu');
       next = ac.currentTime + 0.08; stepN = 0;
       if (!timer) timer = setInterval(tick, 40);
     },
-    stop() { song = null; if (TRACK.on) { TRACK.el.pause(); TRACK.on = false; } },
+    stop() { song = null; menuFade(false); if (TRACK.on) { TRACK.el.pause(); TRACK.on = false; } },
     // when the next beat (a quarter note) lands at least `after` seconds from now, in the audio clock
     beat(after) {
       const ac = SFX.ctx;
