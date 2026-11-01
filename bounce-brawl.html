@@ -8585,7 +8585,10 @@ function lin2(c, x0, y0, x1, y1, a, b) { const gr = c.createLinearGradient(x0, y
 // moves go out in their presence as gm {k, m}; another screen's player's moves are read from theirs. Bots
 // and stand-ins are played by the computer from a seed every screen shares. So every screen sees the same
 // game and the same winner, and the fight waits until it's over; the winner's hit lands once it moves again.
-const BZ_GAME = { OUT: 0.35, FLK: 0.25, TITLE: 0.6, CH: 0.045, PICK: 2.5, PICKD: 1.0, PLAY: 3.9, RES: 2.1, BACK: 0.4 };
+// the way in: the fight stops, the arena cracks (CRACK) and snaps in half, the halves falling away (SNAP),
+// while the game screen slides down from the top (IN). The way out (from the result, OCRACK/OSNAP/OIN) is the
+// same the other way round: the game screen cracks and snaps in half and the arena slides up from the bottom.
+const BZ_GAME = { CRACK: 0.45, SNAP: 0.7, IN: 0.6, TITLE: 1.35, CH: 0.045, PICK: 3.0, PICKD: 1.0, PLAY: 4.4, RES: 2.1, OCRACK: 0.4, OSNAP: 0.7, OIN: 0.6 };
 const BZ_GAME_NAMES = { ttt: 'TIC TAC TOE', c4: 'CONNECT FOUR', rps: 'ROCK PAPER SCISSORS', ship: 'BATTLESHIP', nim: 'LAST STICK', memo: 'MEMORY MATCH', dots: 'DOTS AND BOXES', pig: 'PIG DICE' };
 const BZ_RPS = ['ROCK', 'PAPER', 'SCISSORS'];
 const BZ_TURN = { ttt: 6, c4: 6, rps: 5, ship: 5, nim: 6, memo: 6, dots: 7, pig: 5 };   // seconds to move before the game moves for you
@@ -8708,9 +8711,10 @@ function gameFrame(F, dt) {
   A.cv.style.opacity = '0';
   const g = bzFit(F, W.cv), c = g.c, s = g.size, X = g.x, Y = g.y, d = g.dpr;
   if (T >= G.PLAY) { W.pt = T - G.PLAY; bzGameTick(F, W, dt); }
-  const endT = W.res ? G.PLAY + W.resT + G.RES : Infinity, closeT = endT + G.BACK;
-  if (!W.s0) { W.s0 = 1; SFX.rip(); SFX.warp(); }
-  if (!W.s1 && T > G.OUT) { W.s1 = 1; SFX.game(); }
+  const endT = W.res ? G.PLAY + W.resT + G.RES : Infinity, closeT = endT + G.OCRACK + G.OSNAP;
+  if (!W.s0) { W.s0 = 1; SFX.clang(); SFX.boom(true); bzShake(F, BZ_SHAKE, 300); }
+  if (!W.s1 && T > G.CRACK) { W.s1 = 1; SFX.rip(); SFX.boom(); bzShake(F, BZ_SHAKE, 500); }
+  if (!W.s5 && T > G.CRACK + 0.35) { W.s5 = 1; SFX.game(); }
   if (!W.s2 && T > G.PICK + G.PICKD) { W.s2 = 1; bzHowOpen(F, W); SFX.reveal(1); W.sr.textContent = BZ_GAME_NAMES[e.g] + (W.playing >= 0 ? '. YOUR MOVE WHEN IT IS YOUR TURN.' : ''); }
   if (W.res && !W.s3 && W.pt > W.resT + 0.35) {
     W.s3 = 1;
@@ -8720,22 +8724,98 @@ function gameFrame(F, dt) {
     else if (win === 1) { SFX.wah(); bzBlip(F, 160); }
     else SFX.drop();
   }
-  if (!W.s4 && T > endT) { W.s4 = 1; SFX.rip(); SFX.blip(); W.cv.style.pointerEvents = 'none'; if (W.how) W.how.classList.add('hide'); }
+  if (!W.s4 && T > endT) { W.s4 = 1; SFX.clang(); SFX.boom(true); bzShake(F, BZ_SHAKE, 300); W.cv.style.pointerEvents = 'none'; if (W.how) W.how.classList.add('hide'); }
+  if (!W.s6 && T > endT + G.OCRACK) { W.s6 = 1; SFX.rip(); SFX.boom(); bzShake(F, BZ_SHAKE, 500); }
   if (W.how) bzHowPlace(W, g);
-  // what the box shows: the fight tearing, a flicker of static, the game, and the same on the way back
-  const flick = (t0, dur, from, to) => { const p = (T - t0) / dur; if (p < 0 || p >= 1) return null; if (p > 0.8) return to; const r = Math.random(); return r < 0.3 ? 'static' : r < 0.42 ? 'black' : Math.random() < p ? to : from; };
-  const mode = T < G.OUT ? 'tear' : flick(G.OUT, G.FLK, 'arena', 'game') || flick(endT, G.BACK, 'game', 'arena') || (T < endT ? 'game' : 'arena');
-  if (mode === 'tear') { const q = T / G.OUT; bzGlitch(g, A.cv, 0.4 + 0.6 * q, 14 + 60 * q); return; }
-  c.drawImage(A.cv, 0, 0);
-  if (mode !== 'arena') { c.fillStyle = 'rgba(4,3,8,0.9)'; c.fillRect(0, 0, g.w, g.h); }
-  c.save(); c.beginPath(); c.rect(X, Y, s, s); c.clip();
-  W.hits = [];
-  if (mode === 'game') bzGameScreen(c, W, X, Y, s, T, d);
-  else if (mode === 'static') { c.imageSmoothingEnabled = false; c.drawImage(bzNoise(W), X, Y, s, s); c.imageSmoothingEnabled = true; }
-  else if (mode === 'black') { c.fillStyle = '#000'; c.fillRect(X, Y, s, s); }
-  if (mode !== 'arena') { c.fillStyle = 'rgba(0,0,0,0.18)'; for (let y = Y; y < Y + s; y += 3 * d) c.fillRect(X, y, s, d); }
-  c.restore();
+  // the game screen is drawn on a layer of its own (the dimmed fight behind it, the game in the box), so it
+  // can slide and break as one piece
+  const showGame = T > G.CRACK && T < closeT, L = showGame ? bzLayerOf(W, g) : null;
+  if (L) {
+    const lc = L.getContext('2d');
+    lc.setTransform(1, 0, 0, 1, 0, 0); lc.clearRect(0, 0, g.w, g.h);
+    lc.drawImage(A.cv, 0, 0); lc.fillStyle = 'rgba(4,3,8,0.9)'; lc.fillRect(0, 0, g.w, g.h);
+    lc.save(); lc.beginPath(); lc.rect(X, Y, s, s); lc.clip();
+    W.hits = [];
+    bzGameScreen(lc, W, X, Y, s, T, d);
+    lc.fillStyle = 'rgba(0,0,0,0.18)'; for (let y = Y; y < Y + s; y += 3 * d) lc.fillRect(X, y, s, d);
+    lc.restore();
+  }
+  c.fillStyle = '#050408'; c.fillRect(0, 0, g.w, g.h);   // what's behind both: nothing
+  if (T < endT) {
+    // on the way in: the game slides down from the top, behind the arena's falling halves
+    if (L) { const q = ease((T - G.CRACK - 0.05) / G.IN); c.drawImage(L, 0, -(1 - q) * g.h); }
+    if (T < G.CRACK) bzCracking(c, g, A.cv, W.crackIn || (W.crackIn = bzCrack(g)), T / G.CRACK);
+    else if (T < G.CRACK + G.SNAP) bzSnap(c, g, A.cv, W.crackIn, (T - G.CRACK) / G.SNAP);
+  } else {
+    // on the way out: the arena slides up from the bottom, behind the game's falling halves
+    const k = T - endT, q = ease((k - G.OCRACK - 0.05) / G.OIN);
+    if (k > G.OCRACK) c.drawImage(A.cv, 0, (1 - q) * g.h);
+    if (L && k < G.OCRACK) bzCracking(c, g, L, W.crackOut || (W.crackOut = bzCrack(g)), k / G.OCRACK);
+    else if (L) bzSnap(c, g, L, W.crackOut, (k - G.OCRACK) / G.OSNAP);
+  }
   if (T > closeT) { A.cv.style.opacity = ''; W.close(); openTake(F); }
+}
+// a canvas the size of the takeover's, for the game screen to be drawn on
+function bzLayerOf(W, g) {
+  const L = W.layer || (W.layer = document.createElement('canvas'));
+  if (L.width !== g.w || L.height !== g.h) { L.width = g.w; L.height = g.h; }
+  return L;
+}
+// a jagged crack from the top of the screen to the bottom, through the middle of the box, with a few branches
+function bzCrack(g) {
+  const n = 10, main = [], br = [];
+  for (let i = 0; i <= n; i++) main.push([g.x + g.size * (0.5 + (i === 0 || i === n ? 0.02 : 0.14) * (Math.random() - 0.5)), g.h * i / n]);
+  for (let b = 0; b < 4; b++) {
+    const at = 2 + Math.floor(Math.random() * (n - 3)), [x0, y0] = main[at], dir = Math.random() < 0.5 ? -1 : 1, pts = [[x0, y0]];
+    for (let k = 1; k <= 3; k++) pts.push([x0 + dir * g.size * 0.07 * k * (0.7 + Math.random() * 0.6), y0 + (Math.random() - 0.3) * g.size * 0.06 * k]);
+    br.push(pts);
+  }
+  return { main, br };
+}
+function bzLine(c, pts, q) {
+  // the first q of the line, by its length
+  let total = 0; for (let i = 1; i < pts.length; i++) total += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+  let left = total * clamp(q, 0, 1);
+  c.beginPath(); c.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length && left > 0; i++) {
+    const [ax, ay] = pts[i - 1], [bx, by] = pts[i], seg = Math.hypot(bx - ax, by - ay), u = Math.min(1, left / seg);
+    c.lineTo(ax + (bx - ax) * u, ay + (by - ay) * u); left -= seg;
+  }
+}
+// cracking: the picture shudders while the crack runs down it (from the impact in the middle, both ways)
+function bzCracking(c, g, src, cr, q) {
+  const d = g.dpr, j = (Math.random() - 0.5) * 6 * d * q;
+  c.drawImage(src, j, -j * 0.5);
+  const mid = Math.floor(cr.main.length / 2), up = cr.main.slice(0, mid + 1).reverse(), down = cr.main.slice(mid);
+  c.save(); c.translate(j, -j * 0.5); c.lineJoin = 'round'; c.lineCap = 'round';
+  for (const [pts, k] of [[up, q], [down, q], ...cr.br.map(b => [b, (q - 0.45) / 0.55])]) {
+    if (k <= 0) continue;
+    bzLine(c, pts, k); c.lineWidth = 5 * d; c.strokeStyle = 'rgba(0,0,0,0.85)'; c.stroke();
+    bzLine(c, pts, k); c.lineWidth = 1.6 * d; c.strokeStyle = 'rgba(255,255,255,0.9)'; c.stroke();
+  }
+  // the impact flash in the middle
+  const [mx, my] = cr.main[mid];
+  if (q < 0.4) { circ(c, mx, my, g.size * 0.06 * (1 - q / 0.4)); c.fillStyle = `rgba(255,255,255,${(0.8 * (1 - q / 0.4)).toFixed(2)})`; c.fill(); }
+  c.restore();
+}
+// snapped: the two halves either side of the crack tip outwards and drop away
+function bzSnap(c, g, src, cr, q) {
+  q = clamp(q, 0, 1);
+  const d = g.dpr, e2 = q * q;
+  for (const side of [0, 1]) {
+    const dir = side ? 1 : -1, px = side ? g.w * 0.8 : g.w * 0.2, py = g.h;
+    c.save();
+    c.translate(dir * g.size * 0.2 * q, g.h * 1.1 * e2);
+    c.translate(px, py); c.rotate(dir * 0.45 * e2); c.translate(-px, -py);
+    c.beginPath(); c.moveTo(side ? g.w : 0, 0);
+    for (const [x, y] of cr.main) c.lineTo(x, y);
+    c.lineTo(side ? g.w : 0, g.h); c.closePath();
+    c.save(); c.clip(); c.globalAlpha = 1 - 0.35 * q; c.drawImage(src, 0, 0); c.restore();
+    // the broken edge catches the light
+    c.beginPath(); cr.main.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));
+    c.lineWidth = 3 * d; c.strokeStyle = `rgba(255,255,255,${(0.7 * (1 - q)).toFixed(2)})`; c.stroke();
+    c.restore();
+  }
 }
 // the game screen inside the box: the title, the picker, then the game itself
 function bzGameScreen(c, W, X, Y, s, T, d) {
