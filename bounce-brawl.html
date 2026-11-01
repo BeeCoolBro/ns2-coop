@@ -3083,7 +3083,7 @@ BALL_LIST.push(
     desc: 'Grins and bounces around, and every 5 seconds its grin confuses a nearby enemy. Below 20% health it throws a tantrum that blasts the enemy back, grows four spider legs and chases the enemy down, hitting 2.5x harder.' },
   // only from the give command: spins for a Mythic's power and a strength change at the start,
   // then again every time it loses another 35% of its health
-  { id: 'beezap', name: 'BeeZap', rar: 'M', cat: 'trick', special: 1, hidden: 1, giveOnly: 1, col: '#2b2440', hp: 225, upright: 1,
+  { id: 'beezap', name: 'BeeZap', rar: 'M', cat: 'trick', special: 1, hidden: 1, giveOnly: 1, col: '#f5bd12', hp: 225, upright: 1,
     init(S, f) { f.bz = { next: 1 - BZ_EVERY, admT: 11, slotT: 6, gameT: 14, godT: 0, pend: null }; beezapRoll(S, f); },
     desc: 'Spins two wheels at the start of the fight: one copies a Mythic ball\u2019s power, the other sets its strength from -10% to +10%. Every 45% of health it loses, it spins again. It also abuses admin commands, plays the slots, and drags its enemy into a quick game (tic tac toe, Connect Four, rock paper scissors, Battleship, last stick, memory match, dots and boxes or pig) where the winner hits the loser.' },
 );
@@ -3867,6 +3867,8 @@ function inkFill(c, fill, lw) { c.fillStyle = fill; c.fill(); c.lineWidth = lw |
 
 // ---- the emblem on each ball (drawn in a 80-unit box, centred, upright) --------------
 // e = emblem colour picked to read on the ball, d = darker, l = lighter
+// a ball's own background, drawn over its base colour and under its emblem (only some balls have one)
+const ART_BG = {};
 const ART = {
   sword(c, k) {
     c.rotate(-0.62);
@@ -4157,6 +4159,7 @@ function drawBall(c, def, x, y, r, f, t, rot) {
   c.save(); circ(c, 0, 0, 40); c.clip();
   c.fillStyle = 'rgba(0,0,0,0.2)'; c.fillRect(-40, -40, 80, 80);
   circ(c, -4.5, -5.5, 39.5); c.fillStyle = def.col; c.fill();
+  if (ART_BG[def.id]) ART_BG[def.id](c, k, f, t);
   if (ART[def.id]) { c.save(); if (rot && !def.upright) c.rotate(rot); ART[def.id](c, k, f, t); c.restore(); }
   c.beginPath(); c.ellipse(-17, -21, 9, 5, -0.6, 0, TAU); c.fillStyle = 'rgba(255,255,255,0.28)'; c.fill();
   c.restore();
@@ -4447,7 +4450,7 @@ class Arena {
   constructor(canvas, opt) {
     this.cv = canvas; this.c = canvas.getContext('2d');
     this.opt = opt || {};
-    this.fx = []; this.nums = []; this.trail = {}; this.says = [];
+    this.fx = []; this.nums = []; this.trail = {}; this.says = []; this.comb = new Map();
     this.sq = {}; this.hf = {}; this.decals = []; this.motes = null; this.cam = null; this.lt = null;
     this.shake = 0; this.flip = false; this.me = 0; this.hitstop = 0; this.flash = 0;
     this.k = 1; this.ox = 0; this.oy = 0; this.dpr = 1;
@@ -4466,7 +4469,37 @@ class Arena {
     this.k = Math.min(w, h) / (ARENA + pad * 2);
     this.ox = (w - ARENA * this.k) / 2; this.oy = (h - ARENA * this.k) / 2;
   }
-  reset() { this.fx.length = 0; this.nums.length = 0; this.says.length = 0; this.trail = {}; this.shake = 0; this.hitstop = 0; this.flash = 0; this.sq = {}; this.hf = {}; this.decals.length = 0; this.cam = null; this.lt = null; }
+  // BeeZap's trail: the floor is an unseen honeycomb, and the cells it rolls over light up honey yellow and fade
+  honeycomb(S, t) {
+    const c = this.c, s = 15, w = s * Math.sqrt(3), LIFE = 0.9;
+    if (!this.comb) this.comb = new Map();
+    for (const f of S.F) {
+      if (f.def.id !== 'beezap' || !f.alive || !tangible(f)) continue;
+      const mk = this.masks && this.masks.find(m => m.side === f.side);
+      if (mk && !mk.off) continue;   // in disguise: no giveaway trail
+      const R = f.r * 0.95, r0 = Math.floor((f.y - R) / (s * 1.5)) - 1, r1 = Math.ceil((f.y + R) / (s * 1.5)) + 1;
+      for (let row = r0; row <= r1; row++) {
+        const cy = row * s * 1.5, off = (row & 1) * w / 2;
+        for (let col = Math.floor((f.x - R - off) / w) - 1, c1 = Math.ceil((f.x + R - off) / w) + 1; col <= c1; col++) {
+          const cx = col * w + off;
+          if ((cx - f.x) * (cx - f.x) + (cy - f.y) * (cy - f.y) <= R * R) this.comb.set(row + ',' + col, { x: cx, y: cy, t });
+        }
+      }
+    }
+    if (!this.comb.size) return;
+    c.lineJoin = 'round';
+    for (const [k, h] of this.comb) {
+      const age = t - h.t;
+      if (age > LIFE || age < 0) { this.comb.delete(k); continue; }
+      const a = 1 - age / LIFE, z = s * (0.86 + 0.08 * a);
+      c.beginPath();
+      for (let i = 0; i < 6; i++) { const ang = Math.PI / 6 + i * Math.PI / 3, x = h.x + Math.cos(ang) * z, y = h.y + Math.sin(ang) * z; if (i) c.lineTo(x, y); else c.moveTo(x, y); }
+      c.closePath();
+      c.fillStyle = `rgba(255,196,30,${(0.22 * a).toFixed(3)})`; c.fill();
+      c.lineWidth = 1.6; c.strokeStyle = `rgba(255,206,60,${(0.75 * a).toFixed(3)})`; c.stroke();
+    }
+  }
+  reset() { this.fx.length = 0; this.nums.length = 0; this.says.length = 0; this.trail = {}; this.comb = new Map(); this.shake = 0; this.hitstop = 0; this.flash = 0; this.sq = {}; this.hf = {}; this.decals.length = 0; this.cam = null; this.lt = null; }
   // short bright streaks flying out of a hit
   sparks(x, y, n, col, sp) {
     for (let i = 0; i < n; i++) {
@@ -4691,7 +4724,9 @@ class Arena {
     for (const z of S.hz) if (z.k === 'laser' && !z.fired) CHARGE.add(z.owner);
     for (const z of S.hz) if (z.k !== 'wall') drawHazard(c, z, S, t);
     for (const z of S.hz) if (z.k === 'wall') drawHazard(c, z, S, t);
+    this.honeycomb(S, t);
     for (const f of S.F) {
+      if (f.def.id === 'beezap') continue;   // BeeZap leaves honeycomb instead (honeycomb, below)
       const tr = this.trail[f.id] || (this.trail[f.id] = []);
       tr.push(f.x, f.y); if (tr.length > 12) tr.splice(0, 2);
       const sp = vlen(f.vx, f.vy);
@@ -7824,7 +7859,26 @@ function beeCanvas() {
   BEE_CV.getContext('2d').putImageData(new ImageData(px, n, n), 0, 0);
   return BEE_CV;
 }
-ART.beezap = c => { c.imageSmoothingQuality = 'high'; c.drawImage(beeCanvas(), -37, -36, 74, 74); };
+// BeeZap's ball: honey yellow with a honeycomb, the bee on top with a soft dark edge so it stands off the yellow
+const BZ_COMB = (() => {
+  const p = new Path2D(), s = 8, w = s * Math.sqrt(3);
+  for (let row = -4; row <= 4; row++) for (let col = -4; col <= 4; col++) {
+    const cx = col * w + (row & 1) * w / 2, cy = row * s * 1.5;
+    for (let k = 0; k <= 6; k++) { const a = Math.PI / 6 + k * Math.PI / 3, x = cx + Math.cos(a) * s, y = cy + Math.sin(a) * s; if (k) p.lineTo(x, y); else p.moveTo(x, y); }
+  }
+  return p;
+})();
+ART_BG.beezap = c => {
+  const g = c.createRadialGradient(-12, -14, 4, 0, 0, 44);
+  g.addColorStop(0, 'rgba(255,236,140,0.55)'); g.addColorStop(0.6, 'rgba(255,214,60,0)'); g.addColorStop(1, 'rgba(150,80,0,0.35)');
+  c.fillStyle = g; c.fillRect(-40, -40, 80, 80);
+  c.lineWidth = 1.7; c.strokeStyle = 'rgba(140,82,0,0.55)'; c.stroke(BZ_COMB);
+  c.lineWidth = 0.7; c.strokeStyle = 'rgba(255,240,170,0.45)'; c.save(); c.translate(0.9, 0.9); c.stroke(BZ_COMB); c.restore();
+};
+ART.beezap = c => {
+  c.imageSmoothingQuality = 'high';
+  c.save(); c.shadowColor = 'rgba(40,18,0,0.75)'; c.shadowBlur = 5; c.drawImage(beeCanvas(), -37, -36, 74, 74); c.restore();
+};
 
 function fightSong() { return FIGHT && !(FIGHT.masks && FIGHT.masks.length) && FIGHT.S.F.some(f => f.def.id === 'beezap') ? 'beezap' : 'fight'; }
 // what a BeeZap pretends to be on the VS screen and until the fight starts: a plain common ball
