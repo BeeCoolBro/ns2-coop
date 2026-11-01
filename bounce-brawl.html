@@ -975,7 +975,7 @@ svg.mst.on { fill: var(--gold); }
 // A fight is played out from a seed, separately in each player's browser, so
 // the simulation may only use + - * / and sqrt (the same in every engine):
 // no Math.sin/cos/atan2/hypot/pow/exp, no Math.random, no clocks.
-const VERSION = 18;
+const VERSION = 19;
 const HP_SCALE = 0.33;                     // every ball's health is scaled by this, so fights end sooner
 const TAU = 6.283185307179586, PI = 3.141592653589793, HALF_PI = 1.5707963267948966;
 const DT = 1 / 60, SUB = 3;            // 60 steps a second, 3 physics substeps each
@@ -6982,7 +6982,7 @@ function fightFrame(F, dt) {
   const S = F.S;
   F.t += dt;
   F.arena.resize();
-  fxTick(F, dt); ftTick(F, dt);
+  fxTick(F, dt);
   if (F.phase === 'count') {
     F.pt += dt;
     const n = 3 - Math.floor(F.pt / 0.7);
@@ -7000,11 +7000,11 @@ function fightFrame(F, dt) {
     if (F.pt > 2.6) { F.phase = 'run'; showBanner(F, ''); }
   } else if (F.phase === 'run') {
     F.arena.pop = 1;
-    if (F.mode === 'watch') watchSync(F); else liveSync(F);
+    if (F.mode === 'watch') watchSync(F);
     if (F.wheel) F.wheel.frame(F, dt);
     else if (F.arena.hitstop > 0) F.arena.hitstop -= dt;
     else {
-      F.acc = Math.min(F.acc + dt * FIGHT_SPEED * F.slow * (F.boost || 1), 0.25);
+      F.acc = Math.min(F.acc + dt * FIGHT_SPEED * F.slow, 0.25);
       while (F.acc >= DT && !S.over) {
         F.acc -= DT; step(S); tally(F);
         const wz = S.ev.filter(e => BZ_TAKE[e.e]);
@@ -7134,7 +7134,6 @@ function endFightScreen() {
   FIGHT = null;
   MUSIC.play('menu');
   if (F.fx || F.mode === 'watch') NET.set({ fx: null, hook: null });
-  if (F.gr || F.ftT !== undefined) NET.set({ ft: null, gr: null });
   NET.pushPresence();
 }
 // only when you can't afford the smallest bet (tests pass force)
@@ -7901,8 +7900,7 @@ const BZ_HEX = (() => {
 // BeeZap's moments that take the screen over; the fight waits for each in turn (F.wheelQ)
 const BZ_TAKE = { wheel: 1, admin: 1, slot: 1, game: 1, hookin: 1 };
 function openTake(F) {
-  let e = F.wheelQ.shift();
-  while (e && e.e === 'game' && livePeers(F).length && liveSettle(F, e, livePeers(F))) e = F.wheelQ.shift();   // already decided elsewhere
+  const e = F.wheelQ.shift();
   if (!e) { F.wheel = null; return; }
   (e.e === 'reveal' ? openReveal : e.e === 'hookin' ? openHookin : e.e === 'wheel' ? openWheel : e.e === 'admin' ? openAdmin : e.e === 'game' ? openGame : openSlots)(F, e);
 }
@@ -8663,15 +8661,11 @@ function bzGameEnd(F, W, end, delay) {
   // the players' result replaces the one the sim worked out for itself
   const f = F.S.F[W.e.side];
   if (f && f.bz && f.bz.pend && f.bz.pend.k === 'game') f.bz.pend.win = end.win;
-  livePublishResult(F, W.key, end.win);
 }
 function bzGameTick(F, W, dt) {
   const e = W.e;
   W.myTurn = false;
   if (W.res) return;
-  // another player's screen already finished this one (this screen was hidden, or fell behind): take its winner
-  const known = W.turnT > 1 ? liveResult(livePeers(F), W.key) : undefined;
-  if (known !== undefined) { bzGameEnd(F, W, { win: known }); return; }
   if (W.pt > 150) { bzGameEnd(F, W, { win: -1 }); return; }   // a safety net: a game never runs this long
   if (e.g === 'rps') { bzRpsTick(F, W, dt); return; }
   const R = BZ_RULE[e.g], last = W.seq[W.seq.length - 1];
@@ -9724,7 +9718,7 @@ function watchSync(F) {
   if (F.hookReq && Date.now() - F.hookReq > 8000) { F.hookReq = 0; NET.set({ hook: null }); toast('They didn’t let you in in time. Try again.', 2800); }
   if (F.wheel) return;
   const S = F.S, goal = fxNow(fx);
-  if (S.t < goal - 1.2) liveStep(F, goal - 0.2, livePeers(F));
+  if (S.t < goal - 1.2) { for (let k = 0; S.t < goal - 0.2 && !S.over && k < 240; k++) { step(S); S.ev.length = 0; } }
   F.slow = S.t > goal + 0.4 ? 0 : 1;
 }
 function hookAsk(F) {
@@ -9917,105 +9911,6 @@ function hookinFrame(F, dt) {
     ], 4.6);
   }
 }
-
-// ===== live fights: every screen in a fight stays at the same moment of it =====================
-// A fight is played on each player's own screen, from the same seed, so it only goes out of step in
-// time: a BeeZap takeover that closes a little later on one screen, or a tab that was hidden (the
-// browser stops drawing it, so the fight there stops). Each player in a fight with other players
-// puts ft {id, t, at, p} in their presence every second: how far their fight has got (sim seconds)
-// at what time, and p 1 while their screen is paused. A screen that falls behind runs faster to
-// catch up, or after a few seconds behind jumps straight there, skipping the show on the way.
-// BeeZap's minigames are the one thing a jump can't just skip, since players decide them: each
-// screen puts the results of the games it finished in its presence (gr [[key, winner]]), a jump
-// uses those, and stops at a game nobody has finished, to play it for real.
-// A fight against the computer keeps going while its tab is hidden too, and catches up when it's back.
-const LIVE = { away: 0, t0: 0 };
-function liveId(F) { return F.mid || (F.fx && F.fx.id) || ''; }
-// the other players in this fight (for a watcher: the players it watches)
-function livePeers(F) {
-  if (F.mode === 'watch') return F.watch.peers.filter(Boolean);
-  if (F.mode === 'ffa') return (F.all || []).filter((a, i) => i !== F.mySide && a.peer && !a.bot).map(a => a.peer);
-  if ((F.mode === 'pvp' || F.mode === 'friendly' || F.mode === 'hook') && F.peer && !F.ghost && !F.kicked) return [F.peer];
-  return [];
-}
-const livePresence = id => { const p = NET.peers.find(x => x.peer === id); return p && p.presence; };
-function ftNow(ft) { return ft.t + (ft.p ? 0 : Math.min(3, (Date.now() - ft.at) / 1000) * FIGHT_SPEED); }
-// a minigame's winner as another player's screen settled it (undefined if none has)
-function liveResult(peers, key) {
-  for (const id of peers) {
-    const gr = (livePresence(id) || {}).gr;
-    const hit = Array.isArray(gr) && gr.find(x => Array.isArray(x) && x[0] === key);
-    if (hit) return hit[1];
-  }
-  return undefined;
-}
-function livePublishResult(F, key, win) {
-  F.gr = (F.gr || []).filter(x => x[0] !== key).concat([[key, win]]).slice(-6);
-  NET.set({ gr: F.gr });
-}
-// every frame: say where this fight is
-function ftTick(F, dt) {
-  if (F.done || (F.ftT = (F.ftT || 0) - dt) > 0) return;
-  F.ftT = 1;
-  if (F.mode === 'watch' || !livePeers(F).length) return;
-  NET.set({ ft: { id: liveId(F), t: Math.round(F.S.t * 100) / 100, at: Date.now(), p: F.wheel || F.phase !== 'run' ? 1 : 0 } });
-}
-// every frame while the fight runs: catch up with whoever is furthest on (the ones whose screens are
-// still talking; a hidden tab goes quiet and is left behind until it comes back)
-function liveSync(F) {
-  F.boost = 1;
-  if (F.mode === 'watch') return;
-  const peers = livePeers(F), id = liveId(F);
-  let goal = -1;
-  for (const p of peers) {
-    const ft = (livePresence(p) || {}).ft;
-    if (ft && ft.id === id && Date.now() - ft.at < 3500) goal = Math.max(goal, ftNow(ft));
-  }
-  if (goal < 0) return;
-  const lag = goal - F.S.t;
-  if (lag > 3) liveJump(F, goal - 0.3, peers);
-  else if (lag > 0.25) F.boost = 1.7;
-}
-// straight to sim time goal: an open takeover closes (a minigame stays), and the way there is played without the show
-function liveJump(F, goal, peers) {
-  if (F.wheel) {
-    if (F.wheel.kind === 'game') return;
-    F.wheel.close(); F.arena.cv.style.opacity = ''; F.root.classList.remove('bz-hacked'); F.wheel = null;
-    F.wheelQ = (F.wheelQ || []).filter(e => e.e === 'game');
-    if (F.wheelQ.length) { openTake(F); if (F.wheel) return; }
-  }
-  liveStep(F, goal, peers);
-  if (F.masks && F.masks.length && F.S.t > 0.5) { bzUnmask(F); F.bzRevealed = 1; }
-  F.arena.reset(); updatePlates(F);
-}
-function liveStep(F, goal, peers) {
-  const S = F.S;
-  for (let k = 0; S.t < goal && !S.over && k < 9000; k++) {
-    step(S);
-    const g = S.ev.find(e => e.e === 'game');
-    if (g && !liveSettle(F, g, peers)) { S.ev.length = 0; F.wheelQ = [g]; F.acc = 0; openTake(F); return; }
-    S.ev.length = 0;
-  }
-}
-// a minigame we don't need to play: another screen already has its winner (or, alone, the sim's own stands)
-function liveSettle(F, e, peers) {
-  const r = peers.length ? liveResult(peers, bzGameKey(F, (F.gameN || 0) + 1)) : e.win;
-  if (r === undefined) return false;
-  F.gameN = (F.gameN || 0) + 1;
-  const f = F.S.F[e.side];
-  if (f && f.bz && f.bz.pend && f.bz.pend.k === 'game') f.bz.pend.win = r;
-  return true;
-}
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { LIVE.away = Date.now(); LIVE.t0 = FIGHT ? FIGHT.S.t : 0; return; }
-  const F = FIGHT, away = LIVE.away ? (Date.now() - LIVE.away) / 1000 : 0;
-  LIVE.away = 0;
-  // against the computer the fight went on without you (to where it would be had the tab kept
-  // drawing); with other players liveSync catches up with them
-  if (!F || F.done || F.phase !== 'run' || away < 0.5 || F.mode === 'watch' || livePeers(F).length) return;
-  const goal = LIVE.t0 + away * FIGHT_SPEED;
-  if (goal > F.S.t + 0.5) liveJump(F, goal, []);
-});
 
 // ===== players online: presence, matchmaking, leaderboard =================
 // Everything goes through each viewer's presence (the platform's "who is here"
