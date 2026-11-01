@@ -975,7 +975,7 @@ svg.mst.on { fill: var(--gold); }
 // A fight is played out from a seed, separately in each player's browser, so
 // the simulation may only use + - * / and sqrt (the same in every engine):
 // no Math.sin/cos/atan2/hypot/pow/exp, no Math.random, no clocks.
-const VERSION = 19;
+const VERSION = 21;
 const HP_SCALE = 0.33;                     // every ball's health is scaled by this, so fights end sooner
 const TAU = 6.283185307179586, PI = 3.141592653589793, HALF_PI = 1.5707963267948966;
 const DT = 1 / 60, SUB = 3;            // 60 steps a second, 3 physics substeps each
@@ -1103,6 +1103,8 @@ function newFight(o) {
 function aim(S, force) {
   for (const f of S.F) {
     if (!f.alive) continue;
+    // set on another ball by BeeZap's /feud: only that one, until it runs out
+    if (f.feud) { if (f.feud.t > S.t && f.feud.o.alive) { f.foe = f.feud.o; continue; } f.feud = null; }
     let best = null, bd = Infinity;
     for (const g of S.F) if (g !== f && g.alive) { const d = (g.x - f.x) * (g.x - f.x) + (g.y - f.y) * (g.y - f.y); if (d < bd) { bd = d; best = g; } }
     if (!best) continue;
@@ -1655,7 +1657,9 @@ function hzStep(S, dt) {
         if (!held) z.ch -= dt;
         z.x0 = o.x; z.y0 = o.y;
         if (z.ch > (z.lock || 0.15) && o.foe && !held) {
-          const [ex, ey] = toward(o, o.foe);
+          // it tracks the foe while it charges; one of a fan (off) keeps its angle off the line to the foe
+          let [ex, ey] = toward(o, o.foe);
+          if (z.off) [ex, ey] = rotv(ex, ey, z.off);
           z.dx += (ex - z.dx) * 0.16; z.dy += (ey - z.dy) * 0.16;
           const l = vlen(z.dx, z.dy) || 1; z.dx /= l; z.dy /= l;
         }
@@ -2941,7 +2945,7 @@ BALL_LIST.push(
     onContact(S, f, t, d) { burn(t, f, 2.5); return d; },
     dmgMod(S) { return 1 + Math.min(0.5, S.t / 120); },
     desc: 'Burns on touch, and gets hotter the longer the fight goes on.' },
-  { id: 'icecream', name: 'Ice Cream', rar: 'C', cat: 'def', col: '#ffd1e8', hp: 665,
+  { id: 'icecream', name: 'Ice Cream', rar: 'C', cat: 'def', col: '#ffd1e8', hp: 350, contact: 1.9,
     update(S, f, dt) { if (every(f, 'drip', dt, 3)) hazard(S, f, 'zone', { x: f.x, y: f.y, r: 55, life: 4, fx: { slow: 0.7 }, every: 0.5, look: 'snow' }); },
     onContact(S, f, t, d) { applyFx(S, f, t, { slow: 1 }); return d; },
     desc: 'Cold to touch and drips puddles that slow the enemy down.' },
@@ -3124,6 +3128,9 @@ function beezapRoll(S, f) {
 // admin abuse every 25 s and the slots every 12 s. Each one is announced first (the fight
 // screen stops for it) and lands on the step after, once the fight is moving again.
 const BZ_CMDS = ['freeze', 'tp', 'god', 'nerf', 'smite', 'kick'];
+// in a free for all most commands hit everyone (@a, a little weaker each), /kick takes one at random,
+// and /feud sets two of the others on each other for a while
+const BZ_CMDS_FFA = ['freeze', 'tp', 'god', 'nerf', 'smite', 'kick', 'feud', 'feud'];
 // the slots pick a result off the paytable first (chance out of 100), then lay out reels that show it
 const BZ_ODDS = [['jackpot', 7, '7'], ['swarm', 5, 'bee'], ['diamond', 6, 'diamond'], ['bell', 7, 'bell'], ['bars', 8, 'bar'],
   ['cherries', 6, 'cherry'], ['skulls', 4, 'skull'], ['pair', 20], ['omen', 7], ['cherry', 10], ['bust', 20]];
@@ -3206,7 +3213,7 @@ const BZ_RULE = {
       let sk = -1;
       if (hit) { s.hits[p]++; if (s.ships[1 - p][n].every(j => s.seen[p][j] === 1)) { s.sunk[1 - p][n] = 1; sk = n; } }
       else s.turn = 1 - p;
-      return { hit, sk, end: hit && s.hits[p] >= s.need[1 - p] ? { win: p } : null };
+      return { hit, sk, wait: 0.75, end: hit && s.hits[p] >= s.need[1 - p] ? { win: p } : null };
     },
     // a good player shoots next to a hit it hasn't sunk yet
     ai(s, p, r, skill) {
@@ -3338,9 +3345,14 @@ function bzTick(S, f, dt) {
   if (f.alive && !z.pend) {
     if ((z.admT -= dt) <= 0) {
       z.admT = 25;
-      const cmd = BZ_CMDS[Math.floor(S.rng() * BZ_CMDS.length)];
-      z.pend = { t: 0.01, k: 'admin', cmd };
-      emit(S, { e: 'admin', id: f.id, side: f.side, cmd, foe: f.foe.def.id });
+      const foes = S.F.filter(x => x !== f && x.alive), ffa = S.F.length > 2;
+      const list = ffa ? BZ_CMDS_FFA.filter(c => c !== 'feud' || foes.length >= 2) : BZ_CMDS, cmd = list[Math.floor(S.rng() * list.length)];
+      let tgt = f.foe, pair = null;
+      if (ffa && cmd === 'kick') tgt = foes[Math.floor(S.rng() * foes.length)];
+      if (cmd === 'feud') { const i = Math.floor(S.rng() * foes.length); let j = Math.floor(S.rng() * (foes.length - 1)); if (j >= i) j++; pair = [foes[i], foes[j]]; }
+      const all = ffa && (cmd === 'freeze' || cmd === 'tp' || cmd === 'nerf' || cmd === 'smite') ? 1 : 0;
+      z.pend = { t: 0.01, k: 'admin', cmd, all, ts: tgt.side, pair: pair && pair.map(x => x.side) };
+      emit(S, { e: 'admin', id: f.id, side: f.side, cmd, foe: tgt.def.id, ts: tgt.side, all, pair: pair && pair.map(x => x.def.id) });
     } else if ((z.slotT -= dt) <= 0) {
       z.slotT = 12;
       const { r, res } = bzSpin(S);
@@ -3348,7 +3360,8 @@ function bzTick(S, f, dt) {
       emit(S, { e: 'slot', id: f.id, side: f.side, r, res });
     } else if ((z.gameT -= dt) <= 0) {
       z.gameT = 30;
-      const t = f.foe, rec = bzGame(S);
+      // in a free for all it drags in whoever is winning (the most health left), not just the nearest
+      const t = S.F.length > 2 ? S.F.filter(x => x !== f && x.alive).reduce((m, x) => (x.hp / x.maxHp > m.hp / m.maxHp ? x : m)) : f.foe, rec = bzGame(S);
       z.pend = { t: 0.01, k: 'game', win: rec.win, ts: t.side };
       emit(S, Object.assign({ e: 'game', id: f.id, side: f.side, ts: t.side, foe: t.def.id }, rec));
     }
@@ -3356,12 +3369,29 @@ function bzTick(S, f, dt) {
   bzCheck(S, f);
 }
 function bzLand(S, f, p) {
-  const t = f.foe;
+  let t = f.foe;
   if (p.k === 'game') {          // the game's winner hits the loser; a draw hurts nobody
     const o = S.F[p.ts] && S.F[p.ts].alive ? S.F[p.ts] : t, [w, l] = p.win === 0 ? [f, o] : [o, f];
     if (p.win >= 0 && l.alive) { hurt(S, w, l, BZ_GAME_DMG, 'zap', l.x, l.y); emit(S, { e: 'boom', x: l.x, y: l.y, r: 80, small: 1 }); }
     return;
   }
+  if (p.k === 'admin' && p.cmd === 'feud') {
+    const [a, b] = (p.pair || []).map(s => S.F[s]);
+    if (a && b && a.alive && b.alive) { a.feud = { o: b, t: S.t + 6 }; b.feud = { o: a, t: S.t + 6 }; a.foe = b; b.foe = a; emit(S, { e: 'feud', a: a.id, b: b.id }); }
+    return;
+  }
+  if (p.k === 'admin' && p.all) {
+    // everyone else at once, each a little less than one would get
+    const b = S.box, corners = [[b.x0, b.y0], [b.x1, b.y0], [b.x1, b.y1], [b.x0, b.y1]];
+    S.F.filter(x => x !== f && x.alive).forEach((x, i) => {
+      if (p.cmd === 'freeze') { applyFx(S, f, x, { freeze: 1 }); emit(S, { e: 'freeze', x: x.x, y: x.y }); }
+      else if (p.cmd === 'tp') { const [cx, cy] = corners[i % 4]; warpTo(S, x, cx, cy); applyFx(S, f, x, { stun: 0.3 }); }
+      else if (p.cmd === 'nerf') applyFx(S, f, x, { weak: 3 });
+      else { hurt(S, f, x, 5, 'zap', x.x, x.y); emit(S, { e: 'bolt', x: x.x, y: x.y, r: 50 }); }
+    });
+    return;
+  }
+  if (p.k === 'admin' && S.F.length > 2 && S.F[p.ts] && S.F[p.ts].alive) t = S.F[p.ts];   // /kick in a free for all: the one it picked
   if (p.k === 'admin') {
     if (p.cmd === 'freeze') { applyFx(S, f, t, { freeze: 1.4 }); emit(S, { e: 'freeze', x: t.x, y: t.y }); }
     else if (p.cmd === 'tp') {
@@ -3585,7 +3615,7 @@ BALL_LIST.push(
     update(S, f, dt) {
       if (!every(f, 'flare', dt, 6)) return;
       const [ux, uy] = toward(f, f.foe);
-      for (const a of [-0.35, 0, 0.35]) { const [dx, dy] = rotv(ux, uy, a); hazard(S, f, 'laser', { ch: 0.6, dx, dy, fired: false, dmg: 9, x0: f.x, y0: f.y, x1: f.x, y1: f.y, look: 'sun' }); }
+      for (const a of [-0.35, 0, 0.35]) { const [dx, dy] = rotv(ux, uy, a); hazard(S, f, 'laser', { ch: 0.6, dx, dy, off: a, fired: false, dmg: 10, x0: f.x, y0: f.y, x1: f.x, y1: f.y, look: 'sun' }); }
       pulse(S, f, 80, 0, 0, { burn: 1 }, '#ffd23f');
     },
     desc: 'Soaks up light for 6 seconds, then fires a fan of three solar beams.' },
@@ -8119,6 +8149,11 @@ const BZ_CMD_TXT = {
   smite: n => [`/smite ${n}`, `${n} was struck by lightning.`],
   kick: n => [`/kick ${n} "skill issue"`, `${n} was kicked from the game.`],
 };
+// a free for all's @a versions
+const BZ_CMD_ALL = {
+  freeze: ['/freeze @a 1s', 'Everyone else was frozen solid.'], tp: ['/tp @a ~corners', 'Teleported everyone else into the corners.'],
+  nerf: ['/nerf @a -35%', 'Everyone else has been nerfed.'], smite: ['/smite @a', 'Lightning struck everyone else.'],
+};
 const BZ_BLOCK = String.fromCharCode(9608), BZ_SHADE = String.fromCharCode(9617);
 // the console: a server console window. A title bar, tabs, the server log with its scrollbar and the command
 // box under it, the players and the server's health down the side, and a status bar along the bottom.
@@ -8136,8 +8171,10 @@ function bzConsole(F, e, kind, script, end) {
   const input = h('div', { class: 'bzin' }, h('span', { class: 'pr', text: '>' }), typed, h('span', { class: 'caret' }));
   const kv = (k, v, bad) => h('div', { class: 'kv' }, h('span', { text: k }), typeof v === 'string' ? h('b', { class: bad ? 'bad' : '', text: v }) : v);
   const side = h('div', { class: 'bzside' },
-    h('h4', { text: 'Players  2/20' }),
-    h('ul', {}, h('li', { class: 'op' }, h('span', { text: bee }), h('small', { text: 'OP' }), pings[0]), h('li', {}, h('span', { text: other }), pings[1])),
+    h('h4', { text: `Players  ${F.all ? F.all.length : 2}/20` }),
+    h('ul', {}, h('li', { class: 'op' }, h('span', { text: bee }), h('small', { text: 'OP' }), pings[0]), h('li', {}, h('span', { text: other }), pings[1]),
+      // a free for all's other players, under the two that matter
+      ...(F.all ? F.all.filter((a, i) => i !== e.side && a.name !== other).slice(0, 5).map(a => h('li', {}, h('span', { text: a.name }), h('em', { text: (30 + Math.floor(Math.random() * 60)) + 'ms' }))) : [])),
     h('h4', { text: 'Performance' }),
     kv('TPS', tps), spark, kv('MSPT', mspt), kv('CPU', cpu), kv('Memory', memT), h('div', { class: 'bzmem' }, mem),
     h('h4', { text: 'Server' }),
@@ -8234,7 +8271,9 @@ function bzGlitch(g, src, hit, amp) {
   c.fillStyle = 'rgba(0,0,0,0.22)'; for (let y = 0; y < g.h; y += 3 * g.dpr) c.fillRect(0, y, g.w, g.dpr);
 }
 function openAdmin(F, e) {
-  const foe = (BALL[e.foe] ? BALL[e.foe].name : 'Enemy').toUpperCase(), [cmd, out] = BZ_CMD_TXT[e.cmd](foe);
+  const nm = id => (BALL[id] ? BALL[id].name : 'Enemy').toUpperCase(), foe = nm(e.foe);
+  const [cmd, out] = e.cmd === 'feud' ? [`/feud ${nm(e.pair[0])} ${nm(e.pair[1])}`, `${nm(e.pair[0])} and ${nm(e.pair[1])} now only want each other gone.`]
+    : e.all ? BZ_CMD_ALL[e.cmd] : BZ_CMD_TXT[e.cmd](foe);
   const TYPE0 = 1.3, run = TYPE0 + cmd.length * 0.07 + 1.2;
   bzConsole(F, e, 'admin', [
     [0.2, 'warn', `Tick ${1000 + Math.floor(F.S.t * 60)} took ${180 + Math.floor(F.S.t * 7) % 300}ms. Running 6 ticks behind.`],
@@ -8295,7 +8334,11 @@ function revealFrame(F, dt) {
 }
 // what each command does to the screen itself
 function adminBend(F, e) {
-  const { bee, foe } = bzPlates(F, e), wrap = F.root.querySelector('.arena');
+  const { bee } = bzPlates(F, e), wrap = F.root.querySelector('.arena');
+  // the plate that shows it: the enemy's in a duel; in a free for all only your own, if it was you
+  let { foe } = bzPlates(F, e);
+  if (F.all) foe = e.side !== F.mySide && (e.all || e.ts === F.mySide || (e.pair && e.pair.includes(F.all[F.mySide].id))) ? F.plates[0] : null;
+  if (e.cmd === 'feud') { bzMark(foe, 'bz-nerf', 6); SFX.mark(); SFX.drop(); return; }
   if (e.cmd === 'freeze') { bzMark(foe, 'bz-frozen', 4.3); SFX.freeze(); }
   else if (e.cmd === 'tp') { bzJolt(wrap, BZ_TP, 700); SFX.warp(); }
   else if (e.cmd === 'god') { bzMark(bee, 'bz-god', 5.4); SFX.reveal(2); }
@@ -8588,7 +8631,7 @@ function lin2(c, x0, y0, x1, y1, a, b) { const gr = c.createLinearGradient(x0, y
 // the way in: the fight stops, the arena cracks (CRACK) and snaps in half, the halves falling away (SNAP),
 // while the game screen slides down from the top (IN). The way out (from the result, OCRACK/OSNAP/OIN) is the
 // same the other way round: the game screen cracks and snaps in half and the arena slides up from the bottom.
-const BZ_GAME = { CRACK: 0.45, SNAP: 0.7, IN: 0.6, TITLE: 1.35, CH: 0.045, PICK: 3.0, PICKD: 1.0, PLAY: 4.4, RES: 2.1, OCRACK: 0.4, OSNAP: 0.7, OIN: 0.6 };
+const BZ_GAME = { CRACK: 0.9, SNAP: 0.75, IN: 0.6, TITLE: 1.85, CH: 0.045, PICK: 3.5, PICKD: 1.0, PLAY: 4.9, RES: 2.1, OCRACK: 0.8, OSNAP: 0.75, OIN: 0.6 };
 const BZ_GAME_NAMES = { ttt: 'TIC TAC TOE', c4: 'CONNECT FOUR', rps: 'ROCK PAPER SCISSORS', ship: 'BATTLESHIP', nim: 'LAST STICK', memo: 'MEMORY MATCH', dots: 'DOTS AND BOXES', pig: 'PIG DICE' };
 const BZ_RPS = ['ROCK', 'PAPER', 'SCISSORS'];
 const BZ_TURN = { ttt: 6, c4: 6, rps: 5, ship: 5, nim: 6, memo: 6, dots: 7, pig: 5 };   // seconds to move before the game moves for you
@@ -8708,6 +8751,7 @@ function bzRpsTick(F, W, dt) {
 }
 function gameFrame(F, dt) {
   const W = F.wheel, A = F.arena, T = (W.T += dt), G = BZ_GAME, e = W.e;
+  W.fdt = dt;
   A.cv.style.opacity = '0';
   const g = bzFit(F, W.cv), c = g.c, s = g.size, X = g.x, Y = g.y, d = g.dpr;
   if (T >= G.PLAY) { W.pt = T - G.PLAY; bzGameTick(F, W, dt); }
@@ -8765,7 +8809,7 @@ function bzLayerOf(W, g) {
 function bzCrack(g) {
   const n = 10, main = [], br = [];
   for (let i = 0; i <= n; i++) main.push([g.x + g.size * (0.5 + (i === 0 || i === n ? 0.02 : 0.14) * (Math.random() - 0.5)), g.h * i / n]);
-  for (let b = 0; b < 4; b++) {
+  for (let b = 0; b < 6; b++) {
     const at = 2 + Math.floor(Math.random() * (n - 3)), [x0, y0] = main[at], dir = Math.random() < 0.5 ? -1 : 1, pts = [[x0, y0]];
     for (let k = 1; k <= 3; k++) pts.push([x0 + dir * g.size * 0.07 * k * (0.7 + Math.random() * 0.6), y0 + (Math.random() - 0.3) * g.size * 0.06 * k]);
     br.push(pts);
@@ -8784,11 +8828,13 @@ function bzLine(c, pts, q) {
 }
 // cracking: the picture shudders while the crack runs down it (from the impact in the middle, both ways)
 function bzCracking(c, g, src, cr, q) {
-  const d = g.dpr, j = (Math.random() - 0.5) * 6 * d * q;
+  const d = g.dpr, j = (Math.random() - 0.5) * 7 * d * q * q;
   c.drawImage(src, j, -j * 0.5);
   const mid = Math.floor(cr.main.length / 2), up = cr.main.slice(0, mid + 1).reverse(), down = cr.main.slice(mid);
   c.save(); c.translate(j, -j * 0.5); c.lineJoin = 'round'; c.lineCap = 'round';
-  for (const [pts, k] of [[up, q], [down, q], ...cr.br.map(b => [b, (q - 0.45) / 0.55])]) {
+  // the main crack runs out over the first 60%, then the branches splinter off one after another
+  const qm = clamp(q / 0.6, 0, 1);
+  for (const [pts, k] of [[up, qm], [down, qm], ...cr.br.map((b, i) => [b, (q - 0.3 - i * 0.09) / 0.25])]) {
     if (k <= 0) continue;
     bzLine(c, pts, k); c.lineWidth = 5 * d; c.strokeStyle = 'rgba(0,0,0,0.85)'; c.stroke();
     bzLine(c, pts, k); c.lineWidth = 1.6 * d; c.strokeStyle = 'rgba(255,255,255,0.9)'; c.stroke();
@@ -8893,83 +8939,137 @@ function bzGameScreen(c, W, X, Y, s, T, d) {
     c.globalAlpha = 1;
   }
 }
-function bzX(c, x, y, r, q, col, w) {
-  c.lineCap = 'round'; c.lineWidth = w; c.strokeStyle = col; c.beginPath();
-  const a = clamp(q * 2, 0, 1), b = clamp(q * 2 - 1, 0, 1);
-  c.moveTo(x - r, y - r); c.lineTo(x - r + 2 * r * a, y - r + 2 * r * a);
-  if (b > 0) { c.moveTo(x + r, y - r); c.lineTo(x + r - 2 * r * b, y - r + 2 * r * b); }
-  c.stroke(); c.lineCap = 'butt';
+// ---- the minigames' look: panels, shadows and shading, and motion that eases instead of snapping ----
+const easeBack = q => { q = clamp(q, 0, 1); return 1 + 2.70158 * Math.pow(q - 1, 3) + 1.70158 * Math.pow(q - 1, 2); };
+// a hover that fades in and out: one value per target, eased toward 1 while it's hovered
+function bzHov(W, m, on) { const hv = W.hv || (W.hv = {}), v = hv[m] || 0; return (hv[m] = v + ((on ? 1 : 0) - v) * Math.min(1, (W.fdt || 0.016) * 14)); }
+// a tray for a board: dropped shadow, a dark face lit a little from the top, and a rim
+function bzPanel(c, x, y, w, h, r, s) {
+  rrect(c, x, y + s * 0.01, w, h, r); c.fillStyle = 'rgba(0,0,0,0.5)'; c.fill();
+  rrect(c, x, y, w, h, r); c.fillStyle = lin2(c, 0, y, 0, y + h, '#1d1a28', '#0d0b13'); c.fill();
+  c.lineWidth = s * 0.004; c.strokeStyle = '#3a3450'; c.stroke();
+  rrect(c, x + s * 0.006, y + s * 0.006, w - s * 0.012, Math.min(h * 0.4, s * 0.06), r * 0.8); c.fillStyle = 'rgba(255,255,255,0.03)'; c.fill();
 }
-function bzO(c, x, y, r, q, col, w) { c.lineWidth = w; c.strokeStyle = col; c.beginPath(); c.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + TAU * q); c.stroke(); }
-// tic tac toe: whoever goes first is X
+function bzShadow(c, x, y, rx, ry, a) { c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, TAU); c.fillStyle = `rgba(0,0,0,${a})`; c.fill(); }
+// a stroke drawn three times: its shadow, its colour, and a thin light along the top
+function bzInk(c, path, w, col) {
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  c.save(); c.translate(0, w * 0.4); path(); c.lineWidth = w; c.strokeStyle = 'rgba(0,0,0,0.5)'; c.stroke(); c.restore();
+  path(); c.lineWidth = w; c.strokeStyle = col; c.stroke();
+  c.save(); c.translate(-w * 0.12, -w * 0.14); path(); c.lineWidth = w * 0.3; c.strokeStyle = 'rgba(255,255,255,0.4)'; c.stroke(); c.restore();
+  c.lineCap = 'butt';
+}
+function bzX(c, x, y, r, q, col, w) {
+  const a = clamp(q * 2, 0, 1), b = clamp(q * 2 - 1, 0, 1);
+  bzInk(c, () => { c.beginPath(); c.moveTo(x - r, y - r); c.lineTo(x - r + 2 * r * a, y - r + 2 * r * a); if (b > 0) { c.moveTo(x + r, y - r); c.lineTo(x + r - 2 * r * b, y - r + 2 * r * b); } }, w, col);
+}
+function bzO(c, x, y, r, q, col, w) { bzInk(c, () => { c.beginPath(); c.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + TAU * q); }, w, col); }
+// tic tac toe: whoever goes first is X. Marks draw themselves in and settle with a little overshoot
 function bzTTT(c, W, X, Y, s, t) {
-  const e = W.e, bs = s * 0.6, bx = X + (s - bs) / 2, by = Y + s * 0.2, cs = bs / 3, lw = s * 0.012;
+  const e = W.e, bs = s * 0.6, bx = X + (s - bs) / 2, by = Y + s * 0.2, cs = bs / 3;
   const at = i => [bx + (i % 3 + 0.5) * cs, by + (Math.floor(i / 3) + 0.5) * cs];
-  const mark = (p, x, y, q, a) => { c.globalAlpha = a; if (p === e.first) bzX(c, x, y, cs * 0.28, q, W.col[p], s * 0.022); else bzO(c, x, y, cs * 0.31, q, W.col[p], s * 0.022); c.globalAlpha = 1; };
-  if (W.myTurn) for (let i = 0; i < 9; i++) if (W.st.b[i] < 0) {
-    const x = bx + (i % 3) * cs, y = by + Math.floor(i / 3) * cs;
-    W.hits.push({ x, y, w: cs, h: cs, m: i });
-    if (W.hover === i) { rrect(c, x + cs * 0.06, y + cs * 0.06, cs * 0.88, cs * 0.88, cs * 0.1); c.fillStyle = 'rgba(255,255,255,0.06)'; c.fill(); mark(W.playing, x + cs / 2, y + cs / 2, 1, 0.35); }
+  const mark = (p, x, y, q, a, z) => {
+    c.save(); c.globalAlpha = a; c.translate(x, y); c.scale(z, z); c.translate(-x, -y);
+    if (p === e.first) bzX(c, x, y, cs * 0.27, q, W.col[p], s * 0.024); else bzO(c, x, y, cs * 0.3, q, W.col[p], s * 0.024);
+    c.restore();
+  };
+  bzPanel(c, bx - cs * 0.14, by - cs * 0.14, bs + cs * 0.28, bs + cs * 0.28, cs * 0.18, s);
+  for (let i = 0; i < 9; i++) {
+    const x = bx + (i % 3) * cs, y = by + Math.floor(i / 3) * cs, free = W.st.b[i] < 0, hv = bzHov(W, 'c' + i, W.myTurn && free && W.hover === i);
+    rrect(c, x + cs * 0.07, y + cs * 0.07, cs * 0.86, cs * 0.86, cs * 0.12); c.fillStyle = `rgba(255,255,255,${(0.018 + 0.06 * hv).toFixed(3)})`; c.fill();
+    if (W.myTurn && free) W.hits.push({ x, y, w: cs, h: cs, m: i });
+    if (hv > 0.02 && free) mark(W.playing, x + cs / 2, y + cs / 2, 1, 0.3 * hv, 0.85 + 0.15 * hv);
   }
-  c.lineCap = 'round'; c.lineWidth = lw; c.strokeStyle = '#3a3a48'; c.beginPath();
-  for (const k of [1, 2]) { c.moveTo(bx + k * cs, by + cs * 0.08); c.lineTo(bx + k * cs, by + bs - cs * 0.08); c.moveTo(bx + cs * 0.08, by + k * cs); c.lineTo(bx + bs - cs * 0.08, by + k * cs); }
-  c.stroke(); c.lineCap = 'butt';
-  for (const it of W.seq) { const [x, y] = at(it.m); mark(it.p, x, y, clamp((t - it.t) / 0.18, 0, 1), 1); }
+  // the grid: a groove with a light edge
+  for (const [w, col, dy] of [[s * 0.014, 'rgba(0,0,0,0.6)', s * 0.003], [s * 0.006, '#4a4560', 0]]) {
+    c.lineCap = 'round'; c.lineWidth = w; c.strokeStyle = col; c.beginPath();
+    for (const k of [1, 2]) { c.moveTo(bx + k * cs, by + cs * 0.1 + dy); c.lineTo(bx + k * cs, by + bs - cs * 0.1 + dy); c.moveTo(bx + cs * 0.1, by + k * cs + dy); c.lineTo(bx + bs - cs * 0.1, by + k * cs + dy); }
+    c.stroke();
+  }
+  c.lineCap = 'butt';
+  for (const it of W.seq) { const [x, y] = at(it.m), u = t - it.t; mark(it.p, x, y, clamp(u / 0.22, 0, 1), 1, 0.6 + 0.4 * easeBack(u / 0.3)); }
   if (W.res && W.res.line && t > W.resT + 0.15) {
-    const q = clamp((t - W.resT - 0.15) / 0.25, 0, 1), [x0, y0] = at(W.res.line[0]), [x1, y1] = at(W.res.line[2]), dx = (x1 - x0) * 0.22, dy = (y1 - y0) * 0.22;
+    const q = ease((t - W.resT - 0.15) / 0.3), [x0, y0] = at(W.res.line[0]), [x1, y1] = at(W.res.line[2]), dx = (x1 - x0) * 0.22, dy = (y1 - y0) * 0.22;
     if (!W.lined) { W.lined = 1; SFX.zap(); }
-    c.lineCap = 'round'; c.lineWidth = s * 0.03; c.strokeStyle = '#fff';
-    c.beginPath(); c.moveTo(x0 - dx, y0 - dy); c.lineTo(x0 - dx + (x1 - x0 + 2 * dx) * q, y0 - dy + (y1 - y0 + 2 * dy) * q); c.stroke(); c.lineCap = 'butt';
+    const ex = x0 - dx + (x1 - x0 + 2 * dx) * q, ey = y0 - dy + (y1 - y0 + 2 * dy) * q;
+    bzInk(c, () => { c.beginPath(); c.moveTo(x0 - dx, y0 - dy); c.lineTo(ex, ey); }, s * 0.03, '#fff');
+    // a spark rides the tip of the line as it's drawn
+    if (q < 1) { circ(c, ex, ey, s * 0.02); c.fillStyle = 'rgba(255,255,255,0.9)'; c.fill(); }
   }
   return '';
 }
-// connect four: discs drop down the columns
+// connect four: discs fall, land with a bounce, and the four that win pulse
 function bzC4(c, W, X, Y, s, t) {
   const cw = Math.min(s * 0.84 / 7, s * 0.6 / 6), bw = cw * 7, bh = cw * 6, bx = X + (s - bw) / 2, by = Y + s * 0.26 + (s * 0.58 - bh) / 2;
   const slot = (cI, r) => [bx + (cI + 0.5) * cw, by + bh - (r + 0.5) * cw], top = by - cw * 0.62;
-  const disc = (x, y, col, ring) => {
-    circ(c, x, y, cw * 0.4); c.fillStyle = col; c.fill();
-    circ(c, x, y, cw * 0.27); c.lineWidth = cw * 0.06; c.strokeStyle = 'rgba(0,0,0,0.25)'; c.stroke();
-    if (ring) { circ(c, x, y, cw * 0.46); c.lineWidth = cw * 0.08; c.strokeStyle = '#fff'; c.stroke(); }
+  const disc = (x, y, col, glow) => {
+    circ(c, x, y, cw * 0.41); c.fillStyle = col; c.fill();
+    const g = c.createRadialGradient(x - cw * 0.14, y - cw * 0.16, cw * 0.02, x, y, cw * 0.42);
+    g.addColorStop(0, 'rgba(255,255,255,0.45)'); g.addColorStop(0.45, 'rgba(255,255,255,0.05)'); g.addColorStop(1, 'rgba(0,0,0,0.3)');
+    c.fillStyle = g; c.fill();
+    circ(c, x, y, cw * 0.27); c.lineWidth = cw * 0.05; c.strokeStyle = 'rgba(0,0,0,0.22)'; c.stroke();
+    circ(c, x, y, cw * 0.41); c.lineWidth = cw * 0.04; c.strokeStyle = 'rgba(0,0,0,0.45)'; c.stroke();
+    if (glow > 0) { circ(c, x, y, cw * 0.47); c.lineWidth = cw * 0.08; c.strokeStyle = `rgba(255,255,255,${glow.toFixed(2)})`; c.stroke(); }
   };
-  if (W.myTurn) for (let cI = 0; cI < 7; cI++) if (W.st.H[cI] < 6) {
-    W.hits.push({ x: bx + cI * cw, y: top - cw * 0.5, w: cw, h: bh + cw * 1.2, m: cI });
-    if (W.hover === cI) { c.fillStyle = 'rgba(255,255,255,0.06)'; c.fillRect(bx + cI * cw, by - cw * 0.12, cw, bh + cw * 0.27); c.globalAlpha = 0.6; disc(bx + (cI + 0.5) * cw, top, W.col[W.playing]); c.globalAlpha = 1; }
+  // the hovered column lights up and a disc hangs over it, bobbing
+  for (let cI = 0; cI < 7; cI++) {
+    const can = W.myTurn && W.st.H[cI] < 6, hv = bzHov(W, 'k' + cI, can && W.hover === cI);
+    if (can) W.hits.push({ x: bx + cI * cw, y: top - cw * 0.5, w: cw, h: bh + cw * 1.2, m: cI });
+    if (hv > 0.02) { c.globalAlpha = 0.55 * hv; disc(bx + (cI + 0.5) * cw, top + Math.sin(t * 6) * cw * 0.05, W.col[W.playing], 0); c.globalAlpha = 1; }
   }
-  rrect(c, bx - cw * 0.15, by - cw * 0.12, bw + cw * 0.3, bh + cw * 0.27, cw * 0.2); c.fillStyle = '#2b2440'; c.fill(); c.lineWidth = s * 0.005; c.strokeStyle = '#4a4060'; c.stroke();
-  for (let cI = 0; cI < 7; cI++) for (let r = 0; r < 6; r++) { const [x, y] = slot(cI, r); circ(c, x, y, cw * 0.4); c.fillStyle = '#07060a'; c.fill(); }
-  const lined = W.res && W.res.line && t > W.resT + 0.1 ? W.res.line.map(([a, b]) => a * 6 + b) : [], pulse = Math.floor(t * 6) % 2 === 0;
+  // the board: a frame lit from above, holes sunk into it, and the hovered column brighter
+  rrect(c, bx - cw * 0.16, by - cw * 0.12 + s * 0.01, bw + cw * 0.32, bh + cw * 0.3, cw * 0.22); c.fillStyle = 'rgba(0,0,0,0.5)'; c.fill();
+  rrect(c, bx - cw * 0.16, by - cw * 0.12, bw + cw * 0.32, bh + cw * 0.3, cw * 0.22); c.fillStyle = lin2(c, 0, by, 0, by + bh, '#3c3260', '#211b36'); c.fill();
+  c.lineWidth = s * 0.005; c.strokeStyle = '#5a4f80'; c.stroke();
+  for (let cI = 0; cI < 7; cI++) { const hv = (W.hv && W.hv['k' + cI]) || 0; if (hv > 0.02) { c.fillStyle = `rgba(255,255,255,${(0.07 * hv).toFixed(3)})`; c.fillRect(bx + cI * cw, by - cw * 0.06, cw, bh + cw * 0.12); } }
+  for (let cI = 0; cI < 7; cI++) for (let r = 0; r < 6; r++) {
+    const [x, y] = slot(cI, r), g = c.createRadialGradient(x, y - cw * 0.12, cw * 0.05, x, y, cw * 0.42);
+    g.addColorStop(0, '#000'); g.addColorStop(0.8, '#08070c'); g.addColorStop(1, '#1a1528');
+    circ(c, x, y, cw * 0.41); c.fillStyle = g; c.fill();
+  }
+  const lined = W.res && W.res.line && t > W.resT + 0.1 ? W.res.line.map(([a, b]) => a * 6 + b) : [], glow = 0.55 + 0.45 * Math.sin(t * 9);
   W.seq.forEach((it, k) => {
-    const q = clamp((t - it.t) / 0.22, 0, 1), [x, y] = slot(it.m, it.r);
-    if (q >= 1 && W.snd <= k) { W.snd = k + 1; SFX.clack(); }
-    disc(x, top + (y - top) * q * q, W.col[it.p], pulse && lined.includes(it.m * 6 + it.r));
+    // a fall that speeds up, then a small bounce off the disc below
+    const u = t - it.t, [x, y] = slot(it.m, it.r), F1 = 0.24, F2 = 0.16;
+    let yy;
+    if (u < F1) { const q = u / F1; yy = top + (y - top) * q * q; }
+    else if (u < F1 + F2) yy = y - cw * 0.16 * Math.sin(Math.PI * (u - F1) / F2);
+    else yy = y;
+    if (u >= F1 && W.snd <= k) { W.snd = k + 1; SFX.clack(); }
+    disc(x, yy, W.col[it.p], lined.includes(it.m * 6 + it.r) ? glow : 0);
   });
   return '';
 }
-// rock paper scissors: the hands
+// rock paper scissors: the hands, each on its own round plate
 function bzHand(c, k, x, y, z, col) {
   c.save(); c.translate(x, y); c.lineJoin = 'round';
-  circ(c, 0, 0, z * 0.58); c.fillStyle = '#0d0b12'; c.fill(); c.lineWidth = z * 0.04; c.strokeStyle = col; c.stroke();
+  bzShadow(c, 0, z * 0.62, z * 0.46, z * 0.08, 0.45);
+  const g = c.createRadialGradient(-z * 0.15, -z * 0.2, z * 0.05, 0, 0, z * 0.6);
+  g.addColorStop(0, '#221d30'); g.addColorStop(1, '#0b0910');
+  circ(c, 0, 0, z * 0.58); c.fillStyle = g; c.fill(); c.lineWidth = z * 0.045; c.strokeStyle = col; c.stroke();
   if (k === 0) {
     const P = [[-0.4, 0.08], [-0.3, -0.24], [-0.02, -0.36], [0.28, -0.3], [0.42, -0.02], [0.34, 0.28], [0.02, 0.36], [-0.3, 0.3]];
     c.beginPath(); P.forEach(([a, b], i) => (i ? c.lineTo(a * z, b * z) : c.moveTo(a * z, b * z))); c.closePath();
-    c.fillStyle = lin2(c, 0, -z * 0.36, 0, z * 0.36, '#a4a4b0', '#4a4a55'); c.fill(); c.lineWidth = z * 0.04; c.strokeStyle = '#1a1a22'; c.stroke();
-    c.beginPath(); c.moveTo(-z * 0.18, -z * 0.18); c.lineTo(z * 0.02, -z * 0.24); c.lineWidth = z * 0.05; c.strokeStyle = 'rgba(255,255,255,0.35)'; c.stroke();
-    c.beginPath(); c.moveTo(z * 0.06, z * 0.04); c.lineTo(z * 0.22, z * 0.12); c.moveTo(-z * 0.2, z * 0.12); c.lineTo(-z * 0.06, z * 0.2); c.lineWidth = z * 0.025; c.strokeStyle = 'rgba(0,0,0,0.35)'; c.stroke();
+    c.fillStyle = lin2(c, 0, -z * 0.36, 0, z * 0.36, '#b4b4c0', '#45454f'); c.fill(); c.lineWidth = z * 0.04; c.strokeStyle = '#1a1a22'; c.stroke();
+    c.beginPath(); c.moveTo(-z * 0.18, -z * 0.18); c.lineTo(z * 0.02, -z * 0.24); c.lineWidth = z * 0.05; c.strokeStyle = 'rgba(255,255,255,0.4)'; c.stroke();
+    c.beginPath(); c.moveTo(z * 0.06, z * 0.04); c.lineTo(z * 0.22, z * 0.12); c.moveTo(-z * 0.2, z * 0.12); c.lineTo(-z * 0.06, z * 0.2); c.moveTo(-z * 0.05, -z * 0.05); c.lineTo(z * 0.04, z * 0.02); c.lineWidth = z * 0.025; c.strokeStyle = 'rgba(0,0,0,0.4)'; c.stroke();
   } else if (k === 1) {
+    c.save(); c.rotate(-0.08);
     c.beginPath(); c.moveTo(-z * 0.28, -z * 0.38); c.lineTo(z * 0.12, -z * 0.38); c.lineTo(z * 0.28, -z * 0.22); c.lineTo(z * 0.28, z * 0.38); c.lineTo(-z * 0.28, z * 0.38); c.closePath();
-    c.fillStyle = '#f2efe6'; c.fill(); c.lineWidth = z * 0.035; c.strokeStyle = '#1a1a22'; c.stroke();
+    c.fillStyle = lin2(c, -z * 0.28, 0, z * 0.28, 0, '#fffdf6', '#e4dfd2'); c.fill(); c.lineWidth = z * 0.035; c.strokeStyle = '#1a1a22'; c.stroke();
     c.beginPath(); c.moveTo(z * 0.12, -z * 0.38); c.lineTo(z * 0.12, -z * 0.22); c.lineTo(z * 0.28, -z * 0.22); c.closePath(); c.fillStyle = '#cfc8b8'; c.fill(); c.stroke();
-    c.lineWidth = z * 0.025; c.strokeStyle = '#9aa6c0'; c.beginPath();
-    for (let i = 0; i < 4; i++) { const yy = -z * 0.12 + i * z * 0.12; c.moveTo(-z * 0.18, yy); c.lineTo(z * 0.18, yy); }
+    c.lineWidth = z * 0.022; c.strokeStyle = '#9aa6c0'; c.beginPath();
+    for (let i = 0; i < 5; i++) { const yy = -z * 0.16 + i * z * 0.1; c.moveTo(-z * 0.18, yy); c.lineTo(z * 0.18, yy); }
     c.stroke();
+    c.beginPath(); c.moveTo(-z * 0.2, -z * 0.3); c.lineTo(-z * 0.2, z * 0.32); c.lineWidth = z * 0.02; c.strokeStyle = 'rgba(200,60,60,0.55)'; c.stroke();
+    c.restore();
   } else {
     for (const dd of [-1, 1]) {
-      c.lineCap = 'round'; c.lineWidth = z * 0.12; c.strokeStyle = '#1a1a22'; c.beginPath(); c.moveTo(dd * z * 0.1, z * 0.16); c.lineTo(-dd * z * 0.2, -z * 0.4); c.stroke();
-      c.lineWidth = z * 0.07; c.strokeStyle = '#dfe3ec'; c.stroke();
-      circ(c, dd * z * 0.17, z * 0.28, z * 0.11); c.lineWidth = z * 0.065; c.strokeStyle = col; c.stroke();
+      c.lineCap = 'round'; c.lineWidth = z * 0.13; c.strokeStyle = '#1a1a22'; c.beginPath(); c.moveTo(dd * z * 0.1, z * 0.16); c.lineTo(-dd * z * 0.2, -z * 0.4); c.stroke();
+      c.lineWidth = z * 0.08; c.strokeStyle = lin2(c, -z * 0.2, -z * 0.4, z * 0.1, z * 0.16, '#ffffff', '#a8aebd'); c.stroke();
+      circ(c, dd * z * 0.17, z * 0.28, z * 0.11); c.lineWidth = z * 0.075; c.strokeStyle = '#1a1a22'; c.stroke(); c.lineWidth = z * 0.055; c.strokeStyle = col; c.stroke();
     }
-    circ(c, 0, -z * 0.02, z * 0.04); c.fillStyle = '#1a1a22'; c.fill(); c.lineCap = 'butt';
+    circ(c, 0, -z * 0.02, z * 0.045); c.fillStyle = '#c8ccd6'; c.fill(); c.lineWidth = z * 0.02; c.strokeStyle = '#1a1a22'; c.stroke(); c.lineCap = 'butt';
   }
   c.restore();
 }
@@ -8980,69 +9080,106 @@ function bzRPS(c, W, X, Y, s, t, txt) {
   for (const p of [0, 1]) {
     const x = X + s * (p ? 0.76 : 0.24), y = Y + s * 0.47;
     if (rev) {
-      const lose = r.w !== 0 && (r.w === 1 ? p === 1 : p === 0), big = r.w !== 0 && !lose;
-      c.globalAlpha = lose ? 0.4 : 1; bzHand(c, r.a[p], x, y, z * (big ? 1.12 : 1), W.col[p]); c.globalAlpha = 1;
+      // the hands snap out with a shake; the loser greys over a moment, the winner swells a little
+      const u = t - r.rev, lose = r.w !== 0 && (r.w === 1 ? p === 1 : p === 0), big = r.w !== 0 && !lose, k = clamp(u / 0.35, 0, 1);
+      const zz = z * (0.7 + 0.3 * easeBack(u / 0.28)) * (big ? 1 + 0.1 * k : 1), rot = Math.sin(u * 34) * 0.18 * (1 - clamp(u / 0.4, 0, 1));
+      c.save(); c.globalAlpha = lose ? 1 - 0.6 * k : 1; c.translate(x, y); c.rotate(rot); c.translate(-x, -y); bzHand(c, r.a[p], x, y, zz, W.col[p]); c.restore();
+      if (big && u < 0.6) { circ(c, x, y, z * (0.6 + u * 0.8)); c.lineWidth = s * 0.006; c.strokeStyle = `rgba(255,255,255,${(0.6 * (1 - u / 0.6)).toFixed(2)})`; c.stroke(); }
       txt(BZ_RPS[r.a[p]], x, Y + s * 0.67, s * 0.05, lose ? '#5b5b66' : W.col[p]);
     } else {
-      // a fist, pumping while it waits; your own pick shows on your side only
-      const ready = r.a[p] >= 0, bob = ready ? 0 : Math.abs(Math.sin(t * 5 + p * 1.3)) * s * 0.03;
-      c.globalAlpha = ready && p !== me ? 0.55 : 1; bzHand(c, p === me && ready ? r.a[p] : 0, x, y - bob, z, W.col[p]); c.globalAlpha = 1;
+      // a fist pumping while it waits (a smooth bounce); your own pick shows on your side only
+      const ready = r.a[p] >= 0, ph = t * 5 + p * 1.3, bob = ready ? 0 : (1 - Math.cos(ph * 2)) / 2 * s * 0.035;
+      c.globalAlpha = ready && p !== me ? 0.6 : 1; bzHand(c, p === me && ready ? r.a[p] : 0, x, y - bob, z * (1 - bob / s * 0.6), W.col[p]); c.globalAlpha = 1;
       txt(ready ? 'READY' : p === me ? 'PICK ONE' : 'PICKING...', x, Y + s * 0.67, s * 0.042, ready ? W.col[p] : '#6a6a78');
     }
   }
-  txt(sc[0] + ' - ' + sc[1], X + s / 2, Y + s * 0.47, s * 0.09, '#fff');
+  // the score pops when it changes
+  const key = sc.join('-');
+  if (W.scKey !== key) { W.scKey = key; W.scT = t; }
+  const sp = 1 + 0.35 * (1 - easeBack(clamp((t - (W.scT || -9)) / 0.35, 0, 1)));
+  txt(sc[0] + ' - ' + sc[1], X + s / 2, Y + s * 0.47, s * 0.09 * sp, '#fff');
   txt('ROUND ' + W.rounds.length + ' · FIRST TO 2', X + s / 2, Y + s * 0.22, s * 0.04, '#8a8a99');
   // a dot per round played: whose colour won it, grey for a tie
   const played = W.rounds.filter(q => q.rev !== undefined);
-  played.forEach((q, k) => { circ(c, X + s / 2 + (k - (played.length - 1) / 2) * s * 0.045, Y + s * 0.28, s * 0.012); c.fillStyle = q.w === 1 ? W.col[0] : q.w === 2 ? W.col[1] : '#5b5b66'; c.fill(); });
-  // your three buttons
-  if (W.myTurn) [0, 1, 2].forEach(k => {
-    const bw = s * 0.27, x = X + s * (0.2 + k * 0.3) - bw / 2, y = Y + s * 0.73, bh = s * 0.13, on = W.hover === k;
-    W.hits.push({ x, y, w: bw, h: bh, m: k });
-    rrect(c, x, y, bw, bh, s * 0.02); c.fillStyle = on ? '#2b2440' : '#16161c'; c.fill(); c.lineWidth = s * 0.005; c.strokeStyle = on ? W.col[me] : '#3a3a48'; c.stroke();
-    bzHand(c, k, x + bh * 0.5, y + bh / 2, bh * 0.75, on ? W.col[me] : '#3a3a48');
-    c.font = `400 ${Math.round(s * 0.042)}px ${FONT_D}`; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillStyle = on ? '#fff' : '#c8c8d0';
-    c.fillText(BZ_RPS[k], x + bh * 0.98, y + bh / 2, bw - bh);
-  });
+  played.forEach((q, k) => { const pz = easeBack((t - q.rev) / 0.3); circ(c, X + s / 2 + (k - (played.length - 1) / 2) * s * 0.045, Y + s * 0.28, s * 0.013 * pz); c.fillStyle = q.w === 1 ? W.col[0] : q.w === 2 ? W.col[1] : '#5b5b66'; c.fill(); });
+  if (W.myTurn) bzButtons(c, W, X, Y, s, [0, 1, 2].map(k => [k, BZ_RPS[k], (x, y, zz, col) => bzHand(c, k, x, y, zz, col), false]));
   if (rev) return r.w === 0 ? 'TIE. AGAIN!' : `${r.w === 1 ? 'BEEZAP' : W.you[1] ? 'YOU' : W.names[1]} TAKE${r.w === 2 && W.you[1] ? '' : 'S'} THE ROUND`;
   if (me >= 0 && r.a[me] < 0) return W.afk ? 'PLAYING FOR YOU · PICK ONE TO PLAY' : `PICK ONE · ${Math.max(0, Math.ceil(W.limit - W.turnT))}`;
   if (me >= 0) { const o = 1 - me; return W.who[o].k === 'net' ? 'LOCKED IN. WAITING FOR ' + W.names[o] : 'LOCKED IN'; }
   return 'BOTH PICKING...';
 }
-// battleship: each side's sea. Your own ships show; the other side's only once they sink (or the game ends)
+// battleship: each side's sea, with waves. Your own ships show; the other side's only once they sink (or
+// the game ends). A shell arcs over from the shooter's sea and lands with a splash or a blast
+const BZ_SHELL = 0.28;
 function bzShip(c, W, X, Y, s, t, txt) {
-  const e = W.e, st = W.st, gs = s * 0.4, cs = gs / 4, gy = Y + s * 0.3, gx = [X + s * 0.06, X + s * 0.54], me = W.playing;
+  const st = W.st, gs = s * 0.4, cs = gs / 4, gy = Y + s * 0.3, gx = [X + s * 0.06, X + s * 0.54], me = W.playing;
   const cell = (p, i) => [gx[p] + (i % 4) * cs, gy + Math.floor(i / 4) * cs];
   for (const p of [0, 1]) {
     txt(p === me ? 'YOUR SEA' : W.names[p] + (W.names[p].endsWith('S') ? "'" : "'S") + ' SEA', gx[p] + gs / 2, gy - s * 0.045, s * 0.04, W.col[p], gs);
-    for (let i = 0; i < 16; i++) { const [x, y] = cell(p, i); rrect(c, x + cs * 0.05, y + cs * 0.05, cs * 0.9, cs * 0.9, cs * 0.12); c.fillStyle = '#10141e'; c.fill(); }
+    bzPanel(c, gx[p] - cs * 0.1, gy - cs * 0.1, gs + cs * 0.2, gs + cs * 0.2, cs * 0.18, s);
+    for (let i = 0; i < 16; i++) {
+      const [x, y] = cell(p, i);
+      rrect(c, x + cs * 0.05, y + cs * 0.05, cs * 0.9, cs * 0.9, cs * 0.12); c.fillStyle = lin2(c, 0, y, 0, y + cs, '#13304d', '#0a1a2c'); c.fill();
+      // two little waves rolling across each square
+      c.lineWidth = s * 0.0025; c.strokeStyle = 'rgba(140,190,255,0.18)'; c.beginPath();
+      for (const wy of [0.38, 0.68]) for (let k = 0; k <= 6; k++) { const xx = x + cs * (0.15 + k * 0.7 / 6), yy = y + cs * wy + Math.sin(t * 2.4 + k * 1.1 + i + wy * 7) * cs * 0.035; if (k) c.lineTo(xx, yy); else c.moveTo(xx, yy); }
+      c.stroke();
+    }
     st.ships[p].forEach((sh, n) => {
       const sunk = st.sunk[p][n];
       if (me >= 0 && p !== me && !sunk && !W.res) return;   // no peeking at the other fleet
-      const xs = sh.map(i => i % 4), ys = sh.map(i => Math.floor(i / 4)), x0 = Math.min(...xs), y0 = Math.min(...ys);
-      rrect(c, gx[p] + x0 * cs + cs * 0.14, gy + y0 * cs + cs * 0.14, (Math.max(...xs) - x0 + 1) * cs - cs * 0.28, (Math.max(...ys) - y0 + 1) * cs - cs * 0.28, cs * 0.3);
-      c.fillStyle = sunk ? '#4a1a20' : '#5b5b66'; c.fill(); c.lineWidth = s * 0.005; c.strokeStyle = sunk ? '#ff4646' : '#8a8a99'; c.stroke();
+      const xs = sh.map(i => i % 4), ys = sh.map(i => Math.floor(i / 4)), x0 = Math.min(...xs), y0 = Math.min(...ys), vert = ys[0] !== ys[1];
+      const hx = gx[p] + x0 * cs + cs * 0.14, hy = gy + y0 * cs + cs * 0.14, hw = (Math.max(...xs) - x0 + 1) * cs - cs * 0.28, hh = (Math.max(...ys) - y0 + 1) * cs - cs * 0.28;
+      // a hull with a pointed bow, a deck stripe and portholes; a sunk one sits low, dark and red-edged
+      c.save(); c.globalAlpha = sunk ? 0.8 : 1;
+      c.beginPath();
+      if (vert) { c.moveTo(hx + hw / 2, hy); c.lineTo(hx + hw, hy + hw * 0.6); c.lineTo(hx + hw, hy + hh - hw * 0.2); c.quadraticCurveTo(hx + hw, hy + hh, hx + hw * 0.7, hy + hh); c.lineTo(hx + hw * 0.3, hy + hh); c.quadraticCurveTo(hx, hy + hh, hx, hy + hh - hw * 0.2); c.lineTo(hx, hy + hw * 0.6); }
+      else { c.moveTo(hx + hw, hy + hh / 2); c.lineTo(hx + hw - hh * 0.6, hy); c.lineTo(hx + hh * 0.2, hy); c.quadraticCurveTo(hx, hy, hx, hy + hh * 0.3); c.lineTo(hx, hy + hh * 0.7); c.quadraticCurveTo(hx, hy + hh, hx + hh * 0.2, hy + hh); c.lineTo(hx + hw - hh * 0.6, hy + hh); }
+      c.closePath();
+      c.fillStyle = sunk ? lin2(c, hx, hy, hx + hw, hy + hh, '#5a1c24', '#2a0c12') : lin2(c, hx, hy, hx + hw, hy + hh, '#8a93a6', '#4f5768'); c.fill();
+      c.lineWidth = s * 0.005; c.strokeStyle = sunk ? '#ff4646' : '#1f2430'; c.stroke();
+      c.fillStyle = 'rgba(255,255,255,0.25)';
+      if (vert) c.fillRect(hx + hw * 0.42, hy + hw * 0.7, hw * 0.16, hh - hw * 1.1); else c.fillRect(hx + hh * 0.3, hy + hh * 0.42, hw - hh * 1.1, hh * 0.16);
+      for (let k = 0; k < sh.length; k++) { const px = vert ? hx + hw / 2 : hx + (k + 0.5) * hw / sh.length, py = vert ? hy + (k + 0.5) * hh / sh.length : hy + hh / 2; circ(c, px, py, cs * 0.05); c.fillStyle = sunk ? '#1a0508' : '#2a3040'; c.fill(); }
+      c.restore();
     });
   }
-  // the cells you can fire at, on the other sea
+  // the squares you can fire at, on the other sea: a crosshair eases onto the one under you
   if (W.myTurn) for (let i = 0; i < 16; i++) if (!st.seen[me][i]) {
-    const [x, y] = cell(1 - me, i);
+    const [x, y] = cell(1 - me, i), hv = bzHov(W, 's' + i, W.hover === i);
     W.hits.push({ x, y, w: cs, h: cs, m: i });
-    if (W.hover === i) { rrect(c, x + cs * 0.05, y + cs * 0.05, cs * 0.9, cs * 0.9, cs * 0.12); c.lineWidth = s * 0.006; c.strokeStyle = W.col[me]; c.stroke(); }
+    if (hv > 0.02) {
+      const cx = x + cs / 2, cy = y + cs / 2, rr = cs * (0.5 - 0.1 * hv);
+      c.globalAlpha = hv; c.lineWidth = s * 0.005; c.strokeStyle = W.col[me]; c.beginPath(); c.arc(cx, cy, rr * 0.75, 0, TAU);
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { c.moveTo(cx + dx * rr * 0.4, cy + dy * rr * 0.4); c.lineTo(cx + dx * rr, cy + dy * rr); }
+      c.stroke(); c.globalAlpha = 1;
+    }
   }
-  W.seq.forEach((it, k) => {
-    const q = t - it.t, [x0, y0] = cell(1 - it.p, it.m), x = x0 + cs / 2, y = y0 + cs / 2;
-    if (q < 0.3) { circ(c, x, y, cs * (0.2 + q * 1.6)); c.lineWidth = s * 0.006; c.strokeStyle = it.hit ? `rgba(255,140,60,${(1 - q / 0.3).toFixed(2)})` : `rgba(200,220,255,${(1 - q / 0.3).toFixed(2)})`; c.stroke(); }
-    if (it.hit) bzX(c, x, y, cs * 0.2, 1, '#ff6a3a', s * 0.012);
-    else { circ(c, x, y, cs * 0.09); c.fillStyle = '#8a8a99'; c.fill(); }
-    if (k === W.seq.length - 1 && q < 0.6) {
-      c.lineWidth = s * 0.004; c.strokeStyle = W.col[it.p]; c.beginPath(); c.arc(x, y, cs * 0.42, 0, TAU);
-      c.moveTo(x - cs * 0.55, y); c.lineTo(x + cs * 0.55, y); c.moveTo(x, y - cs * 0.55); c.lineTo(x, y + cs * 0.55); c.stroke();
+  W.seq.forEach(it => {
+    const u = t - it.t, [x0, y0] = cell(1 - it.p, it.m), x = x0 + cs / 2, y = y0 + cs / 2;
+    if (u < BZ_SHELL) {
+      // in flight: from the middle of the shooter's sea, up in an arc and down onto the square
+      const q = u / BZ_SHELL, sx = gx[it.p] + gs / 2, sy = gy + gs / 2, px = sx + (x - sx) * q, py = sy + (y - sy) * q - Math.sin(Math.PI * q) * s * 0.16;
+      circ(c, px, py, s * 0.012); c.fillStyle = '#e8e8ee'; c.fill();
+      circ(c, px - (x - sx) * 0.04, py + s * 0.01, s * 0.008); c.fillStyle = 'rgba(232,232,238,0.35)'; c.fill();
+      return;
+    }
+    const k = u - BZ_SHELL;
+    if (!it.boom) { it.boom = 1; if (it.hit) { SFX.boom(true); if (it.sk >= 0) SFX.reveal(1); } else SFX.splash(); }
+    if (it.hit) {
+      if (k < 0.45) { const q = k / 0.45; circ(c, x, y, cs * (0.15 + q * 0.5)); c.fillStyle = `rgba(255,${Math.round(200 - q * 120)},60,${(0.85 * (1 - q)).toFixed(2)})`; c.fill(); }
+      bzX(c, x, y, cs * 0.18, 1, '#ff6a3a', s * 0.011);
+      // it keeps burning: a flame that flickers
+      const fl = 0.7 + 0.3 * Math.sin(t * 17 + it.m);
+      c.beginPath(); c.moveTo(x - cs * 0.1, y + cs * 0.08); c.quadraticCurveTo(x, y - cs * 0.32 * fl, x + cs * 0.1, y + cs * 0.08); c.closePath(); c.fillStyle = 'rgba(255,170,40,0.55)'; c.fill();
+    } else {
+      for (let n = 0; n < 2; n++) { const q = clamp((k - n * 0.12) / 0.5, 0, 1); if (q > 0 && q < 1) { c.beginPath(); c.ellipse(x, y, cs * (0.12 + q * 0.38), cs * (0.06 + q * 0.18), 0, 0, TAU); c.lineWidth = s * 0.004; c.strokeStyle = `rgba(200,225,255,${(0.8 * (1 - q)).toFixed(2)})`; c.stroke(); } }
+      circ(c, x, y, cs * 0.08); c.fillStyle = '#c8d4e6'; c.fill(); c.lineWidth = s * 0.003; c.strokeStyle = '#5a6a80'; c.stroke();
     }
   });
   txt(`HITS · BEEZAP ${st.hits[0]}/${st.need[1]} · ${W.you[1] ? 'YOU' : W.names[1]} ${st.hits[1]}/${st.need[0]}`, X + s / 2, Y + s * 0.82, s * 0.038, '#8a8a99');
   const last = W.seq[W.seq.length - 1];
-  if (!W.res && last && last.hit && t - last.t < 1.2) return (last.sk >= 0 ? 'SUNK! ' : 'HIT! ') + (W.you[last.p] ? 'GO AGAIN' : 'THEY GO AGAIN');
+  if (!W.res && last && last.hit && t - last.t > BZ_SHELL && t - last.t < 1.4) return (last.sk >= 0 ? 'SUNK! ' : 'HIT! ') + (W.you[last.p] ? 'GO AGAIN' : 'THEY GO AGAIN');
   return '';
 }
 
@@ -9085,128 +9222,181 @@ function bzHowPlace(W, g) {
 // what each move sounds like (Connect Four's discs clack as they land, in bzC4)
 function bzMoveSfx(g, out) {
   if (g === 'ttt') SFX.pop();
-  else if (g === 'ship') { if (out.hit) SFX.boom(true); else SFX.splash(); if (out.sk >= 0) SFX.reveal(1); }
+  else if (g === 'ship') SFX.shoot('ball');
   else if (g === 'nim') SFX.clack();
   else if (g === 'memo') { if (out.match) { SFX.ping(); SFX.coin(); } else if (out.miss) SFX.drop(); else SFX.tink(); }
   else if (g === 'dots') { if (out.got.length) SFX.pop(); else SFX.tick(0.3); }
   else if (g === 'pig') { if (out.hold) SFX.coin(); else { SFX.dice(); if (out.bust) SFX.drop(); } }
 }
-// a row of buttons under the board, for this screen's player: [move, label, icon(x, y, size, colour), off]
+// a row of buttons under the board, for this screen's player: [move, label, icon(x, y, size, colour), off].
+// A hovered one lifts a little and lights up, easing in and out
 function bzButtons(c, W, X, Y, s, opts) {
-  const n = opts.length, bw = s * (n > 2 ? 0.27 : 0.3), gx = s * 0.03, x0 = X + s / 2 - (n * bw + (n - 1) * gx) / 2, y = Y + s * 0.73, bh = s * 0.12, col = W.col[W.playing];
+  const n = opts.length, bw = s * (n > 2 ? 0.27 : 0.3), gx = s * 0.03, x0 = X + s / 2 - (n * bw + (n - 1) * gx) / 2, y0 = Y + s * 0.73, bh = s * 0.12, col = W.col[W.playing];
   opts.forEach(([m, label, icon, off], i) => {
-    const x = x0 + i * (bw + gx), on = !off && W.hover === m;
-    if (!off) W.hits.push({ x, y, w: bw, h: bh, m });
+    const x = x0 + i * (bw + gx), hv = bzHov(W, 'b' + m, !off && W.hover === m), y = y0 - hv * s * 0.008;
+    if (!off) W.hits.push({ x, y: y0 - s * 0.01, w: bw, h: bh + s * 0.01, m });
     c.globalAlpha = off ? 0.35 : 1;
-    rrect(c, x, y, bw, bh, s * 0.02); c.fillStyle = on ? '#2b2440' : '#16161c'; c.fill(); c.lineWidth = s * 0.005; c.strokeStyle = on ? col : '#3a3a48'; c.stroke();
-    if (icon) icon(x + bh * 0.5, y + bh / 2, bh * 0.72, on ? col : '#3a3a48');
-    c.font = `400 ${Math.round(s * 0.045)}px ${FONT_D}`; c.textAlign = icon ? 'left' : 'center'; c.textBaseline = 'middle'; c.fillStyle = on ? '#fff' : '#c8c8d0';
+    rrect(c, x, y0 + s * 0.008, bw, bh, s * 0.02); c.fillStyle = 'rgba(0,0,0,0.5)'; c.fill();
+    rrect(c, x, y, bw, bh, s * 0.02); c.fillStyle = lin2(c, 0, y, 0, y + bh, '#1d1a26', '#121017'); c.fill();
+    if (hv > 0.01) { c.globalAlpha = (off ? 0.35 : 1) * hv; c.fillStyle = lin2(c, 0, y, 0, y + bh, '#3a3058', '#2b2440'); c.fill(); c.globalAlpha = off ? 0.35 : 1; }
+    c.lineWidth = s * 0.005; c.strokeStyle = hv > 0.5 ? col : '#3a3a48'; c.stroke();
+    if (icon) icon(x + bh * 0.5, y + bh / 2, bh * 0.72, hv > 0.5 ? col : '#4a4a58');
+    c.font = `400 ${Math.round(s * 0.045)}px ${FONT_D}`; c.textAlign = icon ? 'left' : 'center'; c.textBaseline = 'middle'; c.fillStyle = hv > 0.5 ? '#fff' : '#c8c8d0';
     c.fillText(label, icon ? x + bh * 0.98 : x + bw / 2, y + bh / 2, icon ? bw - bh : bw * 0.9);
     c.globalAlpha = 1;
   });
 }
 const bzWho2 = (W, p) => (W.you[p] ? 'YOU' : W.names[p]);
-// last stick: a row of matches; the ones taken fly off in the taker's colour
+// last stick: a row of matches on a tray. The ones about to be taken lift; taken ones tumble off toward the taker
 function bzNim(c, W, X, Y, s, t, txt) {
   const st = W.st, N = 15, gap = s * 0.052, x0 = X + s / 2 - gap * (N - 1) / 2, yb = Y + s * 0.64, hgt = s * 0.26, gone = [];
   let n = N;
   for (const it of W.seq) for (let k = 0; k < it.m; k++) gone[--n] = it;
+  bzPanel(c, x0 - gap * 0.9, yb - hgt - s * 0.05, gap * (N - 1) + gap * 1.8, hgt + s * 0.09, s * 0.02, s);
   const pre = W.myTurn && W.hover >= 1 ? W.hover : 0;
   for (let i = 0; i < N; i++) {
-    const it = gone[i], x = x0 + i * gap;
-    let dy = 0, a = 1;
-    if (it) { const q = (t - it.t) / 0.45; if (q >= 1) continue; dy = -q * s * 0.22; a = 1 - q; }
-    c.globalAlpha = a * (!it && i >= st.n - pre ? 0.4 : 1);
-    c.fillStyle = it ? W.col[it.p] : '#d9b77a'; c.fillRect(x - s * 0.008, yb - hgt + dy, s * 0.016, hgt);
-    c.beginPath(); c.ellipse(x, yb - hgt + dy, s * 0.013, s * 0.018, 0, 0, TAU); c.fillStyle = it ? W.col[it.p] : '#c8283a'; c.fill();
-    c.globalAlpha = 1;
+    const it = gone[i], lean = Math.sin(i * 12.9898) * 0.04, lift = bzHov(W, 'n' + i, !it && i >= st.n - pre);
+    let x = x0 + i * gap, y = yb, rot = lean, a = 1;
+    if (it) {
+      const q = (t - it.t) / 0.6;
+      if (q >= 1) continue;
+      const dir = it.p ? 1 : -1;
+      x += dir * s * 0.3 * ease(q); y -= Math.sin(Math.PI * Math.min(1, q * 1.2)) * s * 0.16 - q * q * s * 0.1; rot += dir * q * 4; a = 1 - q;
+    } else { y -= lift * s * 0.035; rot += Math.sin(t * 1.6 + i) * 0.012; }
+    c.save(); c.globalAlpha = a; c.translate(x, y); c.rotate(rot);
+    if (!it) bzShadow(c, 0, s * 0.004, s * 0.014, s * 0.004, 0.4);
+    c.fillStyle = it ? W.col[it.p] : lin2(c, -s * 0.008, 0, s * 0.008, 0, '#f0d39c', '#b0874a'); c.fillRect(-s * 0.008, -hgt, s * 0.016, hgt);
+    c.fillStyle = 'rgba(80,50,20,0.25)'; c.fillRect(s * 0.002, -hgt, s * 0.002, hgt);
+    const hc = lift > 0.05 && !it ? W.col[W.playing] : it ? W.col[it.p] : '#c8283a';
+    c.beginPath(); c.ellipse(0, -hgt, s * 0.014, s * 0.019, 0, 0, TAU); c.fillStyle = hc; c.fill(); c.lineWidth = s * 0.003; c.strokeStyle = 'rgba(0,0,0,0.4)'; c.stroke();
+    c.beginPath(); c.ellipse(-s * 0.004, -hgt - s * 0.007, s * 0.004, s * 0.005, 0, 0, TAU); c.fillStyle = 'rgba(255,255,255,0.5)'; c.fill();
+    c.restore();
   }
-  txt(st.n + (st.n === 1 ? ' STICK LEFT' : ' STICKS LEFT'), X + s / 2, Y + s * 0.24, s * 0.065, '#fff');
+  if (W.nimN !== st.n) { W.nimN = st.n; W.nimT = t; }
+  txt(st.n + (st.n === 1 ? ' STICK LEFT' : ' STICKS LEFT'), X + s / 2, Y + s * 0.24, s * 0.065 * (1 + 0.25 * (1 - easeBack(clamp((t - (W.nimT || -9)) / 0.35, 0, 1)))), '#fff');
   txt('TAKE 1 TO 3 · WHOEVER TAKES THE LAST STICK LOSES', X + s / 2, Y + s * 0.3, s * 0.034, '#8a8a99');
   if (W.myTurn) bzButtons(c, W, X, Y, s, [1, 2, 3].map(k => [k, 'TAKE ' + k, null, k > st.n]));
   return '';
 }
-// memory match: 12 cards, the faces are balls; a matched pair stays face up, edged in its finder's colour
+// memory match: 12 cards, the faces are balls, the backs honeycomb. A card turns over (both ways) rather than
+// popping, a hovered one lifts, and a matched pair pops and stays up, edged in its finder's colour
 function bzMemo(c, W, X, Y, s, t, txt) {
   const st = W.st, e = W.e, cs = s * 0.15, gp = s * 0.016, bw = cs * 4 + gp * 3, bx = X + (s - bw) / 2, by = Y + s * 0.22, me = W.playing;
-  const last = W.seq[W.seq.length - 1], showing = new Set(st.up), flipT = {};
+  const last = W.seq[W.seq.length - 1], showing = new Set(st.up), matchT = {}, fl = W.flip || (W.flip = []), k = Math.min(1, (W.fdt || 0.016) / 0.28);
   if (last && last.miss && t - last.t < last.wait) last.pair.forEach(i => showing.add(i));
-  for (const it of W.seq) flipT[it.m] = it.t;
+  for (const it of W.seq) if (it.match) for (const i of it.pair) matchT[i] = it.t;
   for (let i = 0; i < st.cards.length; i++) {
-    const x = bx + (i % 4) * (cs + gp), y = by + Math.floor(i / 4) * (cs + gp), up = st.gone[i] >= 0 || showing.has(i);
-    const q = up ? clamp((t - (flipT[i] || 0)) / 0.16, 0, 1) : 1, w = cs * Math.max(0.06, up ? q : 1), can = W.myTurn && st.gone[i] < 0 && !st.up.includes(i);
-    if (can) W.hits.push({ x, y, w: cs, h: cs, m: i });
-    c.globalAlpha = st.gone[i] >= 0 && !(last && last.match && last.pair.includes(i) && t - last.t < 0.8) ? 0.6 : 1;
-    rrect(c, x + (cs - w) / 2, y, w, cs, cs * 0.1);
-    if (up) {
-      c.fillStyle = '#ece8dc'; c.fill();
-      c.drawImage(ballIcon(e.faces[st.cards[i]], 96), x + (cs - w) / 2 + w * 0.12, y + cs * 0.12, w * 0.76, cs * 0.76);
-      if (st.gone[i] >= 0) { rrect(c, x, y, cs, cs, cs * 0.1); c.lineWidth = s * 0.008; c.strokeStyle = W.col[st.gone[i]]; c.stroke(); }
+    const up = st.gone[i] >= 0 || showing.has(i), can = W.myTurn && st.gone[i] < 0 && !st.up.includes(i), hv = bzHov(W, 'm' + i, can && W.hover === i);
+    // how far over the card is: 0 its back, 1 its face, moving toward where it should be
+    const v = fl[i] = (fl[i] || 0) + Math.sign((up ? 1 : 0) - (fl[i] || 0)) * Math.min(Math.abs((up ? 1 : 0) - (fl[i] || 0)), k);
+    const sx = Math.abs(Math.cos(v * Math.PI)), face = v > 0.5, pop = matchT[i] !== undefined ? 1 + 0.12 * Math.sin(Math.PI * clamp((t - matchT[i] - 0.15) / 0.35, 0, 1)) : 1;
+    const x = bx + (i % 4) * (cs + gp), y = by + Math.floor(i / 4) * (cs + gp) - hv * cs * 0.06, cx = x + cs / 2, cy = y + cs / 2, w = cs * Math.max(0.04, sx) * pop, hh = cs * pop;
+    if (can) W.hits.push({ x, y: y - cs * 0.05, w: cs, h: cs + cs * 0.05, m: i });
+    bzShadow(c, cx, by + Math.floor(i / 4) * (cs + gp) + cs + cs * 0.03, w * 0.45, cs * 0.05, 0.35 + 0.15 * hv);
+    c.save(); c.globalAlpha = st.gone[i] >= 0 && t - (matchT[i] || 0) > 0.9 ? 0.72 : 1;
+    rrect(c, cx - w / 2, cy - hh / 2, w, hh, cs * 0.1);
+    if (face) {
+      c.fillStyle = lin2(c, 0, cy - hh / 2, 0, cy + hh / 2, '#fbf8ef', '#ddd6c4'); c.fill();
+      c.lineWidth = s * 0.003; c.strokeStyle = '#8a8270'; c.stroke();
+      c.drawImage(ballIcon(e.faces[st.cards[i]], 96), cx - w * 0.38, cy - hh * 0.38, w * 0.76, hh * 0.76);
+      if (st.gone[i] >= 0) { rrect(c, cx - w / 2, cy - hh / 2, w, hh, cs * 0.1); c.lineWidth = s * 0.008; c.strokeStyle = W.col[st.gone[i]]; c.stroke(); }
     } else {
-      c.fillStyle = '#211c33'; c.fill(); c.lineWidth = s * 0.004; c.strokeStyle = can && W.hover === i ? W.col[me] : '#3a3450'; c.stroke();
-      c.beginPath(); c.moveTo(x + cs / 2, y + cs * 0.3); c.lineTo(x + cs * 0.7, y + cs / 2); c.lineTo(x + cs / 2, y + cs * 0.7); c.lineTo(x + cs * 0.3, y + cs / 2); c.closePath();
-      c.lineWidth = s * 0.004; c.strokeStyle = '#4a4266'; c.stroke();
+      c.fillStyle = lin2(c, 0, cy - hh / 2, 0, cy + hh / 2, '#2e2647', '#1b1630'); c.fill();
+      c.save(); c.clip(); c.translate(cx, cy); c.scale(w / 80 * 1.1, hh / 80 * 1.1); c.lineWidth = 1.2; c.strokeStyle = 'rgba(255,214,51,0.22)'; c.stroke(BZ_COMB); c.restore();
+      rrect(c, cx - w / 2, cy - hh / 2, w, hh, cs * 0.1); c.lineWidth = s * 0.005; c.strokeStyle = hv > 0.5 ? W.col[me] : '#57497a'; c.stroke();
     }
-    c.globalAlpha = 1;
+    c.restore();
   }
   txt(`PAIRS · BEEZAP ${st.sc[0]} · ${bzWho2(W, 1)} ${st.sc[1]} · FIRST TO 4`, X + s / 2, Y + s * 0.8, s * 0.036, '#8a8a99');
   if (!W.res && last && last.match && t - last.t < 1.2) return 'A PAIR! ' + (W.you[last.p] ? 'GO AGAIN' : 'THEY GO AGAIN');
   if (!W.res && last && last.miss && t - last.t < 1.2) return 'NOT A PAIR';
   return '';
 }
-// dots and boxes: lines in the drawer's colour; a closed box fills with its owner's
+// dots and boxes: studs on a tray; a drawn line slides out from its first dot; a closed box fills from its middle
+// and gets its owner's ball
 function bzDots(c, W, X, Y, s, t, txt) {
-  const st = W.st, gap = s * 0.19, x0 = X + s / 2 - gap * 1.5, y0 = Y + s * 0.21, me = W.playing;
+  const st = W.st, e = W.e, gap = s * 0.19, x0 = X + s / 2 - gap * 1.5, y0 = Y + s * 0.21, me = W.playing;
   const P = (r, cI) => [x0 + cI * gap, y0 + r * gap];
   const ends = i => (i < 12 ? [P(Math.floor(i / 3), i % 3), P(Math.floor(i / 3), i % 3 + 1)] : [P(Math.floor((i - 12) / 4), (i - 12) % 4), P(Math.floor((i - 12) / 4) + 1, (i - 12) % 4)]);
   const at = {};
   for (const it of W.seq) { at[it.m] = it; for (const b of it.got) at['b' + b] = it; }
+  bzPanel(c, x0 - gap * 0.3, y0 - gap * 0.3, gap * 3.6, gap * 3.6, gap * 0.2, s);
   for (let b = 0; b < 9; b++) if (st.box[b] >= 0) {
-    const [x, y] = P(Math.floor(b / 3), b % 3);
-    c.globalAlpha = 0.3 * clamp((t - at['b' + b].t - 0.12) / 0.2, 0, 1); c.fillStyle = W.col[st.box[b]]; c.fillRect(x, y, gap, gap); c.globalAlpha = 1;
+    const [x, y] = P(Math.floor(b / 3), b % 3), q = easeBack((t - at['b' + b].t - 0.12) / 0.35), o = st.box[b];
+    if (q <= 0) continue;
+    const z = gap * 0.9 * Math.min(q, 1.1);
+    c.globalAlpha = 0.3; c.fillStyle = W.col[o]; c.fillRect(x + gap / 2 - z / 2, y + gap / 2 - z / 2, z, z); c.globalAlpha = 1;
+    const iz = gap * 0.5 * q;
+    c.drawImage(o ? ballIcon(e.foe, 96) : beeCanvas(), x + gap / 2 - iz / 2, y + gap / 2 - iz / 2, iz, iz);
   }
-  c.lineCap = 'round';
   for (let i = 0; i < 24; i++) {
-    const [[ax, ay], [bx2, by2]] = ends(i), it = at[i];
+    const [[ax, ay], [bx2, by2]] = ends(i), it = at[i], hv = bzHov(W, 'd' + i, W.myTurn && st.ed[i] < 0 && W.hover === i);
     if (W.myTurn && st.ed[i] < 0) W.hits.push(i < 12 ? { x: ax + gap * 0.12, y: ay - gap * 0.2, w: gap * 0.76, h: gap * 0.4, m: i } : { x: ax - gap * 0.2, y: ay + gap * 0.12, w: gap * 0.4, h: gap * 0.76, m: i });
-    c.beginPath();
-    if (it) { const q = clamp((t - it.t) / 0.15, 0, 1); c.moveTo(ax, ay); c.lineTo(ax + (bx2 - ax) * q, ay + (by2 - ay) * q); c.lineWidth = s * 0.012; c.strokeStyle = W.col[it.p]; }
-    else if (W.myTurn && W.hover === i) { c.moveTo(ax, ay); c.lineTo(bx2, by2); c.lineWidth = s * 0.012; c.strokeStyle = W.col[me]; c.globalAlpha = 0.45; }
-    else { c.moveTo(ax, ay); c.lineTo(bx2, by2); c.lineWidth = s * 0.004; c.strokeStyle = '#2f2f3a'; c.setLineDash([s * 0.008, s * 0.012]); }
-    c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
+    if (it) {
+      const q = ease((t - it.t) / 0.2);
+      bzInk(c, () => { c.beginPath(); c.moveTo(ax, ay); c.lineTo(ax + (bx2 - ax) * q, ay + (by2 - ay) * q); }, s * 0.013, W.col[it.p]);
+    } else {
+      c.beginPath(); c.moveTo(ax, ay); c.lineTo(bx2, by2); c.lineWidth = s * 0.004; c.strokeStyle = '#34344a'; c.setLineDash([s * 0.008, s * 0.012]); c.stroke(); c.setLineDash([]);
+      if (hv > 0.02) { c.globalAlpha = 0.6 * hv; c.lineCap = 'round'; c.beginPath(); c.moveTo(ax, ay); c.lineTo(bx2, by2); c.lineWidth = s * 0.012; c.strokeStyle = W.col[me]; c.stroke(); c.lineCap = 'butt'; c.globalAlpha = 1; }
+    }
   }
-  c.lineCap = 'butt';
-  for (let r = 0; r < 4; r++) for (let cI = 0; cI < 4; cI++) { const [x, y] = P(r, cI); circ(c, x, y, s * 0.012); c.fillStyle = '#e8e8ee'; c.fill(); }
+  for (let r = 0; r < 4; r++) for (let cI = 0; cI < 4; cI++) {
+    const [x, y] = P(r, cI), g = c.createRadialGradient(x - s * 0.005, y - s * 0.006, s * 0.002, x, y, s * 0.016);
+    g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#8a8a99');
+    circ(c, x, y + s * 0.003, s * 0.015); c.fillStyle = 'rgba(0,0,0,0.5)'; c.fill();
+    circ(c, x, y, s * 0.015); c.fillStyle = g; c.fill();
+  }
   txt(`BOXES · BEEZAP ${st.sc[0]} · ${bzWho2(W, 1)} ${st.sc[1]} · FIRST TO 5`, X + s / 2, Y + s * 0.86, s * 0.036, '#8a8a99');
   const last = W.seq[W.seq.length - 1];
   if (!W.res && last && last.got.length && t - last.t < 1.2) return (last.got.length > 1 ? 'TWO BOXES! ' : 'A BOX! ') + (W.you[last.p] ? 'GO AGAIN' : 'THEY GO AGAIN');
   return '';
 }
 const BZ_PIPS = [[], [[0, 0]], [[-1, -1], [1, 1]], [[-1, -1], [0, 0], [1, 1]], [[-1, -1], [1, -1], [-1, 1], [1, 1]], [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]], [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]]];
-function bzDie(c, x, y, z, v, ang, edge) {
-  c.save(); c.translate(x, y); c.rotate(ang);
-  rrect(c, -z / 2, -z / 2, z, z, z * 0.18); c.fillStyle = '#f2efe6'; c.fill(); c.lineWidth = z * 0.04; c.strokeStyle = edge || '#1a1a22'; c.stroke();
-  for (const [px, py] of BZ_PIPS[v] || []) { circ(c, px * z * 0.27, py * z * 0.27, z * 0.085); c.fillStyle = v === 1 ? '#c8283a' : '#1a1a22'; c.fill(); }
+// a die: rounded, lit from the top left, with sunken pips
+function bzDie(c, x, y, z, v, ang, edge, sq) {
+  c.save(); c.translate(x, y); c.rotate(ang); c.scale(1 + (sq || 0), 1 - (sq || 0));
+  rrect(c, -z / 2, -z / 2, z, z, z * 0.2); c.fillStyle = lin2(c, -z / 2, -z / 2, z / 2, z / 2, '#ffffff', '#d9d3c4'); c.fill();
+  c.lineWidth = z * 0.045; c.strokeStyle = edge || '#2a2a33'; c.stroke();
+  rrect(c, -z * 0.42, -z * 0.42, z * 0.84, z * 0.3, z * 0.15); c.fillStyle = 'rgba(255,255,255,0.35)'; c.fill();
+  for (const [px, py] of BZ_PIPS[v] || []) {
+    circ(c, px * z * 0.27, py * z * 0.27 + z * 0.012, z * 0.085); c.fillStyle = 'rgba(255,255,255,0.7)'; c.fill();
+    circ(c, px * z * 0.27, py * z * 0.27, z * 0.085); c.fillStyle = v === 1 ? '#c8283a' : '#1a1a22'; c.fill();
+  }
   c.restore();
 }
-// pig: a bar each to 20 (this turn's points stacked on, lighter), the die, ROLL and HOLD
+// pig: a bar each to 20 that slides to its new length (this turn's points stacked on, lighter), the die
+// that hops and tumbles to a stop, ROLL and HOLD
 function bzPig(c, W, X, Y, s, t, txt) {
-  const st = W.st, p = st.turn, last = W.seq[W.seq.length - 1];
+  const st = W.st, p = st.turn, last = W.seq[W.seq.length - 1], bv = W.barV || (W.barV = [[0, 0], [0, 0]]), k = Math.min(1, (W.fdt || 0.016) * 8);
   for (const q of [0, 1]) {
     const y = Y + s * (0.21 + q * 0.07), x0 = X + s * 0.24, w = s * 0.6, hh = s * 0.034, live = q === p && !W.res;
+    bv[q][0] += (st.bank[q] - bv[q][0]) * k; bv[q][1] += ((live ? st.tt : 0) - bv[q][1]) * k;
     c.font = `400 ${Math.round(s * 0.04)}px ${FONT_D}`; c.textAlign = 'right'; c.textBaseline = 'middle'; c.fillStyle = W.col[q]; c.fillText(bzWho2(W, q), x0 - s * 0.02, y + hh / 2, s * 0.17);
-    rrect(c, x0, y, w, hh, hh / 2); c.fillStyle = '#16161c'; c.fill();
-    const bw = w * Math.min(1, st.bank[q] / 20), tw = live ? Math.min(w - bw, w * st.tt / 20) : 0;
-    if (bw > 0) { rrect(c, x0, y, bw, hh, hh / 2); c.fillStyle = W.col[q]; c.fill(); }
-    if (tw > 0) { c.globalAlpha = 0.4; c.fillStyle = W.col[q]; c.fillRect(x0 + bw, y, tw, hh); c.globalAlpha = 1; }
-    for (let k = 5; k < 20; k += 5) { c.fillStyle = 'rgba(0,0,0,0.5)'; c.fillRect(x0 + w * k / 20 - s * 0.002, y, s * 0.004, hh); }
-    c.textAlign = 'left'; c.fillStyle = '#fff'; c.fillText(String(st.bank[q] + (live ? st.tt : 0)), x0 + w + s * 0.02, y + hh / 2);
+    rrect(c, x0, y, w, hh, hh / 2); c.fillStyle = '#0b0a10'; c.fill(); c.lineWidth = s * 0.003; c.strokeStyle = '#2a2a36'; c.stroke();
+    const bw = w * Math.min(1, bv[q][0] / 20), tw = Math.min(w - bw, w * bv[q][1] / 20);
+    c.save(); rrect(c, x0, y, w, hh, hh / 2); c.clip();
+    if (bw > 0) { c.fillStyle = W.col[q]; c.fillRect(x0, y, bw, hh); c.fillStyle = 'rgba(255,255,255,0.25)'; c.fillRect(x0, y, bw, hh * 0.35); }
+    if (tw > 0.5) { c.globalAlpha = 0.35 + 0.1 * Math.sin(t * 6); c.fillStyle = W.col[q]; c.fillRect(x0 + bw, y, tw, hh); c.globalAlpha = 1; }
+    c.restore();
+    for (let m = 5; m < 20; m += 5) { c.fillStyle = 'rgba(0,0,0,0.5)'; c.fillRect(x0 + w * m / 20 - s * 0.002, y, s * 0.004, hh); }
+    c.textAlign = 'left'; c.fillStyle = '#fff'; c.fillText(String(Math.round(bv[q][0] + bv[q][1])), x0 + w + s * 0.02, y + hh / 2);
   }
   txt('FIRST TO 20 · ROLL A 1 AND THE TURN\u2019S POINTS ARE GONE', X + s / 2, Y + s * 0.355, s * 0.032, '#8a8a99');
-  const roll = [...W.seq].reverse().find(it => it.v !== undefined), rolling = roll && t - roll.t < 0.45;
-  if (roll && rolling) bzDie(c, X + s / 2, Y + s * 0.5, s * 0.15, 1 + Math.floor(t * 18) % 6, (1 - (t - roll.t) / 0.45) * 3, null);
-  else bzDie(c, X + s / 2, Y + s * 0.5, s * 0.15, roll ? roll.v : 6, 0, roll && roll.bust && t - roll.t < 1.3 ? '#ff4646' : null);
-  if (!W.res) txt(`THIS TURN +${st.tt}`, X + s / 2, Y + s * 0.645, s * 0.05, W.col[p]);
+  // the die: a hop, a tumble that slows, a squash as it lands, and a red shake on a 1
+  const roll = [...W.seq].reverse().find(it => it.v !== undefined), R = 0.5, dx = X + s / 2, dy = Y + s * 0.5, z = s * 0.15;
+  let face = roll ? roll.v : 6, hop = 0, ang = 0, sq = 0, edge = null;
+  if (roll) {
+    const u = t - roll.t;
+    if (u < R) { const q = u / R; hop = Math.abs(Math.sin(Math.PI * q * 2)) * (1 - q) * s * 0.09; ang = (1 - ease(q)) * 5; face = 1 + Math.floor(Math.pow(q, 0.5) * 14 + roll.t * 7) % 6; }
+    else if (u < R + 0.12) sq = 0.12 * Math.sin(Math.PI * (u - R) / 0.12);
+    if (roll.bust && u >= R && u < R + 0.9) { edge = '#ff4646'; ang = Math.sin(u * 40) * 0.12 * (1 - (u - R) / 0.9); }
+  }
+  bzShadow(c, dx, dy + z * 0.62, z * 0.5 * (1 - hop / s * 3), z * 0.1, 0.45);
+  bzDie(c, dx, dy - hop, z, face, ang, edge, sq);
+  if (!W.res) {
+    if (W.ttV !== st.tt) { W.ttV = st.tt; W.ttT = t; }
+    txt(`THIS TURN +${st.tt}`, X + s / 2, Y + s * 0.645, s * 0.05 * (1 + 0.3 * (1 - easeBack(clamp((t - (W.ttT || -9)) / 0.3, 0, 1)))), W.col[p]);
+  }
   if (W.myTurn) bzButtons(c, W, X, Y, s, [[0, 'ROLL', null, false], [1, 'HOLD', null, st.tt <= 0]]);
   if (!W.res && last && last.bust && t - last.t < 1.4) return 'ROLLED A 1. TURN LOST';
   if (!W.res && last && last.hold && t - last.t < 1) return `${bzWho2(W, last.p)} BANKED IT`;
