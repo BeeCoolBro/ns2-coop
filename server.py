@@ -1883,6 +1883,15 @@ def brawl_clean(raw):
             out[k] = brawl_ffa(v)
         elif k == 'fx':
             out[k] = brawl_fx(v)
+        elif k == 'ft':
+            # how far a fight has got on this player's screen, so the others' screens keep up with it
+            t, at = v.get('t') if isinstance(v, dict) else None, brawl_int(v.get('at'), 1, 10 ** 14) if isinstance(v, dict) else None
+            ok = isinstance(v, dict) and isinstance(v.get('id'), str) and BB_MID_RE.fullmatch(v['id']) and at is not None                 and isinstance(t, (int, float)) and not isinstance(t, bool) and 0 <= t <= 1000
+            out[k] = {'id': v['id'], 't': round(float(t), 2), 'at': at, 'p': 1 if v.get('p') == 1 else 0} if ok else None
+        elif k == 'gr':
+            # BeeZap minigame results this screen settled: [key, winner]
+            ok = isinstance(v, list) and len(v) <= 8 and all(isinstance(x, list) and len(x) == 2 and brawl_int(x[0], 0, 2 ** 31) is not None and x[1] in (-1, 0, 1) and not isinstance(x[1], bool) for x in v)
+            out[k] = [[int(x[0]), x[1]] for x in v] if ok else None
         elif k == 'hook':
             ok = isinstance(v, dict) and isinstance(v.get('id'), str) and BB_MID_RE.fullmatch(v['id']) and brawl_int(v.get('k'), 0, 2 ** 31) is not None                 and isinstance(v.get('to'), str) and BB_PEER_RE.fullmatch(v['to'])
             out[k] = {'id': v['id'], 'to': v['to'], 'k': brawl_int(v.get('k'), 0, 2 ** 31)} if ok else None
