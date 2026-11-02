@@ -8960,7 +8960,9 @@ function lin2(c, x0, y0, x1, y1, a, b) { const gr = c.createLinearGradient(x0, y
 // the way in: the fight stops, the arena cracks (CRACK) and snaps in half, the halves falling away (SNAP),
 // while the game screen slides down from the top (IN). The way out (from the result, OCRACK/OSNAP/OIN) is the
 // same the other way round: the game screen cracks and snaps in half and the arena slides up from the bottom.
-const BZ_GAME = { CRACK: 0.9, SNAP: 0.75, IN: 0.6, TITLE: 1.85, CH: 0.045, PICK: 3.5, PICKD: 1.0, PLAY: 4.9, RES: 2.1, OCRACK: 0.8, OSNAP: 0.75, OIN: 0.6 };
+// BeeZap's roll for the game (bzRoll) runs from PICK to PLAY: the board is dealt (DEAL), the frame runs round (ROLL),
+// locks on (LOCK) and the game lifts out (SHOW).
+const BZ_GAME = { CRACK: 0.9, SNAP: 0.75, IN: 0.6, TITLE: 1.85, CH: 0.045, PICK: 3.5, DEAL: 0.5, ROLL: 1.8, LOCK: 0.2, SHOW: 0.65, PLAY: 6.65, RES: 2.1, OCRACK: 0.8, OSNAP: 0.75, OIN: 0.6 };
 const BZ_GAME_NAMES = { ttt: 'TIC TAC TOE', c4: 'CONNECT FOUR', rps: 'ROCK PAPER SCISSORS', ship: 'BATTLESHIP', nim: 'LAST STICK', memo: 'MEMORY MATCH', dots: 'DOTS AND BOXES', pig: 'PIG DICE' };
 const BZ_RPS = ['ROCK', 'PAPER', 'SCISSORS'];
 const BZ_TURN = { ttt: 6, c4: 6, rps: 5, ship: 5, nim: 6, memo: 6, dots: 7, pig: 5 };   // seconds to move before the game moves for you
@@ -9088,7 +9090,8 @@ function gameFrame(F, dt) {
   if (!W.s0) { W.s0 = 1; SFX.clang(); SFX.boom(true); bzShake(F, BZ_SHAKE, 300); }
   if (!W.s1 && T > G.CRACK) { W.s1 = 1; SFX.rip(); SFX.boom(); bzShake(F, BZ_SHAKE, 500); }
   if (!W.s5 && T > G.CRACK + 0.35) { W.s5 = 1; SFX.game(); }
-  if (!W.s2 && T > G.PICK + G.PICKD) { W.s2 = 1; bzHowOpen(F, W); SFX.reveal(1); W.sr.textContent = BZ_GAME_NAMES[e.g] + (W.playing >= 0 ? '. YOUR MOVE WHEN IT IS YOUR TURN.' : ''); }
+  if (!W.s2 && T > G.PICK + G.DEAL + G.ROLL) { W.s2 = 1; SFX.clang(); SFX.reveal(2); W.sr.textContent = BZ_GAME_NAMES[e.g] + (W.playing >= 0 ? '. YOUR MOVE WHEN IT IS YOUR TURN.' : ''); }
+  if (!W.s7 && T > G.PICK + G.DEAL + G.ROLL + G.LOCK) { W.s7 = 1; bzHowOpen(F, W); }
   if (W.res && !W.s3 && W.pt > W.resT + 0.35) {
     W.s3 = 1;
     const win = W.res.win, loser = win === 0 ? (W.you[1] ? 'YOU TAKE' : W.names[1] + ' TAKES') : 'BEEZAP TAKES';
@@ -9211,21 +9214,7 @@ function bzGameScreen(c, W, X, Y, s, T, d) {
     if (k >= A1.length + A2.length && Math.floor(T * 4) % 2) txt('BEEZAP PICKS THE GAME', X + s / 2, Y + s * 0.82, s * 0.045, '#8a8a99');
     return;
   }
-  if (T < G.PLAY) {
-    // the picker: the light runs round the eight games, slows and stops on the one the fight rolled
-    txt("LET'S SWITCH IT UP", X + s / 2, Y + s * 0.13, s * 0.07, '#e8203a');
-    const L = BZ_GAMES.length, pick = BZ_GAMES.indexOf(e.g), N = 2 * L + pick, q = clamp((T - G.PICK) / G.PICKD, 0, 1), at = Math.floor(N * ease(q)) % L;
-    if (at !== W.pickAt) { W.pickAt = at; SFX.tick(0.3); }
-    BZ_GAMES.forEach((id, i) => {
-      const x = X + s * (i % 2 ? 0.515 : 0.065), y = Y + s * (0.26 + Math.floor(i / 2) * 0.14), on = i === at, land = q >= 1 && on, blink = land && Math.floor(T * 8) % 2 === 0;
-      rrect(c, x, y, s * 0.42, s * 0.105, s * 0.02);
-      c.fillStyle = on ? (blink ? '#ffd633' : '#e8203a') : '#16161c'; c.fill();
-      c.lineWidth = s * 0.004; c.strokeStyle = on ? '#ffd633' : '#2a2a36'; c.stroke();
-      txt(BZ_GAME_NAMES[id], x + s * 0.21, y + s * 0.055, s * 0.05, on ? (blink ? '#16161c' : '#fff') : '#6a6a78', s * 0.38);
-    });
-    if (W.playing >= 0 && q >= 1) txt('YOU PLAY THIS ONE', X + s / 2, Y + s * 0.92, s * 0.045, '#c8c8d0');
-    return;
-  }
+  if (T < G.PLAY) { bzRoll(c, W, X, Y, s, T, txt); return; }
   const t = W.pt, done = !!W.res && t >= W.resT, rt = done ? t - W.resT : 0;
   const rnd = W.rounds[W.rounds.length - 1];
   const waiting = p => !W.res && (e.g === 'rps' ? rnd && rnd.rev === undefined && rnd.a[p] < 0 : W.turnP === p && W.seq.length === W.turnN);
@@ -9267,6 +9256,200 @@ function bzGameScreen(c, W, X, Y, s, T, d) {
     txt(win < 0 ? 'NOBODY GETS HURT' : win === 0 ? (W.you[1] ? 'YOU TAKE THE HIT' : W.names[1] + ' TAKES THE HIT') : 'BEEZAP TAKES THE HIT', X + s / 2, Y + s * 0.567, s * 0.045, '#c8c8d0');
     c.globalAlpha = 1;
   }
+  // a flash as the game comes up out of the roll
+  if (T - G.PLAY < 0.2) { c.fillStyle = `rgba(255,255,255,${(0.25 * (1 - (T - G.PLAY) / 0.2)).toFixed(2)})`; c.fillRect(X, Y, s, s); }
+}
+// ---- the roll: BeeZap picks the game ----
+// The eight games are dealt onto a board with chaser lights round it. A gold frame races round them, slowing
+// all the way, creeps toward the next game as if it might go one more, falls back and locks onto the game the
+// fight rolled; that tile flashes, throws off honeycomb, and lifts out to the middle with who's playing it.
+const BZ_RING = [0, 2, 4, 6, 7, 5, 3, 1];   // the frame's way round the board: down the left, up the right
+const BZ_GAME_SUB = { ttt: 'THREE IN A ROW', c4: 'FOUR IN A ROW', rps: 'BEST OF THREE', ship: 'SINK THE FLEET', nim: "DON'T TAKE THE LAST", memo: 'FIND THE PAIRS', dots: 'CLOSE THE BOXES', pig: 'FIRST TO 20' };
+const bzMix = (a, b, k) => { const A = rgbOf(a), B = rgbOf(b); return 'rgb(' + A.map((v, i) => Math.round(v + (B[i] - v) * k)).join(',') + ')'; };
+function bzHex(c, x, y, r, rot) { c.beginPath(); for (let k = 0; k < 6; k++) { const a = rot + k * Math.PI / 3; c.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } c.closePath(); }
+function bzRoll(c, W, X, Y, s, T, txt) {
+  const G = BZ_GAME, e = W.e, u = T - G.PICK, n = BZ_GAMES.length, pick = BZ_GAMES.indexOf(e.g), dt = W.fdt || 0.016;
+  const t1 = G.DEAL, t2 = t1 + G.ROLL, t3 = t2 + G.LOCK;   // dealt, stopped, lifting out
+  // the frame's place round the ring, in steps: two laps and on to the game, slowing all the way, then a little
+  // way past it toward the next one and back
+  const goal = 2 * n + BZ_RING.indexOf(pick), q = clamp((u - t1) / G.ROLL, 0, 1);
+  const p = goal * (1 - Math.pow(1 - q, 3)) + 0.42 * Math.sin(Math.PI * clamp((q - 0.8) / 0.2, 0, 1));
+  const speed = 3 * goal * Math.pow(1 - q, 2) / G.ROLL, cur = BZ_RING[Math.round(p) % n], stopped = u >= t2;
+  if (u >= t1 && cur !== W.pickAt) { W.pickAt = cur; SFX.tick(q); }
+  const lit = W.lit || (W.lit = Array(n).fill(0));
+  for (let i = 0; i < n; i++) lit[i] = Math.max(0, lit[i] - dt * 4.5);
+  if (u >= t1) lit[cur] = 1;
+  const TW = s * 0.415, TH = s * 0.13, home = i => [X + s * ((i % 2 ? 0.515 : 0.07) + 0.2075), Y + s * (0.3 + Math.floor(i / 2) * 0.155)];
+  const ringAt = k => home(BZ_RING[((k % n) + n) % n]);
+  const lift = easeIO((u - t3) / (G.SHOW * 0.75)), fade = 1 - lift;
+  // a shudder as it locks on
+  const sh = stopped && u - t2 < 0.16 ? (Math.random() - 0.5) * s * 0.014 : 0;
+  c.save(); c.translate(sh, -sh * 0.6);
+  // honeycomb drifting behind it all
+  c.save(); c.translate(X + s / 2, Y + s / 2 + (u * s * 0.03) % (s * 0.12)); c.scale(s / 105, s / 105);
+  c.lineWidth = 0.6; c.strokeStyle = 'rgba(255,214,51,0.05)'; c.stroke(BZ_COMB); c.restore();
+  // LET'S SWITCH IT UP moves up out of the title into the header (drawn last, over the board), and the line under
+  // it says what's happening
+  const hq = easeIO(u / 0.3);
+  if (hq < 1) { c.globalAlpha = 1 - hq; c.drawImage(beeCanvas(), X + s / 2 - s * 0.09, Y + s * (0.13 - 0.12 * hq), s * 0.18, s * 0.18); c.globalAlpha = 1; }
+  const head = () => {
+    txt("LET'S SWITCH IT UP", X + s / 2, Y + s * (0.6 - 0.515 * hq), s * (0.105 - 0.035 * hq), '#e8203a');
+    if (hq < 0.5) txt("I'M GETTING BORED", X + s / 2, Y + s * (0.47 - 0.6 * hq), s * 0.105, `rgba(232,32,58,${(1 - 2 * hq).toFixed(2)})`);
+    const sub = stopped ? 'THE GAME IS' : u < t1 ? 'DEALING THE GAMES' : 'ROLLING' + '.'.repeat(1 + Math.floor(u * 6) % 3);
+    c.globalAlpha = clamp((u - 0.2) / 0.2, 0, 1) * (stopped ? fade : 1);
+    c.font = `600 ${Math.round(s * 0.034)}px ${FONT_B}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = stopped ? '#ffd633' : '#8a8a99';
+    c.fillText(sub, X + s / 2, Y + s * 0.152);
+    c.globalAlpha = 1;
+  };
+  // the board: a tray with a row of bulbs round its rim that chase with the frame, then flash together
+  const bx = X + s * 0.045, by = Y + s * 0.218, bw = s * 0.91, bh = s * 0.645, ba = clamp((u - 0.08) / 0.2, 0, 1) * fade;
+  if (ba > 0) {
+    c.globalAlpha = ba;
+    bzPanel(c, bx, by, bw, bh, s * 0.03, s);
+    const per = 2 * (bw + bh), nb = 64, phase = Math.floor(p * 2);
+    for (let k = 0; k < nb; k++) {
+      let d = per * k / nb, x, y;
+      if (d < bw) { x = bx + d; y = by; } else if ((d -= bw) < bh) { x = bx + bw; y = by + d; } else if ((d -= bh) < bw) { x = bx + bw - d; y = by + bh; } else { x = bx; y = by + bh - (d - bw); }
+      const on = stopped ? Math.floor(u * 10) % 2 === 0 : (k + phase) % 4 < 2;
+      circ(c, x, y, s * 0.0075); c.fillStyle = on ? '#ffd633' : '#3a3020'; c.fill();
+      if (on) { circ(c, x - s * 0.002, y - s * 0.002, s * 0.003); c.fillStyle = 'rgba(255,255,255,0.8)'; c.fill(); }
+    }
+    c.globalAlpha = 1;
+  }
+  // the tiles: dealt round the ring one after another, lit as the frame passes and fading after it; once it
+  // stops the rest go dark, and then fall away while the game lifts out
+  const tile = (i, cx, cy, z, a, L) => {
+    const id = BZ_GAMES[i], x = -TW / 2, y = -TH / 2, r = s * 0.02;
+    c.save(); c.globalAlpha = a; c.translate(cx, cy); c.scale(z, z);
+    rrect(c, x, y + s * 0.008, TW, TH, r); c.fillStyle = 'rgba(0,0,0,0.5)'; c.fill();
+    rrect(c, x, y, TW, TH, r); c.fillStyle = lin2(c, 0, y, 0, y + TH, bzMix('#1d1a28', '#d81f3a', L), bzMix('#0d0b13', '#6e0c1e', L)); c.fill();
+    c.lineWidth = s * 0.004; c.strokeStyle = bzMix('#3a3450', '#ffd633', L); c.stroke();
+    rrect(c, x + s * 0.006, y + s * 0.005, TW - s * 0.012, TH * 0.32, r * 0.8); c.fillStyle = `rgba(255,255,255,${(0.04 + 0.08 * L).toFixed(3)})`; c.fill();
+    // the picture, in a well on the left
+    const wz = TH * 0.78, wx = x + TH * 0.11, wy = -wz / 2;
+    rrect(c, wx, wy, wz, wz, s * 0.014); c.fillStyle = '#07060b'; c.fill(); c.lineWidth = s * 0.003; c.strokeStyle = bzMix('#2a2438', '#ffd633', L * 0.7); c.stroke();
+    c.save(); rrect(c, wx, wy, wz, wz, s * 0.014); c.clip(); bzIcon(c, id, wx + wz / 2, 0, wz * 0.86, T); c.restore();
+    // its name and what it takes to win
+    const tx = wx + wz + s * 0.022, tw = TW / 2 - tx - s * 0.015;
+    c.textAlign = 'left'; c.textBaseline = 'middle';
+    c.font = `400 ${Math.round(s * 0.045)}px ${FONT_D}`; c.fillStyle = bzMix('#b8b8c6', '#ffffff', L); c.fillText(BZ_GAME_NAMES[id], tx, -TH * 0.13, tw);
+    c.font = `600 ${Math.round(s * 0.025)}px ${FONT_B}`; c.fillStyle = bzMix('#6a6a78', '#ffd9a0', L); c.fillText(BZ_GAME_SUB[id], tx, TH * 0.25, tw);
+    c.restore();
+  };
+  const dim = stopped ? clamp((u - t2) / 0.25, 0, 1) : 0;
+  BZ_RING.forEach((i, k) => {
+    if (i === pick && stopped) return;   // drawn last, on top
+    const da = clamp((u - 0.12 - 0.03 * k) / 0.18, 0, 1);
+    if (da <= 0 || fade <= 0) return;
+    const [cx, cy] = home(i);
+    tile(i, cx, cy + s * 0.04 * (1 - ease(da)) + s * 0.06 * lift, 0.6 + 0.4 * easeBack(da), da * (1 - 0.6 * dim) * fade, lit[i]);
+    if (da < 1 && W.dealt !== k && da > 0.5) { W.dealt = k; SFX.tick(0.05); }
+  });
+  // the frame, with ghosts of where it's just been while it's moving fast
+  const frame = (pp, a) => {
+    const k = Math.floor(pp), f = pp - k, [x0, y0] = ringAt(k), [x1, y1] = ringAt(k + 1), x = x0 + (x1 - x0) * f, y = y0 + (y1 - y0) * f, pw = TW + s * 0.02, ph = TH + s * 0.02;
+    c.globalAlpha = a;
+    rrect(c, x - pw / 2, y - ph / 2, pw, ph, s * 0.026); c.lineWidth = s * 0.009; c.strokeStyle = '#ffd633'; c.stroke();
+    rrect(c, x - pw / 2 + s * 0.005, y - ph / 2 + s * 0.005, pw - s * 0.01, ph - s * 0.01, s * 0.022); c.lineWidth = s * 0.0025; c.strokeStyle = 'rgba(255,255,255,0.7)'; c.stroke();
+    // corner brackets
+    c.lineWidth = s * 0.006; c.strokeStyle = '#fff'; c.lineCap = 'round'; c.beginPath();
+    for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { const cx = x + sx * (pw / 2 + s * 0.008), cy = y + sy * (ph / 2 + s * 0.008); c.moveTo(cx - sx * s * 0.03, cy); c.lineTo(cx, cy); c.lineTo(cx, cy - sy * s * 0.03); }
+    c.stroke(); c.lineCap = 'butt'; c.globalAlpha = 1;
+  };
+  if (u >= t1 && !stopped) {
+    for (let j = 4; j >= 1; j--) frame(Math.max(0, p - j * speed * 0.016), 0.28 * (1 - j / 5));
+    frame(p, 1);
+  }
+  // the game it stopped on: a white flash, a burst of honeycomb, then up and out to the middle
+  if (stopped) {
+    const [hx, hy] = home(pick), cx = hx + (X + s / 2 - hx) * lift, cy = hy + (Y + s * 0.44 - hy) * lift, z = 1 + 0.8 * lift;
+    tile(pick, cx, cy, z, 1, 1);
+    if (lift <= 0) frame(goal, 1);
+    const fl = 1 - (u - t2) / 0.28;
+    if (fl > 0) { c.save(); c.translate(hx, hy); rrect(c, -TW / 2, -TH / 2, TW, TH, s * 0.02); c.fillStyle = `rgba(255,255,255,${(0.85 * fl).toFixed(2)})`; c.fill(); c.restore(); }
+    // the burst
+    const bu = u - t2;
+    if (!W.burst) W.burst = Array.from({ length: 18 }, (_, k) => ({ a: k / 18 * TAU + Math.random() * 0.3, v: s * (0.35 + Math.random() * 0.45), r: s * (0.01 + Math.random() * 0.016), w: (Math.random() - 0.5) * 8 }));
+    if (bu < 0.9) for (const b of W.burst) {
+      const x = hx + Math.cos(b.a) * b.v * bu, y = hy + Math.sin(b.a) * b.v * bu * 0.6 + s * 0.5 * bu * bu;
+      c.globalAlpha = clamp(1 - bu / 0.9, 0, 1); bzHex(c, x, y, b.r, b.w * bu); c.lineWidth = s * 0.004; c.strokeStyle = b.r > s * 0.018 ? '#fff' : '#ffd633'; c.stroke();
+    }
+    c.globalAlpha = 1;
+    // who plays it, under it once it's up
+    const wa = clamp((u - t3 - G.SHOW * 0.45) / 0.2, 0, 1);
+    if (wa > 0) {
+      c.globalAlpha = wa;
+      c.font = `400 ${Math.round(s * 0.055)}px ${FONT_D}`; c.textBaseline = 'middle'; c.textAlign = 'left';
+      const parts = [[W.names[0], W.col[0]], ['  VS  ', '#6a6a78'], [W.names[1], W.col[1]]], ws = parts.map(([str]) => c.measureText(str).width);
+      let x = X + s / 2 - ws.reduce((a, b) => a + b, 0) / 2;
+      parts.forEach(([str, col], k) => { c.fillStyle = col; c.fillText(str, x, Y + s * 0.71); x += ws[k]; });
+      if (W.playing >= 0) txt('YOU PLAY THIS ONE', X + s / 2, Y + s * 0.8, s * 0.04, '#c8c8d0');
+      c.globalAlpha = 1;
+    }
+  }
+  head();
+  c.restore();
+}
+// a little picture of each game, for its tile on the board
+function bzIcon(c, id, x, y, z, T) {
+  const gold = '#ffd633', pink = '#ff2d78', w = z * 0.075;
+  c.save(); c.translate(x, y); c.lineJoin = 'round';
+  if (id === 'ttt') {
+    c.lineCap = 'round'; c.lineWidth = z * 0.035; c.strokeStyle = '#5a5470'; c.beginPath();
+    for (const k of [-1, 1]) { c.moveTo(k * z / 6, -z * 0.42); c.lineTo(k * z / 6, z * 0.42); c.moveTo(-z * 0.42, k * z / 6); c.lineTo(z * 0.42, k * z / 6); }
+    c.stroke(); c.lineCap = 'butt';
+    bzX(c, -z / 3, -z / 3, z * 0.09, 1, gold, w); bzO(c, 0, 0, z * 0.1, 1, pink, w); bzX(c, z / 3, z / 3, z * 0.09, 1, gold, w); bzO(c, z / 3, -z / 3, z * 0.1, 1, pink, w);
+  } else if (id === 'c4') {
+    const cw = z * 0.21, bw = cw * 4, bh = cw * 3;
+    rrect(c, -bw / 2 - cw * 0.15, -bh / 2 - cw * 0.1, bw + cw * 0.3, bh + cw * 0.25, cw * 0.2); c.fillStyle = lin2(c, 0, -bh / 2, 0, bh / 2, '#3c3260', '#211b36'); c.fill();
+    const rows = ['..p.', '.yp.', 'ypyp'];
+    for (let r = 0; r < 3; r++) for (let k = 0; k < 4; k++) {
+      const ch = rows[r][k], cx = -bw / 2 + (k + 0.5) * cw, cy = -bh / 2 + (r + 0.5) * cw;
+      circ(c, cx, cy, cw * 0.38); c.fillStyle = ch === 'y' ? gold : ch === 'p' ? pink : '#08070c'; c.fill();
+      if (ch !== '.') { circ(c, cx - cw * 0.1, cy - cw * 0.12, cw * 0.1); c.fillStyle = 'rgba(255,255,255,0.4)'; c.fill(); }
+    }
+  } else if (id === 'rps') {
+    bzHand(c, Math.floor(T * 2.5) % 3, 0, -z * 0.03, z * 0.72, gold);
+  } else if (id === 'ship') {
+    const cs = z * 0.2;
+    rrect(c, -cs * 2, -cs * 2, cs * 4, cs * 4, cs * 0.3); c.fillStyle = lin2(c, 0, -cs * 2, 0, cs * 2, '#1a4a72', '#0c2640'); c.fill();
+    c.strokeStyle = 'rgba(160,210,255,0.22)'; c.lineWidth = z * 0.015; c.beginPath();
+    for (let k = -1; k <= 1; k++) { c.moveTo(k * cs, -cs * 2); c.lineTo(k * cs, cs * 2); c.moveTo(-cs * 2, k * cs); c.lineTo(cs * 2, k * cs); }
+    c.stroke();
+    rrect(c, -cs * 1.85, -cs * 0.85, cs * 2.7, cs * 0.7, cs * 0.35); c.fillStyle = lin2(c, 0, -cs * 0.85, 0, -cs * 0.15, '#d4d8e2', '#6a7080'); c.fill();
+    circ(c, cs * 0.5, -cs * 0.5, cs * 0.26); c.fillStyle = '#ff4646'; c.fill(); circ(c, cs * 0.5, -cs * 0.5, cs * 0.1); c.fillStyle = '#ffd0a0'; c.fill();
+    circ(c, -cs * 0.5, cs * 1.5, cs * 0.14); c.fillStyle = 'rgba(255,255,255,0.8)'; c.fill();
+    circ(c, cs * 1.5, cs * 0.5, cs * 0.14); c.fillStyle = 'rgba(255,255,255,0.8)'; c.fill();
+  } else if (id === 'nim') {
+    for (let k = 0; k < 5; k++) {
+      const out = k === 4;
+      c.save(); c.translate((k - 2) * z * 0.16 + (out ? z * 0.04 : 0), out ? z * 0.08 : 0); c.rotate(out ? 0.55 : 0);
+      c.fillStyle = lin2(c, -z * 0.03, 0, z * 0.03, 0, '#f0d39c', '#b0874a'); c.fillRect(-z * 0.03, -z * 0.3, z * 0.06, z * 0.66);
+      c.beginPath(); c.ellipse(0, -z * 0.3, z * 0.05, z * 0.065, 0, 0, TAU); c.fillStyle = out ? pink : '#c8283a'; c.fill();
+      c.restore();
+    }
+  } else if (id === 'memo') {
+    const cw = z * 0.4, ch = z * 0.56;
+    c.save(); c.translate(-z * 0.18, z * 0.02); c.rotate(-0.14);
+    rrect(c, -cw / 2, -ch / 2, cw, ch, z * 0.05); c.fillStyle = lin2(c, 0, -ch / 2, 0, ch / 2, '#2e2647', '#1b1630'); c.fill();
+    c.save(); c.clip(); c.scale(cw / 60, ch / 60); c.lineWidth = 1.4; c.strokeStyle = 'rgba(255,214,51,0.35)'; c.stroke(BZ_COMB); c.restore();
+    c.lineWidth = z * 0.02; c.strokeStyle = '#57497a'; c.stroke();
+    c.restore();
+    c.save(); c.translate(z * 0.18, -z * 0.02); c.rotate(0.1);
+    rrect(c, -cw / 2, -ch / 2, cw, ch, z * 0.05); c.fillStyle = lin2(c, 0, -ch / 2, 0, ch / 2, '#fbf8ef', '#ddd6c4'); c.fill(); c.lineWidth = z * 0.015; c.strokeStyle = '#8a8270'; c.stroke();
+    circ(c, 0, 0, cw * 0.27); c.fillStyle = gold; c.fill(); circ(c, -cw * 0.08, -cw * 0.09, cw * 0.08); c.fillStyle = 'rgba(255,255,255,0.6)'; c.fill();
+    c.restore();
+  } else if (id === 'dots') {
+    const k = z * 0.3;
+    c.fillStyle = 'rgba(255,214,51,0.4)'; c.fillRect(-k, -k, k, k);
+    c.lineCap = 'round'; c.lineWidth = z * 0.045;
+    c.strokeStyle = gold; c.beginPath(); c.moveTo(-k, -k); c.lineTo(0, -k); c.lineTo(0, 0); c.lineTo(-k, 0); c.closePath(); c.stroke();
+    c.strokeStyle = pink; c.beginPath(); c.moveTo(0, -k); c.lineTo(k, -k); c.moveTo(k, 0); c.lineTo(k, k); c.moveTo(-k, k); c.lineTo(0, k); c.stroke(); c.lineCap = 'butt';
+    for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { circ(c, a * k, b * k, z * 0.05); c.fillStyle = '#e8e8f0'; c.fill(); }
+  } else if (id === 'pig') {
+    bzDie(c, -z * 0.04, z * 0.02, z * 0.6, 1 + Math.floor(T * 5) % 6, -0.2, '#2a2a33');
+  }
+  c.restore();
 }
 // ---- the minigames' look: panels, shadows and shading, and motion that eases instead of snapping ----
 const easeBack = q => { q = clamp(q, 0, 1); return 1 + 2.70158 * Math.pow(q - 1, 3) + 1.70158 * Math.pow(q - 1, 2); };
