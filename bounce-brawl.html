@@ -428,10 +428,13 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 #intro .it span { --c1: var(--txt); margin: 0 .1em; animation: itShine .6s ease-in-out .85s; }
 @keyframes itIn { from { opacity: 0; letter-spacing: .5em; transform: translateY(18px) scale(.94) } }
 @keyframes itShine { from { background-position: 100% 0 } to { background-position: 0 0 } }
-/* the menu stacking up: each piece drops as a brick with studs on top, then fades to what it is */
-#bricks { position: fixed; inset: 0; z-index: 91; pointer-events: none; overflow: hidden; }
-.brick { position: absolute; box-sizing: border-box; border-radius: 3px; background: var(--c); box-shadow: inset 0 2px rgba(255,255,255,.35), inset 0 -4px rgba(0,0,0,.28); transform-origin: 50% 100%; }
-.brick::before { content: ""; position: absolute; left: 7px; right: 7px; top: -5px; height: 5px; background: repeating-linear-gradient(90deg, var(--c) 0 14px, transparent 14px 25px); }
+/* the title's little scene: stand-ins for its three words, over the real title, with the sparks when they hit and the 2's "!" */
+#skit { position: fixed; inset: 0; z-index: 5; pointer-events: none; overflow: hidden; }
+#skit .w { position: absolute; white-space: nowrap; transform-origin: 50% 85%; }
+#skit .bang { position: absolute; width: 1em; margin-left: -.5em; text-align: center; font-family: var(--fd); line-height: 1; color: var(--gold); text-shadow: 0 3px 0 rgba(0,0,0,.6); transform-origin: 50% 85%; }
+#skit i, #skit b { position: absolute; opacity: 0; }
+#skit i { width: 18px; height: 3px; margin-top: -1.5px; border-radius: 2px; transform-origin: 0 50%; }
+#skit b { background: #fff; clip-path: polygon(50% 0%, 59% 30%, 85% 12%, 72% 39%, 100% 50%, 72% 61%, 85% 88%, 59% 70%, 50% 100%, 41% 70%, 15% 88%, 28% 61%, 0% 50%, 28% 39%, 15% 12%, 41% 30%); }
 #bg { transition: opacity .5s ease; }
 #bg.fade, body.pre #bg { opacity: 0; }
 .logo-tag { animation: rise .6s var(--ease) .05s backwards; }
@@ -988,7 +991,7 @@ svg.mst.on { fill: var(--gold); }
 // A fight is played out from a seed, separately in each player's browser, so
 // the simulation may only use + - * / and sqrt (the same in every engine):
 // no Math.sin/cos/atan2/hypot/pow/exp, no Math.random, no clocks.
-const VERSION = 25;
+const VERSION = 26;
 const HP_SCALE = 0.33;                     // every ball's health is scaled by this, so fights end sooner
 const TAU = 6.283185307179586, PI = 3.141592653589793, HALF_PI = 1.5707963267948966;
 const DT = 1 / 60, SUB = 3;            // 60 steps a second, 3 physics substeps each
@@ -2050,42 +2053,42 @@ function mapStep(S, dt) {
 }
 
 // ===== BeeZap bends the box ===============================================
-// The box can be any shape: a set of closed outlines in units of half the box (-1 to 1, y down), even-odd, so an
+// The box can be any shape, as big as it can be and still look like what it is: tips that would stick out past the
+// box are cut off flat by it. A set of closed outlines in units of half the box (-1 to 1, y down), even-odd, so an
 // outline inside another is a hole. They scale with the box, so tiny boxes and closing walls still work. Balls and
 // shots bounce off the real outline. A ball the new shape leaves outside gets dragged back in over a moment (shapeEase).
 const shRing = (r, n, x, y, a) => { const p = []; for (let i = 0; i < n; i++) { const t = (a || 0) + i * TAU / n; p.push((x || 0) + dcos(t) * r, (y || 0) + dsin(t) * r); } return p; };
 const shPolar = (fn, n) => { const p = []; for (let i = 0; i < n; i++) { const t = i * TAU / n, r = fn(t); p.push(dcos(t) * r, dsin(t) * r); } return p; };
 const shRect = (a, b, c, d) => [a, b, c, b, c, d, a, d];
-const shTurn = (p, a) => { const o = [], c = dcos(a), s = dsin(a); for (let i = 0; i < p.length; i += 2) o.push(p[i] * c - p[i + 1] * s, p[i] * s + p[i + 1] * c); return o; };
-const SH_PLUS = [-0.38, -1, 0.38, -1, 0.38, -0.38, 1, -0.38, 1, 0.38, 0.38, 0.38, 0.38, 1, -0.38, 1, -0.38, 0.38, -1, 0.38, -1, -0.38, -0.38, -0.38];
+const SH_HEX = [0, -1, 1, -0.5, 1, 0.5, 0, 1, -1, 0.5, -1, -0.5];
 const SHAPES = {
   circle:    { name: 'Circle', polys: [shRing(1, 56)] },
-  donut:     { name: 'Donut', polys: [shRing(1, 56), shRing(0.4, 32)] },
-  plus:      { name: 'Plus', polys: [SH_PLUS] },
-  minus:     { name: 'Minus', thin: 1, polys: [shRect(-1, -0.42, 1, 0.42)] },
-  pillar:    { name: 'Pillar', thin: 1, polys: [shRect(-0.42, -1, 0.42, 1)] },
-  cross:     { name: 'Cross', polys: [shTurn(SH_PLUS, PI / 4)] },
-  diamond:   { name: 'Diamond', polys: [[0, -1, 1, 0, 0, 1, -1, 0]] },
-  triangle:  { name: 'Triangle', polys: [[0, -1, 1, 0.85, -1, 0.85]] },
-  hexagon:   { name: 'Hexagon', polys: [shRing(1, 6, 0, 0, HALF_PI)] },
-  star:      { name: 'Star', polys: [(() => { const p = []; for (let i = 0; i < 10; i++) { const t = -HALF_PI + i * TAU / 10, r = i & 1 ? 0.54 : 1; p.push(dcos(t) * r, dsin(t) * r); } return p; })()] },
-  heart:     { name: 'Heart', polys: [(() => { const p = []; for (let i = 0; i < 56; i++) { const t = i * TAU / 56, s = dsin(t); p.push(16 * s * s * s / 17, (-1 - (13 * dcos(t) - 5 * dcos(2 * t) - 2 * dcos(3 * t) - dcos(4 * t))) / 17); } return p; })()] },
-  moon:      { name: 'Moon', polys: [(() => { const p = []; for (let i = 0; i <= 40; i++) { const t = 0.924 + i * (TAU - 1.848) / 40; p.push(dcos(t), dsin(t)); } for (let i = 0; i <= 24; i++) { const t = TAU - 1.506 - i * (TAU - 3.012) / 24; p.push(0.55 + dcos(t) * 0.8, dsin(t) * 0.8); } return p; })()] },
-  letterc:   { name: 'Letter C', polys: [(() => { const p = []; for (let i = 0; i <= 40; i++) { const t = 0.6 + i * (TAU - 1.2) / 40; p.push(dcos(t), dsin(t)); } for (let i = 24; i >= 0; i--) { const t = 0.9 + i * (TAU - 1.8) / 24; p.push(dcos(t) * 0.4, dsin(t) * 0.4); } return p; })()] },
-  letteru:   { name: 'Letter U', polys: [[-1, -1, -0.42, -1, -0.42, 0.3, 0.42, 0.3, 0.42, -1, 1, -1, 1, 1, -1, 1]] },
-  letterl:   { name: 'Letter L', polys: [[-1, -1, -0.3, -1, -0.3, 0.3, 1, 0.3, 1, 1, -1, 1]] },
-  lettert:   { name: 'Letter T', polys: [[-1, -1, 1, -1, 1, -0.3, 0.36, -0.3, 0.36, 1, -0.36, 1, -0.36, -0.3, -1, -0.3]] },
-  letterh:   { name: 'Letter H', polys: [[-1, -1, -0.42, -1, -0.42, -0.3, 0.42, -0.3, 0.42, -1, 1, -1, 1, 1, 0.42, 1, 0.42, 0.3, -0.42, 0.3, -0.42, 1, -1, 1]] },
+  donut:     { name: 'Donut', polys: [shRing(1, 56), shRing(0.3, 32)] },
+  plus:      { name: 'Plus', polys: [[-0.5, -1, 0.5, -1, 0.5, -0.5, 1, -0.5, 1, 0.5, 0.5, 0.5, 0.5, 1, -0.5, 1, -0.5, 0.5, -1, 0.5, -1, -0.5, -0.5, -0.5]] },
+  minus:     { name: 'Minus', thin: 1, polys: [shRect(-1, -0.6, 1, 0.6)] },
+  pillar:    { name: 'Pillar', thin: 1, polys: [shRect(-0.6, -1, 0.6, 1)] },
+  cross:     { name: 'Cross', polys: [[-1, -1, -0.5, -1, 0, -0.5, 0.5, -1, 1, -1, 1, -0.5, 0.5, 0, 1, 0.5, 1, 1, 0.5, 1, 0, 0.5, -0.5, 1, -1, 1, -1, 0.5, -0.5, 0, -1, -0.5]] },
+  diamond:   { name: 'Diamond', polys: [[-0.2, -1, 0.2, -1, 1, -0.2, 1, 0.2, 0.2, 1, -0.2, 1, -1, 0.2, -1, -0.2]] },
+  triangle:  { name: 'Triangle', polys: [[-0.109, -1, 0.109, -1, 1, 0.633, 1, 1, -1, 1, -1, 0.633]] },
+  hexagon:   { name: 'Hexagon', polys: [SH_HEX] },
+  star:      { name: 'Star', polys: [(() => { const p = []; for (let i = 0; i < 10; i++) { const t = -HALF_PI + i * TAU / 10, r = i & 1 ? 0.66 : 1; p.push(dcos(t) * r * 1.05, -1 + (dsin(t) * r + 1) * 1.105); } return p; })()] },
+  heart:     { name: 'Heart', polys: [(() => { const p = []; for (let i = 0; i < 56; i++) { const t = i * TAU / 56, s = dsin(t); p.push(s * s * s, 1 - (17 + 13 * dcos(t) - 5 * dcos(2 * t) - 2 * dcos(3 * t) - dcos(4 * t)) / 14.5); } return p; })()] },
+  moon:      { name: 'Moon', polys: [(() => { const p = []; for (let i = 0; i <= 40; i++) { const t = 0.8 + i * (TAU - 1.6) / 40; p.push(dcos(t), dsin(t)); } for (let i = 0; i <= 24; i++) { const t = TAU - 1.646 - i * (TAU - 3.292) / 24; p.push(0.75 + dcos(t) * 0.72, dsin(t) * 0.72); } return p; })()] },
+  letterc:   { name: 'Letter C', polys: [[-1, -1, 1, -1, 1, -0.42, -0.38, -0.42, -0.38, 0.42, 1, 0.42, 1, 1, -1, 1]] },
+  letteru:   { name: 'Letter U', polys: [[-1, -1, -0.36, -1, -0.36, 0.24, 0.36, 0.24, 0.36, -1, 1, -1, 1, 1, -1, 1]] },
+  letterl:   { name: 'Letter L', polys: [[-1, -1, -0.1, -1, -0.1, 0.1, 1, 0.1, 1, 1, -1, 1]] },
+  lettert:   { name: 'Letter T', polys: [[-1, -1, 1, -1, 1, -0.1, 0.5, -0.1, 0.5, 1, -0.5, 1, -0.5, -0.1, -1, -0.1]] },
+  letterh:   { name: 'Letter H', polys: [[-1, -1, -0.36, -1, -0.36, -0.36, 0.36, -0.36, 0.36, -1, 1, -1, 1, 1, 0.36, 1, 0.36, 0.36, -0.36, 0.36, -0.36, 1, -1, 1]] },
   letterz:   { name: 'Letter Z', thin: 1, polys: [[-1, -1, 1, -1, 1, -0.4, -0.1, 0.4, 1, 0.4, 1, 1, -1, 1, -1, 0.4, 0.1, -0.4, -1, -0.4]] },
-  hourglass: { name: 'Hourglass', polys: [[-1, -1, 1, -1, 0.3, 0, 1, 1, -1, 1, -0.3, 0]] },
-  eight:     { name: 'Figure 8', polys: [shPolar(t => { const u = dsin(t), v = Math.abs(u) * 0.45; return v + Math.sqrt(v * v + 0.1); }, 56)] },
-  frame:     { name: 'Square Donut', polys: [shRect(-1, -1, 1, 1), shRect(-0.42, -0.42, 0.42, 0.42)] },
-  cheese:    { name: 'Swiss Cheese', polys: [shRing(1, 56), shRing(0.18, 20, 0, -0.5), shRing(0.18, 20, 0.433, 0.25), shRing(0.18, 20, -0.433, 0.25)] },
-  clover:    { name: 'Clover', polys: [shPolar(t => 0.7 + 0.3 * dcos(4 * t), 64)] },
-  gear:      { name: 'Gear', polys: [(() => { const p = []; for (let i = 0; i < 40; i++) { const t = i * TAU / 40, r = (i % 5) < 2 ? 1 : 0.76; p.push(dcos(t) * r, dsin(t) * r); } return p; })()] },
-  hive:      { name: 'The Hive', polys: [shRing(1, 6, 0, 0, HALF_PI), shRing(0.4, 6, 0, 0, HALF_PI)] },
-  arrow:     { name: 'Arrow', polys: [[-1, -0.38, 0.1, -0.38, 0.1, -1, 1, 0, 0.1, 1, 0.1, 0.38, -1, 0.38]] },
-  bolt:      { name: 'Lightning Bolt', thin: 1, polys: [[0.25, -1, -0.8, 0.14, -0.1, 0.14, -0.35, 1, 0.8, -0.26, 0.12, -0.26, 0.6, -1]] },
+  hourglass: { name: 'Hourglass', polys: [[-1, -1, 1, -1, 0.45, 0, 1, 1, -1, 1, -0.45, 0]] },
+  eight:     { name: 'Figure 8', polys: [(() => { const p = [], w = 1.0197, n = 28, all = PI + 2 * w; for (let i = 0; i < n; i++) { const t = w - i * all / n; p.push(dcos(t) * 0.8, -0.46 + dsin(t) * 0.54); } for (let i = 0; i < n; i++) { const t = PI + w - i * all / n; p.push(dcos(t) * 0.8, 0.46 + dsin(t) * 0.54); } return p; })()] },
+  frame:     { name: 'Square Donut', polys: [shRect(-1, -1, 1, 1), shRect(-0.36, -0.36, 0.36, 0.36)] },
+  cheese:    { name: 'Swiss Cheese', polys: [shRing(1, 56), shRing(0.16, 20, 0, -0.5), shRing(0.16, 20, 0.433, 0.25), shRing(0.16, 20, -0.433, 0.25)] },
+  clover:    { name: 'Clover', polys: [shPolar(t => Math.max(Math.abs(dcos(t)), Math.abs(dsin(t))), 64)] },
+  gear:      { name: 'Gear', polys: [(() => { const p = []; for (let i = 0; i < 40; i++) { const t = i * TAU / 40, r = (i % 5) < 2 ? 1 : 0.84; p.push(dcos(t) * r, dsin(t) * r); } return p; })()] },
+  hive:      { name: 'The Hive', polys: [SH_HEX, shRing(0.3, 6, 0, 0, HALF_PI)] },
+  arrow:     { name: 'Arrow', polys: [[-1, -0.6, -0.1, -0.6, -0.1, -1, 1, -0.185, 1, 0.185, -0.1, 1, -0.1, 0.6, -1, 0.6]] },
+  bolt:      { name: 'Lightning Bolt', thin: 1, polys: [[-0.2, -1, 1, -1, 0.42, -0.2, 1, -0.2, -0.6, 1, -0.2, 0.2, -1, 0.2]] },
 };
 for (const id in SHAPES) {
   const s = SHAPES[id], g = [];
@@ -10092,16 +10095,22 @@ function modHud(F) {
   bzJolt(el, [{ transform: 'scale(1)', background: 'transparent' }, { transform: 'scale(1.22)', background: 'rgba(255,214,51,0.28)', offset: 0.35 }, { transform: 'scale(1)', background: 'transparent' }], 650);
 }
 // ---- BeeZap bends the map to a new shape ----
-// The whole box goes liquid: the picture ripples in waves that swell until you can't tell what it is, the old map
-// melting into the new one at the worst of it, then settles with a wobble while a yellow line draws the new walls.
-// The balls ride on top. When the fight moves again the new walls drag in anything left outside them.
-const BZ_SHAPE = { MIX0: 0.5, MIX: 0.85, WALL0: 1.05, WALL: 0.75, HIT: 1.32, END: 2.75 };
+// The old map comes down. Cracks run out from BeeZap along the joins between its bricks while the shaking builds, then
+// the bricks let go, the bottom row first and on up, and fall off the screen. That leaves the balls hanging over the
+// hive. A yellow line draws the new walls in the dark, the new map's bricks drop in from the top and stack up from the
+// bottom, and when the last row lands the map takes with a bang and its name slams down. When the fight moves again
+// the new walls drag in anything left outside them.
+const BZ_SHAPE = { CRACK: 0.5, LETGO: 0.5, WAVE: 0.4, FALL: 0.5, LINE0: 1.2, LINE: 0.5, STACK0: 2.05, STACK: 0.75, DROP: 0.36, HIT: 2.8, END: 3.55, ROWS: 14, COLS: 7 };
 function openShape(F, e) {
   const cv = bzLayer(F), A = F.arena, res = h('div', { class: 'bzres', text: 'The map is now: ' + SHAPES[e.to].name + '.' });
   const plq = h('div', { class: 'bzplq slotplq', 'aria-live': 'polite' }, h('div', { class: 'bzh', text: 'BEEZAP BENDS THE MAP' }), res);
-  F.root.querySelector('.arena').append(plq);
-  const f = F.S.F[e.side];
-  F.wheel = { kind: 'shape', e, cv, plq, T: 0, frame: shapeFrame, close() { cv.remove(); plq.remove(); A.layer = null; A.cv.style.opacity = ''; } };
+  const wrap = F.root.querySelector('.arena'), f = F.S.F[e.side];
+  wrap.append(plq);
+  // this one's canvas runs the full height of the screen, over the bars, so the map really does fall off the bottom
+  // of it and come in from the very top. W.off is how far down it the box's own drawing starts
+  const up = wrap.offsetTop, down = Math.max(0, F.root.clientHeight - up - wrap.offsetHeight);
+  cv.style.top = -up + 'px'; cv.style.height = `calc(100% + ${up + down}px)`;
+  F.wheel = { kind: 'shape', e, cv, plq, T: 0, at: f ? [f.x, f.y] : [ARENA / 2, ARENA / 2], rows: 0, off: Math.round(up * (A.dpr || 1)), frame: shapeFrame, close() { cv.remove(); plq.remove(); A.layer = null; A.cv.style.opacity = ''; } };
   A.shake = 0; A.flash = 0;
   if (f) A.ring(f.x, f.y, f.r, f.r * 4, '#ffd633', 7, 0.6);
   SFX.tstop(); SFX.charge();
@@ -10117,59 +10126,124 @@ function shapeSnap(F, W, g) {
   const old = Object.create(S); old.shape = e.from ? SHAPES[e.from] : null; old.rule = e.rule; old.map = e.oldMap;
   W.oldPic = snap(old); W.newPic = snap(S);
   A.layer = 'balls'; A.draw(S, F.t);
+  shapeBricks(W, g);
+}
+// the box cut into rows of bricks, each row half a brick along from the last, sharing whole pixels so no joins show
+function shapeBricks(W, g) {
+  const G = BZ_SHAPE, A = g.A, m = Math.round(4 * A.k), x0 = Math.round(g.x) - m, y0 = Math.round(g.y) - m, z = Math.round(g.size) + 2 * m, out = [];
+  const bx = g.x + (A.flip ? ARENA - W.at[0] : W.at[0]) * A.k, by = g.y + W.at[1] * A.k;
+  let far = 1;
+  for (let r = 0; r < G.ROWS; r++) {
+    const y = y0 + Math.round(r * z / G.ROWS), hh = y0 + Math.round((r + 1) * z / G.ROWS) - y, odd = r & 1, up = (G.ROWS - 1 - r) / (G.ROWS - 1);
+    for (let i = 0; i < G.COLS + odd; i++) {
+      const a = Math.max(0, i - odd / 2), b = Math.min(G.COLS, i + 1 - odd / 2), x = x0 + Math.round(a * z / G.COLS), w = x0 + Math.round(b * z / G.COLS) - x;
+      const mx = x + w / 2, my = y + hh / 2, d = Math.sqrt((mx - bx) * (mx - bx) + (my - by) * (my - by));
+      far = Math.max(far, d);
+      out.push({ x, y, w, h: hh, d,
+        at: G.LETGO + up * G.WAVE + Math.random() * 0.07, vx: (mx - x0 - z / 2) * (0.25 + Math.random() * 0.75), spin: (Math.random() - 0.5) * 7,   // falling off
+        land: G.STACK0 + up * (G.STACK - 0.05) + Math.random() * 0.05, tilt: (Math.random() - 0.5) * 0.8, dx: (Math.random() - 0.5) * z * 0.12 });   // stacking up
+    }
+  }
+  for (const q of out) q.d /= far;
+  W.bricks = out; W.pit = [x0, y0, z];
+}
+// one brick away from its place: the picture on top, a chunky side under it, a yellow edge
+function shapeBrick(c, pic, q, x, y, rot, edge, lw) {
+  c.save(); c.translate(x + q.w / 2, y + q.h / 2); c.rotate(rot);
+  const hw = q.w / 2, hh = q.h / 2;
+  c.fillStyle = '#7a5410'; c.fillRect(-hw, hh, q.w, q.h * 0.24);
+  c.drawImage(pic, q.x, q.y, q.w, q.h, -hw, -hh, q.w, q.h);
+  c.fillStyle = 'rgba(255,214,51,0.07)'; c.fillRect(-hw, -hh, q.w, q.h);
+  c.lineWidth = lw; c.strokeStyle = `rgba(255,214,51,${edge.toFixed(3)})`; c.strokeRect(-hw, -hh, q.w, q.h);
+  c.restore();
 }
 function shapeFrame(F, dt) {
   const W = F.wheel, A = F.arena, G = BZ_SHAPE, T = (W.T += dt), e = W.e, S = F.S, g = bzFit(F, W.cv), c = g.c, s = g.size, X = g.x, Y = g.y, d = g.dpr;
   A.cv.style.opacity = '0';
   if (W.oldPic.width !== g.w || W.oldPic.height !== g.h) shapeSnap(F, W, g);
-  // how hard it's bending: up to the worst of it just as the new walls take, then a wobble dying away
-  const swell = easeIO(T / G.HIT), fall = T < G.HIT ? 1 : Math.exp(-(T - G.HIT) * 2.6) * (0.75 + 0.25 * Math.cos((T - G.HIT) * 9));
-  const amp = swell * fall, mix = easeIO((T - G.MIX0) / G.MIX), cx = X + s / 2, cy = Y + s / 2;
-  c.fillStyle = '#050408'; c.fillRect(0, 0, g.w, g.h);
-  c.save();
-  // the box itself leans and breathes with it
-  c.translate(cx, cy); c.rotate(amp * 0.09 * Math.sin(T * 5.2)); const zm = 1 - amp * 0.08 + amp * 0.05 * Math.sin(T * 8.5); c.scale(zm, zm * (1 + amp * 0.04 * Math.sin(T * 11))); c.translate(-cx, -cy);
-  // sliced into strips that each slide a little further along a pair of travelling waves
-  const step = Math.max(2, Math.round(3 * d)), y0 = Math.max(0, Math.floor(Y - s * 0.1)), y1 = Math.min(g.h, Math.ceil(Y + s * 1.1));
-  const strip = (pic, a) => {
-    if (a <= 0.003) return;
-    c.globalAlpha = a;
-    for (let y = y0; y < y1; y += step) {
-      const v = (y - Y) / s, off = amp * s * (0.1 * Math.sin(v * 10 + T * 8.5) + 0.04 * Math.sin(v * 27 - T * 13) + 0.02 * Math.sin(v * 53 + T * 21));
-      c.drawImage(pic, 0, y, g.w, step, off, y, g.w, step + 0.6);
+  c.translate(0, W.off);
+  const cx = X + s / 2, lw = Math.max(1, 1.5 * d), [px, py, pz] = W.pit, full = g.h + s * 0.2, grav = 2 * full / (G.FALL * G.FALL);
+  // what the map was sitting on all along: the hive, in the dark
+  if (T < G.HIT + 0.45) {
+    c.fillStyle = '#040306'; c.fillRect(px, py, pz, pz);
+    c.save(); c.beginPath(); c.rect(px, py, pz, pz); c.clip(); c.translate(cx, Y + s / 2); c.scale(s / 124, s / 124); c.lineWidth = 0.3; c.strokeStyle = 'rgba(245,189,18,0.2)'; c.stroke(BZ_COMB); c.restore();
+  }
+  // the shaking builds until it lets go, and dies away as the last of it falls
+  const rum = T < G.LETGO ? 7 * d * Math.pow(T / G.LETGO, 2) : 7 * d * Math.max(0, 1 - (T - G.LETGO) / G.WAVE);
+  const jx = (Math.random() - 0.5) * rum, jy = (Math.random() - 0.5) * rum;
+  // the new map stacking up from the bottom
+  if (T >= G.HIT + 0.4) c.drawImage(W.newPic, 0, 0);
+  else if (T > G.STACK0 - G.DROP) {
+    for (const q of W.bricks) {
+      const u = T - q.land;
+      if (u >= 0) {
+        // landed: a little hop, lit up for a moment, then it's just floor
+        const hop = u < 0.13 ? q.h * 0.2 * Math.sin(Math.PI * u / 0.13) : 0;
+        c.drawImage(W.newPic, q.x, q.y, q.w, q.h, q.x, q.y - hop, q.w, q.h);
+        if (u < 0.16) { c.fillStyle = `rgba(255,244,192,${(0.5 * (1 - u / 0.16)).toFixed(3)})`; c.fillRect(q.x, q.y - hop, q.w, q.h); }
+        if (u < 0.4) { c.lineWidth = lw; c.strokeStyle = `rgba(255,214,51,${(0.85 * (1 - u / 0.4)).toFixed(3)})`; c.strokeRect(q.x, q.y - hop, q.w, q.h); }
+      } else {
+        // on its way down, the same pull as the old map fell with
+        const dist = q.y + W.off + q.h * 2, t = G.DROP * Math.sqrt(dist / (py + pz + W.off)), f = 1 + u / t;
+        if (f > 0) shapeBrick(c, W.newPic, q, q.x + q.dx * (1 - f), q.y - dist * (1 - f * f), q.tilt * (1 - f), 0.9, lw);
+      }
     }
-  };
-  strip(W.oldPic, 1); strip(W.newPic, mix);
-  c.globalAlpha = 1;
-  // the new walls draw themselves over the melt, then flash as they take
-  const sh = SHAPES[e.to], wq = (T - G.WALL0) / G.WALL, k = (S.box.x1 - S.box.x0) / 2 * A.k;
-  if (wq > 0 && wq < 1.8) {
+  }
+  // the old map coming down: still in place with the cracks running along its joins, or falling
+  if (T < G.LETGO + G.WAVE + G.FALL + 0.1) {
+    for (const q of W.bricks) {
+      const u = T - q.at;
+      if (u > 0) {
+        const y = q.y + 0.5 * grav * u * u;
+        if (y < g.h + q.w) shapeBrick(c, W.oldPic, q, q.x + q.vx * u, y, q.spin * u * (0.4 + u), 0.9, lw);
+        continue;
+      }
+      c.drawImage(W.oldPic, q.x, q.y, q.w, q.h, q.x + jx, q.y + jy, q.w, q.h);
+    }
+    for (const q of W.bricks) {
+      const lit = clamp((T / G.CRACK - q.d * 0.72) / 0.28, 0, 1);
+      if (lit <= 0 || T >= q.at) continue;
+      c.lineWidth = 3 * lw; c.strokeStyle = `rgba(0,0,0,${(0.75 * lit).toFixed(3)})`; c.strokeRect(q.x + jx, q.y + jy, q.w, q.h);
+      c.lineWidth = lw; c.strokeStyle = `rgba(255,214,51,${lit.toFixed(3)})`; c.strokeRect(q.x + jx, q.y + jy, q.w, q.h);
+    }
+  }
+  // the line that draws the new walls in the dark, and stays until the map under it has taken
+  const sh = SHAPES[e.to], wq = (T - G.LINE0) / G.LINE, k = (S.box.x1 - S.box.x0) / 2 * A.k;
+  if (wq > 0 && T < G.HIT + 0.45) {
     c.save(); c.translate(X + s / 2, Y + s / 2); if (A.flip) c.scale(-1, 1); c.scale(k, k);
-    const a = wq < 1 ? 1 : 1 - (wq - 1) / 0.8, len = shapeLen(sh), P = shapePath(sh);
+    const len = shapeLen(sh), P = shapePath(sh);
     c.setLineDash([len * easeIO(wq), len]); c.lineDashOffset = 0; c.lineJoin = 'round'; c.lineCap = 'round';
-    c.globalAlpha = a; c.lineWidth = 12 * A.k / k; c.strokeStyle = 'rgba(255,214,51,0.35)'; c.stroke(P);
+    c.globalAlpha = T < G.HIT ? 1 : 1 - (T - G.HIT) / 0.45; c.lineWidth = 12 * A.k / k; c.strokeStyle = 'rgba(255,214,51,0.35)'; c.stroke(P);
     c.lineWidth = 5 * A.k / k; c.strokeStyle = '#fff4c0'; c.stroke(P);
     c.setLineDash([]); c.restore(); c.globalAlpha = 1;
   }
-  c.drawImage(A.cv, 0, 0);
-  c.restore();
+  // the balls: they sink a little when the floor goes from under them and hang there, turning back as the new one comes up
+  const sag = easeIO((T - G.LETGO) / 0.5) * (1 - easeIO((T - G.STACK0) / (G.HIT - G.STACK0)));
+  c.drawImage(A.cv, 0, sag * s * (0.028 + 0.008 * Math.sin(T * 5)));
   // the flash as it takes
   const fl = 1 - (T - G.HIT) / 0.35;
   if (T >= G.HIT && fl > 0) { c.fillStyle = `rgba(255,240,190,${(0.6 * fl * fl).toFixed(3)})`; c.fillRect(X, Y, s, s); }
-  // the name slams down over it
-  const nq = (T - 0.72) / 0.28, oq = easeIO((T - G.END + 0.5) / 0.5);
-  if (nq > 0) {
-    const z = 1 + (1 - easeBack(nq)) * 2.2, y = Y + s * 0.14 - oq * s * 0.22;
-    c.save(); c.translate(cx, y); c.scale(z, z); c.globalAlpha = clamp(nq * 2, 0, 1) * (1 - oq);
-    c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.font = `400 ${Math.round(s * 0.036)}px ${FONT_D}`; c.fillStyle = 'rgba(0,0,0,0.85)'; c.fillText('BEEZAP BENDS THE MAP', 1.5 * d, -s * 0.056 + 1.5 * d, s * 0.9); c.fillStyle = '#ffd633'; c.fillText('BEEZAP BENDS THE MAP', 0, -s * 0.056, s * 0.9);
-    const nm = sh.name.toUpperCase();
-    c.font = `400 ${Math.round(s * 0.105)}px ${FONT_D}`; c.fillStyle = 'rgba(0,0,0,0.9)'; c.fillText(nm, 3 * d, 3 * d, s * 0.92); c.fillStyle = '#fff'; c.fillText(nm, 0, 0, s * 0.92);
+  // who's doing this, from the start, and the name of what it's built when it's done
+  const hq = (T - 0.1) / 0.24, nq = (T - G.HIT) / 0.24, oq = easeIO((T - G.END + 0.45) / 0.45);
+  if (hq > 0 && oq < 1) {
+    const y = Y + s * 0.14 - oq * s * 0.22;
+    c.save(); c.translate(cx, y); c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.save(); const hz = 1 + (1 - easeBack(hq)) * 1.6; c.translate(0, -s * 0.062); c.scale(hz, hz); c.globalAlpha = clamp(hq * 2, 0, 1) * (1 - oq);
+    c.font = `400 ${Math.round(s * 0.044)}px ${FONT_D}`; c.fillStyle = 'rgba(0,0,0,0.85)'; c.fillText('BEEZAP BENDS THE MAP', 1.5 * d, 1.5 * d, s * 0.9); c.fillStyle = '#ffd633'; c.fillText('BEEZAP BENDS THE MAP', 0, 0, s * 0.9);
+    c.restore();
+    if (nq > 0) {
+      const z = 1 + (1 - easeBack(nq)) * 2.2, nm = sh.name.toUpperCase();
+      c.scale(z, z); c.globalAlpha = clamp(nq * 2, 0, 1) * (1 - oq);
+      c.font = `400 ${Math.round(s * 0.105)}px ${FONT_D}`; c.fillStyle = 'rgba(0,0,0,0.9)'; c.fillText(nm, 3 * d, 3 * d, s * 0.92); c.fillStyle = '#fff'; c.fillText(nm, 0, 0, s * 0.92);
+    }
     c.restore();
   }
-  if (!W.s1 && T >= G.MIX0) { W.s1 = 1; SFX.hole(); SFX.warp(); }
-  if (!W.s2 && T >= 0.72) { W.s2 = 1; SFX.clang(); }
-  if (!W.s3 && T >= G.HIT) { W.s3 = 1; SFX.boom(); bzShake(F, BZ_SHAKE, 450); if (e.rule !== S.rule) modHud(F); }
+  // the moments it makes a noise
+  if (!W.s1 && T >= G.LETGO) { W.s1 = 1; SFX.boom(); SFX.hole(); bzShake(F, BZ_SHAKE, 450); }
+  if (!W.s2 && T >= G.LINE0) { W.s2 = 1; SFX.warp(); }
+  const n = T < G.STACK0 ? 0 : Math.min(G.ROWS, 1 + Math.floor((T - G.STACK0) / (G.STACK / (G.ROWS - 1))));
+  if (n > W.rows) { W.rows = n; SFX.clack(); SFX.tick(n / G.ROWS); }
+  if (!W.s3 && T >= G.HIT) { W.s3 = 1; SFX.boom(); SFX.clang(); bzShake(F, BZ_SHAKE, 450); if (e.rule !== S.rule) modHud(F); }
   if (T >= G.END) { W.close(); openTake(F); }
 }
 function shapeLen(sh) {
@@ -11278,7 +11352,7 @@ async function beeSecret(v) {
 }
 function b2wig() { if (!TR) return; const b = TR.bee; b.classList.remove('wig'); void b.offsetWidth; b.classList.add('wig'); }
 // the first time, once you have a ball and nothing else is open, the bee shows you around
-setInterval(() => { if (!G.tut && G.starter && G.eq && !FIGHT && !TR && TAB === 'menu' && !topSheet() && !document.querySelector('#intro')) startTour(); }, 1500);
+setInterval(() => { if (!G.tut && G.starter && G.eq && !FIGHT && !TR && TAB === 'menu' && !topSheet() && !document.querySelector('#intro, #skit')) startTour(); }, 1500);
 
 // ===== HOOK: with BeeZap equipped, watch anyone's fight and hook into it ======================
 // Everyone in a one-on-one fight puts its setup in their presence as fx: {id, s seed, r rule, m mode,
@@ -11615,12 +11689,11 @@ function hookinFrame(F, dt) {
 
 
 // ===== opening the game ===================================================
-// Two balls fly in and hit in the middle, the title lands, and then the menu stacks itself up from the bottom of the
-// screen like toy bricks: each piece drops as a solid brick, clicks onto the pile, and turns into itself. Short on
-// purpose. A press skips it. (Test browsers skip it too, unless the page asks for ?intro=1.)
+// Two balls fly in and hit in the middle and the title lands. Then the menu slides in from the left with a little scene
+// in its title: BRAWL gets to its spot, BOUNCE doesn't stop in time, and the two of them start fighting, until the 2
+// turns up, sees them and throws up a "!". They freeze, look round and slide back into place. Any press skips it, and
+// the menu works the whole time. (Test browsers skip it too, unless the page asks for ?intro=1.)
 const INTRO_MS = 1450;                                        // how long the two balls and the title hold the screen
-const BRICK = { SPAN: 720, DROP: 300, HOLD: 90, FADE: 150 };  // ms: all the bricks' starts, one brick's drop, then it fades to what it is
-const BRICK_COLS = ['#ff2d78', '#ffd23f', '#4aa3ff', '#3ddc84', '#ff4646'];
 function intro(done) {
   if (REDUCED || document.hidden || (/HeadlessChrome/.test(navigator.userAgent) && !/[?&]intro=1/.test(location.search))) { done(false); return; }
   const a = G.eq && BALL[G.eq] ? G.eq : 'sword', others = BALLS.filter(b => b.id !== a), b = others[Math.floor(Math.random() * others.length)].id, sparks = [];
@@ -11630,57 +11703,151 @@ function intro(done) {
     h('div', { class: 'it', html: 'BOUNCE <span>BRAWL</span> 2' }));
   document.body.classList.add('pre');
   document.body.append(el);
-  let over = false, bricks = null;
+  let over = false, skit = null;
   const finish = () => {
     if (over) return; over = true;
-    clearTimeout(timer);
+    clearTimeout(timer); clearTimeout(fade);
     removeEventListener('pointerdown', press, true); removeEventListener('keydown', press, true);
-    if (bricks) bricks.finish();
+    if (skit) skit.finish();
     document.body.classList.remove('pre');
     if (el.isConnected) { el.classList.add('out'); setTimeout(() => el.remove(), 260); }
     done(true);
   };
   // a press skips it. A key that skips the two balls does nothing else, but it can still start the sound
   const press = ev => {
-    if (!bricks && ev.type === 'keydown') { ev.stopPropagation(); SFX.resume(); if (G.music && !FIGHT) MUSIC.play('menu'); }
+    if (!skit && ev.type === 'keydown') { ev.stopPropagation(); SFX.resume(); if (G.music && !FIGHT) MUSIC.play('menu'); }
     finish();
   };
-  const timer = setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 260); bricks = inBricks(finish); }, INTRO_MS);
+  // the black starts to lift just before the words come in, so they're seen coming. It still catches clicks until
+  // then, because the menu's buttons are there behind it but can't be seen yet
+  const fade = setTimeout(() => { el.classList.add('out'); el.style.pointerEvents = 'auto'; setTimeout(() => el.remove(), 260); }, INTRO_MS - 130);
+  const timer = setTimeout(() => { el.style.pointerEvents = ''; skit = titleSkit(finish); }, INTRO_MS);
   addEventListener('pointerdown', press, true); addEventListener('keydown', press, true);
 }
-// the menu stacks up: the pieces nearest the bottom of the screen drop first
-function inBricks(onEnd) {
-  const B = BRICK, wrap = h('div', { id: 'bricks', 'aria-hidden': 'true' }), anims = [], timers = [];
+// the scene. All of it runs on three stand-ins for the title's words, laid exactly over the real title, which stays
+// hidden until they've landed on it and is what's left when they go
+const SKIT = {
+  END: 2800, FADE: 140,                                        // ms
+  SEE: 1290, BANG: 1830, HOME: 2640,                           // the 2 sets off, the "!" goes up, everyone is back in place
+  HITS: [[350, 0.24, 0], [735, -0.24, 0], [1100, 0.04, 0], [1430, 0.03, -0.32, 1]],   // ms, where BOUNCE's front end is, how high, a big one
+};
+function titleSkit(onEnd) {
+  const K = SKIT, menu = $('#menu'), logo = menu.querySelector('.logo-main'), anims = [], timers = [];
   // the menu's own entrance has nothing left to do: this is its entrance
-  for (const a of $('#menu').getAnimations({ subtree: true })) { try { if (a.effect.getComputedTiming().iterations !== Infinity) a.finish(); } catch (err) { /* it stays as it is */ } }
+  for (const a of menu.getAnimations({ subtree: true })) { try { if (a.effect.getComputedTiming().iterations !== Infinity) a.finish(); } catch (err) { /* it stays as it is */ } }
   document.body.classList.remove('pre');
-  const pieces = [...document.querySelectorAll('.m-hint, #mcard, #mnav .m-item, .logo-sub, .logo-main, .logo-tag, .m-top, .m-ver')]
-    .map(el => ({ el, r: el.getBoundingClientRect() })).filter(p => p.r.width && p.r.height && p.r.top < innerHeight)
-    .sort((p, q) => q.r.bottom - p.r.bottom);
-  const step = B.SPAN / Math.max(1, pieces.length - 1);
-  pieces.forEach(({ el, r }, i) => {
-    const at = i * step, x = h('div', { class: 'brick', style: { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', '--c': BRICK_COLS[i % BRICK_COLS.length] } });
-    wrap.append(x);
-    // it falls, lands, squashes a little and clicks into place
-    anims.push(x.animate([
-      { transform: 'translateY(-70px)', opacity: 0, easing: 'cubic-bezier(.5,0,1,.6)' },
-      { opacity: 1, offset: 0.12 },
-      { transform: 'none', offset: 0.6, easing: 'ease-out' },
-      { transform: 'scale(1.02,.9)', offset: 0.76, easing: 'ease-in-out' },
-      { transform: 'translateY(-2px) scale(.995,1.03)', offset: 0.9 },
-      { transform: 'none', opacity: 1 },
-    ], { delay: at, duration: B.DROP, fill: 'both' }));
-    anims.push(x.animate([{ opacity: 1 }, { opacity: 0 }], { delay: at + B.DROP + B.HOLD, duration: B.FADE, fill: 'forwards' }));
-    // what it really is waits behind it until it's landed
-    anims.push(el.animate([{ opacity: 0 }, { opacity: 1 }], { delay: at + B.DROP, duration: 1, fill: 'backwards' }));
-    timers.push(setTimeout(() => SFX.clack(), at + B.DROP * 0.6));
+  // the sounds play if the browser allows them before anyone has pressed anything, and never pile up for later if not
+  SFX.resume();
+  const snd = (t, play) => timers.push(setTimeout(() => { const ac = SFX.ctx; if (ac && ac.state === 'running') play(); }, t));
+  const whoosh = () => SFX.noise(0.26, 0.1, 'bandpass', 500, 2400, 0.9);
+
+  // the rest of the menu slides in from the left, top to bottom. What sits over on the right only comes a little way
+  const stand = els => [...document.querySelectorAll(els)].map(el => ({ el, r: el.getBoundingClientRect() })).filter(p => p.r.width && p.r.height && p.r.top < innerHeight);
+  stand('.m-top, .logo-tag, .logo-sub, #mnav .m-item, .m-hint').sort((p, q) => p.r.top - q.r.top).forEach(({ el, r }, i) => {
+    anims.push(el.animate([{ offset: 0, transform: `translateX(${-(r.right + 30)}px)` }], { delay: 30 + i * 40, duration: 430, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' }));
   });
-  document.body.append(wrap);
-  timers.push(setTimeout(onEnd, B.SPAN + B.DROP + B.HOLD + B.FADE));
+  stand('#mcard, .m-ver').forEach(({ el }) => anims.push(el.animate([{ offset: 0, opacity: 0, transform: 'translateX(-70px)' }], { delay: 260, duration: 430, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' })));
+
+  // where each word of the title really is
+  const cs = getComputedStyle(logo), box = logo.getBoundingClientRect(), u = parseFloat(cs.fontSize);
+  const [nA, elB, nC] = logo.childNodes, rng = document.createRange();
+  const spot = (n, i, j) => { rng.setStart(n, i); rng.setEnd(n, j); return rng.getBoundingClientRect(); };
+  const rA = spot(nA, 0, nA.length), rB = elB.getBoundingClientRect(), rC = spot(nC, nC.length - 1, nC.length);
+  const word = (text, r, color) => h('div', { class: 'w', text, style: { left: r.left + 'px', top: box.top + 'px', color, fontFamily: cs.fontFamily, fontSize: cs.fontSize, fontWeight: cs.fontWeight, lineHeight: cs.lineHeight, letterSpacing: cs.letterSpacing } });
+  const A = word('BOUNCE', rA, 'var(--o)'), B = word('BRAWL', rB, 'var(--txt)'), C = word('2', rC, 'var(--o)');
+  const wrap = h('div', { id: 'skit', 'aria-hidden': 'true' }, C, B, A);
+  logo.style.visibility = 'hidden';
+
+  // a word's part in it: [ms, across, up/down, lean, how it gets to the next, squashed across, squashed up]. Distances are in letter heights
+  const IN = 'cubic-bezier(.6,0,.9,.55)', OUT = 'cubic-bezier(.12,.75,.3,1)', IO = 'ease-in-out', ON = 'linear';
+  const act = (el, part) => {
+    const T = part[part.length - 1][0];
+    anims.push(el.animate(part.map(([t, x, y, d, e, sx, sy]) => ({ offset: t / T, transform: `translate(${(x * u).toFixed(1)}px, ${(y * u).toFixed(1)}px) rotate(${d}deg) scale(${sx || 1}, ${sy || 1})`, easing: e || ON })), { duration: T, fill: 'both' }));
+  };
+  const offA = -(rA.right + 30) / u, offB = -(rB.right + 30) / u, offC = (innerWidth - rC.left + 30) / u;
+  act(A, [
+    [0, offA, 0, 7], [60, offA, 0, 7, IN],
+    [350, 0.24, 0, 9, ON, 0.94, 1.05], [395, 0.24, 0, 9, OUT, 0.94, 1.05],   // doesn't stop: straight into the back of BRAWL
+    [540, -0.18, 0, -5, IO], [640, -0.24, 0, -3], [735, -0.24, 0, -3, ON, 0.95, 1.05], [780, -0.24, 0, -3, OUT, 0.95, 1.05],
+    [930, -0.95, 0, -13, IO], [1015, -1.05, -0.06, -7, IN],                   // knocked back, and it comes straight back
+    [1100, 0.04, 0, 11, ON, 0.94, 1.05], [1145, 0.04, 0, 11, OUT, 0.94, 1.05],
+    [1290, -0.3, 0, -4, IN], [1430, 0.03, -0.32, 13], [1475, 0.03, -0.32, 13, OUT],   // the big one, in mid air
+    [1620, -0.7, 0, -10, IO], [1720, -0.82, -0.04, -5, IN],
+    [K.BANG, -0.42, -0.3, 13], [2060, -0.42, -0.3, 13, OUT],                  // caught in mid air by the "!", and it hangs there
+    [2130, -0.42, -0.34, 3], [2230, -0.42, -0.34, 3, IN],                     // looks round at the 2
+    [2330, -0.42, 0, 0, ON, 1.04, 0.9], [2400, -0.42, 0, 0, IO], [K.HOME, 0, 0, 0],   // drops, and goes back to its place
+  ]);
+  act(B, [
+    [0, offB, 0, 6, OUT], [270, 0, 0, -3, 'ease-out'], [330, 0, 0, 0],        // gets to its spot first and stops
+    [350, 0, 0, 0, ON, 0.95, 1.05], [395, 0, 0, 0, OUT, 0.95, 1.05],
+    [540, 0.8, 0, 12, IO], [640, 0.95, -0.06, 6, IN],                         // shoved, turns round
+    [735, -0.5, -0.02, -12, ON, 0.94, 1.05], [780, -0.5, -0.02, -12, OUT, 0.94, 1.05],
+    [930, -0.22, -0.05, 5, IO], [1015, -0.2, 0, 2], [1100, -0.2, 0, 2, ON, 0.95, 1.05], [1145, -0.2, 0, 2, OUT, 0.95, 1.05],
+    [1290, 0.62, -0.34, 15, IN], [1430, -0.25, -0.32, -13], [1475, -0.25, -0.32, -13, OUT],
+    [1620, 0.15, 0, 7, IO], [1720, 0.2, -0.04, 3, IN],
+    [K.BANG, -0.18, -0.3, -13], [2060, -0.18, -0.3, -13, OUT],
+    [2130, -0.18, -0.34, 3], [2230, -0.18, -0.34, 3, IN],
+    [2330, -0.18, 0, 0, ON, 1.04, 0.9], [2400, -0.18, 0, 0, IO], [K.HOME, 0, 0, 0],
+  ]);
+  act(C, [
+    [0, offC, 0, 7], [K.SEE, offC, 0, 7, OUT], [1530, -0.1, 0, -9, 'ease-out'], [1620, 0, 0, 3, IO],   // slides in, brakes hard
+    [1700, 0, 0, -4], [1790, 0, 0, -4, 'ease-in', 1.1, 0.86],                 // has a look, crouches
+    [K.BANG, 0, -0.24, -2, 'ease-out', 0.94, 1.12], [1930, 0, 0, 0, 'ease-out', 1.05, 0.95], [2000, 0, 0, 0],   // and jumps
+    [K.HOME, 0, 0, 0, 'ease-out'], [K.HOME + 60, 0, 0, 0, 'ease-out', 1.06, 0.92], [K.HOME + 150, 0, 0, 0],      // a nod when they're back
+  ]);
+
+  // the hits: sparks, a white star, a jolt and a thud at the point where the two words meet
+  const flying = (cx, cy, n, far, cols, t) => {
+    for (let i = 0; i < n; i++) {
+      const ang = i * 360 / n + Math.random() * 22, s = h('i', { style: { left: cx + 'px', top: cy + 'px', background: cols[i % cols.length] } });
+      wrap.append(s);
+      anims.push(s.animate([{ opacity: 1, transform: `rotate(${ang.toFixed(0)}deg) translateX(${(0.12 * u).toFixed(1)}px)` }, { opacity: 0, transform: `rotate(${ang.toFixed(0)}deg) translateX(${(far * u).toFixed(1)}px) scaleX(.3)` }], { delay: t, duration: 320, easing: 'ease-out', fill: 'forwards' }));
+    }
+  };
+  for (const [t, x, y, big] of K.HITS) {
+    const cx = rA.right + x * u, cy = box.top + box.height / 2 + (y + 0.12) * u, r = (big ? 0.62 : 0.42) * u;
+    flying(cx, cy, big ? 12 : 8, big ? 1.15 : 0.8, ['#fff', 'var(--o)'], t);
+    const fl = h('b', { style: { left: cx - r + 'px', top: cy - r + 'px', width: 2 * r + 'px', height: 2 * r + 'px' } });
+    wrap.append(fl);
+    const tw = Math.round(Math.random() * 40);
+    anims.push(fl.animate([{ opacity: 1, transform: `scale(.25) rotate(${tw}deg)`, easing: 'ease-out' }, { opacity: 1, offset: 0.4, transform: `scale(1) rotate(${tw + 8}deg)`, easing: 'ease-in' }, { opacity: 1, offset: 0.98, transform: `scale(.2) rotate(${tw + 16}deg)` }, { opacity: 0, transform: 'scale(.2)' }], { delay: t, duration: 150, fill: 'forwards' }));
+    const j = big ? 6 : 3;
+    anims.push(wrap.animate([{ transform: 'none' }, { transform: `translate(${j}px, ${-j * 0.6}px)`, offset: 0.25 }, { transform: `translate(${-j * 0.8}px, ${j * 0.5}px)`, offset: 0.55 }, { transform: 'none' }], { delay: t, duration: 180 }));
+    snd(t, () => { SFX.hit('contact', big ? 12 : 8); SFX.clack(); if (big) SFX.boom(true); });
+  }
+
+  // the "!" over the 2, as big as there's room for on the screen (off to its side if the title is right up at the top)
+  const foot = box.top + 0.05 * u, roomy = (foot - 4) / 0.72 >= 0.6 * u, size = roomy ? Math.min(1.3 * u, (foot - 4) / 0.72) : 1.1 * u;
+  const bx = roomy ? rC.left + rC.width / 2 : rC.right + 0.32 * u, by = roomy ? foot + 0.15 * size - size : box.top - 0.1 * u;
+  const bang = h('div', { class: 'bang', text: '!', style: { left: bx + 'px', top: by + 'px', fontSize: size + 'px' } });
+  wrap.append(bang);
+  const L = K.HOME + 130 - K.BANG;
+  anims.push(bang.animate([
+    { offset: 0, transform: 'translateY(.3em) scale(0) rotate(-18deg)', easing: 'ease-out' },
+    { offset: 110 / L, transform: 'scale(1.35) rotate(9deg)', easing: 'ease-in-out' },
+    { offset: 200 / L, transform: 'scale(.95) rotate(-3deg)', easing: 'ease-out' },
+    { offset: 280 / L, transform: 'scale(1) rotate(0deg)' },
+    { offset: (L - 130) / L, transform: 'scale(1) rotate(0deg)', easing: 'ease-in' },
+    { offset: 1, transform: 'scale(0) rotate(14deg)' },
+  ], { delay: K.BANG, duration: L, fill: 'both' }));
+  flying(bx, by + size * 0.5, 8, 1, ['#ffd633', '#fff'], K.BANG);
+
+  snd(0, whoosh); snd(K.SEE, whoosh);
+  snd(1530, () => SFX.noise(0.14, 0.09, 'highpass', 3000, 1300));
+  snd(K.BANG, () => { SFX.pop(); SFX.ding(1568); });
+  snd(2330, () => SFX.clack());
+  snd(K.HOME, () => SFX.clack());
+
+  menu.append(wrap);
+  // the real title comes back underneath them just before they go, so the swap can't be seen
+  timers.push(setTimeout(() => { logo.style.visibility = ''; }, K.END - K.FADE));
+  anims.push(wrap.animate([{ opacity: 1 }, { opacity: 0 }], { delay: K.END - K.FADE, duration: K.FADE, fill: 'forwards' }));
+  timers.push(setTimeout(onEnd, K.END));
   return {
     finish() {
       for (const t of timers) clearTimeout(t);
       for (const a of anims) { try { a.finish(); } catch (err) { a.cancel(); } }
+      logo.style.visibility = '';
       wrap.remove();
     },
   };
