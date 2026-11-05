@@ -406,8 +406,32 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 .btn2, .chip, .back { transition: border-color .15s, color .15s, background .15s, transform .12s var(--ease); }
 .btn2:active:not(:disabled), .chip:active, .back:active, .stake:active:not(:disabled), .ptabs button:active, .m-item:active { transform: scale(.96); }
 /* opening the game */
-#intro { position: fixed; inset: 0; z-index: 90; width: 100%; height: 100%; display: block; background: #030304; cursor: pointer; touch-action: none; }
-#build { position: fixed; inset: 0; z-index: 91; width: 100%; height: 100%; pointer-events: none; }
+#intro { position: fixed; inset: 0; z-index: 90; background: #030304; display: grid; place-items: center; align-content: center; gap: 30px; cursor: pointer; touch-action: none; overflow: hidden; }
+#intro.out { animation: introOut .26s ease forwards; pointer-events: none; }
+@keyframes introOut { to { opacity: 0; visibility: hidden } }
+#intro .ib { position: relative; width: 176px; height: 88px; }
+#intro .ib canvas { position: absolute; top: 0; }
+#intro .ib canvas:nth-of-type(1) { left: 0; animation: ibL .95s both; }
+#intro .ib canvas:nth-of-type(2) { right: 0; animation: ibR .95s both; }
+@keyframes ibL { 0% { transform: translateX(-52vw) rotate(-600deg); animation-timing-function: cubic-bezier(.45,0,.9,.55) } 40% { transform: none; animation-timing-function: ease-out } 47% { transform: scale(.76,1.18) } 100% { transform: translateX(calc(-1 * min(110px, 20vw))) rotate(-120deg) } }
+@keyframes ibR { 0% { transform: translateX(52vw) rotate(600deg); animation-timing-function: cubic-bezier(.45,0,.9,.55) } 40% { transform: none; animation-timing-function: ease-out } 47% { transform: scale(.76,1.18) } 100% { transform: translateX(min(110px, 20vw)) rotate(120deg) } }
+#intro .ib b, #intro .ib i { position: absolute; left: 50%; top: 50%; border-radius: 50%; pointer-events: none; }
+#intro .ib b { width: 100px; height: 100px; margin: -50px; border: 4px solid var(--o); opacity: 0; animation: ring .55s var(--ease) .38s forwards; }
+#intro .ib i { width: 130px; height: 130px; margin: -65px; background: #fff; opacity: 0; animation: ibHit .24s ease-out .38s forwards; }
+@keyframes ibHit { from { opacity: .95; transform: scale(.3) } to { opacity: 0; transform: scale(1.5) } }
+#intro .ib s { position: absolute; left: 50%; top: 50%; width: 18px; height: 3px; margin-top: -1.5px; background: #fff; border-radius: 2px; opacity: 0; animation: ibSpark .42s ease-out .38s forwards; }
+#intro .ib s:nth-of-type(even) { background: var(--o); animation-duration: .5s; }
+@keyframes ibSpark { from { opacity: 1; transform: rotate(var(--a)) translateX(18px) } to { opacity: 0; transform: rotate(var(--a)) translateX(150px) scaleX(.3) } }
+/* the shine: a band of white in a gradient clipped to the letters, slid across once */
+#intro .it, #intro .it span { background: linear-gradient(100deg, var(--c1) 0 44%, #fff 50%, var(--c1) 56% 100%) 100% 0 / 300% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+#intro .it { --c1: var(--o); font: 400 clamp(40px, 11vw, 104px)/1 var(--fd); letter-spacing: clamp(3px, 1vw, 8px); white-space: nowrap; animation: itIn .6s var(--ease) .38s backwards, itShine .6s ease-in-out .85s; }
+#intro .it span { --c1: var(--txt); margin: 0 .1em; animation: itShine .6s ease-in-out .85s; }
+@keyframes itIn { from { opacity: 0; letter-spacing: .5em; transform: translateY(18px) scale(.94) } }
+@keyframes itShine { from { background-position: 100% 0 } to { background-position: 0 0 } }
+/* the menu stacking up: each piece drops as a brick with studs on top, then fades to what it is */
+#bricks { position: fixed; inset: 0; z-index: 91; pointer-events: none; overflow: hidden; }
+.brick { position: absolute; box-sizing: border-box; border-radius: 3px; background: var(--c); box-shadow: inset 0 2px rgba(255,255,255,.35), inset 0 -4px rgba(0,0,0,.28); transform-origin: 50% 100%; }
+.brick::before { content: ""; position: absolute; left: 7px; right: 7px; top: -5px; height: 5px; background: repeating-linear-gradient(90deg, var(--c) 0 14px, transparent 14px 25px); }
 #bg { transition: opacity .5s ease; }
 #bg.fade, body.pre #bg { opacity: 0; }
 .logo-tag { animation: rise .6s var(--ease) .05s backwards; }
@@ -964,7 +988,7 @@ svg.mst.on { fill: var(--gold); }
 // A fight is played out from a seed, separately in each player's browser, so
 // the simulation may only use + - * / and sqrt (the same in every engine):
 // no Math.sin/cos/atan2/hypot/pow/exp, no Math.random, no clocks.
-const VERSION = 24;
+const VERSION = 25;
 const HP_SCALE = 0.33;                     // every ball's health is scaled by this, so fights end sooner
 const TAU = 6.283185307179586, PI = 3.141592653589793, HALF_PI = 1.5707963267948966;
 const DT = 1 / 60, SUB = 3;            // 60 steps a second, 3 physics substeps each
@@ -1080,7 +1104,7 @@ function applyRule(S, rule) {
 function newFight(o) {
   const S = { t: 0, n: 0, rng: rng(o.seed >>> 0), nid: 1, bodies: [], F: [], projs: [], hz: [], ev: [],
     keep: !!o.keepEv, over: false, winner: -2, box: { x0: 0, y0: 0, x1: ARENA, y1: ARENA }, ot: 1, tstop: [0, 0],
-    half0: ARENA / 2, vmul: 1, dmul: 1, grav: GRAV, otStart: OT_START, rmul: 1, paint: null, out: [], map: null, shape: null, shapeEase: 0, borderT: 0, pull: null, spin: null, worldAng: 0 };
+    half0: ARENA / 2, vmul: 1, dmul: 1, grav: GRAV, otStart: OT_START, rmul: 1, paint: null, out: [], map: null, shape: null, shapeEase: 0, borderT: 0, pull: null, spin: null, worldAng: 0, bzTakes: 0 };
   // the box rule comes from the seed through its own generator, so it never shifts the fight's own dice
   const rr = rng(hashStr('rule:' + (o.seed >>> 0)));
   S.seed = o.seed >>> 0; S.calm = !!o.calm;
@@ -2141,15 +2165,16 @@ function shapePlace(S, x, y, pad) {
   const s = inn ? 1 : -1, nx = (px - SH_NEAR.x) / d * s, ny = (py - SH_NEAR.y) / d * s;
   return [c + (SH_NEAR.x + nx * r) * k, c + (SH_NEAR.y + ny * r) * k];
 }
-// BeeZap bends the map to a new shape. Everything it does big ends up here, at most every few seconds
+// BeeZap bends the map to a new shape: at most every few seconds, and only with a takeover left to spend
 function bzBend(S, f) {
-  if (S.calm || S.t - (S.bendAt === undefined ? -9 : S.bendAt) < 5) return;
+  if (S.calm || S.bzTakes >= BZ_TAKES || S.t - (S.bendAt === undefined ? -9 : S.bendAt) < 5) return;
+  S.bzTakes++;
   const ffa = S.F.length > 2, from = S.shape ? S.shape.id : null, list = Object.keys(SHAPES).filter(k => k !== from && !(ffa && SHAPES[k].thin)), to = list[Math.floor(S.rng() * list.length)];
   const rule = S.rule, oldMap = S.map;
   // No Walls can't work inside a shape: the shape's walls take over
   if (S.rule === 'wrap') { applyRule(S, 'normal'); mapInit(S); }
   S.shape = SHAPES[to]; S.shapeEase = 0.8; S.bendAt = S.t;
-  if (f.bz) f.bz.shapeT = 13;
+  if (f.bz) f.bz.plan = f.bz.plan.filter(k => k !== 'shape');   // that was this fight's bend, if it hadn't had one yet
   emit(S, { e: 'shape', id: f.id, side: f.side, from, to, rule, oldMap });
 }
 // the admin commands that bend the world, each running for a while
@@ -3426,8 +3451,8 @@ BALL_LIST.push(
     desc: 'Grins and bounces around, and every 5 seconds its grin confuses a nearby enemy. Below 20% health it throws a tantrum that blasts the enemy back, grows four spider legs and chases the enemy down, hitting 2.5x harder.' },
   // only from the give command: spins for a Mythic's power and a strength change at the start,
   // then again every time it loses another 35% of its health
-  { id: 'beezap', name: 'BeeZap', rar: 'M', cat: 'trick', special: 1, hidden: 1, giveOnly: 1, col: '#f5bd12', hp: 225, upright: 1,
-    init(S, f) { f.bz = { next: 1 - BZ_EVERY, admT: 11, slotT: 6, gameT: 14, modT: 9, shapeT: 3.5, godT: 0, pend: null }; beezapRoll(S, f); },
+  { id: 'beezap', name: 'BeeZap', rar: 'M', cat: 'trick', special: 1, hidden: 1, giveOnly: 1, col: '#f5bd12', hp: 240, upright: 1,
+    init(S, f) { f.bz = { next: 1 - BZ_EVERY, plan: bzPlan(S), nextT: 3.5, godT: 0, pend: null }; beezapRoll(S, f); },
     desc: 'Spins two wheels at the start of the fight: one copies a Mythic ball\u2019s power, the other sets its strength from -10% to +10%. Every 45% of health it loses, it spins again. It also abuses admin commands that bend the world, plays the slots, switches the map modifier, bends the box into new shapes, and drags its enemy into a quick game (tic tac toe, Connect Four, rock paper scissors, Battleship, last stick, memory match, dots and boxes or pig) where the winner hits the loser.' },
 );
 // a BeeZap hooks into a fight (HOOK, p7h): the ball on that side leaves with everything it made, and
@@ -3462,10 +3487,20 @@ function beezapRoll(S, f) {
   addWeapons(S, f, d.weapons);
   if (d.init) d.init(S, f);
   f.bz.pow = d.id; f.bz.str = str;
-  emit(S, { e: 'wheel', id: f.id, side: f.side, pow: d.id, str, opts: pool.map(b => b.id) });
+  // out of takeovers: it still takes the new power, just without stopping the fight to show it
+  if (S.bzTakes < BZ_TAKES) { S.bzTakes++; emit(S, { e: 'wheel', id: f.id, side: f.side, pow: d.id, str, opts: pool.map(b => b.id) }); }
+  else emit(S, { e: 'repower', id: f.id, x: f.x, y: f.y });
 }
-// admin abuse every 25 s and the slots every 12 s. Each one is announced first (the fight
-// screen stops for it) and lands on the step after, once the fight is moving again.
+// BeeZap takes the screen over BZ_TAKES times a fight, counting the wheel it opens with (the sike before that makes
+// one more when it's in disguise). After the wheel one comes every few seconds of fight until they run out: the map
+// bends first, then the slots, a minigame, a new modifier and an admin command in a shuffled order. Bigger moments
+// can use one up early. Each is announced first (the fight stops for it) and lands on the step after.
+const BZ_TAKES = 6;
+function bzPlan(S) {
+  const a = ['slot', 'game', 'mod', 'admin'];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(S.rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return ['shape'].concat(a);
+}
 const BZ_CMDS = ['freeze', 'tp', 'god', 'nerf', 'smite', 'kick', 'border', 'gravity', 'rotate', 'clear'];
 // in a free for all most commands hit everyone (@a, a little weaker each), /kick takes one at random,
 // and /feud sets two of the others on each other for a while
@@ -3485,7 +3520,7 @@ function bzSpin(S) {
   for (let i = 2; i > 0; i--) { const j = Math.floor(S.rng() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; }
   return { res, r };
 }
-// let's play a game: every 30 s BeeZap drags its enemy into a quick two player game, and the winner hits
+// let's play a game: once a fight BeeZap drags its enemy into a quick two player game, and the winner hits
 // the loser. The players play it on their screens (p7e) and the result they reach replaces bz.pend.win
 // while the fight waits. The sim plays a whole game out here too (S.rng): that sets who goes first and
 // where the ships are, and its winner stands when nobody is watching (tests, and skipping to the end).
@@ -3681,9 +3716,10 @@ function bzTick(S, f, dt) {
   const z = f.bz;
   if (z.godT > 0) z.godT -= dt;
   if (z.pend && (z.pend.t -= dt) <= 0) { const p = z.pend; z.pend = null; bzLand(S, f, p); }
-  if (f.alive && !z.pend) {
-    if ((z.admT -= dt) <= 0) {
-      z.admT = 25;
+  if (f.alive && !z.pend && z.plan.length && S.bzTakes < BZ_TAKES && (z.nextT -= dt) <= 0) {
+    z.nextT = S.F.length > 2 ? 5 : 3;
+    const k = z.plan.shift();
+    if (k === 'admin') {
       const foes = S.F.filter(x => x !== f && x.alive), ffa = S.F.length > 2;
       const list = ffa ? BZ_CMDS_FFA.filter(c => c !== 'feud' || foes.length >= 2) : BZ_CMDS, cmd = list[Math.floor(S.rng() * list.length)];
       let tgt = f.foe, pair = null;
@@ -3691,26 +3727,23 @@ function bzTick(S, f, dt) {
       if (cmd === 'feud') { const i = Math.floor(S.rng() * foes.length); let j = Math.floor(S.rng() * (foes.length - 1)); if (j >= i) j++; pair = [foes[i], foes[j]]; }
       const all = ffa && (cmd === 'freeze' || cmd === 'tp' || cmd === 'nerf' || cmd === 'smite') ? 1 : 0;
       z.pend = { t: 0.01, k: 'admin', cmd, all, ts: tgt.side, pair: pair && pair.map(x => x.side) };
+      S.bzTakes++;
       emit(S, { e: 'admin', id: f.id, side: f.side, cmd, foe: tgt.def.id, ts: tgt.side, all, pair: pair && pair.map(x => x.def.id) });
-    } else if ((z.slotT -= dt) <= 0) {
-      z.slotT = 12;
+    } else if (k === 'slot') {
       const { r, res } = bzSpin(S);
       z.pend = { t: 0.01, k: 'slot', r, res };
+      S.bzTakes++;
       emit(S, { e: 'slot', id: f.id, side: f.side, r, res });
-    } else if ((z.gameT -= dt) <= 0) {
-      z.gameT = 30;
+    } else if (k === 'game') {
       // in a free for all it drags in whoever is winning (the most health left), not just the nearest
       const t = S.F.length > 2 ? S.F.filter(x => x !== f && x.alive).reduce((m, x) => (x.hp / x.maxHp > m.hp / m.maxHp ? x : m)) : f.foe, rec = bzGame(S);
       z.pend = { t: 0.01, k: 'game', win: rec.win, ts: t.side };
+      S.bzTakes++;
       emit(S, Object.assign({ e: 'game', id: f.id, side: f.side, ts: t.side, foe: t.def.id }, rec));
-    } else if ((z.modT -= dt) <= 0) {
-      z.modT = 20;
+    } else if (k === 'mod') {
       // it changes at once; the screen shows it happening while the fight waits
-      if (!S.calm) emit(S, Object.assign({ e: 'mod', id: f.id, side: f.side }, mapSwitch(S)));
-    } else if ((z.shapeT -= dt) <= 0) {
-      z.shapeT = 13;
-      bzBend(S, f);
-    }
+      if (!S.calm) { S.bzTakes++; emit(S, Object.assign({ e: 'mod', id: f.id, side: f.side }, mapSwitch(S))); }
+    } else bzBend(S, f);
   }
   bzCheck(S, f);
 }
@@ -5049,6 +5082,7 @@ class Arena {
       case 'portal': this.ring(e.x0, e.y0, 40, 8, '#38b6ff', 4, 0.25); this.ring(e.x1, e.y1, 8, 52, '#ff8a2e', 4, 0.3); if (snd) snd.warp(); break;
       case 'lavaup': this.burst(e.x, e.y, 14, '#ff8a1f', 260, 0.5, 4); this.shake = Math.min(14, this.shake + 3); if (snd) snd.splash(); break;
       case 'gust': if (snd) snd.phase(); break;
+      case 'repower': this.ring(e.x, e.y, 30, 120, '#ffd633', 5, 0.4); this.burst(e.x, e.y, 12, '#ffd633', 300, 0.4, 4); if (snd) snd.warp(); break;
       case 'phit': break;
       case 'grin': this.ring(e.x, e.y, 30, 120, '#ffd60a', 4, 0.35); if (snd) snd.ping(); break;
       case 'rage': this.shake = Math.min(16, this.shake + 7); this.burst(e.x, e.y, 18, '#ffd60a', 340, 0.5, 5); this.num(e.x, e.y - 56, 'ANGRY!', '#ff4646', true); if (snd) snd.boom(true); break;
@@ -11581,592 +11615,73 @@ function hookinFrame(F, dt) {
 
 
 // ===== opening the game ===================================================
-// A cutscene, then the menu builds itself from the bottom of the screen to the top.
-// The cutscene: the box draws itself; two balls come in, bounce off the walls and meet in the middle; the floor
-// cracks; the title lands letter by letter; one ball breaks the other and bounces out through the top of the box.
-// The build: a line of light climbs the screen, eating the cutscene, with a blueprint grid and sparks under it. Each
-// piece of the menu is outlined and measured as the line reaches it, scanned in from its bottom edge, then flashes
-// as it locks. The logo's letters land one at a time and a sweep of light runs back down over the finished screen.
-// A press jumps from the cutscene to the build, and another finishes the build. Browsers don't let a page make a
-// sound before its first click, so this is usually silent; the SFX calls are for when it isn't.
-const IN_T = { BOX: 1.1, MEET: 2.4, BOUNCE: 2.62, BRAWL: 3.1, TWO: 3.62, TAG: 3.95, KO: 4.62, BUILD: 5.6 };
-const IN_BUILD = { D: 2.7, EL: 0.72, END: 1.15 };
+// Two balls fly in and hit in the middle, the title lands, and then the menu stacks itself up from the bottom of the
+// screen like toy bricks: each piece drops as a solid brick, clicks onto the pile, and turns into itself. Short on
+// purpose. A press skips it. (Test browsers skip it too, unless the page asks for ?intro=1.)
+const INTRO_MS = 1450;                                        // how long the two balls and the title hold the screen
+const BRICK = { SPAN: 720, DROP: 300, HOLD: 90, FADE: 150 };  // ms: all the bricks' starts, one brick's drop, then it fades to what it is
+const BRICK_COLS = ['#ff2d78', '#ffd23f', '#4aa3ff', '#3ddc84', '#ff4646'];
 function intro(done) {
-  // (test browsers skip it unless the page asks for ?intro=1)
   if (REDUCED || document.hidden || (/HeadlessChrome/.test(navigator.userAgent) && !/[?&]intro=1/.test(location.search))) { done(false); return; }
+  const a = G.eq && BALL[G.eq] ? G.eq : 'sword', others = BALLS.filter(b => b.id !== a), b = others[Math.floor(Math.random() * others.length)].id, sparks = [];
+  for (let i = 0; i < 10; i++) sparks.push(h('s', { style: { '--a': i * 36 + 'deg' } }));
+  const el = h('div', { id: 'intro', 'aria-hidden': 'true' },
+    h('div', { class: 'ib' }, h('b'), h('i'), ...sparks, ballImg(a, 88, ''), ballImg(b, 88, '')),
+    h('div', { class: 'it', html: 'BOUNCE <span>BRAWL</span> 2' }));
   document.body.classList.add('pre');
-  const cv = document.createElement('canvas'); cv.id = 'intro'; cv.setAttribute('aria-hidden', 'true');
-  document.body.append(cv);
-  const scene = inScene(cv);
-  let raf = 0, last = 0, st = 0, freeze = 0, build = null, over = false;
+  document.body.append(el);
+  let over = false, bricks = null;
   const finish = () => {
     if (over) return; over = true;
-    cancelAnimationFrame(raf); clearTimeout(safety);
-    removeEventListener('pointerdown', press, true); removeEventListener('keydown', press, true); removeEventListener('resize', finishNow);
-    if (build) build.finish();
+    clearTimeout(timer);
+    removeEventListener('pointerdown', press, true); removeEventListener('keydown', press, true);
+    if (bricks) bricks.finish();
     document.body.classList.remove('pre');
-    if (!build) { cv.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220 }).onfinish = () => cv.remove(); } else cv.remove();
+    if (el.isConnected) { el.classList.add('out'); setTimeout(() => el.remove(), 260); }
     done(true);
   };
-  const finishNow = () => finish();
-  const go = () => {
-    cv.style.pointerEvents = 'none';
-    build = inBuild(y => { cv.style.clipPath = `inset(0 0 ${Math.max(0, innerHeight - y).toFixed(1)}px 0)`; }, finish);
-  };
+  // a press skips it. A key that skips the two balls does nothing else, but it can still start the sound
   const press = ev => {
-    if (build) { finish(); return; }
-    // a key that skips the cutscene does nothing else, but it can still start the sound
-    if (ev.type === 'keydown') { ev.stopPropagation(); SFX.resume(); if (G.music && !FIGHT) MUSIC.play('menu'); }
-    go();
+    if (!bricks && ev.type === 'keydown') { ev.stopPropagation(); SFX.resume(); if (G.music && !FIGHT) MUSIC.play('menu'); }
+    finish();
   };
-  const frame = now => {
-    const dt = Math.min(0.05, last ? (now - last) / 1000 : 0.016); last = now;
-    // the moments the scene holds its breath: just before the balls meet, then a frozen frame as they do
-    if (freeze > 0) freeze -= dt;
-    else {
-      const p = st;
-      st += dt * (st > IN_T.MEET - 0.18 && st < IN_T.MEET ? 0.55 : 1);
-      if (p < IN_T.MEET && st >= IN_T.MEET) freeze = 0.15;
-      if (p < IN_T.KO && st >= IN_T.KO) freeze = 0.1;
-    }
-    scene(st, dt);
-    if (!build && st >= IN_T.BUILD) go();
-    if (build) build.frame(dt);
-    if (!over) raf = requestAnimationFrame(frame);
-  };
-  addEventListener('pointerdown', press, true); addEventListener('keydown', press, true); addEventListener('resize', finishNow);
-  const safety = setTimeout(finish, 16000);   // whatever happens (a hidden tab stops the frames), the menu turns up
-  raf = requestAnimationFrame(frame);
+  const timer = setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 260); bricks = inBricks(finish); }, INTRO_MS);
+  addEventListener('pointerdown', press, true); addEventListener('keydown', press, true);
 }
-function inScene(cv) {
-  const c = cv.getContext('2d'), dpr = Math.min(2, devicePixelRatio || 1), L = document.createElement('canvas'), lc = L.getContext('2d');
-  const ids = BALLS.filter(b => b.weapons && b.weapons.length && !b.hidden).map(b => b.id), A = G.eq && BALL[G.eq] ? G.eq : 'sword';
-  let B = ids[Math.floor(Math.random() * ids.length)]; if (B === A) B = A === 'sword' ? 'axe' : 'sword';
-  const ball = (id, side, col, path) => {
-    const def = BALL[id], o = { id: side + 1, side, x: 0, y: 0, vx: 0, vy: 0, r: def.r || 40, def, u: {}, st: mkSt(), wep: [], hp: 1, maxHp: 1, alive: true, shield: 0, lvl: 1, col, path, tr: [], sq: 0, ang: 0, rot: 0, gone: false };
-    for (const w of def.weapons || []) { const n = w.n || 1; for (let i = 0; i < n; i++) o.wep.push(mkWeapon(null, o, w, -0.6 + i * TAU / n)); }
-    return o;
-  };
-  // the balls' ways, [time, x, y] in half-boxes from the middle; every corner in a path is a bounce
-  const balls = [
-    ball(A, 0, '#38b6ff', [[1.15, -1.7, -0.8], [1.6, -0.5, 0.84], [1.92, -0.84, 0.1], [2.4, -0.16, 0], [2.78, -0.84, -0.5], [3.25, -0.1, -0.84], [3.75, 0.84, -0.3], [4.15, 0.84, 0.2], [4.62, 0.16, 0.68], [4.95, 0.84, 0.1], [6.9, -0.1, -8]]),
-    ball(B, 1, '#ff4d4d', [[1.15, 1.7, 0.8], [1.6, 0.5, -0.84], [1.92, 0.84, -0.1], [2.4, 0.16, 0], [2.78, 0.84, 0.45], [3.25, 0.15, 0.84], [3.7, -0.84, 0.35], [4.2, -0.84, 0.25], [4.62, -0.16, 0.68]]),
-  ];
-  let w = 0, h = 0, cx = 0, cy = 0, H = 0, prev = 0, shake = 0, flash = 0, kick = 0, typed = 0;
-  const parts = [], rings = [], shards = [], cracks = [], embers = [], landed = {};
-  const crossed = t => prev < t && t <= S.now, S = { now: 0 };
-  const spark = (x, y, n, col, sp, life) => { for (let i = 0; i < n; i++) { const a = Math.random() * TAU, v = sp * (0.35 + Math.random() * 0.9); parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: life * (0.6 + Math.random() * 0.6), max: life, col, g: 260 }); } };
-  const ring = (x, y, r0, r1, col, wd, life) => rings.push({ x, y, r0, r1, col, wd, life, max: life });
-  const makeCracks = () => {
-    for (let i = 0; i < 9; i++) {
-      const a0 = i / 9 * TAU + Math.random() * 0.4, pts = [[0, 0]]; let a = a0, r = 0;
-      for (let k = 0; k < 6; k++) { r += H * (0.1 + Math.random() * 0.12); a += (Math.random() - 0.5) * 0.7; pts.push([Math.cos(a) * r, Math.sin(a) * r]); }
-      const br = [];
-      if (Math.random() < 0.7) { const at = 2 + Math.floor(Math.random() * 3), [x, y] = pts[at], b = a0 + (Math.random() < 0.5 ? 0.8 : -0.8); br.push([x, y], [x + Math.cos(b) * H * 0.16, y + Math.sin(b) * H * 0.16], [x + Math.cos(b + 0.3) * H * 0.3, y + Math.sin(b + 0.3) * H * 0.3]); }
-      cracks.push({ pts, br });
-    }
-  };
-  const at = (b, t) => {
-    const P = b.path;
-    if (t <= P[0][0]) return [P[0][1], P[0][2], 0];
-    for (let i = 1; i < P.length; i++) if (t <= P[i][0]) { const q = (t - P[i - 1][0]) / (P[i][0] - P[i - 1][0]); return [P[i - 1][1] + (P[i][1] - P[i - 1][1]) * q, P[i - 1][2] + (P[i][2] - P[i - 1][2]) * q, i]; }
-    const e = P[P.length - 1]; return [e[1], e[2], P.length];
-  };
-  const part = (pts, q) => {
-    let total = 0; for (let i = 1; i < pts.length; i++) total += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
-    let left = total * clamp(q, 0, 1);
-    c.beginPath(); c.moveTo(pts[0][0], pts[0][1]);
-    for (let i = 1; i < pts.length && left > 0; i++) { const [ax, ay] = pts[i - 1], [bx, by] = pts[i], g = Math.hypot(bx - ax, by - ay), u = Math.min(1, left / g); c.lineTo(ax + (bx - ax) * u, ay + (by - ay) * u); left -= g; }
-  };
-  const box = st => {
-    const q = easeIO(st / 0.85), g = clamp((st - 0.25) / 0.7, 0, 1), x0 = cx - H, y0 = cy - H, x1 = cx + H, y1 = cy + H, s = H * 2;
-    c.fillStyle = `rgba(10,10,13,${g.toFixed(3)})`; c.fillRect(x0, y0, s, s);
-    // the grid opens out from the middle, line by line
-    c.lineWidth = 1;
-    const n = 15, sp = s / n;
-    for (let i = 1; i < n; i++) {
-      const d = Math.abs(i - n / 2) / (n / 2), u = clamp((st - 0.3 - d * 0.45) / 0.35, 0, 1);
-      if (u <= 0) continue;
-      const l = H * easeIO(u);
-      c.strokeStyle = `rgba(255,255,255,${(0.045 * u).toFixed(3)})`; c.beginPath();
-      c.moveTo(x0 + i * sp, cy - l); c.lineTo(x0 + i * sp, cy + l); c.moveTo(cx - l, y0 + i * sp); c.lineTo(cx + l, y0 + i * sp); c.stroke();
-    }
-    // the middle line and the circle
-    const m = clamp((st - 0.55) / 0.5, 0, 1);
-    if (m > 0) {
-      c.strokeStyle = 'rgba(255,255,255,0.09)'; c.lineWidth = 2;
-      c.beginPath(); c.moveTo(cx, cy - H * easeIO(m)); c.lineTo(cx, cy + H * easeIO(m)); c.stroke();
-      c.beginPath(); c.arc(cx, cy, H * 0.24, -HALF_PI, -HALF_PI + TAU * easeIO(m)); c.stroke();
-    }
-    // the walls run out from the corners, the pink marks already there
-    c.strokeStyle = 'rgba(255,255,255,0.22)'; c.lineWidth = 2.5; c.lineCap = 'round'; c.beginPath();
-    for (const [ax, ay, bx, by] of [[x0, y0, x1, y0], [x1, y0, x1, y1], [x1, y1, x0, y1], [x0, y1, x0, y0]]) { c.moveTo(ax, ay); c.lineTo(ax + (bx - ax) * q, ay + (by - ay) * q); }
-    c.stroke();
-    const pop = easeBack(st / 0.3), k = H * 0.1 * pop;
-    c.strokeStyle = '#ff2d78'; c.lineWidth = 4; c.lineCap = 'square'; c.beginPath();
-    for (const [x, y, sx, sy] of [[x0, y0, 1, 1], [x1, y0, -1, 1], [x0, y1, 1, -1], [x1, y1, -1, -1]]) { c.moveTo(x + sx * k, y); c.lineTo(x, y); c.lineTo(x, y + sy * k); }
-    c.stroke(); c.lineCap = 'butt';
-    // a head that travels the wall as it's drawn
-    if (q < 1) { c.fillStyle = '#fff'; for (const [ax, ay, bx, by] of [[x0, y0, x1, y0], [x1, y0, x1, y1], [x1, y1, x0, y1], [x0, y1, x0, y0]]) { c.beginPath(); c.arc(ax + (bx - ax) * q, ay + (by - ay) * q, 3, 0, TAU); c.fill(); } }
-  };
-  const drawCracks = st => {
-    const q = clamp((st - IN_T.MEET) / 0.32, 0, 1);
-    if (q <= 0) return;
-    c.save(); c.translate(cx, cy); c.lineCap = 'round'; c.lineJoin = 'round';
-    // the scorch under them
-    const g = c.createRadialGradient(0, 0, 0, 0, 0, H * 0.5); g.addColorStop(0, `rgba(0,0,0,${(0.75 * q).toFixed(3)})`); g.addColorStop(0.5, `rgba(20,6,10,${(0.4 * q).toFixed(3)})`); g.addColorStop(1, 'rgba(0,0,0,0)');
-    c.fillStyle = g; c.beginPath(); c.arc(0, 0, H * 0.5, 0, TAU); c.fill();
-    const lit = clamp(1 - (st - IN_T.MEET) / 1.6, 0.18, 1);
-    for (const k of cracks) for (const [pts, qq] of [[k.pts, q], [k.br, clamp(q * 1.5 - 0.5, 0, 1)]]) {
-      if (!pts.length) continue;
-      part(pts, qq); c.lineWidth = 5; c.strokeStyle = 'rgba(0,0,0,0.85)'; c.stroke();
-      part(pts, qq); c.lineWidth = 1.7; c.strokeStyle = `rgba(255,${Math.round(90 + 100 * lit)},${Math.round(60 + 80 * lit)},${(0.3 + 0.7 * lit).toFixed(3)})`; c.stroke();
-    }
-    c.restore();
-  };
-  const drawBall2 = (b, st, dt) => {
-    const [ux, uy, seg] = at(b, st), x = cx + ux * H, y = cy + uy * H, rr = H * 0.16, k = rr / b.r;
-    if (seg !== b.seg) {
-      // a new leg of the path means it just hit something
-      if (b.seg > 0 && st > 1 && seg > 0 && !b.gone && seg <= b.path.length - 1) {
-        b.sq = 0.26; const dx = x - (b.sx || x), dy = y - (b.sy || y); b.ang = Math.atan2(dy, dx);
-        if (Math.abs(st - IN_T.MEET) > 0.03 && Math.abs(st - IN_T.KO) > 0.03) { spark(x, y, 9, '#ffffff', H * 1.5, 0.3); ring(x, y, rr * 0.7, rr * 1.8, b.col, 3, 0.26); shake = Math.max(shake, 5); SFX.bump(600); }
-      }
-      b.seg = seg;
-    }
-    b.sx = x; b.sy = y;
-    b.sq *= Math.max(0, 1 - dt * 9);
-    if (b.gone || st < IN_T.BOX) return;
-    b.tr.push(x, y); if (b.tr.length > 28) b.tr.splice(0, 2);
-    c.lineCap = 'round'; c.strokeStyle = b.col;
-    for (let i = 0; i < b.tr.length - 2; i += 2) { const u = (i + 2) / b.tr.length; c.globalAlpha = 0.22 * u; c.beginPath(); c.moveTo(b.tr[i], b.tr[i + 1]); c.lineTo(b.tr[i + 2], b.tr[i + 3]); c.lineWidth = rr * 1.7 * u; c.stroke(); }
-    c.globalAlpha = 1; c.lineCap = 'butt';
-    // its shadow, its weapons going round, then the ball, squashed along the way it just got hit
-    c.beginPath(); c.arc(x + rr * 0.1, y + rr * 0.22, rr * 1.04, 0, TAU); c.fillStyle = 'rgba(0,0,0,0.4)'; c.fill();
-    b.rot += dt * 7;
-    c.save(); c.translate(x, y);
-    try {
-      c.save(); c.scale(k, k);
-      for (const w of b.wep) { w.ang += w.dir * w.spin * dt; if (w.k === 'flail') { w.hx = dcos(w.ang) * w.len; w.hy = dsin(w.ang) * w.len; } wcap(b, w); drawWeapon(c, b, w, st); }
-      c.restore();
-      c.rotate(b.ang); c.scale(1 + b.sq, 1 - b.sq * 0.85); c.rotate(-b.ang); c.scale(k, k);
-      drawBall(c, b.def, 0, 0, b.r, b, st, b.rot);
-    } catch (e) { c.beginPath(); c.arc(0, 0, b.r, 0, TAU); c.fillStyle = b.def.col; c.fill(); }
-    c.restore();
-    // who it is, until they meet
-    if (st < IN_T.MEET - 0.05) {
-      c.globalAlpha = clamp((st - 1.25) / 0.2, 0, 1) * 0.9; c.font = `400 ${Math.round(H * 0.075)}px ${FONT_D}`; c.textAlign = 'center'; c.textBaseline = 'middle';
-      const nm = b.def.name.toUpperCase(), tw = c.measureText(nm).width + H * 0.05, ty = y - rr * 1.5;
-      c.fillStyle = 'rgba(5,5,8,0.85)'; rrect(c, x - tw / 2, ty - H * 0.05, tw, H * 0.1, H * 0.018); c.fill(); c.lineWidth = 1.5; c.strokeStyle = b.col; c.stroke();
-      c.fillStyle = '#fff'; c.fillText(nm, x, ty + H * 0.004); c.globalAlpha = 1;
-    }
-  };
-  const title = (st, sx, sy) => {
-    if (st < IN_T.BOUNCE - 0.3) return;
-    lc.setTransform(dpr, 0, 0, dpr, 0, 0); lc.clearRect(0, 0, w, h);
-    let F = H * 0.64;
-    const measure = () => { lc.font = `400 ${F}px ${FONT_D}`; const sp = F * 0.055; return { sp, a: lc.measureText('BOUNCE').width + sp * 5, b: lc.measureText('BRAWL 2').width + sp * 6 }; };
-    let m = measure();
-    const fit = H * 1.84 / Math.max(m.a, m.b); if (fit < 1) { F *= fit; m = measure(); }
-    lc.textBaseline = 'alphabetic'; lc.textAlign = 'left';
-    const y1 = cy - H * 0.05, y2 = y1 + F * 0.92, sp = m.sp;
-    const letter = (ch, x, y, col0, col1, rot, z, al) => {
-      const wd = lc.measureText(ch).width, gx = x + wd / 2, gy = y - F * 0.36;
-      lc.save(); lc.globalAlpha = al; lc.translate(gx, gy); lc.rotate(rot); lc.scale(z, z); lc.translate(-gx, -gy);
-      lc.fillStyle = 'rgba(0,0,0,0.85)'; lc.fillText(ch, x + F * 0.022, y + F * 0.035);
-      const g = lc.createLinearGradient(0, y - F * 0.72, 0, y); g.addColorStop(0, col0); g.addColorStop(1, col1);
-      lc.fillStyle = g; lc.fillText(ch, x, y);
-      lc.lineWidth = Math.max(1, F * 0.008); lc.strokeStyle = 'rgba(255,255,255,0.3)'; lc.strokeText(ch, x, y);
-      lc.restore();
-    };
-    // BOUNCE falls in from above, a letter at a time, and bounces
-    let x = cx - m.a / 2;
-    [...'BOUNCE'].forEach((ch, i) => {
-      const t0 = IN_T.BOUNCE + i * 0.08, u = (st - t0) / 0.6, wd = lc.measureText(ch).width;
-      if (u > 0) {
-        const fall = bounceOut(u), y = y1 - (1 - fall) * (y1 + F);
-        letter(ch, x, y, '#ff7aa8', '#d3135a', (1 - fall) * (i % 2 ? 0.25 : -0.25), 1, 1);
-        if (u > 0.36 && !landed['b' + i]) { landed['b' + i] = 1; for (let k = 0; k < 8; k++) parts.push({ x: x + Math.random() * wd, y: y1, vx: (Math.random() - 0.5) * H * 1.2, vy: -Math.random() * H * 0.9, life: 0.4, max: 0.4, col: '#ffb3cf', g: 900 }); shake = Math.max(shake, 7); SFX.bump(700); }
-      }
-      x += wd + sp;
-    });
-    // BRAWL punches up from below
-    x = cx - m.b / 2;
-    [...'BRAWL'].forEach((ch, i) => {
-      const t0 = IN_T.BRAWL + i * 0.065, u = (st - t0) / 0.32, wd = lc.measureText(ch).width;
-      if (u > 0) {
-        const e = easeBack(u), y = y2 + (1 - e) * (h - y2 + F);
-        letter(ch, x, y, '#ffffff', '#9aa2b2', 0, 1, 1);
-        if (u > 0.6 && !landed['r' + i]) { landed['r' + i] = 1; shake = Math.max(shake, 5); SFX.tick(0.2 + i * 0.1); }
-      }
-      x += wd + sp;
-    });
-    x += lc.measureText(' ').width;
-    // and the 2 spins down out of the camera and hits harder than any of them
-    const u2 = (st - IN_T.TWO) / 0.24;
-    if (u2 > 0) {
-      const e = ease(u2);
-      letter('2', x, y2, '#ff7aa8', '#d3135a', (1 - e) * 2.6, 1 + (1 - e) * 5.5, clamp(u2 * 2.5, 0, 1));
-      if (u2 >= 1 && !landed.two) {
-        landed.two = 1; const wd = lc.measureText('2').width, X = x + wd / 2, Y = y2 - F * 0.36;
-        flash = Math.max(flash, 0.5); shake = Math.max(shake, 18); kick = 0.05;
-        ring(X, Y, F * 0.2, F * 1.5, '#ff2d78', 7, 0.5); ring(X, Y, F * 0.1, F * 1, '#ffffff', 3, 0.4); spark(X, Y, 26, '#ff7aa8', H * 2.1, 0.5); SFX.boom(false);
-      }
-    }
-    // a band of light runs across the finished title
-    const gq = (st - IN_T.TAG - 0.05) / 0.6;
-    if (gq > 0 && gq < 1) {
-      lc.save(); lc.globalCompositeOperation = 'source-atop';
-      const gx = cx - H * 1.4 + H * 2.8 * gq, g = lc.createLinearGradient(gx - H * 0.26, 0, gx + H * 0.26, H * 0.34);
-      g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.5, 'rgba(255,255,255,0.75)'); g.addColorStop(1, 'rgba(255,255,255,0)');
-      lc.fillStyle = g; lc.fillRect(0, 0, w, h); lc.restore();
-    }
-    c.save(); c.setTransform(1, 0, 0, 1, sx * dpr, sy * dpr); c.drawImage(L, 0, 0); c.restore();
-  };
-  const words = st => {
-    c.textAlign = 'center'; c.textBaseline = 'middle';
-    // the tag types itself out over the title
-    const full = '// TWO BALLS. ONE BOX. //', n = Math.floor(clamp((st - IN_T.TAG) / 0.5, 0, 1) * full.length);
-    if (n > typed) { typed = n; SFX.tick(0.5); }
-    if (n > 0) {
-      c.font = `600 ${Math.round(H * 0.052)}px ${FONT_B}`;
-      c.fillStyle = '#b8b8c6'; c.fillText(full.slice(0, n) + (n < full.length ? '_' : ''), cx, cy - H * 0.68, H * 1.8);
-    }
-    // the moment one of them breaks, the last line slams down
-    const u = (st - IN_T.KO) / 0.2;
-    if (u > 0) {
-      const e = ease(u), z = 1 + (1 - e) * 2.4;
-      c.save(); c.translate(cx, cy + H * 0.68); c.scale(z, z); c.globalAlpha = clamp(u * 2, 0, 1);
-      c.font = `400 ${Math.round(H * 0.125)}px ${FONT_D}`;
-      c.fillStyle = 'rgba(0,0,0,0.85)'; c.fillText('ONLY ONE BOUNCES OUT', H * 0.008, H * 0.012, H * 1.86);
-      c.fillStyle = '#ffd23f'; c.fillText('ONLY ONE BOUNCES OUT', 0, 0, H * 1.86);
-      c.restore();
-    }
-  };
-  const fx = dt => {
-    c.save(); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round';
-    for (let i = parts.length - 1; i >= 0; i--) {
-      const p = parts[i];
-      if ((p.life -= dt) <= 0) { parts.splice(i, 1); continue; }
-      p.vy += p.g * dt; p.vx *= 1 - 2.2 * dt; p.vy *= 1 - 1.2 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
-      c.globalAlpha = clamp(p.life / p.max, 0, 1); c.strokeStyle = p.col; c.lineWidth = 2;
-      c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(p.x - p.vx * 0.022, p.y - p.vy * 0.022); c.stroke();
-    }
-    c.restore();
-    for (let i = rings.length - 1; i >= 0; i--) {
-      const r = rings[i];
-      if ((r.life -= dt) <= 0) { rings.splice(i, 1); continue; }
-      const q = 1 - r.life / r.max, a = 1 - q;
-      c.globalAlpha = a; c.lineWidth = r.wd * a + 0.5; c.strokeStyle = r.col; c.beginPath(); c.arc(r.x, r.y, r.r0 + (r.r1 - r.r0) * (1 - (1 - q) * (1 - q)), 0, TAU); c.stroke();
-    }
-    c.globalAlpha = 1;
-    for (let i = shards.length - 1; i >= 0; i--) {
-      const s = shards[i];
-      if ((s.life -= dt) <= 0) { shards.splice(i, 1); continue; }
-      s.x += s.vx * dt; s.y += s.vy * dt; s.vx *= 1 - 1.8 * dt; s.vy = s.vy * (1 - 1.8 * dt) + 520 * dt; s.rot += s.vr * dt;
-      c.save(); c.translate(s.x, s.y); c.rotate(s.rot); c.globalAlpha = clamp(s.life / 0.5, 0, 1);
-      c.beginPath(); c.moveTo(s.pts[0], s.pts[1]); for (let k = 2; k < s.pts.length; k += 2) c.lineTo(s.pts[k], s.pts[k + 1]); c.closePath(); c.fillStyle = s.col; c.fill(); c.lineWidth = 1.5; c.strokeStyle = '#0a0a0d'; c.stroke();
-      c.restore();
-    }
-    c.globalAlpha = 1;
-    // embers drifting up off the broken floor
-    for (let i = embers.length - 1; i >= 0; i--) {
-      const m = embers[i];
-      if ((m.life -= dt) <= 0) { embers.splice(i, 1); continue; }
-      m.x += (m.vx + Math.sin(m.life * 5 + m.ph) * 16) * dt; m.y += m.vy * dt;
-      c.globalAlpha = clamp(m.life / m.max, 0, 1) * 0.85; c.fillStyle = m.col; c.beginPath(); c.arc(m.x, m.y, m.r, 0, TAU); c.fill();
-    }
-    c.globalAlpha = 1;
-  };
-  return (st, dt) => {
-    const nw = cv.clientWidth || innerWidth, nh = cv.clientHeight || innerHeight;
-    if (nw !== w || nh !== h) {
-      w = nw; h = nh; cv.width = L.width = Math.round(w * dpr); cv.height = L.height = Math.round(h * dpr);
-      cx = w / 2; cy = h / 2; H = Math.min(w * 0.46, h * 0.43);
-    }
-    S.now = st;
-    // the two big hits
-    if (crossed(IN_T.MEET)) {
-      flash = 1; shake = 30; kick = 0.13; makeCracks();
-      ring(cx, cy, H * 0.1, H * 1.5, '#ffffff', 10, 0.55); ring(cx, cy, H * 0.05, H * 1.05, '#ff2d78', 7, 0.5); ring(cx, cy, H * 0.05, H * 0.7, '#ffd23f', 5, 0.42);
-      spark(cx, cy, 80, '#ffffff', H * 3.4, 0.6); spark(cx, cy, 40, '#ff7aa8', H * 2.4, 0.7); spark(cx, cy, 30, '#ffd23f', H * 2, 0.7);
-      for (let i = 0; i < 40; i++) embers.push({ x: cx + (Math.random() - 0.5) * H * 0.9, y: cy + (Math.random() - 0.5) * H * 0.9, vx: (Math.random() - 0.5) * 30, vy: -18 - Math.random() * 46, r: 0.8 + Math.random() * 1.8, life: 1.5 + Math.random() * 2.6, max: 3, ph: Math.random() * 9, col: Math.random() < 0.5 ? '#ff8a3c' : '#ff5a8a' });
-      SFX.ko();
-    }
-    if (crossed(IN_T.KO)) {
-      const b = balls[1], rr = H * 0.16, x = b.sx, y = b.sy; b.gone = true;
-      flash = Math.max(flash, 0.65); shake = 26; kick = 0.08;
-      for (let i = 0; i < 16; i++) {
-        const a0 = i * TAU / 16, a1 = (i + 1) * TAU / 16, am = (a0 + a1) / 2, v = H * (1 + Math.random() * 1.7);
-        shards.push({ x, y, vx: Math.cos(am) * v, vy: Math.sin(am) * v, rot: 0, vr: (Math.random() - 0.5) * 14, life: 0.8 + Math.random() * 0.5, col: b.def.col, pts: [0, 0, Math.cos(a0) * rr, Math.sin(a0) * rr, Math.cos(am) * rr * 1.06, Math.sin(am) * rr * 1.06, Math.cos(a1) * rr, Math.sin(a1) * rr] });
-      }
-      ring(x, y, rr, H * 1.1, '#ffffff', 8, 0.5); spark(x, y, 60, '#ffffff', H * 3, 0.55); SFX.ko();
-    }
-    // the winner goes through the top wall
-    if (crossed(5.22)) { const X = balls[0].sx; spark(X, cy - H, 34, '#ffffff', H * 2.3, 0.5); ring(X, cy - H, H * 0.1, H * 0.55, '#38b6ff', 5, 0.42); shake = Math.max(shake, 12); SFX.boom(true); }
-    c.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const bg = c.createRadialGradient(cx, cy, H * 0.2, cx, cy, Math.max(w, h) * 0.75);
-    bg.addColorStop(0, '#100d16'); bg.addColorStop(1, '#030304');
-    c.fillStyle = bg; c.fillRect(0, 0, w, h);
-    shake = Math.max(0, shake - dt * 46); kick = Math.max(0, kick - dt * 0.42); flash = Math.max(0, flash - dt * 2.8);
-    const z = 1 + 0.045 * clamp(st / IN_T.BUILD, 0, 1) + kick, sx = (Math.random() - 0.5) * shake, sy = (Math.random() - 0.5) * shake;
-    c.translate(cx + sx, cy + sy); c.scale(z, z); c.translate(-cx, -cy);
-    box(st);
-    drawCracks(st);
-    for (const b of balls) drawBall2(b, st, dt);
-    fx(dt);
-    // the studio's name first, over the box
-    const nmq = clamp((st - 0.2) / 0.5, 0, 1) * (1 - clamp((st - IN_T.BOX - 0.2) / 0.4, 0, 1));
-    if (nmq > 0) {
-      const full = "BEESIDE STUDIO'S", n = Math.ceil(clamp((st - 0.2) / 0.55, 0, 1) * full.length);
-      c.globalAlpha = nmq; c.font = `600 ${Math.round(H * 0.05)}px ${FONT_B}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#c8c8d0';
-      c.fillText(full.slice(0, n), cx, cy, H * 1.8); c.globalAlpha = 1;
-    }
-    title(st, sx, sy);
-    words(st);
-    if (flash > 0) { c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = `rgba(255,255,255,${(flash * 0.8).toFixed(3)})`; c.fillRect(0, 0, cv.width, cv.height); }
-    // the edges of the screen stay dark
-    c.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const v = c.createRadialGradient(cx, cy, Math.min(w, h) * 0.42, cx, cy, Math.max(w, h) * 0.78);
-    v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.6)');
-    c.fillStyle = v; c.fillRect(0, 0, w, h);
-    prev = st;
-  };
-}
-function bounceOut(q) {
-  q = clamp(q, 0, 1);
-  const n = 7.5625, d = 2.75;
-  if (q < 1 / d) return n * q * q;
-  if (q < 2 / d) { q -= 1.5 / d; return n * q * q + 0.75; }
-  if (q < 2.5 / d) { q -= 2.25 / d; return n * q * q + 0.9375; }
-  q -= 2.625 / d; return n * q * q + 0.984375;
-}
-
-// ---- the menu builds itself: setFront(y) tells the cutscene where the line is, onEnd runs when it's all done ----
-function inBuild(setFront, onEnd) {
-  const B = IN_BUILD, cv = document.createElement('canvas'); cv.id = 'build'; cv.setAttribute('aria-hidden', 'true');
-  document.body.append(cv);
-  const c = cv.getContext('2d'), dpr = Math.min(2, devicePixelRatio || 1);
-  const w = innerWidth, h = innerHeight; cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
-  // the menu's own entrance animations have nothing left to do: this is its entrance
-  const menu = document.getElementById('menu');
-  for (const a of menu.getAnimations({ subtree: true })) { try { if (a.effect.getComputedTiming().iterations !== Infinity) a.finish(); } catch (err) { /* it stays as it is */ } }
+// the menu stacks up: the pieces nearest the bottom of the screen drop first
+function inBricks(onEnd) {
+  const B = BRICK, wrap = h('div', { id: 'bricks', 'aria-hidden': 'true' }), anims = [], timers = [];
+  // the menu's own entrance has nothing left to do: this is its entrance
+  for (const a of $('#menu').getAnimations({ subtree: true })) { try { if (a.effect.getComputedTiming().iterations !== Infinity) a.finish(); } catch (err) { /* it stays as it is */ } }
   document.body.classList.remove('pre');
-  const bg = document.getElementById('bg'); bg.style.transition = 'none';
-  const front = t => h * (1 - easeIO(t / B.D)) - 2;
-  const startAt = y => { let a = 0, b = B.D; if (y >= h) return 0; for (let i = 0; i < 18; i++) { const m = (a + b) / 2; if (front(m) > y) a = m; else b = m; } return a; };
-  const anims = [], items = [], parts = [];
-  const add = (el, label, big) => {
-    const r = el.getBoundingClientRect();
-    if (!r.width || !r.height || r.top > h + 40) return;
-    const it = { el, label, r, t0: startAt(r.bottom), big, done: false };
-    items.push(it);
-    return it;
-  };
-  const q = s => document.querySelector(s);
-  // what gets built, each with what it's called on the drawing
-  add(q('.m-hint'), 'CONTROLS'); add(q('#mcard'), 'FIGHTER CARD', 1);
-  document.querySelectorAll('#mnav .m-item').forEach((el, i) => add(el, 'NAV ' + pad2(i + 1)));
-  add(q('.logo-sub'), 'TAGLINE'); const logo = add(q('.logo-main'), 'LOGO', 1); add(q('.logo-tag'), 'HEADER');
-  add(q('.m-top'), 'STATUS'); add(q('.m-ver'), 'BUILD');
-  for (const it of items) {
-    if (it === logo) continue;
-    anims.push(it.el.animate([
-      { clipPath: 'inset(100% -40px -40px -40px)', transform: 'translateY(30px) scale(.97)', opacity: 0, offset: 0, easing: 'cubic-bezier(.2,.75,.2,1)' },
-      { opacity: 1, offset: 0.16 },
-      { clipPath: 'inset(0% -40px -40px -40px)', transform: 'translateY(-4px) scale(1.012)', opacity: 1, offset: 0.68, easing: 'cubic-bezier(.3,0,.3,1)' },
-    ], { delay: (it.t0 + 0.12) * 1000, duration: B.EL * 1000, fill: 'backwards' }));
-  }
-  // inside the card: its lines arrive from the bottom up, and the ball drops in with a bounce
-  const card = q('#mcard');
-  if (card) {
-    const t0 = items.find(i => i.el === card).t0, kids = [...card.children].reverse();
-    kids.forEach((k, i) => anims.push(k.animate([{ opacity: 0, transform: 'translateX(26px)', easing: 'cubic-bezier(.2,.8,.2,1)' }, { opacity: 1, transform: 'none' }], { delay: (t0 + 0.34 + i * 0.09) * 1000, duration: 420, fill: 'backwards' })));
-    const pic = card.querySelector('canvas');
-    if (pic) anims.push(pic.animate([{ transform: 'scale(0) rotate(-200deg)', easing: 'cubic-bezier(.2,1.5,.4,1)' }, { transform: 'none' }], { delay: (t0 + 0.55) * 1000, duration: 620, fill: 'backwards' }));
-  }
-  // inside each menu line: the number, the name and the small print come in one after another
-  for (const it of items) {
-    if (!it.el.classList.contains('m-item')) continue;
-    [...it.el.children].forEach((k, i) => anims.push(k.animate([{ opacity: 0, transform: 'translateX(-22px)', easing: 'cubic-bezier(.2,.8,.2,1)' }, { opacity: 1, transform: 'none' }], { delay: (it.t0 + 0.28 + i * 0.07) * 1000, duration: 380, fill: 'backwards' })));
-  }
-  // the logo's letters land one at a time. Each sits in a box of its own just for this; the markup goes back after
-  let logoHTML = null;
-  if (logo) {
-    logoHTML = logo.el.innerHTML;
-    const letters = [], wrap = n => {
-      if (n.nodeType === 3) {
-        const f = document.createDocumentFragment();
-        for (const ch of n.textContent) { if (ch === ' ') { f.append(' '); continue; } const s = document.createElement('span'); s.style.display = 'inline-block'; s.textContent = ch; f.append(s); letters.push(s); }
-        n.replaceWith(f);
-      } else [...n.childNodes].forEach(wrap);
-    };
-    [...logo.el.childNodes].forEach(wrap);
-    logo.letters = letters.map(s => s.getBoundingClientRect());
-    letters.forEach((s, i) => anims.push(s.animate([
-      { transform: `translateY(90%) rotate(${i % 2 ? 9 : -9}deg) scale(.6)`, opacity: 0, easing: 'cubic-bezier(.2,.7,.25,1)' },
-      { transform: 'translateY(-18%) rotate(0deg) scale(1.08)', opacity: 1, offset: 0.55, easing: 'cubic-bezier(.4,0,.5,1)' },
-      { transform: 'translateY(4%) scale(.98)', offset: 0.8 },
+  const pieces = [...document.querySelectorAll('.m-hint, #mcard, #mnav .m-item, .logo-sub, .logo-main, .logo-tag, .m-top, .m-ver')]
+    .map(el => ({ el, r: el.getBoundingClientRect() })).filter(p => p.r.width && p.r.height && p.r.top < innerHeight)
+    .sort((p, q) => q.r.bottom - p.r.bottom);
+  const step = B.SPAN / Math.max(1, pieces.length - 1);
+  pieces.forEach(({ el, r }, i) => {
+    const at = i * step, x = h('div', { class: 'brick', style: { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', '--c': BRICK_COLS[i % BRICK_COLS.length] } });
+    wrap.append(x);
+    // it falls, lands, squashes a little and clicks into place
+    anims.push(x.animate([
+      { transform: 'translateY(-70px)', opacity: 0, easing: 'cubic-bezier(.5,0,1,.6)' },
+      { opacity: 1, offset: 0.12 },
+      { transform: 'none', offset: 0.6, easing: 'ease-out' },
+      { transform: 'scale(1.02,.9)', offset: 0.76, easing: 'ease-in-out' },
+      { transform: 'translateY(-2px) scale(.995,1.03)', offset: 0.9 },
       { transform: 'none', opacity: 1 },
-    ], { delay: (logo.t0 + 0.1 + i * 0.055) * 1000, duration: 560, fill: 'backwards' })));
-  }
-  let T = 0, ended = false, n0 = 0, kicked = false;
-  const burst = (x, y, n, col, sp, up) => { for (let i = 0; i < n; i++) { const a = -HALF_PI + (Math.random() - 0.5) * (up ? 1.7 : TAU), v = sp * (0.3 + Math.random()); parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.32 + Math.random() * 0.45, max: 0.75, col }); } };
-  const edge = (r, g) => [[r.left + r.width / 2, r.bottom + g], [r.left - g, r.bottom + g], [r.left - g, r.top - g], [r.left + r.width / 2, r.top - g]];
-  const edge2 = (r, g) => [[r.left + r.width / 2, r.bottom + g], [r.right + g, r.bottom + g], [r.right + g, r.top - g], [r.left + r.width / 2, r.top - g]];
-  const trace = (pts, q2) => {
-    let total = 0; for (let i = 1; i < pts.length; i++) total += Math.abs(pts[i][0] - pts[i - 1][0]) + Math.abs(pts[i][1] - pts[i - 1][1]);
-    let left = total * clamp(q2, 0, 1);
-    c.moveTo(pts[0][0], pts[0][1]);
-    for (let i = 1; i < pts.length && left > 0; i++) { const [ax, ay] = pts[i - 1], [bx, by] = pts[i], g = Math.abs(bx - ax) + Math.abs(by - ay), u = Math.min(1, left / g); c.lineTo(ax + (bx - ax) * u, ay + (by - ay) * u); left -= g; }
-  };
-  const drawItem = (it, u) => {
-    const r = it.r, g = 6, fade = 1 - clamp((u - 1.05) / 0.5, 0, 1);
-    if (fade <= 0) return;
-    // the outline climbs both sides from the middle of the bottom edge and meets at the top
-    const p = easeIO(u / 0.42);
-    c.globalAlpha = 0.95 * fade; c.lineWidth = 1.2; c.strokeStyle = '#ff5a95';
-    c.beginPath(); trace(edge(r, g), p); trace(edge2(r, g), p); c.stroke();
-    // bright brackets on the corners once it's there
-    if (p > 0.3) {
-      const k = Math.min(11, r.height * 0.3) * clamp((p - 0.3) / 0.3, 0, 1);
-      c.lineWidth = 2; c.strokeStyle = '#fff'; c.beginPath();
-      for (const [x, y, sx, sy] of [[r.left - g, r.top - g, 1, 1], [r.right + g, r.top - g, -1, 1], [r.left - g, r.bottom + g, 1, -1], [r.right + g, r.bottom + g, -1, -1]]) { c.moveTo(x + sx * k, y); c.lineTo(x, y); c.lineTo(x, y + sy * k); }
-      c.stroke();
-    }
-    // its name and size, typed out on a leader line
-    const lab = `${it.label} ${Math.round(r.width)}x${Math.round(r.height)}`, n = Math.ceil(lab.length * clamp((u - 0.1) / 0.4, 0, 1));
-    if (n > 0 && fade > 0) {
-      const right = r.right + 96 < w, lx = right ? r.right + g + 18 : r.left - g - 18, ly = r.top + Math.min(10, r.height / 2);
-      c.lineWidth = 1; c.strokeStyle = 'rgba(255,90,149,0.8)'; c.beginPath(); c.moveTo(right ? r.right + g : r.left - g, ly); c.lineTo(lx, ly); c.stroke();
-      c.font = '10px "Share Tech Mono", Consolas, monospace'; c.textBaseline = 'middle'; c.textAlign = right ? 'left' : 'right'; c.fillStyle = '#ffb3cf';
-      if (right || r.left - g - 18 > 60) c.fillText(lab.slice(0, n), lx + (right ? 4 : -4), ly);
-    }
-    // a scan line carries the piece up out of nothing
-    const sc = u / 0.68;
-    if (sc > 0.16 && sc < 1) {
-      const y = r.bottom - r.height * ease((sc - 0.16) / 0.84), band = Math.min(26, r.height * 0.5);
-      const gr = c.createLinearGradient(0, y, 0, y + band); gr.addColorStop(0, 'rgba(255,120,170,0.5)'); gr.addColorStop(1, 'rgba(255,120,170,0)');
-      c.globalAlpha = fade; c.fillStyle = gr; c.fillRect(r.left - g, y, r.width + g * 2, band);
-      c.fillStyle = '#fff'; c.fillRect(r.left - g, y - 0.75, r.width + g * 2, 1.5);
-    }
-    // the flash when it locks, and a ring of outline thrown off it
-    const lk = (u - 0.68) / 0.42;
-    if (lk > 0 && lk < 1) {
-      const a = (1 - lk) * (1 - lk), e = ease(lk) * 14;
-      c.globalAlpha = 0.42 * a; c.fillStyle = '#fff'; rrect(c, r.left - g, r.top - g, r.width + g * 2, r.height + g * 2, 4); c.fill();
-      c.globalAlpha = a; c.lineWidth = 2; c.strokeStyle = '#ff7aa8'; rrect(c, r.left - g - e, r.top - g - e, r.width + (g + e) * 2, r.height + (g + e) * 2, 6); c.stroke();
-    }
-    c.globalAlpha = 1;
-  };
-  const frame = dt => {
-    T += dt;
-    const y = front(T), up = T / B.D, built = clamp(up, 0, 1);
-    setFront(y);
-    c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h);
-    if (T < B.D + 0.15) {
-      // under the line: the blueprint the menu is being built on, going dim as the line climbs away from it
-      const reach = Math.min(300, h * 0.45);
-      const fadeG = c.createLinearGradient(0, y, 0, y + reach); fadeG.addColorStop(0, 'rgba(255,70,130,0.5)'); fadeG.addColorStop(1, 'rgba(255,70,130,0)');
-      c.strokeStyle = fadeG; c.lineWidth = 1; c.beginPath();
-      for (let x = 14; x < w; x += 28) { c.moveTo(x, y); c.lineTo(x, y + reach); }
-      for (let ly = Math.ceil(y / 28) * 28; ly < y + reach; ly += 28) { c.moveTo(0, ly); c.lineTo(w, ly); }
-      c.stroke();
-      c.lineWidth = 1.6; c.beginPath();
-      for (let x = 14 + 28 * 2; x < w; x += 140) { c.moveTo(x, y); c.lineTo(x, y + reach * 0.7); }
-      c.stroke();
-      // the heat of the line, then the line, with sparks of light racing along it
-      const haze = Math.min(150, h * 0.22), hg = c.createLinearGradient(0, y, 0, y + haze);
-      hg.addColorStop(0, 'rgba(255,45,120,0.42)'); hg.addColorStop(0.3, 'rgba(255,45,120,0.14)'); hg.addColorStop(1, 'rgba(255,45,120,0)');
-      c.fillStyle = hg; c.fillRect(0, y, w, haze);
-      const hg2 = c.createLinearGradient(0, y - 22, 0, y); hg2.addColorStop(0, 'rgba(255,170,205,0)'); hg2.addColorStop(1, 'rgba(255,170,205,0.45)');
-      c.fillStyle = hg2; c.fillRect(0, y - 22, w, 22);
-      c.fillStyle = '#ff2d78'; c.fillRect(0, y - 2.5, w, 5);
-      c.fillStyle = '#fff'; c.fillRect(0, y - 1, w, 2);
-      for (let i = 0; i < 6; i++) {
-        const ph = (T * (1.15 + i * 0.27) + i * 0.37) % 1, x = (i % 2 ? ph : 1 - ph) * w;
-        const g2 = c.createLinearGradient(x - 90, 0, x + 90, 0); g2.addColorStop(0, 'rgba(255,255,255,0)'); g2.addColorStop(0.5, 'rgba(255,255,255,1)'); g2.addColorStop(1, 'rgba(255,255,255,0)');
-        c.fillStyle = g2; c.fillRect(x - 90, y - 3, 180, 6);
-      }
-      // the rails it climbs: ticks up both edges, and the readout riding on the line
-      c.strokeStyle = 'rgba(255,255,255,0.55)'; c.lineWidth = 1; c.beginPath();
-      for (let ly = Math.ceil(y / 14) * 14; ly < h; ly += 14) { const l = ly % 70 === 0 ? 14 : 6; c.moveTo(0, ly); c.lineTo(l, ly); c.moveTo(w, ly); c.lineTo(w - l, ly); }
-      c.stroke();
-      const lbl = 'BUILD ' + String(Math.round(built * 100)).padStart(3, '0') + '%', ly = y < 30 ? y + 16 : y - 15;
-      c.font = '12px "Share Tech Mono", Consolas, monospace'; c.textBaseline = 'middle'; c.textAlign = 'right';
-      const tw = c.measureText(lbl).width;
-      c.fillStyle = 'rgba(5,5,8,0.85)'; c.fillRect(w - 30 - tw, ly - 9, tw + 12, 18); c.fillStyle = '#fff'; c.fillText(lbl, w - 24, ly);
-      c.textAlign = 'left'; c.fillStyle = '#ffb3cf'; c.fillText('// ' + ['LAYING THE FRAME', 'WELDING THE PANELS', 'WIRING THE MENU', 'BOLTING THE LOGO ON'][Math.min(3, Math.floor(built * 4))] + ' //', 24, ly);
-      // sparks wherever the line is touching something it's building, and a few anywhere
-      for (const it of items) if (y > it.r.top - 2 && y < it.r.bottom + 2) for (let i = 0; i < 3; i++) burst(it.r.left + Math.random() * it.r.width, y, 1, Math.random() < 0.5 ? '#ffd23f' : '#fff', 420, true);
-      if (Math.random() < 0.9) burst(Math.random() * w, y, 2, '#ff7aa8', 300, true);
-    }
-    // each piece, once the line has reached it
-    let n = 0;
-    for (const it of items) {
-      const u = (T - it.t0) / B.EL;
-      if (u <= 0) continue;
-      if (!it.lock && u > 0.68) {
-        it.lock = 1; n0++;
-        const r = it.r;
-        for (let i = 0; i < (it.big ? 34 : 14); i++) burst(r.left + Math.random() * r.width, r.bottom, 1, Math.random() < 0.4 ? '#ffd23f' : '#fff', it.big ? 560 : 380, true);
-        SFX.tick(n0 / items.length);
-        if (it.big) anims.push(menu.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(5px)', offset: 0.2 }, { transform: 'translateY(-2px)', offset: 0.55 }, { transform: 'translateY(0)' }], { duration: 260 }));
-      }
-      drawItem(it, u);
-      n++;
-    }
-    // each letter of the logo strikes as it lands
-    if (logo && logo.letters) logo.letters.forEach((r, i) => {
-      const land = logo.t0 + 0.1 + i * 0.055 + 0.56 * 0.55;
-      if (T >= land && !logo['l' + i]) { logo['l' + i] = 1; burst(r.left + r.width / 2, r.bottom - 6, 7, i % 2 ? '#ff7aa8' : '#fff', 330, true); SFX.tick(0.3 + i * 0.05); }
-    });
-    // the line runs out of screen: a flash along the top, and a sweep of light back down over everything it built
-    const e = T - B.D;
-    if (e > 0) {
-      if (!kicked) { kicked = true; SFX.reveal(2); for (let i = 0; i < 60; i++) burst(Math.random() * w, 0, 1, '#fff', 620, false); }
-      const a = clamp(1 - e / 0.28, 0, 1);
-      if (a > 0) { c.fillStyle = `rgba(255,255,255,${(0.16 * a).toFixed(3)})`; c.fillRect(0, 0, w, h); c.fillStyle = `rgba(255,255,255,${a.toFixed(3)})`; c.fillRect(0, 0, w, 3); }
-      const sw = e / 0.85;
-      if (sw < 1) {
-        const yy = -180 + (h + 360) * easeIO(sw), g = c.createLinearGradient(0, yy - 170, 0, yy + 170);
-        g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.5, 'rgba(255,190,220,0.2)'); g.addColorStop(1, 'rgba(255,255,255,0)');
-        c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = g; c.fillRect(0, yy - 170, w, 340); c.restore();
-      }
-      // a band of light across the logo and a ring from the top menu line
-      if (logo) {
-        const gq = (e - 0.1) / 0.6, r = logo.r;
-        if (gq > 0 && gq < 1) {
-          c.save(); c.beginPath(); c.rect(r.left - 8, r.top - 6, r.width + 16, r.height + 12); c.clip(); c.globalCompositeOperation = 'lighter';
-          const gx = r.left - 70 + (r.width + 140) * gq, gg = c.createLinearGradient(gx - 60, 0, gx + 60, 40);
-          gg.addColorStop(0, 'rgba(255,255,255,0)'); gg.addColorStop(0.5, 'rgba(255,255,255,0.55)'); gg.addColorStop(1, 'rgba(255,255,255,0)');
-          c.fillStyle = gg; c.fillRect(r.left - 8, r.top - 6, r.width + 16, r.height + 12); c.restore();
-        }
-      }
-      const play = q('#mnav .m-item.play');
-      if (play) {
-        const pq = (e - 0.2) / 0.7, r = play.getBoundingClientRect();
-        if (pq > 0 && pq < 1) { const g3 = ease(pq) * 26; c.globalAlpha = (1 - pq) * (1 - pq); c.lineWidth = 2.5; c.strokeStyle = '#ff2d78'; rrect(c, r.left - g3, r.top - g3, r.width + g3 * 2, r.height + g3 * 2, 8 + g3 * 0.4); c.stroke(); c.globalAlpha = 1; }
-      }
-    }
-    // the sparks themselves
-    c.save(); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round'; c.lineWidth = 1.8;
-    for (let i = parts.length - 1; i >= 0; i--) {
-      const p = parts[i];
-      if ((p.life -= dt) <= 0) { parts.splice(i, 1); continue; }
-      p.vy += 1150 * dt; p.vx *= 1 - 1.4 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
-      c.globalAlpha = clamp(p.life / 0.3, 0, 1); c.strokeStyle = p.col; c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(p.x - p.vx * 0.018, p.y - p.vy * 0.018); c.stroke();
-    }
-    c.restore();
-    if (e >= B.END && !ended) { ended = true; onEnd(); }
-  };
+    ], { delay: at, duration: B.DROP, fill: 'both' }));
+    anims.push(x.animate([{ opacity: 1 }, { opacity: 0 }], { delay: at + B.DROP + B.HOLD, duration: B.FADE, fill: 'forwards' }));
+    // what it really is waits behind it until it's landed
+    anims.push(el.animate([{ opacity: 0 }, { opacity: 1 }], { delay: at + B.DROP, duration: 1, fill: 'backwards' }));
+    timers.push(setTimeout(() => SFX.clack(), at + B.DROP * 0.6));
+  });
+  document.body.append(wrap);
+  timers.push(setTimeout(onEnd, B.SPAN + B.DROP + B.HOLD + B.FADE));
   return {
-    frame,
     finish() {
-      ended = true;
+      for (const t of timers) clearTimeout(t);
       for (const a of anims) { try { a.finish(); } catch (err) { a.cancel(); } }
-      if (logo && logoHTML !== null) logo.el.innerHTML = logoHTML;
-      cv.remove(); bg.style.transition = '';
+      wrap.remove();
     },
   };
 }
