@@ -975,7 +975,7 @@ svg.mst.on { fill: var(--gold); }
 // A fight is played out from a seed, separately in each player's browser, so
 // the simulation may only use + - * / and sqrt (the same in every engine):
 // no Math.sin/cos/atan2/hypot/pow/exp, no Math.random, no clocks.
-const VERSION = 21;
+const VERSION = 22;
 const HP_SCALE = 0.33;                     // every ball's health is scaled by this, so fights end sooner
 const TAU = 6.283185307179586, PI = 3.141592653589793, HALF_PI = 1.5707963267948966;
 const DT = 1 / 60, SUB = 3;            // 60 steps a second, 3 physics substeps each
@@ -1047,8 +1047,23 @@ const RULES = {
   gravity: { name: 'Gravity On', desc: 'Things fall down for once.' },
   shrink:  { name: 'Closing In', desc: 'The walls start closing at 10 seconds.' },
   chaos:   { name: 'Chaos', desc: 'Every 3 seconds both balls get shoved.' },
+  lava:    { name: 'Lava Floor', desc: 'Patches of the floor melt. Cross one and you burn.' },
+  meteors: { name: 'Meteor Shower', desc: 'Rocks fall from the sky. Watch the rings.' },
+  hole:    { name: 'Black Hole', desc: 'It pulls everything in and eats shots. Too close hurts.' },
+  wind:    { name: 'Windstorm', desc: 'The wind blows balls and shots, and keeps changing.' },
+  portals: { name: 'Portals', desc: 'In one, out the other, at the same speed.' },
+  spikes:  { name: 'Spike Walls', desc: 'Every bounce off a wall hurts.' },
+  conveyor: { name: 'Conveyor Belts', desc: 'The floor drags you left and right in rows.' },
+  mines:   { name: 'Minefield', desc: 'Touch a mine and it goes off. More keep coming.' },
+  lights:  { name: 'Lights Out', desc: 'You only see what the balls light up.' },
+  magnet:  { name: 'Magnetic', desc: 'The balls are pulled hard toward each other.' },
+  spring:  { name: 'Healing Spring', desc: 'A pool wanders the box and heals whoever is in it.' },
+  wrap:    { name: 'No Walls', desc: 'Go off one side and come back on the other.' },
+  laser:   { name: 'Laser Sweep', desc: 'A beam turns round the middle of the box.' },
+  breathe: { name: 'Breathing Box', desc: 'The walls keep moving in and out.' },
 };
-const RULE_BAG = ['normal', 'normal', 'normal', 'tiny', 'speed', 'heavy', 'giant', 'gravity', 'shrink', 'chaos'];
+const RULE_BAG = ['normal', 'normal', 'normal', 'normal', 'normal', 'normal', 'normal', 'normal', 'tiny', 'speed', 'heavy', 'giant', 'gravity', 'shrink', 'chaos',
+  'lava', 'meteors', 'hole', 'wind', 'portals', 'spikes', 'conveyor', 'mines', 'lights', 'magnet', 'spring', 'wrap', 'laser', 'breathe'];
 const PAINT_N = 12;                      // the painter's floor grid is 12 x 12
 
 function canMove(S, b) { return b.alive && S.tstop[b.side] <= 0 && b.st.frozenT <= 0; }
@@ -1067,7 +1082,7 @@ function mkSt() {
 function newFight(o) {
   const S = { t: 0, n: 0, rng: rng(o.seed >>> 0), nid: 1, bodies: [], F: [], projs: [], hz: [], ev: [],
     keep: !!o.keepEv, over: false, winner: -2, box: { x0: 0, y0: 0, x1: ARENA, y1: ARENA }, ot: 1, tstop: [0, 0],
-    half0: ARENA / 2, vmul: 1, dmul: 1, grav: GRAV, otStart: OT_START, rmul: 1, paint: null, out: [] };
+    half0: ARENA / 2, vmul: 1, dmul: 1, grav: GRAV, otStart: OT_START, rmul: 1, paint: null, out: [], map: null };
   // the box rule comes from the seed through its own generator, so it never shifts the fight's own dice
   const rr = rng(hashStr('rule:' + (o.seed >>> 0)));
   S.rule = RULES[o.rule] ? o.rule : RULE_BAG[Math.floor(rr() * RULE_BAG.length)];
@@ -1095,6 +1110,7 @@ function newFight(o) {
     f0.foe = f1; f1.foe = f0;
   }
   for (const f of S.F) if (f.def.init) f.def.init(S, f);
+  mapInit(S, o.seed);
   return S;
 }
 
@@ -1302,6 +1318,7 @@ function toward(a, b) { const dx = b.x - a.x, dy = b.y - a.y, l = vlen(dx, dy) |
 
 // ---- physics --------------------------------------------------------------
 function walls(S, b) {
+  if (S.rule === 'wrap') { mapWrap(S, b); return; }
   const x = S.box; let hit = 0;
   if (b.x - b.r < x.x0) { b.x = x.x0 + b.r; if (b.vx < 0) { b.vx = -b.vx; hit = 1; } }
   else if (b.x + b.r > x.x1) { b.x = x.x1 - b.r; if (b.vx > 0) { b.vx = -b.vx; hit = 1; } }
@@ -1316,6 +1333,7 @@ function walls(S, b) {
   if (hit && b.main) {
     emit(S, { e: 'wall', id: b.id, x: b.x, y: b.y, sp: vlen(b.vx, b.vy) });
     if (b.def.onWall) b.def.onWall(S, b);
+    if (S.rule === 'spikes') mapSpike(S, b);
   }
 }
 // walls a ball built: the other side bounces off them
@@ -1591,9 +1609,11 @@ function projStep(S, dt) {
     const ox = p.x, oy = p.y;
     p.x += p.vx * dt; p.y += p.vy * dt;
     let out = 0;
-    if (p.x - p.r < x.x0) { p.x = x.x0 + p.r; p.vx = Math.abs(p.vx); out = 1; }
+    if (S.rule === 'wrap') mapWrap(S, p);
+    else if (p.x - p.r < x.x0) { p.x = x.x0 + p.r; p.vx = Math.abs(p.vx); out = 1; }
     else if (p.x + p.r > x.x1) { p.x = x.x1 - p.r; p.vx = -Math.abs(p.vx); out = 1; }
-    if (p.y - p.r < x.y0) { p.y = x.y0 + p.r; p.vy = Math.abs(p.vy); out = 1; }
+    if (S.rule === 'wrap') out = 0;
+    else if (p.y - p.r < x.y0) { p.y = x.y0 + p.r; p.vy = Math.abs(p.vy); out = 1; }
     else if (p.y + p.r > x.y1) { p.y = x.y1 - p.r; p.vy = -Math.abs(p.vy); out = 1; }
     if (out) {
       if (p.bounce > 0 || p.ret) { if (p.bounce > 0) p.bounce--; emit(S, { e: 'pbounce', k: p.k, x: p.x, y: p.y }); }
@@ -1769,7 +1789,7 @@ function step(S) {
   const dt = DT;
   S.t += dt; S.n++;
   if (!S.keep) S.ev.length = 0;
-  const k = clamp((S.t - S.otStart) / OT_SHRINK, 0, 1), half = S.half0 * (1 - (1 - OT_MIN) * k);
+  const k = clamp((S.t - S.otStart) / OT_SHRINK, 0, 1), half = S.half0 * (1 - (1 - OT_MIN) * k) * (S.rule === 'breathe' ? 0.84 + 0.16 * dcos(S.t * TAU / 7) : 1);
   S.box.x0 = S.box.y0 = ARENA * 0.5 - half; S.box.x1 = S.box.y1 = ARENA * 0.5 + half;
   S.ot = S.t > OT_DMG ? 1 + (S.t - OT_DMG) * 0.04 : 1;
   for (let s = 0; s < S.tstop.length; s++) if (S.tstop[s] > 0) S.tstop[s] -= dt;
@@ -1793,6 +1813,7 @@ function step(S) {
   for (let i = 0; i < SUB; i++) physics(S, h);
   projStep(S, dt);
   hzStep(S, dt);
+  mapStep(S, dt);
   const vmin = VMIN * S.vmul, vmax = VMAX * S.vmul;
   for (const f of S.F) {
     if (stuck(S, f)) continue;
@@ -1832,6 +1853,156 @@ function runFight(o, maxSteps) {
   const S = newFight(o), lim = maxSteps || T_LIMIT * 60 + 5;
   while (!S.over && S.n < lim) step(S);
   return S;
+}
+
+
+// ===== the box rules that put something in the box ========================
+// S.map holds what a rule has in play. It rolls its own dice (M.r, off the seed), so a rule never shifts the
+// fight's. None of it belongs to either ball, so what it hurts is hurt by nobody (src null), and both balls
+// get the same box. Lights Out only changes what you can see, so it's all in the drawing (p5j).
+const MAP_ON = { lava: 1, meteors: 1, hole: 1, wind: 1, portals: 1, spikes: 1, conveyor: 1, mines: 1, magnet: 1, spring: 1, laser: 1 };
+function mapInit(S, seed) {
+  if (!MAP_ON[S.rule]) return;
+  const r = rng(hashStr('map:' + (seed >>> 0))), M = S.map = { r, items: [], next: 0, cd: {}, dir: r() < 0.5 ? 1 : -1, a0: r() * TAU };
+  if (S.rule === 'wind') { M.tx = 1; M.ty = 0; M.ox = M.oy = 0; M.next = 4; mapGust(M); M.wx = M.tx; M.wy = M.ty; }
+  else if (S.rule === 'spring') { M.x = M.y = ARENA / 2; M.vx = dcos(M.a0) * 130; M.vy = dsin(M.a0) * 130; }
+  else if (S.rule === 'mines') { for (let i = 0; i < 5; i++) mapMine(S); M.next = 3.2; }
+  else if (S.rule === 'lava') M.next = 0.6;
+  else if (S.rule === 'meteors') M.next = 0.8;
+}
+function mapSpot(S, pad) { const M = S.map, b = S.box; return [b.x0 + pad + M.r() * (b.x1 - b.x0 - 2 * pad), b.y0 + pad + M.r() * (b.y1 - b.y0 - 2 * pad)]; }
+// a blast that hurts whatever's in it, on either side
+function mapBlast(S, x, y, R, dmg, knock) {
+  for (const t of S.bodies) {
+    if (!tangible(t)) continue;
+    const dx = t.x - x, dy = t.y - y, d = vlen(dx, dy);
+    if (d > R + t.r) continue;
+    hurt(S, null, t, dmg, 'blast', t.x, t.y);
+    if (canMove(S, t)) { const l = d || 1; t.vx += dx / l * knock / t.m; t.vy += dy / l * knock / t.m; }
+  }
+}
+function mapGust(M) {
+  // a new way for the wind to blow: any of the eight, but never the one it's blowing now
+  const k = TAU / 8;
+  for (let i = 0; i < 8; i++) { const a = Math.floor(M.r() * 8) * k, x = dcos(a), y = dsin(a); if (x * M.tx + y * M.ty < 0.9) { M.tx = x; M.ty = y; return; } }
+  M.tx = -M.tx; M.ty = -M.ty;
+}
+function mapMine(S) {
+  const M = S.map;
+  for (let tries = 0; tries < 12; tries++) {
+    const [x, y] = mapSpot(S, 44);
+    if (S.F.some(f => f.alive && vlen(f.x - x, f.y - y) < f.r + 80) || M.items.some(z => vlen(z.x - x, z.y - y) < 80)) continue;
+    M.items.push({ k: 'mine', x, y, r: 14, t0: S.t, arm: S.t + 0.8 });
+    return;
+  }
+}
+// where the two portals are: opposite corners of the box as it is right now
+function mapPortals(S) {
+  const c = ARENA / 2, h = (S.box.x1 - S.box.x0) / 2 * 0.6, d = S.map.dir;
+  return [[c - h, c - h * d], [c + h, c + h * d]];
+}
+function mapPortalStep(S) {
+  const M = S.map, P = mapPortals(S), R = 36;
+  const jump = (o, out) => {
+    const [x, y] = P[out], sp = vlen(o.vx, o.vy) || 1, gap = R + (o.r || 5) + 4, ox = o.x, oy = o.y;
+    o.x = x + o.vx / sp * gap; o.y = y + o.vy / sp * gap;
+    emit(S, { e: 'portal', x0: ox, y0: oy, x1: x, y1: y });
+  };
+  for (const f of S.F) {
+    if (!tangible(f) || !canMove(S, f) || f.st.rootT > 0 || (M.cd[f.id] || 0) > S.t) continue;
+    for (let i = 0; i < 2; i++) if (vlen(f.x - P[i][0], f.y - P[i][1]) < R) { M.cd[f.id] = S.t + 0.6; jump(f, 1 - i); break; }
+  }
+  for (const p of S.projs) {
+    if (!p.alive || (p.mapT || 0) > S.t) continue;
+    for (let i = 0; i < 2; i++) if (vlen(p.x - P[i][0], p.y - P[i][1]) < R) { p.mapT = S.t + 0.5; jump(p, 1 - i); break; }
+  }
+}
+// the walls of Spike Walls: called when a ball bounces off one
+function mapSpike(S, b) {
+  const M = S.map;
+  if ((M.cd[b.id] || 0) > S.t) return;
+  M.cd[b.id] = S.t + 0.6;
+  hurt(S, null, b, 1, 'spike', b.x, b.y);
+}
+function mapWrap(S, o) {
+  const x = S.box, w = x.x1 - x.x0, h = x.y1 - x.y0;
+  if (o.x < x.x0) o.x += w; else if (o.x > x.x1) o.x -= w;
+  if (o.y < x.y0) o.y += h; else if (o.y > x.y1) o.y -= h;
+}
+function mapStep(S, dt) {
+  const M = S.map;
+  if (!M) return;
+  const R = S.rule, c = ARENA / 2, b = S.box;
+  if (R === 'lava') {
+    if (S.t >= M.next) { M.next = S.t + 2.8; const [x, y] = mapSpot(S, 50); M.items.push({ k: 'lava', x, y, r: 66, t0: S.t, warn: 0.9, end: S.t + 5.9 }); }
+    for (const z of M.items) {
+      if (S.t < z.t0 + z.warn) continue;
+      if (!z.up) { z.up = 1; emit(S, { e: 'lavaup', x: z.x, y: z.y, r: z.r }); }
+      for (const f of S.F) if (tangible(f) && vlen(f.x - z.x, f.y - z.y) < z.r + f.r * 0.4) burn(f, null, 0.35);
+    }
+    M.items = M.items.filter(z => z.end > S.t);
+  } else if (R === 'meteors') {
+    if (S.t >= M.next) {
+      M.next = S.t + 2.1;
+      // most of them come down where a ball is heading
+      const live = S.F.filter(f => f.alive), f = live[Math.floor(M.r() * live.length)];
+      let [x, y] = mapSpot(S, 50);
+      if (f && M.r() < 0.65) { x = clamp(f.x + f.vx, b.x0 + 40, b.x1 - 40); y = clamp(f.y + f.vy, b.y0 + 40, b.y1 - 40); }
+      M.items.push({ k: 'meteor', x, y, r: 64, t0: S.t, at: S.t + 1 });
+    }
+    for (const z of M.items) if (z.at <= S.t) { mapBlast(S, z.x, z.y, z.r, 6, 500); emit(S, { e: 'boom', x: z.x, y: z.y, r: z.r, small: 1 }); }
+    M.items = M.items.filter(z => z.at > S.t);
+  } else if (R === 'hole') {
+    for (const f of S.F) {
+      if (!tangible(f)) continue;
+      const dx = c - f.x, dy = c - f.y, d = vlen(dx, dy) || 1;
+      if (canMove(S, f) && d < 250) { const a = 900 * (1 - d / 250); f.vx += dx / d * a * dt; f.vy += dy / d * a * dt; }
+      if (d < 30 + f.r) hurt(S, null, f, 7 * dt, 'hole');
+    }
+    for (const p of S.projs) {
+      if (!p.alive) continue;
+      const dx = c - p.x, dy = c - p.y, d = vlen(dx, dy) || 1;
+      if (d < 22) { p.alive = false; emit(S, { e: 'poof', k: p.k, x: p.x, y: p.y }); continue; }
+      if (d < 250) { const a = 1100 * (1 - d / 250); p.vx += dx / d * a * dt; p.vy += dy / d * a * dt; }
+    }
+  } else if (R === 'wind') {
+    if (S.t >= M.next) { M.next = S.t + 4; mapGust(M); emit(S, { e: 'gust' }); }
+    const k = Math.min(1, dt * 2.5);
+    M.wx += (M.tx - M.wx) * k; M.wy += (M.ty - M.wy) * k;
+    M.ox += M.wx * dt; M.oy += M.wy * dt;
+    for (const f of S.F) if (canMove(S, f)) { f.vx += M.wx * 520 * dt; f.vy += M.wy * 520 * dt; }
+    for (const p of S.projs) if (p.alive) { p.vx += M.wx * 800 * dt; p.vy += M.wy * 800 * dt; }
+  } else if (R === 'portals') {
+    mapPortalStep(S);
+  } else if (R === 'conveyor') {
+    const h = (b.y1 - b.y0) / 4;
+    for (const f of S.F) if (canMove(S, f)) f.vx += (clamp(Math.floor((f.y - b.y0) / h), 0, 3) & 1 ? 720 : -720) * M.dir * dt;
+  } else if (R === 'mines') {
+    if (S.t >= M.next) { M.next = S.t + 3.2; if (M.items.length < 6) mapMine(S); }
+    for (const z of M.items) {
+      if (z.arm > S.t) continue;
+      if (z.x < b.x0 + 10 || z.x > b.x1 - 10 || z.y < b.y0 + 10 || z.y > b.y1 - 10) { z.gone = 1; continue; }   // the closing walls took it
+      if (!S.F.some(f => tangible(f) && vlen(f.x - z.x, f.y - z.y) < f.r + z.r)) continue;
+      z.gone = 1; mapBlast(S, z.x, z.y, 66, 3.5, 520); emit(S, { e: 'boom', x: z.x, y: z.y, r: 66, small: 1 });
+    }
+    M.items = M.items.filter(z => !z.gone);
+  } else if (R === 'magnet') {
+    for (const f of S.F) if (canMove(S, f) && f.foe && tangible(f.foe)) { const [ux, uy] = toward(f, f.foe); f.vx += ux * 430 * dt; f.vy += uy * 430 * dt; }
+  } else if (R === 'spring') {
+    M.x += M.vx * dt; M.y += M.vy * dt;
+    if (M.x < b.x0 + 72 || M.x > b.x1 - 72) { M.vx = M.x < c ? Math.abs(M.vx) : -Math.abs(M.vx); M.x = clamp(M.x, b.x0 + 72, b.x1 - 72); }
+    if (M.y < b.y0 + 72 || M.y > b.y1 - 72) { M.vy = M.y < c ? Math.abs(M.vy) : -Math.abs(M.vy); M.y = clamp(M.y, b.y0 + 72, b.y1 - 72); }
+    for (const f of S.F) if (tangible(f) && vlen(f.x - M.x, f.y - M.y) < 72 + f.r * 0.5) heal(S, f, 6 * dt);
+  } else if (R === 'laser') {
+    const a = M.a0 + M.dir * 0.7 * S.t, ux = dcos(a), uy = dsin(a), [x0, y0] = rayToBox(S, c, c, ux, uy), [x1, y1] = rayToBox(S, c, c, -ux, -uy);
+    M.ang = a; M.ax = x0; M.ay = y0; M.bx = x1; M.by = y1;
+    if (S.t > 0.8) for (const f of S.F) {
+      if (!tangible(f) || (M.cd[f.id] || 0) > S.t || segDist2(f.x, f.y, x0, y0, x1, y1) > (f.r + 7) * (f.r + 7)) continue;
+      M.cd[f.id] = S.t + 1.2;
+      hurt(S, null, f, 2.5, 'beam', f.x, f.y);
+      if (canMove(S, f)) { const s = (f.x - c) * -uy + (f.y - c) * ux < 0 ? -1 : 1; f.vx += -uy * s * 300 / f.m; f.vy += ux * s * 300 / f.m; }
+    }
+  }
 }
 
 // ===== the first 30 balls =======================================================
@@ -4686,6 +4857,9 @@ class Arena {
       case 'wallhit': this.burst(e.x, e.y, 5, '#ff9f2e', 160, 0.3, 3); if (snd) snd.tink(); break;
       case 'fx': break;
       case 'chaos': this.shake = Math.min(16, this.shake + 8); if (snd) snd.bump(900); break;
+      case 'portal': this.ring(e.x0, e.y0, 40, 8, '#38b6ff', 4, 0.25); this.ring(e.x1, e.y1, 8, 52, '#ff8a2e', 4, 0.3); if (snd) snd.warp(); break;
+      case 'lavaup': this.burst(e.x, e.y, 14, '#ff8a1f', 260, 0.5, 4); this.shake = Math.min(14, this.shake + 3); if (snd) snd.splash(); break;
+      case 'gust': if (snd) snd.phase(); break;
       case 'phit': break;
       case 'grin': this.ring(e.x, e.y, 30, 120, '#ffd60a', 4, 0.35); if (snd) snd.ping(); break;
       case 'rage': this.shake = Math.min(16, this.shake + 7); this.burst(e.x, e.y, 18, '#ffd60a', 340, 0.5, 5); this.num(e.x, e.y - 56, 'ANGRY!', '#ff4646', true); if (snd) snd.boom(true); break;
@@ -4750,6 +4924,7 @@ class Arena {
     }
     this.floor(S, t);
     drawPaint(c, S);
+    mapFloor(c, S, t);
     CHARGE.clear();
     for (const z of S.hz) if (z.k === 'laser' && !z.fired) CHARGE.add(z.owner);
     for (const z of S.hz) if (z.k !== 'wall') drawHazard(c, z, S, t);
@@ -4758,6 +4933,7 @@ class Arena {
     for (const f of S.F) {
       if (f.def.id === 'beezap') continue;   // BeeZap leaves honeycomb instead (honeycomb, below)
       const tr = this.trail[f.id] || (this.trail[f.id] = []);
+      if ((S.rule === 'wrap' || S.rule === 'portals') && tr.length && Math.abs(tr[tr.length - 2] - f.x) + Math.abs(tr[tr.length - 1] - f.y) > 120) tr.length = 0;   // it jumped: no streak across the box
       tr.push(f.x, f.y); if (tr.length > 12) tr.splice(0, 2);
       const sp = vlen(f.vx, f.vy);
       if (f.alive && sp > 560 && tangible(f)) {
@@ -4774,13 +4950,25 @@ class Arena {
     for (const b of S.bodies) if (!b.main && b.alive) drawDrone(c, b, t);
     // pop (0 to 1) grows the balls in at the start of a fight, one after the other
     const many = S.F.length > 2, grow = f => { if (this.pop === undefined || this.pop >= 1) return 1; const x = clamp((this.pop - f.side * (many ? 0.09 : 0.25)) / (many ? 0.3 : 0.5), 0, 1); return x <= 0 ? 0 : 1 + 2.70158 * Math.pow(x - 1, 3) + 1.70158 * Math.pow(x - 1, 2); };
+    // with no walls a ball going off one side is already coming back on the other, so it's drawn at both, cut at the edge
+    const open = S.rule === 'wrap', B = S.box, BW = B.x1 - B.x0, BH = B.y1 - B.y0;
+    if (open) { c.save(); c.beginPath(); c.rect(B.x0, B.y0, BW, BH); c.clip(); }
     for (const f of S.F) {
       const q = grow(f);
-      if (q >= 1) { this.fighter(S, f, t); continue; }
+      if (q >= 1) {
+        this.fighter(S, f, t);
+        if (open) for (const [ox, oy] of [[f.x - B.x0 < 170 ? BW : f.x > B.x1 - 170 ? -BW : 0, 0], [0, f.y - B.y0 < 170 ? BH : f.y > B.y1 - 170 ? -BH : 0]]) {
+          if (ox || oy) { c.save(); c.translate(ox, oy); this.fighter(S, f, t); c.restore(); }
+        }
+        continue;
+      }
       if (q <= 0) continue;
       c.save(); c.translate(f.x, f.y); c.scale(q, q); c.translate(-f.x, -f.y); this.fighter(S, f, t); c.restore();
     }
+    if (open) c.restore();
+    mapTop(c, S, t);
     this.effects(S, t);
+    if (this.opt.sound) mapLights(c, S, t);
     for (const f of S.F) if (grow(f) > 0.9) this.tag(S, f);
     this.numbers();
     const ts = Math.max(S.tstop[0], S.tstop[1]);
@@ -5816,6 +6004,258 @@ Object.assign(DRONE2, {
   pinball(c, d) { circ(c, d.x, d.y, d.r); inkFill(c, '#d8dee6', 2); circ(c, d.x - d.r * 0.35, d.y - d.r * 0.35, d.r * 0.3); c.fillStyle = '#ffffff'; c.fill(); },
 });
 
+
+// ===== what the box rules look like =======================================
+// mapFloor draws what lies on the floor, under everything; mapTop what's above the balls; mapLights the dark
+// of Lights Out. The sim's clock (S.t) drives anything that has to hold still while the fight is paused.
+function mapFloor(c, S, t) {
+  const M = S.map, R = S.rule, b = S.box;
+  if (R === 'wrap') return mapOpenEdges(c, S);
+  if (R === 'breathe') return mapBreathe(c, S);
+  if (!M) return;
+  if (R === 'lava') for (const z of M.items) mapLava(c, z, S, t);
+  else if (R === 'meteors') for (const z of M.items) mapShadow(c, z, S);
+  else if (R === 'hole') mapHole(c, t);
+  else if (R === 'portals') mapPortalArt(c, S, t);
+  else if (R === 'spikes') mapSpikes(c, b);
+  else if (R === 'conveyor') mapBelts(c, S);
+  else if (R === 'mines') for (const z of M.items) mapMineArt(c, z, S);
+  else if (R === 'spring') mapSpring(c, M, t);
+}
+function mapTop(c, S, t) {
+  const M = S.map, R = S.rule;
+  if (!M) return;
+  if (R === 'meteors') for (const z of M.items) mapRock(c, z, S);
+  else if (R === 'wind') mapWind(c, M);
+  else if (R === 'magnet') mapField(c, S, t);
+  else if (R === 'laser' && M.ang !== undefined) mapBeam(c, S, t);
+}
+function mapLava(c, z, S, t) {
+  const age = S.t - z.t0, q = clamp(age / z.warn, 0, 1);
+  if (age < z.warn) {
+    // the floor heats up and cracks where it's going to go
+    const g = c.createRadialGradient(z.x, z.y, 0, z.x, z.y, z.r);
+    g.addColorStop(0, `rgba(255,110,30,${(0.1 + 0.4 * q).toFixed(3)})`); g.addColorStop(1, 'rgba(255,60,10,0)');
+    circ(c, z.x, z.y, z.r); c.fillStyle = g; c.fill();
+    c.lineWidth = 2.5; c.lineCap = 'round'; c.strokeStyle = `rgba(255,170,70,${(0.25 + 0.7 * q).toFixed(3)})`; c.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = i * 1.05 + z.x * 0.3, l = z.r * q * (0.65 + 0.3 * Math.sin(i * 7.1 + z.y));
+      c.moveTo(z.x, z.y); c.lineTo(z.x + Math.cos(a + 0.25) * l * 0.5, z.y + Math.sin(a + 0.25) * l * 0.5); c.lineTo(z.x + Math.cos(a) * l, z.y + Math.sin(a) * l);
+    }
+    c.stroke(); c.lineCap = 'butt';
+    return;
+  }
+  const up = clamp((age - z.warn) / 0.25, 0, 1), fade = clamp((z.end - S.t) / 0.6, 0, 1), rr = z.r * up;
+  const blob = k => {
+    c.beginPath();
+    for (let i = 0; i <= 22; i++) { const a = i / 22 * TAU, w = 1 + 0.07 * Math.sin(a * 3 + z.x + t * 1.4) + 0.05 * Math.sin(a * 5 - z.y - t * 1.9), x = z.x + Math.cos(a) * rr * k * w, y = z.y + Math.sin(a) * rr * k * w; if (i) c.lineTo(x, y); else c.moveTo(x, y); }
+    c.closePath();
+  };
+  c.save(); c.globalAlpha = fade;
+  blob(1.05); c.fillStyle = '#1c0a06'; c.fill();
+  const g = c.createRadialGradient(z.x, z.y, rr * 0.1, z.x, z.y, rr);
+  g.addColorStop(0, '#ffe07a'); g.addColorStop(0.45, '#ff8a1f'); g.addColorStop(1, '#b3200a');
+  blob(0.93); c.fillStyle = g; c.fill();
+  // cooled crust drifting on top, and bubbles
+  c.fillStyle = 'rgba(60,16,8,0.55)';
+  for (let i = 0; i < 5; i++) { const a = i * 2.4 + z.y + t * 0.12, d = rr * (0.3 + 0.1 * i); c.beginPath(); c.ellipse(z.x + Math.cos(a) * d, z.y + Math.sin(a) * d, rr * 0.13, rr * 0.08, a, 0, TAU); c.fill(); }
+  for (let i = 0; i < 4; i++) {
+    const ph = (t * 0.9 + i * 0.27 + z.x * 0.01) % 1, a = i * 1.7 + z.x, d = rr * (0.2 + i * 0.17);
+    circ(c, z.x + Math.cos(a) * d, z.y + Math.sin(a) * d, 2 + ph * 6); c.lineWidth = 1.5; c.strokeStyle = `rgba(255,240,180,${((1 - ph) * 0.8).toFixed(3)})`; c.stroke();
+  }
+  c.restore();
+}
+// a meteor's mark on the floor: a ring closing on a shadow that darkens as it falls
+function mapShadow(c, z, S) {
+  const q = clamp(1 - (z.at - S.t), 0, 1);
+  circ(c, z.x, z.y, z.r * (0.35 + 0.65 * q)); c.fillStyle = `rgba(0,0,0,${(0.2 + 0.45 * q).toFixed(3)})`; c.fill();
+  c.setLineDash([9, 7]); c.lineWidth = 3; c.strokeStyle = `rgba(255,120,50,${(0.45 + 0.5 * q).toFixed(3)})`; circ(c, z.x, z.y, z.r); c.stroke(); c.setLineDash([]);
+  c.lineWidth = 2; c.strokeStyle = `rgba(255,190,110,${(0.3 + 0.6 * q).toFixed(3)})`;
+  circ(c, z.x, z.y, z.r * (1.5 - 0.5 * q)); c.stroke();
+  c.beginPath(); c.moveTo(z.x - 10, z.y); c.lineTo(z.x + 10, z.y); c.moveTo(z.x, z.y - 10); c.lineTo(z.x, z.y + 10); c.stroke();
+}
+function mapRock(c, z, S) {
+  const q = clamp(1 - (z.at - S.t), 0, 1), e = q * q, x = z.x + (1 - e) * 230, y = z.y - (1 - e) * 620, r = 12 + 16 * e;
+  if (y < -60) return;
+  // the fire behind it
+  const ux = 230 / 662, uy = -620 / 662, tl = 60 + 90 * e;
+  const g = c.createLinearGradient(x, y, x + ux * tl, y + uy * tl);
+  g.addColorStop(0, 'rgba(255,220,120,0.95)'); g.addColorStop(0.45, 'rgba(255,110,30,0.6)'); g.addColorStop(1, 'rgba(255,60,10,0)');
+  c.beginPath(); c.moveTo(x + uy * r, y - ux * r); c.lineTo(x + ux * tl, y + uy * tl); c.lineTo(x - uy * r, y + ux * r); c.closePath(); c.fillStyle = g; c.fill();
+  circ(c, x, y, r); c.fillStyle = lin3(c, x - r, y - r, x + r, y + r, '#a0663c', '#3a1e12'); c.fill();
+  c.lineWidth = 2; c.strokeStyle = '#1a0c06'; c.stroke();
+  for (const [a, b, s] of [[-0.3, -0.2, 0.26], [0.35, 0.1, 0.2], [-0.1, 0.45, 0.16]]) { circ(c, x + a * r, y + b * r, r * s); c.fillStyle = 'rgba(20,8,4,0.55)'; c.fill(); }
+}
+function lin3(c, x0, y0, x1, y1, a, b) { const g = c.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, a); g.addColorStop(1, b); return g; }
+function mapHole(c, t) {
+  const x = ARENA / 2, y = ARENA / 2;
+  // how far it pulls, faint rings falling inward
+  c.lineWidth = 1.5;
+  for (let i = 0; i < 4; i++) { const ph = 1 - ((t * 0.28 + i / 4) % 1); circ(c, x, y, 40 + 210 * ph); c.strokeStyle = `rgba(170,130,255,${(0.16 * (1 - ph)).toFixed(3)})`; c.stroke(); }
+  // the disc, arms of it wound round the middle
+  c.save(); c.translate(x, y); c.lineCap = 'round';
+  for (let a = 0; a < 3; a++) {
+    c.save(); c.rotate(t * 1.5 + a * TAU / 3);
+    for (let i = 0; i < 18; i++) {
+      const u = i / 18, ang = u * 3.4, r = 36 + 60 * u;
+      c.beginPath(); c.arc(0, 0, r, ang, ang + 0.26); c.lineWidth = 5 - 3 * u; c.strokeStyle = `rgba(${Math.round(255 - 110 * u)},${Math.round(170 - 90 * u)},${Math.round(90 + 165 * u)},${(0.75 * (1 - u)).toFixed(3)})`; c.stroke();
+    }
+    c.restore();
+  }
+  c.lineCap = 'butt';
+  const g = c.createRadialGradient(0, 0, 14, 0, 0, 40);
+  g.addColorStop(0, '#000'); g.addColorStop(0.72, '#000'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  circ(c, 0, 0, 40); c.fillStyle = g; c.fill();
+  circ(c, 0, 0, 29); c.lineWidth = 2; c.strokeStyle = '#ffd9a0'; c.stroke();
+  c.restore();
+}
+function mapWind(c, M) {
+  // streaks blown across the box, and the way it's blowing
+  const w = ARENA, sp = 620, l = 26 + 46 * vlen(M.wx, M.wy);
+  c.lineCap = 'round';
+  for (let i = 0; i < 34; i++) {
+    const bx = (i * 151.3) % w, by = (i * 263.7) % w, x = ((bx + M.ox * sp * (0.7 + (i % 5) * 0.14)) % w + w) % w, y = ((by + M.oy * sp * (0.7 + (i % 5) * 0.14)) % w + w) % w;
+    c.beginPath(); c.moveTo(x, y); c.lineTo(x - M.wx * l, y - M.wy * l); c.lineWidth = 1.2 + (i % 3) * 0.7; c.strokeStyle = `rgba(215,235,255,${(0.1 + (i % 4) * 0.05).toFixed(3)})`; c.stroke();
+  }
+  // chevrons in the middle of the floor
+  const a = Math.atan2(M.wy, M.wx);
+  c.save(); c.translate(ARENA / 2, ARENA / 2); c.rotate(a); c.lineWidth = 5; c.lineJoin = 'round';
+  for (let i = 0; i < 3; i++) { const x = (i - 1) * 26; c.beginPath(); c.moveTo(x - 9, -14); c.lineTo(x + 9, 0); c.lineTo(x - 9, 14); c.strokeStyle = `rgba(215,235,255,${(0.1 + i * 0.06).toFixed(3)})`; c.stroke(); }
+  c.restore(); c.lineCap = 'butt';
+}
+function mapPortalArt(c, S, t) {
+  mapPortals(S).forEach(([x, y], i) => {
+    const col = i ? '#ff8a2e' : '#38b6ff', R = 36;
+    const g = c.createRadialGradient(x, y, 2, x, y, R);
+    g.addColorStop(0, '#000'); g.addColorStop(0.7, i ? '#2a1204' : '#04182a'); g.addColorStop(1, i ? '#7a3a0a' : '#0a4a7a');
+    circ(c, x, y, R); c.fillStyle = g; c.fill();
+    // it swirls one way on this side and the other on that
+    c.save(); c.translate(x, y); c.rotate((i ? -1 : 1) * t * 2.6); c.lineCap = 'round'; c.strokeStyle = col;
+    for (let k = 0; k < 3; k++) { c.rotate(TAU / 3); c.beginPath(); c.arc(0, 0, R * 0.62, 0, 1.3); c.lineWidth = 2.5; c.globalAlpha = 0.7; c.stroke(); c.beginPath(); c.arc(0, 0, R * 0.32, 0.6, 1.5); c.lineWidth = 2; c.stroke(); }
+    c.restore(); c.lineCap = 'butt';
+    circ(c, x, y, R); c.lineWidth = 4.5; c.strokeStyle = col; c.stroke();
+    circ(c, x, y, R + 5 + Math.sin(t * 4 + i * 3) * 1.5); c.lineWidth = 1.5; c.strokeStyle = rgba(col, 0.45); c.stroke();
+  });
+}
+function mapSpikes(c, b) {
+  const tooth = (x, y, ux, uy, nx, ny) => {
+    const w = 11, h = 19;
+    c.beginPath(); c.moveTo(x - ux * w, y - uy * w); c.lineTo(x + nx * h, y + ny * h); c.lineTo(x + ux * w, y + uy * w); c.closePath();
+    c.fillStyle = lin3(c, x, y, x + nx * h, y + ny * h, '#59606e', '#c8ceda'); c.fill();
+    c.beginPath(); c.moveTo(x + nx * h * 0.62 - ux * w * 0.38, y + ny * h * 0.62 - uy * w * 0.38); c.lineTo(x + nx * h, y + ny * h); c.lineTo(x + nx * h * 0.62 + ux * w * 0.38, y + ny * h * 0.62 + uy * w * 0.38); c.closePath();
+    c.fillStyle = '#c8283a'; c.fill();
+  };
+  const W = b.x1 - b.x0, n = Math.max(4, Math.round(W / 26)), s = W / n;
+  c.fillStyle = '#23262e'; c.fillRect(b.x0, b.y0, W, 5); c.fillRect(b.x0, b.y1 - 5, W, 5); c.fillRect(b.x0, b.y0, 5, W); c.fillRect(b.x1 - 5, b.y0, 5, W);
+  for (let i = 0; i < n; i++) {
+    const a = (i + 0.5) * s;
+    tooth(b.x0 + a, b.y0 + 3, 1, 0, 0, 1); tooth(b.x0 + a, b.y1 - 3, 1, 0, 0, -1);
+    tooth(b.x0 + 3, b.y0 + a, 0, 1, 1, 0); tooth(b.x1 - 3, b.y0 + a, 0, 1, -1, 0);
+  }
+}
+function mapBelts(c, S) {
+  const b = S.box, h = (b.y1 - b.y0) / 4, W = b.x1 - b.x0, sp = 120, gap = 44;
+  c.save(); c.beginPath(); c.rect(b.x0, b.y0, W, b.y1 - b.y0); c.clip();
+  for (let i = 0; i < 4; i++) {
+    const y = b.y0 + i * h, dir = (i & 1 ? 1 : -1) * S.map.dir;
+    c.fillStyle = i & 1 ? 'rgba(46,50,62,0.62)' : 'rgba(30,33,42,0.62)'; c.fillRect(b.x0, y, W, h);
+    c.fillStyle = 'rgba(0,0,0,0.5)'; c.fillRect(b.x0, y, W, 3);
+    c.fillStyle = 'rgba(255,255,255,0.07)'; c.fillRect(b.x0, y + 3, W, 1.5);
+    const off = ((S.t * sp * dir) % gap + gap) % gap;
+    c.lineWidth = 6; c.lineJoin = 'miter'; c.strokeStyle = 'rgba(246,195,60,0.2)'; c.beginPath();
+    for (let x = b.x0 - gap + off; x < b.x1 + gap; x += gap) { c.moveTo(x - dir * 8, y + h * 0.26); c.lineTo(x + dir * 8, y + h * 0.5); c.lineTo(x - dir * 8, y + h * 0.74); }
+    c.stroke();
+  }
+  c.restore();
+}
+function mapMineArt(c, z, S) {
+  const live = z.arm <= S.t, pop = clamp((S.t - z.t0) / 0.25, 0, 1), r = z.r * pop;
+  if (r <= 0) return;
+  circ(c, z.x, z.y + 3, r * 1.08); c.fillStyle = 'rgba(0,0,0,0.45)'; c.fill();
+  c.lineWidth = 3; c.strokeStyle = '#6a6f7c'; c.beginPath();
+  for (let i = 0; i < 8; i++) { const a = i * TAU / 8; c.moveTo(z.x + Math.cos(a) * r, z.y + Math.sin(a) * r); c.lineTo(z.x + Math.cos(a) * r * 1.4, z.y + Math.sin(a) * r * 1.4); }
+  c.stroke();
+  circ(c, z.x, z.y, r); c.fillStyle = lin3(c, z.x - r, z.y - r, z.x + r, z.y + r, '#5c616e', '#20232b'); c.fill(); c.lineWidth = 2; c.strokeStyle = '#111318'; c.stroke();
+  // a light that blinks once it's armed, and a hint of how far it reaches
+  const blink = live && Math.floor(S.t * 3 + z.x) % 2 === 0;
+  circ(c, z.x, z.y, r * 0.36); c.fillStyle = blink ? '#ff3b3b' : live ? '#6e1414' : '#3a3d46'; c.fill();
+  if (live) { c.setLineDash([3, 8]); circ(c, z.x, z.y, 40); c.lineWidth = 1.5; c.strokeStyle = 'rgba(255,70,70,0.22)'; c.stroke(); c.setLineDash([]); }
+}
+function mapSpring(c, M, t) {
+  const x = M.x, y = M.y, R = 72, g = c.createRadialGradient(x, y, 6, x, y, R);
+  g.addColorStop(0, 'rgba(120,255,190,0.55)'); g.addColorStop(0.7, 'rgba(40,190,140,0.42)'); g.addColorStop(1, 'rgba(20,120,110,0.3)');
+  circ(c, x, y, R); c.fillStyle = g; c.fill();
+  circ(c, x, y, R); c.lineWidth = 3.5; c.strokeStyle = 'rgba(150,255,210,0.75)'; c.stroke();
+  // ripples going out, and bubbles coming up
+  c.lineWidth = 1.5;
+  for (let i = 0; i < 3; i++) { const ph = (t * 0.45 + i / 3) % 1; circ(c, x, y, R * ph); c.strokeStyle = `rgba(200,255,230,${(0.45 * (1 - ph)).toFixed(3)})`; c.stroke(); }
+  for (let i = 0; i < 6; i++) { const ph = (t * 0.6 + i * 0.17) % 1, a = i * 2.1; circ(c, x + Math.cos(a) * R * 0.6 * (i % 3 + 1) / 3, y + Math.sin(a) * R * 0.55 - ph * 18, 1.5 + (i % 3)); c.fillStyle = `rgba(220,255,240,${((1 - ph) * 0.6).toFixed(3)})`; c.fill(); }
+  c.fillStyle = 'rgba(235,255,245,0.8)'; c.fillRect(x - 12, y - 3.5, 24, 7); c.fillRect(x - 3.5, y - 12, 7, 24);
+}
+function mapField(c, S, t) {
+  const [f, g] = S.F;
+  if (!f || !g || !f.alive || !g.alive) return;
+  const dx = g.x - f.x, dy = g.y - f.y, d = vlen(dx, dy) || 1, nx = -dy / d, ny = dx / d;
+  c.lineWidth = 2; c.setLineDash([7, 9]); c.lineDashOffset = -t * 60;
+  for (const k of [-1, -0.45, 0.45, 1]) {
+    const w = k * Math.min(120, d * 0.34), mx = (f.x + g.x) / 2 + nx * w, my = (f.y + g.y) / 2 + ny * w;
+    c.beginPath(); c.moveTo(f.x, f.y); c.quadraticCurveTo(mx, my, g.x, g.y); c.strokeStyle = `rgba(150,200,255,${(0.34 - Math.abs(k) * 0.14).toFixed(3)})`; c.stroke();
+  }
+  c.setLineDash([]); c.lineDashOffset = 0;
+}
+function mapBeam(c, S, t) {
+  const M = S.map, on = S.t > 0.8, X = ARENA / 2;
+  c.lineCap = 'butt';
+  for (const [w, col] of on ? [[18, 'rgba(255,40,60,0.28)'], [9, 'rgba(255,60,70,0.85)'], [3, '#ffe8e8']] : [[3, 'rgba(255,60,70,0.5)']]) {
+    c.beginPath(); c.moveTo(M.ax, M.ay); c.lineTo(M.bx, M.by); c.lineWidth = w + (on && w > 9 ? Math.sin(t * 30) * 2 : 0); c.strokeStyle = col; c.stroke();
+  }
+  // the turret in the middle that throws it
+  c.save(); c.translate(X, X); c.rotate(M.ang);
+  rrect(c, -28, -9, 56, 18, 5); c.fillStyle = lin3(c, 0, -9, 0, 9, '#6a707e', '#23262e'); c.fill(); c.lineWidth = 2; c.strokeStyle = '#111318'; c.stroke();
+  circ(c, 0, 0, 15); c.fillStyle = lin3(c, -12, -12, 12, 12, '#7a808e', '#2a2d36'); c.fill(); c.stroke();
+  circ(c, 0, 0, 5.5); c.fillStyle = '#ff3b4a'; c.fill();
+  c.restore();
+}
+// No Walls: the edge of the box is open, so it's drawn as a dashed line with arrows going through it
+function mapOpenEdges(c, S) {
+  const b = S.box, W = b.x1 - b.x0;
+  c.fillStyle = '#0a0a0d'; c.fillRect(b.x0 - 3, b.y0 - 3, W + 6, 6); c.fillRect(b.x0 - 3, b.y1 - 3, W + 6, 6); c.fillRect(b.x0 - 3, b.y0 - 3, 6, W + 6); c.fillRect(b.x1 - 3, b.y0 - 3, 6, W + 6);
+  c.setLineDash([12, 12]); c.lineDashOffset = -S.t * 30; c.lineWidth = 3; c.strokeStyle = 'rgba(90,210,255,0.8)';
+  c.strokeRect(b.x0 + 2, b.y0 + 2, W - 4, W - 4); c.setLineDash([]); c.lineDashOffset = 0;
+  c.lineWidth = 3; c.strokeStyle = 'rgba(90,210,255,0.45)'; c.lineJoin = 'round';
+  for (const [x, y, a] of [[b.x0 + 16, (b.y0 + b.y1) / 2, PI], [b.x1 - 16, (b.y0 + b.y1) / 2, 0], [(b.x0 + b.x1) / 2, b.y0 + 16, -HALF_PI], [(b.x0 + b.x1) / 2, b.y1 - 16, HALF_PI]]) {
+    c.save(); c.translate(x, y); c.rotate(a); c.beginPath(); c.moveTo(-6, -9); c.lineTo(4, 0); c.lineTo(-6, 9); c.stroke(); c.restore();
+  }
+}
+// Breathing Box: arrows on the walls, showing which way they're going right now
+function mapBreathe(c, S) {
+  const b = S.box, inward = dsin(S.t * TAU / 7) > 0, M = (b.x0 + b.x1) / 2;
+  c.lineWidth = 4; c.lineJoin = 'round'; c.strokeStyle = 'rgba(246,195,60,0.5)';
+  for (const a of [0, HALF_PI, PI, -HALF_PI]) {
+    c.save(); c.translate(M, M); c.rotate(a); c.translate((b.x1 - b.x0) / 2 - 22, 0); if (inward) c.rotate(PI);
+    for (const o of [-14, 0, 14]) { c.save(); c.translate(0, o); c.beginPath(); c.moveTo(-3, -5); c.lineTo(3, 0); c.lineTo(-3, 5); c.stroke(); c.restore(); }
+    c.restore();
+  }
+}
+// Lights Out: dark, except right around the balls and what they fire. The dark is a small canvas of its own with
+// soft holes cut in it, stretched over the box
+let MAP_DARK = null;
+function mapLights(c, S, t) {
+  if (S.rule !== 'lights') return;
+  const n = 220, k = n / ARENA, L = MAP_DARK || (MAP_DARK = document.createElement('canvas'));
+  if (L.width !== n) L.width = L.height = n;
+  const d = L.getContext('2d');
+  d.globalCompositeOperation = 'source-over'; d.fillStyle = '#04040a'; d.fillRect(0, 0, n, n);
+  d.globalCompositeOperation = 'destination-out';
+  const hole = (x, y, r, a) => { const g = d.createRadialGradient(x * k, y * k, 0, x * k, y * k, r * k); g.addColorStop(0, `rgba(0,0,0,${a})`); g.addColorStop(0.55, `rgba(0,0,0,${a * 0.8})`); g.addColorStop(1, 'rgba(0,0,0,0)'); d.fillStyle = g; d.fillRect((x - r) * k, (y - r) * k, r * 2 * k, r * 2 * k); };
+  for (const f of S.F) if (f.alive) hole(f.x, f.y, f.r + 112 + Math.sin(t * 7 + f.id) * 3, 1);
+  for (const b of S.bodies) if (!b.main && b.alive) hole(b.x, b.y, 40, 0.6);
+  for (const p of S.projs) if (p.alive) hole(p.x, p.y, 44, 0.75);
+  for (const z of S.hz) if (z.alive && z.x !== undefined && z.r) hole(z.x, z.y, z.r + 26, 0.45);
+  c.imageSmoothingEnabled = true;
+  c.drawImage(L, 0, 0, ARENA, ARENA);
+}
+
 // ===== sound: every effect is synthesised, no audio files ==================
 const SFX = (() => {
   let ac = null, out = null, sfxBus = null, musBus = null, nbuf = null;
@@ -6680,7 +7120,7 @@ class Preview {
     this.cv = cv; this.id = id; this.lvl = lvl || 1; this.a = new Arena(cv, { pad: 10 }); this.t = 0; this.n = 0; this.new();
     PREVIEWS.add(this);
   }
-  new() { this.S = newFight({ seed: 77 + this.n++ * 131, a: { id: this.id, lvl: this.lvl }, b: { id: 'dummy', lvl: 1 }, keepEv: true }); this.a.reset(); this.acc = 0; }
+  new() { this.S = newFight({ seed: 77 + this.n++ * 131, a: { id: this.id, lvl: this.lvl }, b: { id: 'dummy', lvl: 1 }, keepEv: true, rule: 'normal' }); this.a.reset(); this.acc = 0; }
   tick(dt) {
     if (!this.cv.isConnected) { PREVIEWS.delete(this); return; }
     this.a.resize();
