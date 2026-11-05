@@ -406,19 +406,8 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 .btn2, .chip, .back { transition: border-color .15s, color .15s, background .15s, transform .12s var(--ease); }
 .btn2:active:not(:disabled), .chip:active, .back:active, .stake:active:not(:disabled), .ptabs button:active, .m-item:active { transform: scale(.96); }
 /* opening the game */
-#intro { position: fixed; inset: 0; z-index: 90; background: #030304; display: grid; place-items: center; align-content: center; gap: 22px; pointer-events: none; animation: introOut .5s var(--ease) 1.25s forwards; }
-#intro.skip { animation: introOut .2s ease forwards; }
-@keyframes introOut { to { opacity: 0; visibility: hidden } }
-#intro .ib { position: relative; width: 200px; height: 34px; }
-#intro .ib i { position: absolute; top: 0; width: 34px; height: 34px; border-radius: 50%; box-sizing: border-box; border: 3px solid #030304; }
-#intro .ib i:nth-child(1) { left: 0; background: var(--you); animation: ibL .9s forwards; }
-#intro .ib i:nth-child(2) { right: 0; background: var(--foe); animation: ibR .9s forwards; }
-#intro .ib b { position: absolute; left: 50%; top: 50%; width: 60px; height: 60px; margin: -30px; border-radius: 50%; border: 3px solid var(--o); opacity: 0; animation: ring .5s var(--ease) .42s forwards; }
-@keyframes ibL { 0% { transform: translateX(-40px); opacity: 0; animation-timing-function: cubic-bezier(.5,0,.9,.5) } 47% { transform: translateX(66px); opacity: 1; animation-timing-function: cubic-bezier(.2,.7,.3,1) } 100% { transform: translateX(28px) } }
-@keyframes ibR { 0% { transform: translateX(40px); opacity: 0; animation-timing-function: cubic-bezier(.5,0,.9,.5) } 47% { transform: translateX(-66px); opacity: 1; animation-timing-function: cubic-bezier(.2,.7,.3,1) } 100% { transform: translateX(-28px) } }
-#intro .it { font: 400 54px/1 var(--fd); letter-spacing: 8px; color: var(--o); animation: itIn .6s var(--ease) .45s backwards; white-space: nowrap; }
-#intro .it span { color: var(--txt); }
-@keyframes itIn { from { opacity: 0; letter-spacing: 26px; transform: translateY(8px) } }
+#intro { position: fixed; inset: 0; z-index: 90; width: 100%; height: 100%; display: block; background: #030304; cursor: pointer; touch-action: none; }
+#build { position: fixed; inset: 0; z-index: 91; width: 100%; height: 100%; pointer-events: none; }
 #bg { transition: opacity .5s ease; }
 #bg.fade, body.pre #bg { opacity: 0; }
 .logo-tag { animation: rise .6s var(--ease) .05s backwards; }
@@ -975,7 +964,7 @@ svg.mst.on { fill: var(--gold); }
 // A fight is played out from a seed, separately in each player's browser, so
 // the simulation may only use + - * / and sqrt (the same in every engine):
 // no Math.sin/cos/atan2/hypot/pow/exp, no Math.random, no clocks.
-const VERSION = 22;
+const VERSION = 24;
 const HP_SCALE = 0.33;                     // every ball's health is scaled by this, so fights end sooner
 const TAU = 6.283185307179586, PI = 3.141592653589793, HALF_PI = 1.5707963267948966;
 const DT = 1 / 60, SUB = 3;            // 60 steps a second, 3 physics substeps each
@@ -1079,19 +1068,24 @@ function mkSt() {
     rootT: 0, charmT: 0, confuseT: 0, blindT: 0, weakT: 0, vulnT: 0, slamT: 0, slamBy: null, slamDmg: 0 };
 }
 
+// what a rule sets, from nothing, so BeeZap can change it mid-fight (Big Balls sizes the balls at the start, so only there)
+function applyRule(S, rule) {
+  S.rule = rule;
+  S.half0 = rule === 'tiny' ? ARENA * 0.39 : ARENA / 2;
+  S.vmul = rule === 'speed' ? 1.3 : 1;
+  S.dmul = rule === 'heavy' ? 1.35 : 1;
+  S.grav = rule === 'gravity' ? 330 : GRAV;
+  S.otStart = rule === 'shrink' ? 10 : OT_START;
+}
 function newFight(o) {
   const S = { t: 0, n: 0, rng: rng(o.seed >>> 0), nid: 1, bodies: [], F: [], projs: [], hz: [], ev: [],
     keep: !!o.keepEv, over: false, winner: -2, box: { x0: 0, y0: 0, x1: ARENA, y1: ARENA }, ot: 1, tstop: [0, 0],
-    half0: ARENA / 2, vmul: 1, dmul: 1, grav: GRAV, otStart: OT_START, rmul: 1, paint: null, out: [], map: null };
+    half0: ARENA / 2, vmul: 1, dmul: 1, grav: GRAV, otStart: OT_START, rmul: 1, paint: null, out: [], map: null, shape: null, shapeEase: 0, borderT: 0, pull: null, spin: null, worldAng: 0 };
   // the box rule comes from the seed through its own generator, so it never shifts the fight's own dice
   const rr = rng(hashStr('rule:' + (o.seed >>> 0)));
-  S.rule = RULES[o.rule] ? o.rule : RULE_BAG[Math.floor(rr() * RULE_BAG.length)];
-  if (S.rule === 'tiny') S.half0 = ARENA * 0.39;
-  else if (S.rule === 'speed') S.vmul = 1.3;
-  else if (S.rule === 'heavy') S.dmul = 1.35;
-  else if (S.rule === 'giant') S.rmul = 1.25;
-  else if (S.rule === 'gravity') S.grav = 330;
-  else if (S.rule === 'shrink') S.otStart = 10;
+  S.seed = o.seed >>> 0; S.calm = !!o.calm;
+  applyRule(S, RULES[o.rule] ? o.rule : RULE_BAG[Math.floor(rr() * RULE_BAG.length)]);
+  if (S.rule === 'giant') S.rmul = 1.25;
   const c = ARENA / 2, h = S.half0;
   S.box = { x0: c - h, y0: c - h, x1: c + h, y1: c + h };
   const a = S.rng() * TAU, sp = 520, j = (S.rng() - 0.5) * 0.12;
@@ -1110,7 +1104,8 @@ function newFight(o) {
     f0.foe = f1; f1.foe = f0;
   }
   for (const f of S.F) if (f.def.init) f.def.init(S, f);
-  mapInit(S, o.seed);
+  mapInit(S);
+  if (o.shape && SHAPES[o.shape]) S.shape = SHAPES[o.shape];   // only the checks start a fight in a shape
   return S;
 }
 
@@ -1318,12 +1313,15 @@ function toward(a, b) { const dx = b.x - a.x, dy = b.y - a.y, l = vlen(dx, dy) |
 
 // ---- physics --------------------------------------------------------------
 function walls(S, b) {
-  if (S.rule === 'wrap') { mapWrap(S, b); return; }
+  if (S.rule === 'wrap' && !S.shape) { mapWrap(S, b); return; }
   const x = S.box; let hit = 0;
-  if (b.x - b.r < x.x0) { b.x = x.x0 + b.r; if (b.vx < 0) { b.vx = -b.vx; hit = 1; } }
-  else if (b.x + b.r > x.x1) { b.x = x.x1 - b.r; if (b.vx > 0) { b.vx = -b.vx; hit = 1; } }
-  if (b.y - b.r < x.y0) { b.y = x.y0 + b.r; if (b.vy < 0) { b.vy = -b.vy; hit = 1; } }
-  else if (b.y + b.r > x.y1) { b.y = x.y1 - b.r; if (b.vy > 0) { b.vy = -b.vy; hit = 1; } }
+  if (S.shape) hit = shapeWalls(S, b);
+  else {
+    if (b.x - b.r < x.x0) { b.x = x.x0 + b.r; if (b.vx < 0) { b.vx = -b.vx; hit = 1; } }
+    else if (b.x + b.r > x.x1) { b.x = x.x1 - b.r; if (b.vx > 0) { b.vx = -b.vx; hit = 1; } }
+    if (b.y - b.r < x.y0) { b.y = x.y0 + b.r; if (b.vy < 0) { b.vy = -b.vy; hit = 1; } }
+    else if (b.y + b.r > x.y1) { b.y = x.y1 - b.r; if (b.vy > 0) { b.vy = -b.vy; hit = 1; } }
+  }
   if (hit && b.st.slamT > 0) {
     b.st.slamT = 0;
     hurt(S, b.st.slamBy, b, b.st.slamDmg, 'slam', b.x, b.y);
@@ -1609,12 +1607,14 @@ function projStep(S, dt) {
     const ox = p.x, oy = p.y;
     p.x += p.vx * dt; p.y += p.vy * dt;
     let out = 0;
-    if (S.rule === 'wrap') mapWrap(S, p);
-    else if (p.x - p.r < x.x0) { p.x = x.x0 + p.r; p.vx = Math.abs(p.vx); out = 1; }
-    else if (p.x + p.r > x.x1) { p.x = x.x1 - p.r; p.vx = -Math.abs(p.vx); out = 1; }
-    if (S.rule === 'wrap') out = 0;
-    else if (p.y - p.r < x.y0) { p.y = x.y0 + p.r; p.vy = Math.abs(p.vy); out = 1; }
-    else if (p.y + p.r > x.y1) { p.y = x.y1 - p.r; p.vy = -Math.abs(p.vy); out = 1; }
+    if (S.shape) out = shapeShot(S, p) ? 1 : 0;
+    else if (S.rule === 'wrap') mapWrap(S, p);
+    else {
+      if (p.x - p.r < x.x0) { p.x = x.x0 + p.r; p.vx = Math.abs(p.vx); out = 1; }
+      else if (p.x + p.r > x.x1) { p.x = x.x1 - p.r; p.vx = -Math.abs(p.vx); out = 1; }
+      if (p.y - p.r < x.y0) { p.y = x.y0 + p.r; p.vy = Math.abs(p.vy); out = 1; }
+      else if (p.y + p.r > x.y1) { p.y = x.y1 - p.r; p.vy = -Math.abs(p.vy); out = 1; }
+    }
     if (out) {
       if (p.bounce > 0 || p.ret) { if (p.bounce > 0) p.bounce--; emit(S, { e: 'pbounce', k: p.k, x: p.x, y: p.y }); }
       else {
@@ -1636,7 +1636,8 @@ function projStep(S, dt) {
 }
 
 // ---- hazards --------------------------------------------------------------
-function rayToBox(S, ox, oy, dx, dy) {
+function rayToBox(S, ox, oy, dx, dy, past) {
+  if (S.shape && !past) { const r = shapeRay(S, ox, oy, dx, dy); if (r) return r; }
   const x = S.box; let t = 1e9;
   if (dx > 1e-9) t = Math.min(t, (x.x1 - ox) / dx); else if (dx < -1e-9) t = Math.min(t, (x.x0 - ox) / dx);
   if (dy > 1e-9) t = Math.min(t, (x.y1 - oy) / dy); else if (dy < -1e-9) t = Math.min(t, (x.y0 - oy) / dy);
@@ -1789,7 +1790,10 @@ function step(S) {
   const dt = DT;
   S.t += dt; S.n++;
   if (!S.keep) S.ev.length = 0;
-  const k = clamp((S.t - S.otStart) / OT_SHRINK, 0, 1), half = S.half0 * (1 - (1 - OT_MIN) * k) * (S.rule === 'breathe' ? 0.84 + 0.16 * dcos(S.t * TAU / 7) : 1);
+  const k = clamp((S.t - S.otStart) / OT_SHRINK, 0, 1);
+  let half = S.half0 * (1 - (1 - OT_MIN) * k) * (S.rule === 'breathe' ? 0.84 + 0.16 * dcos(S.t * TAU / 7) : 1) * (S.borderT > 0 ? 0.6 : 1);
+  // once BeeZap has switched the rule the walls ease to wherever the new one wants them
+  if (S.boxRate) { S.halfNow += clamp(half - S.halfNow, -S.boxRate * dt, S.boxRate * dt); half = S.halfNow; }
   S.box.x0 = S.box.y0 = ARENA * 0.5 - half; S.box.x1 = S.box.y1 = ARENA * 0.5 + half;
   S.ot = S.t > OT_DMG ? 1 + (S.t - OT_DMG) * 0.04 : 1;
   for (let s = 0; s < S.tstop.length; s++) if (S.tstop[s] > 0) S.tstop[s] -= dt;
@@ -1814,6 +1818,7 @@ function step(S) {
   projStep(S, dt);
   hzStep(S, dt);
   mapStep(S, dt);
+  bendStep(S, dt);
   const vmin = VMIN * S.vmul, vmax = VMAX * S.vmul;
   for (const f of S.F) {
     if (stuck(S, f)) continue;
@@ -1861,16 +1866,29 @@ function runFight(o, maxSteps) {
 // fight's. None of it belongs to either ball, so what it hurts is hurt by nobody (src null), and both balls
 // get the same box. Lights Out only changes what you can see, so it's all in the drawing (p5j).
 const MAP_ON = { lava: 1, meteors: 1, hole: 1, wind: 1, portals: 1, spikes: 1, conveyor: 1, mines: 1, magnet: 1, spring: 1, laser: 1 };
-function mapInit(S, seed) {
+function mapInit(S) {
+  S.map = null; S.mapN = (S.mapN || 0) + 1;
   if (!MAP_ON[S.rule]) return;
-  const r = rng(hashStr('map:' + (seed >>> 0))), M = S.map = { r, items: [], next: 0, cd: {}, dir: r() < 0.5 ? 1 : -1, a0: r() * TAU };
-  if (S.rule === 'wind') { M.tx = 1; M.ty = 0; M.ox = M.oy = 0; M.next = 4; mapGust(M); M.wx = M.tx; M.wy = M.ty; }
+  const r = rng(hashStr('map:' + S.seed + ':' + S.mapN)), M = S.map = { r, items: [], next: 0, cd: {}, dir: r() < 0.5 ? 1 : -1, a0: r() * TAU };
+  if (S.rule === 'wind') { M.tx = 1; M.ty = 0; M.ox = M.oy = 0; M.next = S.t + 4; mapGust(M); M.wx = M.tx; M.wy = M.ty; }
   else if (S.rule === 'spring') { M.x = M.y = ARENA / 2; M.vx = dcos(M.a0) * 130; M.vy = dsin(M.a0) * 130; }
-  else if (S.rule === 'mines') { for (let i = 0; i < 5; i++) mapMine(S); M.next = 3.2; }
-  else if (S.rule === 'lava') M.next = 0.6;
-  else if (S.rule === 'meteors') M.next = 0.8;
+  else if (S.rule === 'mines') { for (let i = 0; i < 5; i++) mapMine(S); M.next = S.t + 3.2; }
+  else if (S.rule === 'lava') M.next = S.t + 0.6;
+  else if (S.rule === 'meteors') M.next = S.t + 0.8;
+  M.t0 = S.t;
 }
-function mapSpot(S, pad) { const M = S.map, b = S.box; return [b.x0 + pad + M.r() * (b.x1 - b.x0 - 2 * pad), b.y0 + pad + M.r() * (b.y1 - b.y0 - 2 * pad)]; }
+// BeeZap switches the rule: whatever the old one had in the box goes, the new one starts now
+const MOD_NOT = { normal: 1, giant: 1 }, MOD_NOT_FFA = { tiny: 1, shrink: 1, breathe: 1 };
+function mapSwitch(S) {
+  const ffa = S.F.length > 2, list = Object.keys(RULES).filter(k => !MOD_NOT[k] && k !== S.rule && !(ffa && MOD_NOT_FFA[k]) && !(S.shape && k === 'wrap')), to = list[Math.floor(S.rng() * list.length)];
+  if (!S.boxRate) { S.boxRate = 110; S.halfNow = (S.box.x1 - S.box.x0) / 2; }
+  const from = S.rule, oldMap = S.map;
+  applyRule(S, to);
+  if (to === 'shrink') S.otStart = Math.min(OT_START, S.t);
+  mapInit(S);
+  return { from, to, oldMap };
+}
+function mapSpot(S, pad) { const M = S.map, b = S.box; return shapePlace(S, b.x0 + pad + M.r() * (b.x1 - b.x0 - 2 * pad), b.y0 + pad + M.r() * (b.y1 - b.y0 - 2 * pad), pad); }
 // a blast that hurts whatever's in it, on either side
 function mapBlast(S, x, y, R, dmg, knock) {
   for (const t of S.bodies) {
@@ -1899,7 +1917,7 @@ function mapMine(S) {
 // where the two portals are: opposite corners of the box as it is right now
 function mapPortals(S) {
   const c = ARENA / 2, h = (S.box.x1 - S.box.x0) / 2 * 0.6, d = S.map.dir;
-  return [[c - h, c - h * d], [c + h, c + h * d]];
+  return [shapePlace(S, c - h, c - h * d, 40), shapePlace(S, c + h, c + h * d, 40)];
 }
 function mapPortalStep(S) {
   const M = S.map, P = mapPortals(S), R = 36;
@@ -1947,7 +1965,7 @@ function mapStep(S, dt) {
       // most of them come down where a ball is heading
       const live = S.F.filter(f => f.alive), f = live[Math.floor(M.r() * live.length)];
       let [x, y] = mapSpot(S, 50);
-      if (f && M.r() < 0.65) { x = clamp(f.x + f.vx, b.x0 + 40, b.x1 - 40); y = clamp(f.y + f.vy, b.y0 + 40, b.y1 - 40); }
+      if (f && M.r() < 0.65) [x, y] = shapePlace(S, clamp(f.x + f.vx, b.x0 + 40, b.x1 - 40), clamp(f.y + f.vy, b.y0 + 40, b.y1 - 40), 30);
       M.items.push({ k: 'meteor', x, y, r: 64, t0: S.t, at: S.t + 1 });
     }
     for (const z of M.items) if (z.at <= S.t) { mapBlast(S, z.x, z.y, z.r, 6, 500); emit(S, { e: 'boom', x: z.x, y: z.y, r: z.r, small: 1 }); }
@@ -1992,16 +2010,166 @@ function mapStep(S, dt) {
     M.x += M.vx * dt; M.y += M.vy * dt;
     if (M.x < b.x0 + 72 || M.x > b.x1 - 72) { M.vx = M.x < c ? Math.abs(M.vx) : -Math.abs(M.vx); M.x = clamp(M.x, b.x0 + 72, b.x1 - 72); }
     if (M.y < b.y0 + 72 || M.y > b.y1 - 72) { M.vy = M.y < c ? Math.abs(M.vy) : -Math.abs(M.vy); M.y = clamp(M.y, b.y0 + 72, b.y1 - 72); }
+    if (S.shape) { const o = { x: M.x, y: M.y, vx: M.vx, vy: M.vy, r: 36 }; shapeWalls(S, o); M.x = o.x; M.y = o.y; M.vx = o.vx; M.vy = o.vy; }
     for (const f of S.F) if (tangible(f) && vlen(f.x - M.x, f.y - M.y) < 72 + f.r * 0.5) heal(S, f, 6 * dt);
   } else if (R === 'laser') {
-    const a = M.a0 + M.dir * 0.7 * S.t, ux = dcos(a), uy = dsin(a), [x0, y0] = rayToBox(S, c, c, ux, uy), [x1, y1] = rayToBox(S, c, c, -ux, -uy);
+    const a = M.a0 + M.dir * 0.7 * S.t, ux = dcos(a), uy = dsin(a), [x0, y0] = rayToBox(S, c, c, ux, uy, 1), [x1, y1] = rayToBox(S, c, c, -ux, -uy, 1);
     M.ang = a; M.ax = x0; M.ay = y0; M.bx = x1; M.by = y1;
-    if (S.t > 0.8) for (const f of S.F) {
+    M.on = S.t > M.t0 + 0.8;
+    if (M.on) for (const f of S.F) {
       if (!tangible(f) || (M.cd[f.id] || 0) > S.t || segDist2(f.x, f.y, x0, y0, x1, y1) > (f.r + 7) * (f.r + 7)) continue;
       M.cd[f.id] = S.t + 1.2;
       hurt(S, null, f, 2.5, 'beam', f.x, f.y);
       if (canMove(S, f)) { const s = (f.x - c) * -uy + (f.y - c) * ux < 0 ? -1 : 1; f.vx += -uy * s * 300 / f.m; f.vy += ux * s * 300 / f.m; }
     }
+  }
+}
+
+// ===== BeeZap bends the box ===============================================
+// The box can be any shape: a set of closed outlines in units of half the box (-1 to 1, y down), even-odd, so an
+// outline inside another is a hole. They scale with the box, so tiny boxes and closing walls still work. Balls and
+// shots bounce off the real outline. A ball the new shape leaves outside gets dragged back in over a moment (shapeEase).
+const shRing = (r, n, x, y, a) => { const p = []; for (let i = 0; i < n; i++) { const t = (a || 0) + i * TAU / n; p.push((x || 0) + dcos(t) * r, (y || 0) + dsin(t) * r); } return p; };
+const shPolar = (fn, n) => { const p = []; for (let i = 0; i < n; i++) { const t = i * TAU / n, r = fn(t); p.push(dcos(t) * r, dsin(t) * r); } return p; };
+const shRect = (a, b, c, d) => [a, b, c, b, c, d, a, d];
+const shTurn = (p, a) => { const o = [], c = dcos(a), s = dsin(a); for (let i = 0; i < p.length; i += 2) o.push(p[i] * c - p[i + 1] * s, p[i] * s + p[i + 1] * c); return o; };
+const SH_PLUS = [-0.38, -1, 0.38, -1, 0.38, -0.38, 1, -0.38, 1, 0.38, 0.38, 0.38, 0.38, 1, -0.38, 1, -0.38, 0.38, -1, 0.38, -1, -0.38, -0.38, -0.38];
+const SHAPES = {
+  circle:    { name: 'Circle', polys: [shRing(1, 56)] },
+  donut:     { name: 'Donut', polys: [shRing(1, 56), shRing(0.4, 32)] },
+  plus:      { name: 'Plus', polys: [SH_PLUS] },
+  minus:     { name: 'Minus', thin: 1, polys: [shRect(-1, -0.42, 1, 0.42)] },
+  pillar:    { name: 'Pillar', thin: 1, polys: [shRect(-0.42, -1, 0.42, 1)] },
+  cross:     { name: 'Cross', polys: [shTurn(SH_PLUS, PI / 4)] },
+  diamond:   { name: 'Diamond', polys: [[0, -1, 1, 0, 0, 1, -1, 0]] },
+  triangle:  { name: 'Triangle', polys: [[0, -1, 1, 0.85, -1, 0.85]] },
+  hexagon:   { name: 'Hexagon', polys: [shRing(1, 6, 0, 0, HALF_PI)] },
+  star:      { name: 'Star', polys: [(() => { const p = []; for (let i = 0; i < 10; i++) { const t = -HALF_PI + i * TAU / 10, r = i & 1 ? 0.54 : 1; p.push(dcos(t) * r, dsin(t) * r); } return p; })()] },
+  heart:     { name: 'Heart', polys: [(() => { const p = []; for (let i = 0; i < 56; i++) { const t = i * TAU / 56, s = dsin(t); p.push(16 * s * s * s / 17, (-1 - (13 * dcos(t) - 5 * dcos(2 * t) - 2 * dcos(3 * t) - dcos(4 * t))) / 17); } return p; })()] },
+  moon:      { name: 'Moon', polys: [(() => { const p = []; for (let i = 0; i <= 40; i++) { const t = 0.924 + i * (TAU - 1.848) / 40; p.push(dcos(t), dsin(t)); } for (let i = 0; i <= 24; i++) { const t = TAU - 1.506 - i * (TAU - 3.012) / 24; p.push(0.55 + dcos(t) * 0.8, dsin(t) * 0.8); } return p; })()] },
+  letterc:   { name: 'Letter C', polys: [(() => { const p = []; for (let i = 0; i <= 40; i++) { const t = 0.6 + i * (TAU - 1.2) / 40; p.push(dcos(t), dsin(t)); } for (let i = 24; i >= 0; i--) { const t = 0.9 + i * (TAU - 1.8) / 24; p.push(dcos(t) * 0.4, dsin(t) * 0.4); } return p; })()] },
+  letteru:   { name: 'Letter U', polys: [[-1, -1, -0.42, -1, -0.42, 0.3, 0.42, 0.3, 0.42, -1, 1, -1, 1, 1, -1, 1]] },
+  letterl:   { name: 'Letter L', polys: [[-1, -1, -0.3, -1, -0.3, 0.3, 1, 0.3, 1, 1, -1, 1]] },
+  lettert:   { name: 'Letter T', polys: [[-1, -1, 1, -1, 1, -0.3, 0.36, -0.3, 0.36, 1, -0.36, 1, -0.36, -0.3, -1, -0.3]] },
+  letterh:   { name: 'Letter H', polys: [[-1, -1, -0.42, -1, -0.42, -0.3, 0.42, -0.3, 0.42, -1, 1, -1, 1, 1, 0.42, 1, 0.42, 0.3, -0.42, 0.3, -0.42, 1, -1, 1]] },
+  letterz:   { name: 'Letter Z', thin: 1, polys: [[-1, -1, 1, -1, 1, -0.4, -0.1, 0.4, 1, 0.4, 1, 1, -1, 1, -1, 0.4, 0.1, -0.4, -1, -0.4]] },
+  hourglass: { name: 'Hourglass', polys: [[-1, -1, 1, -1, 0.3, 0, 1, 1, -1, 1, -0.3, 0]] },
+  eight:     { name: 'Figure 8', polys: [shPolar(t => { const u = dsin(t), v = Math.abs(u) * 0.45; return v + Math.sqrt(v * v + 0.1); }, 56)] },
+  frame:     { name: 'Square Donut', polys: [shRect(-1, -1, 1, 1), shRect(-0.42, -0.42, 0.42, 0.42)] },
+  cheese:    { name: 'Swiss Cheese', polys: [shRing(1, 56), shRing(0.18, 20, 0, -0.5), shRing(0.18, 20, 0.433, 0.25), shRing(0.18, 20, -0.433, 0.25)] },
+  clover:    { name: 'Clover', polys: [shPolar(t => 0.7 + 0.3 * dcos(4 * t), 64)] },
+  gear:      { name: 'Gear', polys: [(() => { const p = []; for (let i = 0; i < 40; i++) { const t = i * TAU / 40, r = (i % 5) < 2 ? 1 : 0.76; p.push(dcos(t) * r, dsin(t) * r); } return p; })()] },
+  hive:      { name: 'The Hive', polys: [shRing(1, 6, 0, 0, HALF_PI), shRing(0.4, 6, 0, 0, HALF_PI)] },
+  arrow:     { name: 'Arrow', polys: [[-1, -0.38, 0.1, -0.38, 0.1, -1, 1, 0, 0.1, 1, 0.1, 0.38, -1, 0.38]] },
+  bolt:      { name: 'Lightning Bolt', thin: 1, polys: [[0.25, -1, -0.8, 0.14, -0.1, 0.14, -0.35, 1, 0.8, -0.26, 0.12, -0.26, 0.6, -1]] },
+};
+for (const id in SHAPES) {
+  const s = SHAPES[id], g = [];
+  s.id = id;
+  for (const p of s.polys) for (let i = 0; i < p.length; i += 2) { const j = (i + 2) % p.length; g.push(p[i], p[i + 1], p[j], p[j + 1]); }
+  s.segs = g;
+}
+const SH_NEAR = { x: 0, y: 0, d2: 0 };
+function shInside(sh, x, y) {
+  const g = sh.segs; let inn = false;
+  for (let i = 0; i < g.length; i += 4) { const y0 = g[i + 1], y1 = g[i + 3]; if ((y0 > y) !== (y1 > y) && x < g[i] + (y - y0) * (g[i + 2] - g[i]) / (y1 - y0)) inn = !inn; }
+  return inn;
+}
+// the nearest point of the outline (into SH_NEAR)
+function shNear(sh, x, y) {
+  const g = sh.segs; let best = 1e18;
+  for (let i = 0; i < g.length; i += 4) {
+    const ax = g[i], ay = g[i + 1], dx = g[i + 2] - ax, dy = g[i + 3] - ay, q = clamp(((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy), 0, 1), px = ax + dx * q, py = ay + dy * q, d = (x - px) * (x - px) + (y - py) * (y - py);
+    if (d < best) { best = d; SH_NEAR.x = px; SH_NEAR.y = py; }
+  }
+  SH_NEAR.d2 = best;
+}
+// a body against the outline: pushed back inside and bounced. Returns whether it bounced
+function shapeWalls(S, b) {
+  const sh = S.shape, X = S.box, k = (X.x1 - X.x0) / 2, c = ARENA / 2, r = b.r / k;
+  let hit = 0;
+  for (let it = 0; it < 2; it++) {
+    const px = (b.x - c) / k, py = (b.y - c) / k, inn = shInside(sh, px, py);
+    shNear(sh, px, py);
+    const d = Math.sqrt(SH_NEAR.d2) || 1e-6;
+    if (inn && d >= r) break;
+    let nx = (px - SH_NEAR.x) / d, ny = (py - SH_NEAR.y) / d;
+    if (!inn) { nx = -nx; ny = -ny; }
+    const tx = c + (SH_NEAR.x + nx * r) * k, ty = c + (SH_NEAR.y + ny * r) * k;
+    if (S.shapeEase > 0) {
+      // the map has just changed: it drags whatever it left outside back in, instead of snapping it
+      const mx = tx - b.x, my = ty - b.y, m = vlen(mx, my);
+      if (m > 9) { b.x += mx / m * 9; b.y += my / m * 9; return 0; }
+    }
+    b.x = tx; b.y = ty;
+    const vn = b.vx * nx + b.vy * ny;
+    if (vn < 0) { b.vx -= 2 * vn * nx; b.vy -= 2 * vn * ny; hit = 1; }
+  }
+  return hit;
+}
+// a shot that's left the shape: turned back along the outline. True if it hit
+function shapeShot(S, p) {
+  const sh = S.shape, X = S.box, k = (X.x1 - X.x0) / 2, c = ARENA / 2, px = (p.x - c) / k, py = (p.y - c) / k;
+  if (shInside(sh, px, py)) return false;
+  shNear(sh, px, py);
+  const d = Math.sqrt(SH_NEAR.d2) || 1e-6, nx = (SH_NEAR.x - px) / d, ny = (SH_NEAR.y - py) / d;
+  p.x = c + (SH_NEAR.x + nx * 0.01) * k; p.y = c + (SH_NEAR.y + ny * 0.01) * k;
+  const vn = p.vx * nx + p.vy * ny;
+  if (vn < 0) { p.vx -= 2 * vn * nx; p.vy -= 2 * vn * ny; }
+  return true;
+}
+// a beam from inside the shape stops at its wall
+function shapeRay(S, ox, oy, dx, dy) {
+  const sh = S.shape, X = S.box, k = (X.x1 - X.x0) / 2, c = ARENA / 2, px = (ox - c) / k, py = (oy - c) / k, g = sh.segs;
+  if (!shInside(sh, px, py)) return null;
+  let best = 1e9;
+  for (let i = 0; i < g.length; i += 4) {
+    const ex = g[i + 2] - g[i], ey = g[i + 3] - g[i + 1], den = dx * ey - dy * ex;
+    if (Math.abs(den) < 1e-9) continue;
+    const ax = g[i] - px, ay = g[i + 1] - py, t = (ax * ey - ay * ex) / den, u = (ax * dy - ay * dx) / den;
+    if (t > 0 && t < best && u >= 0 && u <= 1) best = t;
+  }
+  return best < 1e9 ? [c + (px + dx * best) * k, c + (py + dy * best) * k] : null;
+}
+// a place at least pad units inside the shape, as near to x, y as can be
+function shapePlace(S, x, y, pad) {
+  if (!S.shape) return [x, y];
+  const X = S.box, k = (X.x1 - X.x0) / 2, c = ARENA / 2, px = (x - c) / k, py = (y - c) / k, r = pad / k, inn = shInside(S.shape, px, py);
+  shNear(S.shape, px, py);
+  const d = Math.sqrt(SH_NEAR.d2) || 1e-6;
+  if (inn && d >= r) return [x, y];
+  const s = inn ? 1 : -1, nx = (px - SH_NEAR.x) / d * s, ny = (py - SH_NEAR.y) / d * s;
+  return [c + (SH_NEAR.x + nx * r) * k, c + (SH_NEAR.y + ny * r) * k];
+}
+// BeeZap bends the map to a new shape. Everything it does big ends up here, at most every few seconds
+function bzBend(S, f) {
+  if (S.calm || S.t - (S.bendAt === undefined ? -9 : S.bendAt) < 5) return;
+  const ffa = S.F.length > 2, from = S.shape ? S.shape.id : null, list = Object.keys(SHAPES).filter(k => k !== from && !(ffa && SHAPES[k].thin)), to = list[Math.floor(S.rng() * list.length)];
+  const rule = S.rule, oldMap = S.map;
+  // No Walls can't work inside a shape: the shape's walls take over
+  if (S.rule === 'wrap') { applyRule(S, 'normal'); mapInit(S); }
+  S.shape = SHAPES[to]; S.shapeEase = 0.8; S.bendAt = S.t;
+  if (f.bz) f.bz.shapeT = 13;
+  emit(S, { e: 'shape', id: f.id, side: f.side, from, to, rule, oldMap });
+}
+// the admin commands that bend the world, each running for a while
+function bendStep(S, dt) {
+  if (S.shapeEase > 0) S.shapeEase -= dt;
+  if (S.borderT > 0) S.borderT -= dt;
+  const P = S.pull;
+  if (P) {
+    if ((P.t -= dt) <= 0) S.pull = null;
+    else for (const f of S.F) if (f.side !== P.side && canMove(S, f)) { f.vx += P.x * 1000 * dt; f.vy += P.y * 1000 * dt; }
+  }
+  const W = S.spin;
+  if (W) {
+    W.t += dt;
+    const q = clamp(W.t / W.T, 0, 1), a = W.dir * TAU * q * q * (3 - 2 * q);
+    S.worldAng = a;
+    // down stays down on the screen while the world turns, so everything slides round it
+    const gx = dsin(a), gy = dcos(a);
+    for (const f of S.F) if (canMove(S, f)) { f.vx += gx * 760 * dt; f.vy += gy * 760 * dt; }
+    if (q >= 1) { S.spin = null; S.worldAng = 0; }
   }
 }
 
@@ -3259,8 +3427,8 @@ BALL_LIST.push(
   // only from the give command: spins for a Mythic's power and a strength change at the start,
   // then again every time it loses another 35% of its health
   { id: 'beezap', name: 'BeeZap', rar: 'M', cat: 'trick', special: 1, hidden: 1, giveOnly: 1, col: '#f5bd12', hp: 225, upright: 1,
-    init(S, f) { f.bz = { next: 1 - BZ_EVERY, admT: 11, slotT: 6, gameT: 14, godT: 0, pend: null }; beezapRoll(S, f); },
-    desc: 'Spins two wheels at the start of the fight: one copies a Mythic ball\u2019s power, the other sets its strength from -10% to +10%. Every 45% of health it loses, it spins again. It also abuses admin commands, plays the slots, and drags its enemy into a quick game (tic tac toe, Connect Four, rock paper scissors, Battleship, last stick, memory match, dots and boxes or pig) where the winner hits the loser.' },
+    init(S, f) { f.bz = { next: 1 - BZ_EVERY, admT: 11, slotT: 6, gameT: 14, modT: 9, shapeT: 3.5, godT: 0, pend: null }; beezapRoll(S, f); },
+    desc: 'Spins two wheels at the start of the fight: one copies a Mythic ball\u2019s power, the other sets its strength from -10% to +10%. Every 45% of health it loses, it spins again. It also abuses admin commands that bend the world, plays the slots, switches the map modifier, bends the box into new shapes, and drags its enemy into a quick game (tic tac toe, Connect Four, rock paper scissors, Battleship, last stick, memory match, dots and boxes or pig) where the winner hits the loser.' },
 );
 // a BeeZap hooks into a fight (HOOK, p7h): the ball on that side leaves with everything it made, and
 // BeeZap drops in where it was, at full health, against the same foe. Every screen swaps at the same step.
@@ -3298,10 +3466,10 @@ function beezapRoll(S, f) {
 }
 // admin abuse every 25 s and the slots every 12 s. Each one is announced first (the fight
 // screen stops for it) and lands on the step after, once the fight is moving again.
-const BZ_CMDS = ['freeze', 'tp', 'god', 'nerf', 'smite', 'kick'];
+const BZ_CMDS = ['freeze', 'tp', 'god', 'nerf', 'smite', 'kick', 'border', 'gravity', 'rotate', 'clear'];
 // in a free for all most commands hit everyone (@a, a little weaker each), /kick takes one at random,
 // and /feud sets two of the others on each other for a while
-const BZ_CMDS_FFA = ['freeze', 'tp', 'god', 'nerf', 'smite', 'kick', 'feud', 'feud'];
+const BZ_CMDS_FFA = ['freeze', 'tp', 'god', 'nerf', 'smite', 'kick', 'feud', 'feud', 'border', 'gravity', 'rotate', 'clear'];
 // the slots pick a result off the paytable first (chance out of 100), then lay out reels that show it
 const BZ_ODDS = [['jackpot', 7, '7'], ['swarm', 5, 'bee'], ['diamond', 6, 'diamond'], ['bell', 7, 'bell'], ['bars', 8, 'bar'],
   ['cherries', 6, 'cherry'], ['skulls', 4, 'skull'], ['pair', 20], ['omen', 7], ['cherry', 10], ['bust', 20]];
@@ -3535,12 +3703,32 @@ function bzTick(S, f, dt) {
       const t = S.F.length > 2 ? S.F.filter(x => x !== f && x.alive).reduce((m, x) => (x.hp / x.maxHp > m.hp / m.maxHp ? x : m)) : f.foe, rec = bzGame(S);
       z.pend = { t: 0.01, k: 'game', win: rec.win, ts: t.side };
       emit(S, Object.assign({ e: 'game', id: f.id, side: f.side, ts: t.side, foe: t.def.id }, rec));
+    } else if ((z.modT -= dt) <= 0) {
+      z.modT = 20;
+      // it changes at once; the screen shows it happening while the fight waits
+      if (!S.calm) emit(S, Object.assign({ e: 'mod', id: f.id, side: f.side }, mapSwitch(S)));
+    } else if ((z.shapeT -= dt) <= 0) {
+      z.shapeT = 13;
+      bzBend(S, f);
     }
   }
   bzCheck(S, f);
 }
 function bzLand(S, f, p) {
   let t = f.foe;
+  if (S.calm && p.k === 'admin' && (p.cmd === 'border' || p.cmd === 'gravity' || p.cmd === 'rotate')) return;   // not in a ball's preview
+  // winning big bends the map
+  if ((p.k === 'slot' && (p.res === 'jackpot' || p.res === 'swarm' || p.res === 'diamond')) || (p.k === 'game' && p.win === 0)) bzBend(S, f);
+  if (p.k === 'admin' && p.cmd === 'border') { if (!S.boxRate) { S.boxRate = 110; S.halfNow = (S.box.x1 - S.box.x0) / 2; } S.borderT = 7; return; }
+  if (p.k === 'admin' && p.cmd === 'gravity') { const a = Math.floor(S.rng() * 8) * TAU / 8; S.pull = { t: 6, x: dcos(a), y: dsin(a), side: f.side }; return; }
+  if (p.k === 'admin' && p.cmd === 'rotate') { S.spin = { t: 0, T: 7, dir: S.rng() < 0.5 ? 1 : -1 }; return; }
+  if (p.k === 'admin' && p.cmd === 'clear') {
+    // everything anyone else has out, gone
+    for (const q of S.projs) if (q.side !== f.side && q.alive) { q.alive = false; emit(S, { e: 'poof', k: q.k, x: q.x, y: q.y }); }
+    for (const b of S.bodies) if (!b.main && b.side !== f.side && b.alive) { b.alive = false; emit(S, { e: 'pop', id: b.id, x: b.x, y: b.y }); }
+    for (const z of S.hz) if (z.side !== f.side) z.alive = false;
+    return;
+  }
   if (p.k === 'game') {          // the game's winner hits the loser; a draw hurts nobody
     const o = S.F[p.ts] && S.F[p.ts].alive ? S.F[p.ts] : t, [w, l] = p.win === 0 ? [f, o] : [o, f];
     if (p.win >= 0 && l.alive) { hurt(S, w, l, BZ_GAME_DMG, 'zap', l.x, l.y); emit(S, { e: 'boom', x: l.x, y: l.y, r: 80, small: 1 }); }
@@ -3592,6 +3780,7 @@ function bzCheck(S, f) {
   do f.bz.next = Math.round((f.bz.next - BZ_EVERY) * 100) / 100;   // a big hit past two marks still spins once
   while (f.bz.next > 0 && f.hp <= f.maxHp * f.bz.next);
   beezapRoll(S, f);
+  bzBend(S, f);
 }
 
 // ===== the raid bosses: giant hidden balls, one a day ===========================
@@ -4914,6 +5103,8 @@ class Arena {
     }
     else if (this.flip) c.setTransform(-k, 0, 0, k, this.ox + ARENA * k + sx, this.oy + sy);
     else c.setTransform(k, 0, 0, k, this.ox + sx, this.oy + sy);
+    // /rotate: the whole world turns, drawn a little smaller so its corners stay on the screen
+    if (S.worldAng) { const z = 1 / (Math.abs(Math.cos(S.worldAng)) + Math.abs(Math.sin(S.worldAng))); c.translate(ARENA / 2, ARENA / 2); c.rotate(S.worldAng); c.scale(z, z); c.translate(-ARENA / 2, -ARENA / 2); }
     for (const f of S.F) {
       const q = this.sq[f.id] || (this.sq[f.id] = { s: 0, v: 0, ang: 0, vx: f.vx, vy: f.vy });
       const dvx = f.vx - q.vx, dvy = f.vy - q.vy, dv = Math.sqrt(dvx * dvx + dvy * dvy);
@@ -4922,13 +5113,18 @@ class Arena {
       if (dt > 0 && dv > 260) { q.ang = Math.atan2(dvy, dvx); q.s = -Math.min(0.26, dv / 2800); q.v = 0; }
       if (dt > 0) { q.v += (-300 * q.s - 15 * q.v) * dt; q.s += q.v * dt; }
     }
-    this.floor(S, t);
-    drawPaint(c, S);
-    mapFloor(c, S, t);
+    // BeeZap switching the map draws the box and what's on top of it apart (layer: floor or balls)
     CHARGE.clear();
     for (const z of S.hz) if (z.k === 'laser' && !z.fired) CHARGE.add(z.owner);
-    for (const z of S.hz) if (z.k !== 'wall') drawHazard(c, z, S, t);
-    for (const z of S.hz) if (z.k === 'wall') drawHazard(c, z, S, t);
+    if (this.layer !== 'balls') {
+      this.floor(S, t);
+      drawPaint(c, S);
+      mapFloor(c, S, t);
+      for (const z of S.hz) if (z.k !== 'wall') drawHazard(c, z, S, t);
+      for (const z of S.hz) if (z.k === 'wall') drawHazard(c, z, S, t);
+      mapShapeMask(c, S);
+    }
+    if (this.layer === 'floor') { mapTop(c, S, t); if (this.opt.sound) mapLights(c, S, t); return; }
     this.honeycomb(S, t);
     for (const f of S.F) {
       if (f.def.id === 'beezap') continue;   // BeeZap leaves honeycomb instead (honeycomb, below)
@@ -4966,9 +5162,9 @@ class Arena {
       c.save(); c.translate(f.x, f.y); c.scale(q, q); c.translate(-f.x, -f.y); this.fighter(S, f, t); c.restore();
     }
     if (open) c.restore();
-    mapTop(c, S, t);
+    if (!this.layer) mapTop(c, S, t);
     this.effects(S, t);
-    if (this.opt.sound) mapLights(c, S, t);
+    if (this.opt.sound && !this.layer) mapLights(c, S, t);
     for (const f of S.F) if (grow(f) > 0.9) this.tag(S, f);
     this.numbers();
     const ts = Math.max(S.tstop[0], S.tstop[1]);
@@ -5029,8 +5225,17 @@ class Arena {
     // a BeeZap in disguise: drawn as the ball it is pretending to be, with that ball's weapons
     const mk = this.masks && this.masks.find(m => m.side === f.side);
     if (mk && !mk.off) {
-      const pf = Object.create(f); pf.def = BALL[mk.id];
-      if (!mk.wep) { mk.wep = []; pf.wep = mk.wep; for (const w of pf.def.weapons || []) mk.wep.push(mkWeapon(null, pf, w, -0.6)); }
+      const pf = Object.create(f); pf.def = BALL[mk.id]; pf.u = mk.u || (mk.u = {}); pf.r = (pf.def.r || 40) * S.rmul; pf.shield = 0;
+      if (!mk.wep) {
+        mk.wep = []; pf.wep = mk.wep;
+        for (const w of pf.def.weapons || []) { const n = w.n || 1; for (let i = 0; i < n; i++) { const o = mkWeapon(null, pf, w, -0.6 + i * TAU / n); o.a0 = o.ang; mk.wep.push(o); } }
+      }
+      // its weapons go round as that ball's would, so it looks the part
+      for (const w of mk.wep) {
+        w.ang = w.a0 + w.dir * w.spin * t;
+        if (w.k === 'flail') { w.hx = f.x + dcos(w.ang) * w.len; w.hy = f.y + dsin(w.ang) * w.len; }
+        wcap(pf, w);
+      }
       pf.wep = mk.wep; f = pf;
     }
     const ghost = f.st.phaseT > 0, stopped = S.tstop[f.side] > 0;
@@ -6193,8 +6398,9 @@ function mapSpring(c, M, t) {
   c.fillStyle = 'rgba(235,255,245,0.8)'; c.fillRect(x - 12, y - 3.5, 24, 7); c.fillRect(x - 3.5, y - 12, 7, 24);
 }
 function mapField(c, S, t) {
-  const [f, g] = S.F;
-  if (!f || !g || !f.alive || !g.alive) return;
+  for (const f of S.F) if (f.alive && f.foe && f.foe.alive && (S.F.length > 2 || f.side === 0)) mapFieldLines(c, f, f.foe, t);
+}
+function mapFieldLines(c, f, g, t) {
   const dx = g.x - f.x, dy = g.y - f.y, d = vlen(dx, dy) || 1, nx = -dy / d, ny = dx / d;
   c.lineWidth = 2; c.setLineDash([7, 9]); c.lineDashOffset = -t * 60;
   for (const k of [-1, -0.45, 0.45, 1]) {
@@ -6204,7 +6410,7 @@ function mapField(c, S, t) {
   c.setLineDash([]); c.lineDashOffset = 0;
 }
 function mapBeam(c, S, t) {
-  const M = S.map, on = S.t > 0.8, X = ARENA / 2;
+  const M = S.map, on = M.on, X = ARENA / 2;
   c.lineCap = 'butt';
   for (const [w, col] of on ? [[18, 'rgba(255,40,60,0.28)'], [9, 'rgba(255,60,70,0.85)'], [3, '#ffe8e8']] : [[3, 'rgba(255,60,70,0.5)']]) {
     c.beginPath(); c.moveTo(M.ax, M.ay); c.lineTo(M.bx, M.by); c.lineWidth = w + (on && w > 9 ? Math.sin(t * 30) * 2 : 0); c.strokeStyle = col; c.stroke();
@@ -6254,6 +6460,33 @@ function mapLights(c, S, t) {
   for (const z of S.hz) if (z.alive && z.x !== undefined && z.r) hole(z.x, z.y, z.r + 26, 0.45);
   c.imageSmoothingEnabled = true;
   c.drawImage(L, 0, 0, ARENA, ARENA);
+}
+
+// ---- the box's shape: everything outside it is solid hive, dark amber honeycomb, with a hazard edge round the walls ----
+function shapePath(sh) {
+  if (sh.path) return sh.path;
+  const P = new Path2D();
+  for (const p of sh.polys) { for (let i = 0; i < p.length; i += 2) { if (i) P.lineTo(p[i], p[i + 1]); else P.moveTo(p[i], p[i + 1]); } P.closePath(); }
+  return (sh.path = P);
+}
+function mapShapeMask(c, S) {
+  const sh = S.shape;
+  if (!sh) return;
+  const b = S.box, k = (b.x1 - b.x0) / 2, m = ARENA / 2, P = shapePath(sh);
+  c.save();
+  c.beginPath(); c.rect(0, 0, ARENA, ARENA); c.clip();
+  // the hive: a big square with the shape cut out of it
+  const D = new Path2D(); D.rect(-ARENA / k, -ARENA / k, 2 * ARENA / k, 2 * ARENA / k); D.addPath(P);
+  c.translate(m, m); c.scale(k, k);
+  c.fillStyle = '#1b1306'; c.fill(D, 'evenodd');
+  c.save(); c.clip(D, 'evenodd'); c.scale(ARENA / k / 62, ARENA / k / 62); c.lineWidth = 0.22; c.strokeStyle = 'rgba(245,189,18,0.42)'; c.stroke(BZ_COMB); c.restore();
+  // the wall: a dark edge, a yellow one, and black stripes on the yellow (red on Spike Walls, because it bites)
+  const u = 1 / k;
+  c.lineJoin = 'round';
+  c.lineWidth = 11 * u; c.strokeStyle = '#0a0806'; c.stroke(P);
+  c.lineWidth = 6.5 * u; c.strokeStyle = S.rule === 'spikes' ? '#d8324a' : '#f6c33c'; c.stroke(P);
+  c.setLineDash([11 * u, 11 * u]); c.lineWidth = 6.5 * u; c.strokeStyle = INK; c.stroke(P); c.setLineDash([]);
+  c.restore();
 }
 
 // ===== sound: every effect is synthesised, no audio files ==================
@@ -7120,7 +7353,7 @@ class Preview {
     this.cv = cv; this.id = id; this.lvl = lvl || 1; this.a = new Arena(cv, { pad: 10 }); this.t = 0; this.n = 0; this.new();
     PREVIEWS.add(this);
   }
-  new() { this.S = newFight({ seed: 77 + this.n++ * 131, a: { id: this.id, lvl: this.lvl }, b: { id: 'dummy', lvl: 1 }, keepEv: true, rule: 'normal' }); this.a.reset(); this.acc = 0; }
+  new() { this.S = newFight({ seed: 77 + this.n++ * 131, a: { id: this.id, lvl: this.lvl }, b: { id: 'dummy', lvl: 1 }, keepEv: true, rule: 'normal', calm: true }); this.a.reset(); this.acc = 0; }
   tick(dt) {
     if (!this.cv.isConnected) { PREVIEWS.delete(this); return; }
     this.a.resize();
@@ -8679,9 +8912,9 @@ ART.beezap = c => {
 };
 
 function fightSong() { return FIGHT && !(FIGHT.masks && FIGHT.masks.length) && FIGHT.S.F.some(f => f.def.id === 'beezap') ? 'beezap' : 'fight'; }
-// what a BeeZap pretends to be on the VS screen and until the fight starts: a plain common ball
-const BZ_FAKES = ['sword', 'dagger', 'axe', 'spear'];
-function bzFake(seed) { return BZ_FAKES[(seed >>> 0) % BZ_FAKES.length]; }
+// what a BeeZap pretends to be on the VS screen and until the fight starts: any ball in the game, off the seed so
+// both screens agree
+function bzFake(seed) { return BALLS[(seed >>> 0) % BALLS.length].id; }
 const BZ_IN = 1.05, BZ_SPIN = [2.0, 1.5], BZ_HOLD = [0.6, 0.8], BZ_OUT = 0.7, BZ_SHRINK = 0.5;
 const BZ_STR_COL = { '-10': '#c8283a', '-5': '#d9762a', '0': '#5b5b66', '5': '#4f9a2a', '10': '#1f9a58' };
 const BZ_CASINO = ['#a3122a', '#16161c'];
@@ -8697,11 +8930,11 @@ const BZ_HEX = (() => {
 })();
 
 // BeeZap's moments that take the screen over; the fight waits for each in turn (F.wheelQ)
-const BZ_TAKE = { wheel: 1, admin: 1, slot: 1, game: 1, hookin: 1 };
+const BZ_TAKE = { wheel: 1, admin: 1, slot: 1, game: 1, hookin: 1, mod: 1, shape: 1 };
 function openTake(F) {
   const e = F.wheelQ.shift();
   if (!e) { F.wheel = null; return; }
-  (e.e === 'reveal' ? openReveal : e.e === 'hookin' ? openHookin : e.e === 'wheel' ? openWheel : e.e === 'admin' ? openAdmin : e.e === 'game' ? openGame : openSlots)(F, e);
+  (e.e === 'reveal' ? openReveal : e.e === 'hookin' ? openHookin : e.e === 'wheel' ? openWheel : e.e === 'admin' ? openAdmin : e.e === 'game' ? openGame : e.e === 'mod' ? openMod : e.e === 'shape' ? openShape : openSlots)(F, e);
 }
 function openWheel(F, e) {
   const mine = e.side === F.mySide, wrap = F.root.querySelector('.arena');
@@ -8917,6 +9150,10 @@ const BZ_CMD_TXT = {
   nerf: n => [`/nerf ${n} -35%`, `${n} has been nerfed.`],
   smite: n => [`/smite ${n}`, `${n} was struck by lightning.`],
   kick: n => [`/kick ${n} "skill issue"`, `${n} was kicked from the game.`],
+  border: () => ['/worldborder set 60% 7s', 'World border moved. The walls are coming in.'],
+  gravity: n => [`/gravity ${n} sideways 6s`, `Gravity changed for ${n}. Only for ${n}.`],
+  rotate: () => ['/rotate world 360', 'The whole world is turning over.'],
+  clear: () => ['/kill @e[type=!player]', 'Deleted every shot, minion and hazard on the map.'],
 };
 // a free for all's @a versions
 const BZ_CMD_ALL = {
@@ -8931,7 +9168,8 @@ const BZ_BLOCK = String.fromCharCode(9608), BZ_SHADE = String.fromCharCode(9617)
 const BZ_LVL = { warn: 'WARN', audit: 'INFO', bar: 'INFO' };
 const BZ_USAGE = { '/ban': '<player> [reason]', '/deop': '<player>', '/effect': '<target> <effect> [seconds]', '/freeze': '<player> [time]', '/gamemode': '<mode> [player]',
   '/give': '<player> <item> [count]', '/god': '[player]', '/kick': '<player> [reason]', '/kill': '<target>', '/list': '', '/nerf': '<player> <amount>', '/op': '<player>',
-  '/say': '<message>', '/smite': '<player>', '/stop': '', '/tp': '<player> <destination>', '/tps': '', '/whitelist': 'on|off|add|remove' };
+  '/say': '<message>', '/smite': '<player>', '/stop': '', '/tp': '<player> <destination>', '/tps': '', '/whitelist': 'on|off|add|remove',
+  '/worldborder': 'set <size> [time]', '/gravity': '<player> <direction> [time]', '/rotate': 'world <degrees>' };
 function bzConsole(F, e, kind, script, end) {
   const mine = e.side === F.mySide, bee = e.bee || (mine ? F.me : F.foe).name, other = e.other || (mine ? F.foe : F.me).name;
   const lines = h('div', { class: 'bzlines' }), tps = h('b', { text: '20.0' }), mspt = h('b', { text: '11.8 ms' }), cpu = h('b', { text: '14%' });
@@ -9113,6 +9351,10 @@ function adminBend(F, e) {
   else if (e.cmd === 'god') { bzMark(bee, 'bz-god', 5.4); SFX.reveal(2); }
   else if (e.cmd === 'nerf') { bzMark(foe, 'bz-nerf', 6.9); SFX.drop(); }
   else if (e.cmd === 'kick') { bzMark(foe, 'bz-kicked', 4.7); SFX.rip(); SFX.drop(); }
+  else if (e.cmd === 'border') { bzShake(F, BZ_SHAKE, 500); SFX.tstop(); SFX.boom(); }
+  else if (e.cmd === 'gravity') { bzJolt(wrap, BZ_WOB, 500); SFX.warp(); SFX.charge(); }
+  else if (e.cmd === 'rotate') { bzShake(F, BZ_SHAKE, 400); SFX.hole(); SFX.warp(); }
+  else if (e.cmd === 'clear') { bzBlip(F, 140); SFX.zap(); SFX.rip(); }
   else { bzSmite(F); SFX.zap(); SFX.boom(); }
 }
 
@@ -9698,6 +9940,209 @@ function bzGameScreen(c, W, X, Y, s, T, d) {
   }
   // a flash as the game comes up out of the roll
   if (T - G.PLAY < 0.2) { c.fillStyle = `rgba(255,255,255,${(0.25 * (1 - (T - G.PLAY) / 0.2)).toFixed(2)})`; c.fillRect(X, Y, s, s); }
+}
+// ---- BeeZap switches the map ----
+// The fight holds still. A honey plate comes down over the box with the old modifier's name on a drum, which rolls
+// and eases to a stop on the new one. Then a wave of honeycomb spreads out from BeeZap: each cell turns over like a
+// tile, the old floor on its back and the new one on its face, with the balls untouched on top. The plate goes back up.
+const BZ_MOD = { IN: 0.5, ROLL0: 0.35, ROLL: 1.25, WAVE0: 1.5, WAVE: 1.15, FLIP: 0.34, OUT0: 3.05, OUT: 0.42 };
+function openMod(F, e) {
+  const cv = bzLayer(F), A = F.arena, f = F.S.F[e.side], res = h('div', { class: 'bzres' });
+  const plq = h('div', { class: 'bzplq slotplq', 'aria-live': 'polite' }, h('div', { class: 'bzh', text: 'BEEZAP SWITCHES THE MAP' }), res);
+  F.root.querySelector('.arena').append(plq);
+  // the drum: where it was, a run of others, where it's going
+  const others = Object.keys(RULES).filter(k => k !== e.from && k !== e.to && k !== 'normal').sort(() => Math.random() - 0.5).slice(0, 9);
+  const names = [e.from, ...others, e.to];
+  F.wheel = { kind: 'mod', e, cv, plq, res, T: 0, names, row: 0, at: [f.x, f.y], frame: modFrame,
+    close() { cv.remove(); plq.remove(); A.layer = null; A.cv.style.opacity = ''; } };
+  A.shake = 0; A.flash = 0;
+  A.ring(f.x, f.y, f.r, f.r * 3, '#ffd633', 6, 0.5);
+  SFX.charge();
+  modSnap(F, F.wheel, bzFit(F, cv));
+}
+// the box as it was and as it's going to be, and the honeycomb that goes between them
+function modSnap(F, W, g) {
+  const A = F.arena, S = F.S, e = W.e, snap = view => {
+    const k = document.createElement('canvas'); k.width = g.w; k.height = g.h;
+    A.layer = 'floor'; A.draw(view, F.t);
+    k.getContext('2d').drawImage(A.cv, 0, 0);
+    return k;
+  };
+  const old = Object.create(S); old.rule = e.from; old.map = e.oldMap;
+  W.oldPic = snap(old); W.newPic = snap(S);
+  A.layer = 'balls'; A.draw(S, F.t);
+  const r = g.size * 0.064, w = r * Math.sqrt(3), ox = g.x + (A.flip ? ARENA - W.at[0] : W.at[0]) * A.k, oy = g.y + W.at[1] * A.k, cells = [];
+  let far = 1;
+  for (let row = -1, y = g.y - r; y < g.y + g.size + r * 1.5; row++, y += r * 1.5) {
+    for (let x = g.x - w + (row & 1) * w / 2; x < g.x + g.size + w; x += w) { const d = Math.sqrt((x - ox) * (x - ox) + (y - oy) * (y - oy)); far = Math.max(far, d); cells.push({ x, y, d }); }
+  }
+  for (const q of cells) q.at = BZ_MOD.WAVE0 + BZ_MOD.WAVE * q.d / far;
+  W.cells = cells; W.hexR = r; W.ox = ox; W.oy = oy; W.far = far;
+}
+function modFrame(F, dt) {
+  const W = F.wheel, A = F.arena, G = BZ_MOD, T = (W.T += dt), e = W.e, g = bzFit(F, W.cv), c = g.c, X = g.x, Y = g.y, s = g.size, r = W.hexR;
+  A.cv.style.opacity = '0';
+  if (W.oldPic.width !== g.w || W.oldPic.height !== g.h) modSnap(F, W, g);
+  const hexPath = (x, y) => { for (let k = 0; k < 6; k++) { const a = Math.PI / 6 + k * Math.PI / 3, px = x + Math.cos(a) * r, py = y + Math.sin(a) * r; if (k) c.lineTo(px, py); else c.moveTo(px, py); } c.closePath(); };
+  // the floors: the old one, the cells that have turned over clipped to the new one, then those turning
+  if (T >= G.WAVE0 + G.WAVE + G.FLIP) c.drawImage(W.newPic, 0, 0);
+  else {
+    c.drawImage(W.oldPic, 0, 0);
+    if (T > G.WAVE0) {
+      c.save(); c.beginPath();
+      for (const q of W.cells) if (T >= q.at + G.FLIP) hexPath(q.x, q.y);
+      c.clip(); c.drawImage(W.newPic, 0, 0); c.restore();
+      for (const q of W.cells) {
+        const u = (T - q.at) / G.FLIP;
+        if (u <= 0 || u >= 1) continue;
+        const f = easeIO(u), w = Math.max(0.02, Math.abs(1 - 2 * f));
+        c.beginPath(); hexPath(q.x, q.y); c.fillStyle = '#050408'; c.fill();
+        c.save(); c.translate(q.x, q.y); c.scale(w, 1); c.translate(-q.x, -q.y);
+        c.beginPath(); hexPath(q.x, q.y); c.save(); c.clip(); c.drawImage(f < 0.5 ? W.oldPic : W.newPic, 0, 0); c.restore();
+        c.lineWidth = s * 0.005 / w; c.strokeStyle = `rgba(255,214,51,${(0.35 + 0.65 * Math.sin(u * Math.PI)).toFixed(3)})`; c.stroke();
+        c.restore();
+      }
+    }
+  }
+  // the edge of each cell stays lit for a moment after it lands, so the wave has a soft trailing edge
+  if (T > G.WAVE0 && T < G.WAVE0 + G.WAVE + G.FLIP + 0.7) {
+    c.lineJoin = 'round'; c.lineWidth = s * 0.0035;
+    for (const q of W.cells) {
+      const u = (T - q.at - G.FLIP) / 0.7;
+      if (u <= 0 || u >= 1) continue;
+      c.beginPath(); hexPath(q.x, q.y); c.strokeStyle = `rgba(255,214,51,${(0.75 * (1 - u) * (1 - u)).toFixed(3)})`; c.stroke();
+    }
+  }
+  // the box dims while the plate is down, and lifts as the wave goes out
+  const dim = 0.45 * ease(T / G.IN) * (1 - easeIO((T - G.WAVE0) / 0.6));
+  if (dim > 0.002) { c.fillStyle = `rgba(4,3,8,${dim.toFixed(3)})`; c.fillRect(X, Y, s, s); }
+  c.drawImage(A.cv, 0, 0);
+  // the plate
+  const pw = Math.min(s * 0.8, g.w * 0.9), ph = s * 0.3, px = X + (s - pw) / 2, inq = ease(T / G.IN), outq = easeIO((T - G.OUT0) / G.OUT);
+  const py = Y + s * 0.35 - (1 - inq) * (s * 0.35 + ph + s * 0.04) - outq * (s * 0.35 + ph + s * 0.04), land = G.ROLL0 + G.ROLL;
+  c.save(); c.beginPath(); c.rect(X, Y, s, s); c.clip();
+  rrect(c, px, py + s * 0.012, pw, ph, s * 0.028); c.fillStyle = 'rgba(0,0,0,0.55)'; c.fill();
+  rrect(c, px, py, pw, ph, s * 0.028); c.fillStyle = lin2(c, 0, py, 0, py + ph, '#ffd84a', '#c98a0a'); c.fill();
+  c.save(); c.clip(); c.translate(px + pw / 2, py + ph / 2); c.scale(s / 170, s / 170); c.lineWidth = 0.9; c.strokeStyle = 'rgba(120,70,0,0.4)'; c.stroke(BZ_COMB); c.restore();
+  const ix = px + s * 0.014, iy = py + s * 0.014, iw = pw - s * 0.028, ih = ph - s * 0.028;
+  rrect(c, ix, iy, iw, ih, s * 0.018); c.fillStyle = lin2(c, 0, iy, 0, iy + ih, '#12101a', '#1e1a2a'); c.fill();
+  c.lineWidth = s * 0.003; c.strokeStyle = '#6a4a08'; c.stroke();
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.font = `400 ${Math.round(s * 0.036)}px ${FONT_D}`; c.fillStyle = '#ffd633'; c.fillText('BEEZAP SWITCHES THE MAP', X + s / 2, iy + ih * 0.15, iw * 0.92);
+  // the drum: the names roll past a window and ease to a stop, fading at the top and bottom
+  const rowH = ih * 0.36, wy = iy + ih * 0.54, pos = (W.names.length - 1) * easeIO(clamp((T - G.ROLL0) / G.ROLL, 0, 1)), near = Math.round(pos);
+  if (near !== W.row) { W.row = near; SFX.tick(pos / W.names.length); }
+  c.save(); c.beginPath(); c.rect(ix, wy - rowH * 0.72, iw, rowH * 1.44); c.clip();
+  c.font = `400 ${Math.round(s * 0.082)}px ${FONT_D}`;
+  for (let i = Math.max(0, near - 2); i <= Math.min(W.names.length - 1, near + 2); i++) {
+    const dy = (i - pos) * rowH * 1.25, a = clamp(1 - Math.abs(dy) / (rowH * 1.15), 0, 1);
+    if (a <= 0) continue;
+    const here = T >= land && i === W.names.length - 1;
+    c.globalAlpha = a * a; c.fillStyle = here ? '#ffd633' : '#f2f2f6'; c.fillText(RULES[W.names[i]].name.toUpperCase(), X + s / 2, wy + dy, iw * 0.92);
+  }
+  c.restore(); c.globalAlpha = 1;
+  const da = clamp((T - land) / 0.3, 0, 1);
+  if (da > 0) { c.globalAlpha = da; c.font = `600 ${Math.round(s * 0.032)}px ${FONT_B}`; c.fillStyle = '#c8c8d0'; c.fillText(RULES[e.to].desc, X + s / 2, iy + ih * 0.88, iw * 0.94); c.globalAlpha = 1; }
+  c.restore();
+  // the moments it makes a noise, and the name in the top bar changing
+  if (!W.s1 && T >= land) { W.s1 = 1; SFX.reveal(1); W.res.textContent = RULES[e.to].name + '. ' + RULES[e.to].desc; }
+  if (!W.s2 && T >= G.WAVE0) { W.s2 = 1; SFX.warp(); SFX.hole(); A.ring(W.at[0], W.at[1], 20, 120, '#ffd633', 5, 0.5); modHud(F); }
+  if (T >= G.OUT0 + G.OUT) { W.close(); openTake(F); }
+}
+function modHud(F) {
+  const to = RULES[F.S.rule], mid = F.root.querySelector('.hud .mid');
+  let el = mid && mid.querySelector('.rule');
+  if (!mid) return;
+  if (!el) { el = h('span', { class: 'rule' }); mid.querySelector('.lab') ? mid.querySelector('.lab').after(el) : mid.append(el); }
+  el.title = to.desc; el.textContent = to.name.toUpperCase();
+  bzJolt(el, [{ transform: 'scale(1)', background: 'transparent' }, { transform: 'scale(1.22)', background: 'rgba(255,214,51,0.28)', offset: 0.35 }, { transform: 'scale(1)', background: 'transparent' }], 650);
+}
+// ---- BeeZap bends the map to a new shape ----
+// The whole box goes liquid: the picture ripples in waves that swell until you can't tell what it is, the old map
+// melting into the new one at the worst of it, then settles with a wobble while a yellow line draws the new walls.
+// The balls ride on top. When the fight moves again the new walls drag in anything left outside them.
+const BZ_SHAPE = { MIX0: 0.5, MIX: 0.85, WALL0: 1.05, WALL: 0.75, HIT: 1.32, END: 2.75 };
+function openShape(F, e) {
+  const cv = bzLayer(F), A = F.arena, res = h('div', { class: 'bzres', text: 'The map is now: ' + SHAPES[e.to].name + '.' });
+  const plq = h('div', { class: 'bzplq slotplq', 'aria-live': 'polite' }, h('div', { class: 'bzh', text: 'BEEZAP BENDS THE MAP' }), res);
+  F.root.querySelector('.arena').append(plq);
+  const f = F.S.F[e.side];
+  F.wheel = { kind: 'shape', e, cv, plq, T: 0, frame: shapeFrame, close() { cv.remove(); plq.remove(); A.layer = null; A.cv.style.opacity = ''; } };
+  A.shake = 0; A.flash = 0;
+  if (f) A.ring(f.x, f.y, f.r, f.r * 4, '#ffd633', 7, 0.6);
+  SFX.tstop(); SFX.charge();
+  shapeSnap(F, F.wheel, bzFit(F, cv));
+}
+function shapeSnap(F, W, g) {
+  const A = F.arena, S = F.S, e = W.e, snap = view => {
+    const k = document.createElement('canvas'); k.width = g.w; k.height = g.h;
+    A.layer = 'floor'; A.draw(view, F.t);
+    k.getContext('2d').drawImage(A.cv, 0, 0);
+    return k;
+  };
+  const old = Object.create(S); old.shape = e.from ? SHAPES[e.from] : null; old.rule = e.rule; old.map = e.oldMap;
+  W.oldPic = snap(old); W.newPic = snap(S);
+  A.layer = 'balls'; A.draw(S, F.t);
+}
+function shapeFrame(F, dt) {
+  const W = F.wheel, A = F.arena, G = BZ_SHAPE, T = (W.T += dt), e = W.e, S = F.S, g = bzFit(F, W.cv), c = g.c, s = g.size, X = g.x, Y = g.y, d = g.dpr;
+  A.cv.style.opacity = '0';
+  if (W.oldPic.width !== g.w || W.oldPic.height !== g.h) shapeSnap(F, W, g);
+  // how hard it's bending: up to the worst of it just as the new walls take, then a wobble dying away
+  const swell = easeIO(T / G.HIT), fall = T < G.HIT ? 1 : Math.exp(-(T - G.HIT) * 2.6) * (0.75 + 0.25 * Math.cos((T - G.HIT) * 9));
+  const amp = swell * fall, mix = easeIO((T - G.MIX0) / G.MIX), cx = X + s / 2, cy = Y + s / 2;
+  c.fillStyle = '#050408'; c.fillRect(0, 0, g.w, g.h);
+  c.save();
+  // the box itself leans and breathes with it
+  c.translate(cx, cy); c.rotate(amp * 0.09 * Math.sin(T * 5.2)); const zm = 1 - amp * 0.08 + amp * 0.05 * Math.sin(T * 8.5); c.scale(zm, zm * (1 + amp * 0.04 * Math.sin(T * 11))); c.translate(-cx, -cy);
+  // sliced into strips that each slide a little further along a pair of travelling waves
+  const step = Math.max(2, Math.round(3 * d)), y0 = Math.max(0, Math.floor(Y - s * 0.1)), y1 = Math.min(g.h, Math.ceil(Y + s * 1.1));
+  const strip = (pic, a) => {
+    if (a <= 0.003) return;
+    c.globalAlpha = a;
+    for (let y = y0; y < y1; y += step) {
+      const v = (y - Y) / s, off = amp * s * (0.1 * Math.sin(v * 10 + T * 8.5) + 0.04 * Math.sin(v * 27 - T * 13) + 0.02 * Math.sin(v * 53 + T * 21));
+      c.drawImage(pic, 0, y, g.w, step, off, y, g.w, step + 0.6);
+    }
+  };
+  strip(W.oldPic, 1); strip(W.newPic, mix);
+  c.globalAlpha = 1;
+  // the new walls draw themselves over the melt, then flash as they take
+  const sh = SHAPES[e.to], wq = (T - G.WALL0) / G.WALL, k = (S.box.x1 - S.box.x0) / 2 * A.k;
+  if (wq > 0 && wq < 1.8) {
+    c.save(); c.translate(X + s / 2, Y + s / 2); if (A.flip) c.scale(-1, 1); c.scale(k, k);
+    const a = wq < 1 ? 1 : 1 - (wq - 1) / 0.8, len = shapeLen(sh), P = shapePath(sh);
+    c.setLineDash([len * easeIO(wq), len]); c.lineDashOffset = 0; c.lineJoin = 'round'; c.lineCap = 'round';
+    c.globalAlpha = a; c.lineWidth = 12 * A.k / k; c.strokeStyle = 'rgba(255,214,51,0.35)'; c.stroke(P);
+    c.lineWidth = 5 * A.k / k; c.strokeStyle = '#fff4c0'; c.stroke(P);
+    c.setLineDash([]); c.restore(); c.globalAlpha = 1;
+  }
+  c.drawImage(A.cv, 0, 0);
+  c.restore();
+  // the flash as it takes
+  const fl = 1 - (T - G.HIT) / 0.35;
+  if (T >= G.HIT && fl > 0) { c.fillStyle = `rgba(255,240,190,${(0.6 * fl * fl).toFixed(3)})`; c.fillRect(X, Y, s, s); }
+  // the name slams down over it
+  const nq = (T - 0.72) / 0.28, oq = easeIO((T - G.END + 0.5) / 0.5);
+  if (nq > 0) {
+    const z = 1 + (1 - easeBack(nq)) * 2.2, y = Y + s * 0.14 - oq * s * 0.22;
+    c.save(); c.translate(cx, y); c.scale(z, z); c.globalAlpha = clamp(nq * 2, 0, 1) * (1 - oq);
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.font = `400 ${Math.round(s * 0.036)}px ${FONT_D}`; c.fillStyle = 'rgba(0,0,0,0.85)'; c.fillText('BEEZAP BENDS THE MAP', 1.5 * d, -s * 0.056 + 1.5 * d, s * 0.9); c.fillStyle = '#ffd633'; c.fillText('BEEZAP BENDS THE MAP', 0, -s * 0.056, s * 0.9);
+    const nm = sh.name.toUpperCase();
+    c.font = `400 ${Math.round(s * 0.105)}px ${FONT_D}`; c.fillStyle = 'rgba(0,0,0,0.9)'; c.fillText(nm, 3 * d, 3 * d, s * 0.92); c.fillStyle = '#fff'; c.fillText(nm, 0, 0, s * 0.92);
+    c.restore();
+  }
+  if (!W.s1 && T >= G.MIX0) { W.s1 = 1; SFX.hole(); SFX.warp(); }
+  if (!W.s2 && T >= 0.72) { W.s2 = 1; SFX.clang(); }
+  if (!W.s3 && T >= G.HIT) { W.s3 = 1; SFX.boom(); bzShake(F, BZ_SHAKE, 450); if (e.rule !== S.rule) modHud(F); }
+  if (T >= G.END) { W.close(); openTake(F); }
+}
+function shapeLen(sh) {
+  if (sh.len) return sh.len;
+  let l = 0; const g = sh.segs;
+  for (let i = 0; i < g.length; i += 4) l += Math.sqrt((g[i + 2] - g[i]) * (g[i + 2] - g[i]) + (g[i + 3] - g[i + 1]) * (g[i + 3] - g[i + 1]));
+  return (sh.len = l);
 }
 // ---- the roll: BeeZap picks the game ----
 // The eight games are dealt onto a board with chaser lights round it. A gold frame races round them, slowing
@@ -11134,6 +11579,598 @@ function hookinFrame(F, dt) {
   }
 }
 
+
+// ===== opening the game ===================================================
+// A cutscene, then the menu builds itself from the bottom of the screen to the top.
+// The cutscene: the box draws itself; two balls come in, bounce off the walls and meet in the middle; the floor
+// cracks; the title lands letter by letter; one ball breaks the other and bounces out through the top of the box.
+// The build: a line of light climbs the screen, eating the cutscene, with a blueprint grid and sparks under it. Each
+// piece of the menu is outlined and measured as the line reaches it, scanned in from its bottom edge, then flashes
+// as it locks. The logo's letters land one at a time and a sweep of light runs back down over the finished screen.
+// A press jumps from the cutscene to the build, and another finishes the build. Browsers don't let a page make a
+// sound before its first click, so this is usually silent; the SFX calls are for when it isn't.
+const IN_T = { BOX: 1.1, MEET: 2.4, BOUNCE: 2.62, BRAWL: 3.1, TWO: 3.62, TAG: 3.95, KO: 4.62, BUILD: 5.6 };
+const IN_BUILD = { D: 2.7, EL: 0.72, END: 1.15 };
+function intro(done) {
+  // (test browsers skip it unless the page asks for ?intro=1)
+  if (REDUCED || document.hidden || (/HeadlessChrome/.test(navigator.userAgent) && !/[?&]intro=1/.test(location.search))) { done(false); return; }
+  document.body.classList.add('pre');
+  const cv = document.createElement('canvas'); cv.id = 'intro'; cv.setAttribute('aria-hidden', 'true');
+  document.body.append(cv);
+  const scene = inScene(cv);
+  let raf = 0, last = 0, st = 0, freeze = 0, build = null, over = false;
+  const finish = () => {
+    if (over) return; over = true;
+    cancelAnimationFrame(raf); clearTimeout(safety);
+    removeEventListener('pointerdown', press, true); removeEventListener('keydown', press, true); removeEventListener('resize', finishNow);
+    if (build) build.finish();
+    document.body.classList.remove('pre');
+    if (!build) { cv.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220 }).onfinish = () => cv.remove(); } else cv.remove();
+    done(true);
+  };
+  const finishNow = () => finish();
+  const go = () => {
+    cv.style.pointerEvents = 'none';
+    build = inBuild(y => { cv.style.clipPath = `inset(0 0 ${Math.max(0, innerHeight - y).toFixed(1)}px 0)`; }, finish);
+  };
+  const press = ev => {
+    if (build) { finish(); return; }
+    // a key that skips the cutscene does nothing else, but it can still start the sound
+    if (ev.type === 'keydown') { ev.stopPropagation(); SFX.resume(); if (G.music && !FIGHT) MUSIC.play('menu'); }
+    go();
+  };
+  const frame = now => {
+    const dt = Math.min(0.05, last ? (now - last) / 1000 : 0.016); last = now;
+    // the moments the scene holds its breath: just before the balls meet, then a frozen frame as they do
+    if (freeze > 0) freeze -= dt;
+    else {
+      const p = st;
+      st += dt * (st > IN_T.MEET - 0.18 && st < IN_T.MEET ? 0.55 : 1);
+      if (p < IN_T.MEET && st >= IN_T.MEET) freeze = 0.15;
+      if (p < IN_T.KO && st >= IN_T.KO) freeze = 0.1;
+    }
+    scene(st, dt);
+    if (!build && st >= IN_T.BUILD) go();
+    if (build) build.frame(dt);
+    if (!over) raf = requestAnimationFrame(frame);
+  };
+  addEventListener('pointerdown', press, true); addEventListener('keydown', press, true); addEventListener('resize', finishNow);
+  const safety = setTimeout(finish, 16000);   // whatever happens (a hidden tab stops the frames), the menu turns up
+  raf = requestAnimationFrame(frame);
+}
+function inScene(cv) {
+  const c = cv.getContext('2d'), dpr = Math.min(2, devicePixelRatio || 1), L = document.createElement('canvas'), lc = L.getContext('2d');
+  const ids = BALLS.filter(b => b.weapons && b.weapons.length && !b.hidden).map(b => b.id), A = G.eq && BALL[G.eq] ? G.eq : 'sword';
+  let B = ids[Math.floor(Math.random() * ids.length)]; if (B === A) B = A === 'sword' ? 'axe' : 'sword';
+  const ball = (id, side, col, path) => {
+    const def = BALL[id], o = { id: side + 1, side, x: 0, y: 0, vx: 0, vy: 0, r: def.r || 40, def, u: {}, st: mkSt(), wep: [], hp: 1, maxHp: 1, alive: true, shield: 0, lvl: 1, col, path, tr: [], sq: 0, ang: 0, rot: 0, gone: false };
+    for (const w of def.weapons || []) { const n = w.n || 1; for (let i = 0; i < n; i++) o.wep.push(mkWeapon(null, o, w, -0.6 + i * TAU / n)); }
+    return o;
+  };
+  // the balls' ways, [time, x, y] in half-boxes from the middle; every corner in a path is a bounce
+  const balls = [
+    ball(A, 0, '#38b6ff', [[1.15, -1.7, -0.8], [1.6, -0.5, 0.84], [1.92, -0.84, 0.1], [2.4, -0.16, 0], [2.78, -0.84, -0.5], [3.25, -0.1, -0.84], [3.75, 0.84, -0.3], [4.15, 0.84, 0.2], [4.62, 0.16, 0.68], [4.95, 0.84, 0.1], [6.9, -0.1, -8]]),
+    ball(B, 1, '#ff4d4d', [[1.15, 1.7, 0.8], [1.6, 0.5, -0.84], [1.92, 0.84, -0.1], [2.4, 0.16, 0], [2.78, 0.84, 0.45], [3.25, 0.15, 0.84], [3.7, -0.84, 0.35], [4.2, -0.84, 0.25], [4.62, -0.16, 0.68]]),
+  ];
+  let w = 0, h = 0, cx = 0, cy = 0, H = 0, prev = 0, shake = 0, flash = 0, kick = 0, typed = 0;
+  const parts = [], rings = [], shards = [], cracks = [], embers = [], landed = {};
+  const crossed = t => prev < t && t <= S.now, S = { now: 0 };
+  const spark = (x, y, n, col, sp, life) => { for (let i = 0; i < n; i++) { const a = Math.random() * TAU, v = sp * (0.35 + Math.random() * 0.9); parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: life * (0.6 + Math.random() * 0.6), max: life, col, g: 260 }); } };
+  const ring = (x, y, r0, r1, col, wd, life) => rings.push({ x, y, r0, r1, col, wd, life, max: life });
+  const makeCracks = () => {
+    for (let i = 0; i < 9; i++) {
+      const a0 = i / 9 * TAU + Math.random() * 0.4, pts = [[0, 0]]; let a = a0, r = 0;
+      for (let k = 0; k < 6; k++) { r += H * (0.1 + Math.random() * 0.12); a += (Math.random() - 0.5) * 0.7; pts.push([Math.cos(a) * r, Math.sin(a) * r]); }
+      const br = [];
+      if (Math.random() < 0.7) { const at = 2 + Math.floor(Math.random() * 3), [x, y] = pts[at], b = a0 + (Math.random() < 0.5 ? 0.8 : -0.8); br.push([x, y], [x + Math.cos(b) * H * 0.16, y + Math.sin(b) * H * 0.16], [x + Math.cos(b + 0.3) * H * 0.3, y + Math.sin(b + 0.3) * H * 0.3]); }
+      cracks.push({ pts, br });
+    }
+  };
+  const at = (b, t) => {
+    const P = b.path;
+    if (t <= P[0][0]) return [P[0][1], P[0][2], 0];
+    for (let i = 1; i < P.length; i++) if (t <= P[i][0]) { const q = (t - P[i - 1][0]) / (P[i][0] - P[i - 1][0]); return [P[i - 1][1] + (P[i][1] - P[i - 1][1]) * q, P[i - 1][2] + (P[i][2] - P[i - 1][2]) * q, i]; }
+    const e = P[P.length - 1]; return [e[1], e[2], P.length];
+  };
+  const part = (pts, q) => {
+    let total = 0; for (let i = 1; i < pts.length; i++) total += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    let left = total * clamp(q, 0, 1);
+    c.beginPath(); c.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length && left > 0; i++) { const [ax, ay] = pts[i - 1], [bx, by] = pts[i], g = Math.hypot(bx - ax, by - ay), u = Math.min(1, left / g); c.lineTo(ax + (bx - ax) * u, ay + (by - ay) * u); left -= g; }
+  };
+  const box = st => {
+    const q = easeIO(st / 0.85), g = clamp((st - 0.25) / 0.7, 0, 1), x0 = cx - H, y0 = cy - H, x1 = cx + H, y1 = cy + H, s = H * 2;
+    c.fillStyle = `rgba(10,10,13,${g.toFixed(3)})`; c.fillRect(x0, y0, s, s);
+    // the grid opens out from the middle, line by line
+    c.lineWidth = 1;
+    const n = 15, sp = s / n;
+    for (let i = 1; i < n; i++) {
+      const d = Math.abs(i - n / 2) / (n / 2), u = clamp((st - 0.3 - d * 0.45) / 0.35, 0, 1);
+      if (u <= 0) continue;
+      const l = H * easeIO(u);
+      c.strokeStyle = `rgba(255,255,255,${(0.045 * u).toFixed(3)})`; c.beginPath();
+      c.moveTo(x0 + i * sp, cy - l); c.lineTo(x0 + i * sp, cy + l); c.moveTo(cx - l, y0 + i * sp); c.lineTo(cx + l, y0 + i * sp); c.stroke();
+    }
+    // the middle line and the circle
+    const m = clamp((st - 0.55) / 0.5, 0, 1);
+    if (m > 0) {
+      c.strokeStyle = 'rgba(255,255,255,0.09)'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(cx, cy - H * easeIO(m)); c.lineTo(cx, cy + H * easeIO(m)); c.stroke();
+      c.beginPath(); c.arc(cx, cy, H * 0.24, -HALF_PI, -HALF_PI + TAU * easeIO(m)); c.stroke();
+    }
+    // the walls run out from the corners, the pink marks already there
+    c.strokeStyle = 'rgba(255,255,255,0.22)'; c.lineWidth = 2.5; c.lineCap = 'round'; c.beginPath();
+    for (const [ax, ay, bx, by] of [[x0, y0, x1, y0], [x1, y0, x1, y1], [x1, y1, x0, y1], [x0, y1, x0, y0]]) { c.moveTo(ax, ay); c.lineTo(ax + (bx - ax) * q, ay + (by - ay) * q); }
+    c.stroke();
+    const pop = easeBack(st / 0.3), k = H * 0.1 * pop;
+    c.strokeStyle = '#ff2d78'; c.lineWidth = 4; c.lineCap = 'square'; c.beginPath();
+    for (const [x, y, sx, sy] of [[x0, y0, 1, 1], [x1, y0, -1, 1], [x0, y1, 1, -1], [x1, y1, -1, -1]]) { c.moveTo(x + sx * k, y); c.lineTo(x, y); c.lineTo(x, y + sy * k); }
+    c.stroke(); c.lineCap = 'butt';
+    // a head that travels the wall as it's drawn
+    if (q < 1) { c.fillStyle = '#fff'; for (const [ax, ay, bx, by] of [[x0, y0, x1, y0], [x1, y0, x1, y1], [x1, y1, x0, y1], [x0, y1, x0, y0]]) { c.beginPath(); c.arc(ax + (bx - ax) * q, ay + (by - ay) * q, 3, 0, TAU); c.fill(); } }
+  };
+  const drawCracks = st => {
+    const q = clamp((st - IN_T.MEET) / 0.32, 0, 1);
+    if (q <= 0) return;
+    c.save(); c.translate(cx, cy); c.lineCap = 'round'; c.lineJoin = 'round';
+    // the scorch under them
+    const g = c.createRadialGradient(0, 0, 0, 0, 0, H * 0.5); g.addColorStop(0, `rgba(0,0,0,${(0.75 * q).toFixed(3)})`); g.addColorStop(0.5, `rgba(20,6,10,${(0.4 * q).toFixed(3)})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(0, 0, H * 0.5, 0, TAU); c.fill();
+    const lit = clamp(1 - (st - IN_T.MEET) / 1.6, 0.18, 1);
+    for (const k of cracks) for (const [pts, qq] of [[k.pts, q], [k.br, clamp(q * 1.5 - 0.5, 0, 1)]]) {
+      if (!pts.length) continue;
+      part(pts, qq); c.lineWidth = 5; c.strokeStyle = 'rgba(0,0,0,0.85)'; c.stroke();
+      part(pts, qq); c.lineWidth = 1.7; c.strokeStyle = `rgba(255,${Math.round(90 + 100 * lit)},${Math.round(60 + 80 * lit)},${(0.3 + 0.7 * lit).toFixed(3)})`; c.stroke();
+    }
+    c.restore();
+  };
+  const drawBall2 = (b, st, dt) => {
+    const [ux, uy, seg] = at(b, st), x = cx + ux * H, y = cy + uy * H, rr = H * 0.16, k = rr / b.r;
+    if (seg !== b.seg) {
+      // a new leg of the path means it just hit something
+      if (b.seg > 0 && st > 1 && seg > 0 && !b.gone && seg <= b.path.length - 1) {
+        b.sq = 0.26; const dx = x - (b.sx || x), dy = y - (b.sy || y); b.ang = Math.atan2(dy, dx);
+        if (Math.abs(st - IN_T.MEET) > 0.03 && Math.abs(st - IN_T.KO) > 0.03) { spark(x, y, 9, '#ffffff', H * 1.5, 0.3); ring(x, y, rr * 0.7, rr * 1.8, b.col, 3, 0.26); shake = Math.max(shake, 5); SFX.bump(600); }
+      }
+      b.seg = seg;
+    }
+    b.sx = x; b.sy = y;
+    b.sq *= Math.max(0, 1 - dt * 9);
+    if (b.gone || st < IN_T.BOX) return;
+    b.tr.push(x, y); if (b.tr.length > 28) b.tr.splice(0, 2);
+    c.lineCap = 'round'; c.strokeStyle = b.col;
+    for (let i = 0; i < b.tr.length - 2; i += 2) { const u = (i + 2) / b.tr.length; c.globalAlpha = 0.22 * u; c.beginPath(); c.moveTo(b.tr[i], b.tr[i + 1]); c.lineTo(b.tr[i + 2], b.tr[i + 3]); c.lineWidth = rr * 1.7 * u; c.stroke(); }
+    c.globalAlpha = 1; c.lineCap = 'butt';
+    // its shadow, its weapons going round, then the ball, squashed along the way it just got hit
+    c.beginPath(); c.arc(x + rr * 0.1, y + rr * 0.22, rr * 1.04, 0, TAU); c.fillStyle = 'rgba(0,0,0,0.4)'; c.fill();
+    b.rot += dt * 7;
+    c.save(); c.translate(x, y);
+    try {
+      c.save(); c.scale(k, k);
+      for (const w of b.wep) { w.ang += w.dir * w.spin * dt; if (w.k === 'flail') { w.hx = dcos(w.ang) * w.len; w.hy = dsin(w.ang) * w.len; } wcap(b, w); drawWeapon(c, b, w, st); }
+      c.restore();
+      c.rotate(b.ang); c.scale(1 + b.sq, 1 - b.sq * 0.85); c.rotate(-b.ang); c.scale(k, k);
+      drawBall(c, b.def, 0, 0, b.r, b, st, b.rot);
+    } catch (e) { c.beginPath(); c.arc(0, 0, b.r, 0, TAU); c.fillStyle = b.def.col; c.fill(); }
+    c.restore();
+    // who it is, until they meet
+    if (st < IN_T.MEET - 0.05) {
+      c.globalAlpha = clamp((st - 1.25) / 0.2, 0, 1) * 0.9; c.font = `400 ${Math.round(H * 0.075)}px ${FONT_D}`; c.textAlign = 'center'; c.textBaseline = 'middle';
+      const nm = b.def.name.toUpperCase(), tw = c.measureText(nm).width + H * 0.05, ty = y - rr * 1.5;
+      c.fillStyle = 'rgba(5,5,8,0.85)'; rrect(c, x - tw / 2, ty - H * 0.05, tw, H * 0.1, H * 0.018); c.fill(); c.lineWidth = 1.5; c.strokeStyle = b.col; c.stroke();
+      c.fillStyle = '#fff'; c.fillText(nm, x, ty + H * 0.004); c.globalAlpha = 1;
+    }
+  };
+  const title = (st, sx, sy) => {
+    if (st < IN_T.BOUNCE - 0.3) return;
+    lc.setTransform(dpr, 0, 0, dpr, 0, 0); lc.clearRect(0, 0, w, h);
+    let F = H * 0.64;
+    const measure = () => { lc.font = `400 ${F}px ${FONT_D}`; const sp = F * 0.055; return { sp, a: lc.measureText('BOUNCE').width + sp * 5, b: lc.measureText('BRAWL 2').width + sp * 6 }; };
+    let m = measure();
+    const fit = H * 1.84 / Math.max(m.a, m.b); if (fit < 1) { F *= fit; m = measure(); }
+    lc.textBaseline = 'alphabetic'; lc.textAlign = 'left';
+    const y1 = cy - H * 0.05, y2 = y1 + F * 0.92, sp = m.sp;
+    const letter = (ch, x, y, col0, col1, rot, z, al) => {
+      const wd = lc.measureText(ch).width, gx = x + wd / 2, gy = y - F * 0.36;
+      lc.save(); lc.globalAlpha = al; lc.translate(gx, gy); lc.rotate(rot); lc.scale(z, z); lc.translate(-gx, -gy);
+      lc.fillStyle = 'rgba(0,0,0,0.85)'; lc.fillText(ch, x + F * 0.022, y + F * 0.035);
+      const g = lc.createLinearGradient(0, y - F * 0.72, 0, y); g.addColorStop(0, col0); g.addColorStop(1, col1);
+      lc.fillStyle = g; lc.fillText(ch, x, y);
+      lc.lineWidth = Math.max(1, F * 0.008); lc.strokeStyle = 'rgba(255,255,255,0.3)'; lc.strokeText(ch, x, y);
+      lc.restore();
+    };
+    // BOUNCE falls in from above, a letter at a time, and bounces
+    let x = cx - m.a / 2;
+    [...'BOUNCE'].forEach((ch, i) => {
+      const t0 = IN_T.BOUNCE + i * 0.08, u = (st - t0) / 0.6, wd = lc.measureText(ch).width;
+      if (u > 0) {
+        const fall = bounceOut(u), y = y1 - (1 - fall) * (y1 + F);
+        letter(ch, x, y, '#ff7aa8', '#d3135a', (1 - fall) * (i % 2 ? 0.25 : -0.25), 1, 1);
+        if (u > 0.36 && !landed['b' + i]) { landed['b' + i] = 1; for (let k = 0; k < 8; k++) parts.push({ x: x + Math.random() * wd, y: y1, vx: (Math.random() - 0.5) * H * 1.2, vy: -Math.random() * H * 0.9, life: 0.4, max: 0.4, col: '#ffb3cf', g: 900 }); shake = Math.max(shake, 7); SFX.bump(700); }
+      }
+      x += wd + sp;
+    });
+    // BRAWL punches up from below
+    x = cx - m.b / 2;
+    [...'BRAWL'].forEach((ch, i) => {
+      const t0 = IN_T.BRAWL + i * 0.065, u = (st - t0) / 0.32, wd = lc.measureText(ch).width;
+      if (u > 0) {
+        const e = easeBack(u), y = y2 + (1 - e) * (h - y2 + F);
+        letter(ch, x, y, '#ffffff', '#9aa2b2', 0, 1, 1);
+        if (u > 0.6 && !landed['r' + i]) { landed['r' + i] = 1; shake = Math.max(shake, 5); SFX.tick(0.2 + i * 0.1); }
+      }
+      x += wd + sp;
+    });
+    x += lc.measureText(' ').width;
+    // and the 2 spins down out of the camera and hits harder than any of them
+    const u2 = (st - IN_T.TWO) / 0.24;
+    if (u2 > 0) {
+      const e = ease(u2);
+      letter('2', x, y2, '#ff7aa8', '#d3135a', (1 - e) * 2.6, 1 + (1 - e) * 5.5, clamp(u2 * 2.5, 0, 1));
+      if (u2 >= 1 && !landed.two) {
+        landed.two = 1; const wd = lc.measureText('2').width, X = x + wd / 2, Y = y2 - F * 0.36;
+        flash = Math.max(flash, 0.5); shake = Math.max(shake, 18); kick = 0.05;
+        ring(X, Y, F * 0.2, F * 1.5, '#ff2d78', 7, 0.5); ring(X, Y, F * 0.1, F * 1, '#ffffff', 3, 0.4); spark(X, Y, 26, '#ff7aa8', H * 2.1, 0.5); SFX.boom(false);
+      }
+    }
+    // a band of light runs across the finished title
+    const gq = (st - IN_T.TAG - 0.05) / 0.6;
+    if (gq > 0 && gq < 1) {
+      lc.save(); lc.globalCompositeOperation = 'source-atop';
+      const gx = cx - H * 1.4 + H * 2.8 * gq, g = lc.createLinearGradient(gx - H * 0.26, 0, gx + H * 0.26, H * 0.34);
+      g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.5, 'rgba(255,255,255,0.75)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+      lc.fillStyle = g; lc.fillRect(0, 0, w, h); lc.restore();
+    }
+    c.save(); c.setTransform(1, 0, 0, 1, sx * dpr, sy * dpr); c.drawImage(L, 0, 0); c.restore();
+  };
+  const words = st => {
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    // the tag types itself out over the title
+    const full = '// TWO BALLS. ONE BOX. //', n = Math.floor(clamp((st - IN_T.TAG) / 0.5, 0, 1) * full.length);
+    if (n > typed) { typed = n; SFX.tick(0.5); }
+    if (n > 0) {
+      c.font = `600 ${Math.round(H * 0.052)}px ${FONT_B}`;
+      c.fillStyle = '#b8b8c6'; c.fillText(full.slice(0, n) + (n < full.length ? '_' : ''), cx, cy - H * 0.68, H * 1.8);
+    }
+    // the moment one of them breaks, the last line slams down
+    const u = (st - IN_T.KO) / 0.2;
+    if (u > 0) {
+      const e = ease(u), z = 1 + (1 - e) * 2.4;
+      c.save(); c.translate(cx, cy + H * 0.68); c.scale(z, z); c.globalAlpha = clamp(u * 2, 0, 1);
+      c.font = `400 ${Math.round(H * 0.125)}px ${FONT_D}`;
+      c.fillStyle = 'rgba(0,0,0,0.85)'; c.fillText('ONLY ONE BOUNCES OUT', H * 0.008, H * 0.012, H * 1.86);
+      c.fillStyle = '#ffd23f'; c.fillText('ONLY ONE BOUNCES OUT', 0, 0, H * 1.86);
+      c.restore();
+    }
+  };
+  const fx = dt => {
+    c.save(); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round';
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i];
+      if ((p.life -= dt) <= 0) { parts.splice(i, 1); continue; }
+      p.vy += p.g * dt; p.vx *= 1 - 2.2 * dt; p.vy *= 1 - 1.2 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      c.globalAlpha = clamp(p.life / p.max, 0, 1); c.strokeStyle = p.col; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(p.x - p.vx * 0.022, p.y - p.vy * 0.022); c.stroke();
+    }
+    c.restore();
+    for (let i = rings.length - 1; i >= 0; i--) {
+      const r = rings[i];
+      if ((r.life -= dt) <= 0) { rings.splice(i, 1); continue; }
+      const q = 1 - r.life / r.max, a = 1 - q;
+      c.globalAlpha = a; c.lineWidth = r.wd * a + 0.5; c.strokeStyle = r.col; c.beginPath(); c.arc(r.x, r.y, r.r0 + (r.r1 - r.r0) * (1 - (1 - q) * (1 - q)), 0, TAU); c.stroke();
+    }
+    c.globalAlpha = 1;
+    for (let i = shards.length - 1; i >= 0; i--) {
+      const s = shards[i];
+      if ((s.life -= dt) <= 0) { shards.splice(i, 1); continue; }
+      s.x += s.vx * dt; s.y += s.vy * dt; s.vx *= 1 - 1.8 * dt; s.vy = s.vy * (1 - 1.8 * dt) + 520 * dt; s.rot += s.vr * dt;
+      c.save(); c.translate(s.x, s.y); c.rotate(s.rot); c.globalAlpha = clamp(s.life / 0.5, 0, 1);
+      c.beginPath(); c.moveTo(s.pts[0], s.pts[1]); for (let k = 2; k < s.pts.length; k += 2) c.lineTo(s.pts[k], s.pts[k + 1]); c.closePath(); c.fillStyle = s.col; c.fill(); c.lineWidth = 1.5; c.strokeStyle = '#0a0a0d'; c.stroke();
+      c.restore();
+    }
+    c.globalAlpha = 1;
+    // embers drifting up off the broken floor
+    for (let i = embers.length - 1; i >= 0; i--) {
+      const m = embers[i];
+      if ((m.life -= dt) <= 0) { embers.splice(i, 1); continue; }
+      m.x += (m.vx + Math.sin(m.life * 5 + m.ph) * 16) * dt; m.y += m.vy * dt;
+      c.globalAlpha = clamp(m.life / m.max, 0, 1) * 0.85; c.fillStyle = m.col; c.beginPath(); c.arc(m.x, m.y, m.r, 0, TAU); c.fill();
+    }
+    c.globalAlpha = 1;
+  };
+  return (st, dt) => {
+    const nw = cv.clientWidth || innerWidth, nh = cv.clientHeight || innerHeight;
+    if (nw !== w || nh !== h) {
+      w = nw; h = nh; cv.width = L.width = Math.round(w * dpr); cv.height = L.height = Math.round(h * dpr);
+      cx = w / 2; cy = h / 2; H = Math.min(w * 0.46, h * 0.43);
+    }
+    S.now = st;
+    // the two big hits
+    if (crossed(IN_T.MEET)) {
+      flash = 1; shake = 30; kick = 0.13; makeCracks();
+      ring(cx, cy, H * 0.1, H * 1.5, '#ffffff', 10, 0.55); ring(cx, cy, H * 0.05, H * 1.05, '#ff2d78', 7, 0.5); ring(cx, cy, H * 0.05, H * 0.7, '#ffd23f', 5, 0.42);
+      spark(cx, cy, 80, '#ffffff', H * 3.4, 0.6); spark(cx, cy, 40, '#ff7aa8', H * 2.4, 0.7); spark(cx, cy, 30, '#ffd23f', H * 2, 0.7);
+      for (let i = 0; i < 40; i++) embers.push({ x: cx + (Math.random() - 0.5) * H * 0.9, y: cy + (Math.random() - 0.5) * H * 0.9, vx: (Math.random() - 0.5) * 30, vy: -18 - Math.random() * 46, r: 0.8 + Math.random() * 1.8, life: 1.5 + Math.random() * 2.6, max: 3, ph: Math.random() * 9, col: Math.random() < 0.5 ? '#ff8a3c' : '#ff5a8a' });
+      SFX.ko();
+    }
+    if (crossed(IN_T.KO)) {
+      const b = balls[1], rr = H * 0.16, x = b.sx, y = b.sy; b.gone = true;
+      flash = Math.max(flash, 0.65); shake = 26; kick = 0.08;
+      for (let i = 0; i < 16; i++) {
+        const a0 = i * TAU / 16, a1 = (i + 1) * TAU / 16, am = (a0 + a1) / 2, v = H * (1 + Math.random() * 1.7);
+        shards.push({ x, y, vx: Math.cos(am) * v, vy: Math.sin(am) * v, rot: 0, vr: (Math.random() - 0.5) * 14, life: 0.8 + Math.random() * 0.5, col: b.def.col, pts: [0, 0, Math.cos(a0) * rr, Math.sin(a0) * rr, Math.cos(am) * rr * 1.06, Math.sin(am) * rr * 1.06, Math.cos(a1) * rr, Math.sin(a1) * rr] });
+      }
+      ring(x, y, rr, H * 1.1, '#ffffff', 8, 0.5); spark(x, y, 60, '#ffffff', H * 3, 0.55); SFX.ko();
+    }
+    // the winner goes through the top wall
+    if (crossed(5.22)) { const X = balls[0].sx; spark(X, cy - H, 34, '#ffffff', H * 2.3, 0.5); ring(X, cy - H, H * 0.1, H * 0.55, '#38b6ff', 5, 0.42); shake = Math.max(shake, 12); SFX.boom(true); }
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const bg = c.createRadialGradient(cx, cy, H * 0.2, cx, cy, Math.max(w, h) * 0.75);
+    bg.addColorStop(0, '#100d16'); bg.addColorStop(1, '#030304');
+    c.fillStyle = bg; c.fillRect(0, 0, w, h);
+    shake = Math.max(0, shake - dt * 46); kick = Math.max(0, kick - dt * 0.42); flash = Math.max(0, flash - dt * 2.8);
+    const z = 1 + 0.045 * clamp(st / IN_T.BUILD, 0, 1) + kick, sx = (Math.random() - 0.5) * shake, sy = (Math.random() - 0.5) * shake;
+    c.translate(cx + sx, cy + sy); c.scale(z, z); c.translate(-cx, -cy);
+    box(st);
+    drawCracks(st);
+    for (const b of balls) drawBall2(b, st, dt);
+    fx(dt);
+    // the studio's name first, over the box
+    const nmq = clamp((st - 0.2) / 0.5, 0, 1) * (1 - clamp((st - IN_T.BOX - 0.2) / 0.4, 0, 1));
+    if (nmq > 0) {
+      const full = "BEESIDE STUDIO'S", n = Math.ceil(clamp((st - 0.2) / 0.55, 0, 1) * full.length);
+      c.globalAlpha = nmq; c.font = `600 ${Math.round(H * 0.05)}px ${FONT_B}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#c8c8d0';
+      c.fillText(full.slice(0, n), cx, cy, H * 1.8); c.globalAlpha = 1;
+    }
+    title(st, sx, sy);
+    words(st);
+    if (flash > 0) { c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = `rgba(255,255,255,${(flash * 0.8).toFixed(3)})`; c.fillRect(0, 0, cv.width, cv.height); }
+    // the edges of the screen stay dark
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const v = c.createRadialGradient(cx, cy, Math.min(w, h) * 0.42, cx, cy, Math.max(w, h) * 0.78);
+    v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.6)');
+    c.fillStyle = v; c.fillRect(0, 0, w, h);
+    prev = st;
+  };
+}
+function bounceOut(q) {
+  q = clamp(q, 0, 1);
+  const n = 7.5625, d = 2.75;
+  if (q < 1 / d) return n * q * q;
+  if (q < 2 / d) { q -= 1.5 / d; return n * q * q + 0.75; }
+  if (q < 2.5 / d) { q -= 2.25 / d; return n * q * q + 0.9375; }
+  q -= 2.625 / d; return n * q * q + 0.984375;
+}
+
+// ---- the menu builds itself: setFront(y) tells the cutscene where the line is, onEnd runs when it's all done ----
+function inBuild(setFront, onEnd) {
+  const B = IN_BUILD, cv = document.createElement('canvas'); cv.id = 'build'; cv.setAttribute('aria-hidden', 'true');
+  document.body.append(cv);
+  const c = cv.getContext('2d'), dpr = Math.min(2, devicePixelRatio || 1);
+  const w = innerWidth, h = innerHeight; cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  // the menu's own entrance animations have nothing left to do: this is its entrance
+  const menu = document.getElementById('menu');
+  for (const a of menu.getAnimations({ subtree: true })) { try { if (a.effect.getComputedTiming().iterations !== Infinity) a.finish(); } catch (err) { /* it stays as it is */ } }
+  document.body.classList.remove('pre');
+  const bg = document.getElementById('bg'); bg.style.transition = 'none';
+  const front = t => h * (1 - easeIO(t / B.D)) - 2;
+  const startAt = y => { let a = 0, b = B.D; if (y >= h) return 0; for (let i = 0; i < 18; i++) { const m = (a + b) / 2; if (front(m) > y) a = m; else b = m; } return a; };
+  const anims = [], items = [], parts = [];
+  const add = (el, label, big) => {
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height || r.top > h + 40) return;
+    const it = { el, label, r, t0: startAt(r.bottom), big, done: false };
+    items.push(it);
+    return it;
+  };
+  const q = s => document.querySelector(s);
+  // what gets built, each with what it's called on the drawing
+  add(q('.m-hint'), 'CONTROLS'); add(q('#mcard'), 'FIGHTER CARD', 1);
+  document.querySelectorAll('#mnav .m-item').forEach((el, i) => add(el, 'NAV ' + pad2(i + 1)));
+  add(q('.logo-sub'), 'TAGLINE'); const logo = add(q('.logo-main'), 'LOGO', 1); add(q('.logo-tag'), 'HEADER');
+  add(q('.m-top'), 'STATUS'); add(q('.m-ver'), 'BUILD');
+  for (const it of items) {
+    if (it === logo) continue;
+    anims.push(it.el.animate([
+      { clipPath: 'inset(100% -40px -40px -40px)', transform: 'translateY(30px) scale(.97)', opacity: 0, offset: 0, easing: 'cubic-bezier(.2,.75,.2,1)' },
+      { opacity: 1, offset: 0.16 },
+      { clipPath: 'inset(0% -40px -40px -40px)', transform: 'translateY(-4px) scale(1.012)', opacity: 1, offset: 0.68, easing: 'cubic-bezier(.3,0,.3,1)' },
+    ], { delay: (it.t0 + 0.12) * 1000, duration: B.EL * 1000, fill: 'backwards' }));
+  }
+  // inside the card: its lines arrive from the bottom up, and the ball drops in with a bounce
+  const card = q('#mcard');
+  if (card) {
+    const t0 = items.find(i => i.el === card).t0, kids = [...card.children].reverse();
+    kids.forEach((k, i) => anims.push(k.animate([{ opacity: 0, transform: 'translateX(26px)', easing: 'cubic-bezier(.2,.8,.2,1)' }, { opacity: 1, transform: 'none' }], { delay: (t0 + 0.34 + i * 0.09) * 1000, duration: 420, fill: 'backwards' })));
+    const pic = card.querySelector('canvas');
+    if (pic) anims.push(pic.animate([{ transform: 'scale(0) rotate(-200deg)', easing: 'cubic-bezier(.2,1.5,.4,1)' }, { transform: 'none' }], { delay: (t0 + 0.55) * 1000, duration: 620, fill: 'backwards' }));
+  }
+  // inside each menu line: the number, the name and the small print come in one after another
+  for (const it of items) {
+    if (!it.el.classList.contains('m-item')) continue;
+    [...it.el.children].forEach((k, i) => anims.push(k.animate([{ opacity: 0, transform: 'translateX(-22px)', easing: 'cubic-bezier(.2,.8,.2,1)' }, { opacity: 1, transform: 'none' }], { delay: (it.t0 + 0.28 + i * 0.07) * 1000, duration: 380, fill: 'backwards' })));
+  }
+  // the logo's letters land one at a time. Each sits in a box of its own just for this; the markup goes back after
+  let logoHTML = null;
+  if (logo) {
+    logoHTML = logo.el.innerHTML;
+    const letters = [], wrap = n => {
+      if (n.nodeType === 3) {
+        const f = document.createDocumentFragment();
+        for (const ch of n.textContent) { if (ch === ' ') { f.append(' '); continue; } const s = document.createElement('span'); s.style.display = 'inline-block'; s.textContent = ch; f.append(s); letters.push(s); }
+        n.replaceWith(f);
+      } else [...n.childNodes].forEach(wrap);
+    };
+    [...logo.el.childNodes].forEach(wrap);
+    logo.letters = letters.map(s => s.getBoundingClientRect());
+    letters.forEach((s, i) => anims.push(s.animate([
+      { transform: `translateY(90%) rotate(${i % 2 ? 9 : -9}deg) scale(.6)`, opacity: 0, easing: 'cubic-bezier(.2,.7,.25,1)' },
+      { transform: 'translateY(-18%) rotate(0deg) scale(1.08)', opacity: 1, offset: 0.55, easing: 'cubic-bezier(.4,0,.5,1)' },
+      { transform: 'translateY(4%) scale(.98)', offset: 0.8 },
+      { transform: 'none', opacity: 1 },
+    ], { delay: (logo.t0 + 0.1 + i * 0.055) * 1000, duration: 560, fill: 'backwards' })));
+  }
+  let T = 0, ended = false, n0 = 0, kicked = false;
+  const burst = (x, y, n, col, sp, up) => { for (let i = 0; i < n; i++) { const a = -HALF_PI + (Math.random() - 0.5) * (up ? 1.7 : TAU), v = sp * (0.3 + Math.random()); parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.32 + Math.random() * 0.45, max: 0.75, col }); } };
+  const edge = (r, g) => [[r.left + r.width / 2, r.bottom + g], [r.left - g, r.bottom + g], [r.left - g, r.top - g], [r.left + r.width / 2, r.top - g]];
+  const edge2 = (r, g) => [[r.left + r.width / 2, r.bottom + g], [r.right + g, r.bottom + g], [r.right + g, r.top - g], [r.left + r.width / 2, r.top - g]];
+  const trace = (pts, q2) => {
+    let total = 0; for (let i = 1; i < pts.length; i++) total += Math.abs(pts[i][0] - pts[i - 1][0]) + Math.abs(pts[i][1] - pts[i - 1][1]);
+    let left = total * clamp(q2, 0, 1);
+    c.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length && left > 0; i++) { const [ax, ay] = pts[i - 1], [bx, by] = pts[i], g = Math.abs(bx - ax) + Math.abs(by - ay), u = Math.min(1, left / g); c.lineTo(ax + (bx - ax) * u, ay + (by - ay) * u); left -= g; }
+  };
+  const drawItem = (it, u) => {
+    const r = it.r, g = 6, fade = 1 - clamp((u - 1.05) / 0.5, 0, 1);
+    if (fade <= 0) return;
+    // the outline climbs both sides from the middle of the bottom edge and meets at the top
+    const p = easeIO(u / 0.42);
+    c.globalAlpha = 0.95 * fade; c.lineWidth = 1.2; c.strokeStyle = '#ff5a95';
+    c.beginPath(); trace(edge(r, g), p); trace(edge2(r, g), p); c.stroke();
+    // bright brackets on the corners once it's there
+    if (p > 0.3) {
+      const k = Math.min(11, r.height * 0.3) * clamp((p - 0.3) / 0.3, 0, 1);
+      c.lineWidth = 2; c.strokeStyle = '#fff'; c.beginPath();
+      for (const [x, y, sx, sy] of [[r.left - g, r.top - g, 1, 1], [r.right + g, r.top - g, -1, 1], [r.left - g, r.bottom + g, 1, -1], [r.right + g, r.bottom + g, -1, -1]]) { c.moveTo(x + sx * k, y); c.lineTo(x, y); c.lineTo(x, y + sy * k); }
+      c.stroke();
+    }
+    // its name and size, typed out on a leader line
+    const lab = `${it.label} ${Math.round(r.width)}x${Math.round(r.height)}`, n = Math.ceil(lab.length * clamp((u - 0.1) / 0.4, 0, 1));
+    if (n > 0 && fade > 0) {
+      const right = r.right + 96 < w, lx = right ? r.right + g + 18 : r.left - g - 18, ly = r.top + Math.min(10, r.height / 2);
+      c.lineWidth = 1; c.strokeStyle = 'rgba(255,90,149,0.8)'; c.beginPath(); c.moveTo(right ? r.right + g : r.left - g, ly); c.lineTo(lx, ly); c.stroke();
+      c.font = '10px "Share Tech Mono", Consolas, monospace'; c.textBaseline = 'middle'; c.textAlign = right ? 'left' : 'right'; c.fillStyle = '#ffb3cf';
+      if (right || r.left - g - 18 > 60) c.fillText(lab.slice(0, n), lx + (right ? 4 : -4), ly);
+    }
+    // a scan line carries the piece up out of nothing
+    const sc = u / 0.68;
+    if (sc > 0.16 && sc < 1) {
+      const y = r.bottom - r.height * ease((sc - 0.16) / 0.84), band = Math.min(26, r.height * 0.5);
+      const gr = c.createLinearGradient(0, y, 0, y + band); gr.addColorStop(0, 'rgba(255,120,170,0.5)'); gr.addColorStop(1, 'rgba(255,120,170,0)');
+      c.globalAlpha = fade; c.fillStyle = gr; c.fillRect(r.left - g, y, r.width + g * 2, band);
+      c.fillStyle = '#fff'; c.fillRect(r.left - g, y - 0.75, r.width + g * 2, 1.5);
+    }
+    // the flash when it locks, and a ring of outline thrown off it
+    const lk = (u - 0.68) / 0.42;
+    if (lk > 0 && lk < 1) {
+      const a = (1 - lk) * (1 - lk), e = ease(lk) * 14;
+      c.globalAlpha = 0.42 * a; c.fillStyle = '#fff'; rrect(c, r.left - g, r.top - g, r.width + g * 2, r.height + g * 2, 4); c.fill();
+      c.globalAlpha = a; c.lineWidth = 2; c.strokeStyle = '#ff7aa8'; rrect(c, r.left - g - e, r.top - g - e, r.width + (g + e) * 2, r.height + (g + e) * 2, 6); c.stroke();
+    }
+    c.globalAlpha = 1;
+  };
+  const frame = dt => {
+    T += dt;
+    const y = front(T), up = T / B.D, built = clamp(up, 0, 1);
+    setFront(y);
+    c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h);
+    if (T < B.D + 0.15) {
+      // under the line: the blueprint the menu is being built on, going dim as the line climbs away from it
+      const reach = Math.min(300, h * 0.45);
+      const fadeG = c.createLinearGradient(0, y, 0, y + reach); fadeG.addColorStop(0, 'rgba(255,70,130,0.5)'); fadeG.addColorStop(1, 'rgba(255,70,130,0)');
+      c.strokeStyle = fadeG; c.lineWidth = 1; c.beginPath();
+      for (let x = 14; x < w; x += 28) { c.moveTo(x, y); c.lineTo(x, y + reach); }
+      for (let ly = Math.ceil(y / 28) * 28; ly < y + reach; ly += 28) { c.moveTo(0, ly); c.lineTo(w, ly); }
+      c.stroke();
+      c.lineWidth = 1.6; c.beginPath();
+      for (let x = 14 + 28 * 2; x < w; x += 140) { c.moveTo(x, y); c.lineTo(x, y + reach * 0.7); }
+      c.stroke();
+      // the heat of the line, then the line, with sparks of light racing along it
+      const haze = Math.min(150, h * 0.22), hg = c.createLinearGradient(0, y, 0, y + haze);
+      hg.addColorStop(0, 'rgba(255,45,120,0.42)'); hg.addColorStop(0.3, 'rgba(255,45,120,0.14)'); hg.addColorStop(1, 'rgba(255,45,120,0)');
+      c.fillStyle = hg; c.fillRect(0, y, w, haze);
+      const hg2 = c.createLinearGradient(0, y - 22, 0, y); hg2.addColorStop(0, 'rgba(255,170,205,0)'); hg2.addColorStop(1, 'rgba(255,170,205,0.45)');
+      c.fillStyle = hg2; c.fillRect(0, y - 22, w, 22);
+      c.fillStyle = '#ff2d78'; c.fillRect(0, y - 2.5, w, 5);
+      c.fillStyle = '#fff'; c.fillRect(0, y - 1, w, 2);
+      for (let i = 0; i < 6; i++) {
+        const ph = (T * (1.15 + i * 0.27) + i * 0.37) % 1, x = (i % 2 ? ph : 1 - ph) * w;
+        const g2 = c.createLinearGradient(x - 90, 0, x + 90, 0); g2.addColorStop(0, 'rgba(255,255,255,0)'); g2.addColorStop(0.5, 'rgba(255,255,255,1)'); g2.addColorStop(1, 'rgba(255,255,255,0)');
+        c.fillStyle = g2; c.fillRect(x - 90, y - 3, 180, 6);
+      }
+      // the rails it climbs: ticks up both edges, and the readout riding on the line
+      c.strokeStyle = 'rgba(255,255,255,0.55)'; c.lineWidth = 1; c.beginPath();
+      for (let ly = Math.ceil(y / 14) * 14; ly < h; ly += 14) { const l = ly % 70 === 0 ? 14 : 6; c.moveTo(0, ly); c.lineTo(l, ly); c.moveTo(w, ly); c.lineTo(w - l, ly); }
+      c.stroke();
+      const lbl = 'BUILD ' + String(Math.round(built * 100)).padStart(3, '0') + '%', ly = y < 30 ? y + 16 : y - 15;
+      c.font = '12px "Share Tech Mono", Consolas, monospace'; c.textBaseline = 'middle'; c.textAlign = 'right';
+      const tw = c.measureText(lbl).width;
+      c.fillStyle = 'rgba(5,5,8,0.85)'; c.fillRect(w - 30 - tw, ly - 9, tw + 12, 18); c.fillStyle = '#fff'; c.fillText(lbl, w - 24, ly);
+      c.textAlign = 'left'; c.fillStyle = '#ffb3cf'; c.fillText('// ' + ['LAYING THE FRAME', 'WELDING THE PANELS', 'WIRING THE MENU', 'BOLTING THE LOGO ON'][Math.min(3, Math.floor(built * 4))] + ' //', 24, ly);
+      // sparks wherever the line is touching something it's building, and a few anywhere
+      for (const it of items) if (y > it.r.top - 2 && y < it.r.bottom + 2) for (let i = 0; i < 3; i++) burst(it.r.left + Math.random() * it.r.width, y, 1, Math.random() < 0.5 ? '#ffd23f' : '#fff', 420, true);
+      if (Math.random() < 0.9) burst(Math.random() * w, y, 2, '#ff7aa8', 300, true);
+    }
+    // each piece, once the line has reached it
+    let n = 0;
+    for (const it of items) {
+      const u = (T - it.t0) / B.EL;
+      if (u <= 0) continue;
+      if (!it.lock && u > 0.68) {
+        it.lock = 1; n0++;
+        const r = it.r;
+        for (let i = 0; i < (it.big ? 34 : 14); i++) burst(r.left + Math.random() * r.width, r.bottom, 1, Math.random() < 0.4 ? '#ffd23f' : '#fff', it.big ? 560 : 380, true);
+        SFX.tick(n0 / items.length);
+        if (it.big) anims.push(menu.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(5px)', offset: 0.2 }, { transform: 'translateY(-2px)', offset: 0.55 }, { transform: 'translateY(0)' }], { duration: 260 }));
+      }
+      drawItem(it, u);
+      n++;
+    }
+    // each letter of the logo strikes as it lands
+    if (logo && logo.letters) logo.letters.forEach((r, i) => {
+      const land = logo.t0 + 0.1 + i * 0.055 + 0.56 * 0.55;
+      if (T >= land && !logo['l' + i]) { logo['l' + i] = 1; burst(r.left + r.width / 2, r.bottom - 6, 7, i % 2 ? '#ff7aa8' : '#fff', 330, true); SFX.tick(0.3 + i * 0.05); }
+    });
+    // the line runs out of screen: a flash along the top, and a sweep of light back down over everything it built
+    const e = T - B.D;
+    if (e > 0) {
+      if (!kicked) { kicked = true; SFX.reveal(2); for (let i = 0; i < 60; i++) burst(Math.random() * w, 0, 1, '#fff', 620, false); }
+      const a = clamp(1 - e / 0.28, 0, 1);
+      if (a > 0) { c.fillStyle = `rgba(255,255,255,${(0.16 * a).toFixed(3)})`; c.fillRect(0, 0, w, h); c.fillStyle = `rgba(255,255,255,${a.toFixed(3)})`; c.fillRect(0, 0, w, 3); }
+      const sw = e / 0.85;
+      if (sw < 1) {
+        const yy = -180 + (h + 360) * easeIO(sw), g = c.createLinearGradient(0, yy - 170, 0, yy + 170);
+        g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.5, 'rgba(255,190,220,0.2)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+        c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = g; c.fillRect(0, yy - 170, w, 340); c.restore();
+      }
+      // a band of light across the logo and a ring from the top menu line
+      if (logo) {
+        const gq = (e - 0.1) / 0.6, r = logo.r;
+        if (gq > 0 && gq < 1) {
+          c.save(); c.beginPath(); c.rect(r.left - 8, r.top - 6, r.width + 16, r.height + 12); c.clip(); c.globalCompositeOperation = 'lighter';
+          const gx = r.left - 70 + (r.width + 140) * gq, gg = c.createLinearGradient(gx - 60, 0, gx + 60, 40);
+          gg.addColorStop(0, 'rgba(255,255,255,0)'); gg.addColorStop(0.5, 'rgba(255,255,255,0.55)'); gg.addColorStop(1, 'rgba(255,255,255,0)');
+          c.fillStyle = gg; c.fillRect(r.left - 8, r.top - 6, r.width + 16, r.height + 12); c.restore();
+        }
+      }
+      const play = q('#mnav .m-item.play');
+      if (play) {
+        const pq = (e - 0.2) / 0.7, r = play.getBoundingClientRect();
+        if (pq > 0 && pq < 1) { const g3 = ease(pq) * 26; c.globalAlpha = (1 - pq) * (1 - pq); c.lineWidth = 2.5; c.strokeStyle = '#ff2d78'; rrect(c, r.left - g3, r.top - g3, r.width + g3 * 2, r.height + g3 * 2, 8 + g3 * 0.4); c.stroke(); c.globalAlpha = 1; }
+      }
+    }
+    // the sparks themselves
+    c.save(); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round'; c.lineWidth = 1.8;
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i];
+      if ((p.life -= dt) <= 0) { parts.splice(i, 1); continue; }
+      p.vy += 1150 * dt; p.vx *= 1 - 1.4 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      c.globalAlpha = clamp(p.life / 0.3, 0, 1); c.strokeStyle = p.col; c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(p.x - p.vx * 0.018, p.y - p.vy * 0.018); c.stroke();
+    }
+    c.restore();
+    if (e >= B.END && !ended) { ended = true; onEnd(); }
+  };
+  return {
+    frame,
+    finish() {
+      ended = true;
+      for (const a of anims) { try { a.finish(); } catch (err) { a.cancel(); } }
+      if (logo && logoHTML !== null) logo.el.innerHTML = logoHTML;
+      cv.remove(); bg.style.transition = '';
+    },
+  };
+}
+
 // ===== players online: presence, matchmaking, leaderboard =================
 // Everything goes through each viewer's presence (the platform's "who is here"
 // object), which every viewer may set. A match is two players who each name
@@ -11545,25 +12582,6 @@ function loop(ts) {
   if (MM.sheet) spinDraw(MM.sheet.spin, ts / 1000);
   requestAnimationFrame(loop);
 }
-// opening the game: two balls bounce off each other, then the menu comes in
-function intro() {
-  if (REDUCED) return;
-  const el = h('div', { id: 'intro', 'aria-hidden': 'true' },
-    h('div', { class: 'ib' }, h('i'), h('i'), h('b')),
-    h('div', { class: 'it', html: 'BOUNCE <span>BRAWL</span> 2' }));
-  document.body.classList.add('pre');
-  document.body.append(el);
-  let over = false;
-  const end = fast => {
-    if (over) return; over = true;
-    if (fast) el.classList.add('skip');
-    document.body.classList.remove('pre');
-    setTimeout(() => el.remove(), fast ? 220 : 520);
-  };
-  setTimeout(() => end(false), 1250);
-  addEventListener('pointerdown', () => end(true), { once: true });
-  addEventListener('keydown', () => end(true), { once: true });
-}
 function boot() {
   applySettings();
   const wake = () => { SFX.resume(); if (G.music) MUSIC.play(FIGHT ? fightSong() : 'menu'); };
@@ -11574,11 +12592,11 @@ function boot() {
   if ((ON_SITE || window.BS_ROUTE) && !/(^|[#&])bv=1(&|$)/.test(location.hash)) $('#toBeeside').hidden = false;
   setTab('menu');
   cupAbandoned();
-  intro();
   requestAnimationFrame(loop);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { for (const k in ICON) delete ICON[k]; for (const k in CRATE_ICON) delete CRATE_ICON[k]; for (const k in PACK_ICON) delete PACK_ICON[k]; if (!FIGHT) renderView(); });
-  if (!G.starter || !(G.named || G.nick)) setTimeout(welcome, REDUCED ? 300 : 1500);
-  else setTimeout(whatsNew, REDUCED ? 300 : 1500);
+  // what wants to pop up waits for the opening to finish
+  const hello = !G.starter || !(G.named || G.nick) ? welcome : whatsNew;
+  intro(played => setTimeout(hello, played || REDUCED ? 300 : 1500));
   netInit();
 }
 
