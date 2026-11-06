@@ -8001,7 +8001,20 @@ function bzRevoke(s) {
   }
   return s;
 }
+// Once for every save that has played (owner, 2026-11-06): Beeliner had been paying far too many coins, so everyone goes to 5,000,
+// with 2 Legend Crates, a Mixed Crate and a Hardware's Pack to say sorry. New players start as normal. coinReset marks a save as done.
+function coinResetGift(s) {
+  if (s.coinReset) return false;
+  s.coinReset = 1;
+  if (!s.starter) return false;
+  s.coins = 5000;
+  s.free.push('legend@sorry', 'legend@sorry', 'mixed@sorry', 'pack@sorry');
+  s.coinNote = 1;
+  return true;
+}
 let G = loadLocal() || freshSave();
+// keeps the save's time, so a newer copy in the cloud can still win when the game starts
+function saveQuiet() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(G)); } catch (e) {} }
 function save() {
   G.t = Date.now();
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(G)); } catch (e) {}
@@ -8138,6 +8151,7 @@ function cleanName(v) { return String(v || '').replace(BADCH, '').trim().slice(0
 // ---- crate art and the rank badge ------------------------------------------------
 const CRATE_ICON = {};
 function crateIcon(cr, px) {
+  if (cr === PACK) return packIcon(px);
   const key = cr.id + px;
   if (CRATE_ICON[key]) return CRATE_ICON[key];
   const cv = document.createElement('canvas'), dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -8781,7 +8795,7 @@ function panelSettings() {
   reset.onclick = () => {
     if (!armed) { armed = true; reset.textContent = 'TAP AGAIN TO WIPE COINS, BALLS & TROPHIES'; return; }
     if (MM.active) { closeAllSheets(); cancelMatch(); }
-    G = bzRevoke(freshSave()); save(); setTab('menu'); toast('Progress reset'); setTimeout(welcome, 400);
+    G = bzRevoke(freshSave()); G.coinReset = 1; save(); setTab('menu'); toast('Progress reset'); setTimeout(welcome, 400);
   };
   body.append(
     h('div', { class: 'sec', text: 'Player' }),
@@ -9203,9 +9217,9 @@ function dailySub() { const n = dailyReady(); return n ? `${n} ${n === 1 ? 'rewa
 // ---- player level --------------------------------------------------------------
 function xpNeed(l) { return 100 + (l - 1) * 40; }
 function levelReward(l) { return { coins: 150 + l * 30, crate: l % 10 === 0 ? 'gimmick' : l % 5 === 0 ? 'mixed' : null }; }
-function crateById(id) { id = String(id).split('@')[0]; return CRATES.find(c => c.id === id) || CRATES[0]; }
+function crateById(id) { id = String(id).split('@')[0]; return id === 'pack' ? PACK : CRATES.find(c => c.id === id) || CRATES[0]; }
 // G.free entries are 'crate@where' ('legend@raid'); older saves have just the crate
-const FREE_FROM = { lvl: 'A level-up reward.', cup: 'Won at The Box Cup.', raid: 'For beating a raid boss.', medal: 'A medal reward.' };
+const FREE_FROM = { lvl: 'A level-up reward.', cup: 'Won at The Box Cup.', raid: 'For beating a raid boss.', medal: 'A medal reward.', sorry: 'A sorry gift.' };
 function freeFrom(e) { const [id, at] = String(e).split('@'); return FREE_FROM[at || (id === 'legend' ? 'raid' : 'lvl')] || FREE_FROM.lvl; }
 function addXp(n) {
   const ups = [];
@@ -9278,7 +9292,8 @@ function claimFree(i) {
   const id = G.free[i];
   if (id === undefined) return;
   G.free.splice(i, 1); save();
-  openCrate(crateById(id), true);
+  const cr = crateById(id);
+  if (cr === PACK) openPack(); else openCrate(cr, true);
 }
 
 // ---- Hardware's packs: three balls, each a Common or a Rare --------------------------
@@ -9357,7 +9372,7 @@ function revealPack(s, picks) {
       h('div', { class: 'rtag', text: `${RARITY[b.rar].name} · ${CATS[b.cat]}` + (b.special ? ' · Gimmick' : '') }),
       h('div', { class: 'what', text: grantText(res[i]) })))),
     h('div', { class: 'foot' },
-      h('span', { class: 'lab', text: `Next pack in ${packWaitText()}` }),
+      h('span', { class: 'lab', text: packWait() > 0 ? `Next pack in ${packWaitText()}` : 'Next pack is on the counter' }),
       h('button', { class: 'btn2 on', text: 'DONE', onclick: () => { closeSheet(s); renderView(); } })));
 }
 
@@ -9726,6 +9741,20 @@ function whatsNew() {
       item('EASIER COINS', 'Bots, quests, level-ups and wins all pay more.')),
     h('div', { class: 'foot' }, h('button', { class: 'btn2 on', text: "LET'S GO", onclick: () => { SFX.ui(); closeSheet(s); } }))], { noClose: true });
 }
+
+// ---- why your coins changed, shown once, when nothing else is on screen ----------------
+function coinNoteShow() {
+  G.coinNote = 0; saveQuiet();
+  const item = (t, d) => h('div', { class: 'wn' }, h('b', { text: t }), h('span', { text: d }));
+  const s = sheet([
+    h('div', { class: 'lsub', style: { margin: '0 0 6px' }, text: 'BOUNCE BRAWL 2' }),
+    h('h2', { text: 'SORRY!' }),
+    h('div', { class: 'wnl' },
+      item('5,000 COINS', 'Beeliner Factory was paying out far too many coins, so everyone\u2019s coins have been reset to 5,000.'),
+      item('A SORRY GIFT', '2 Legend Crates, a Mixed Crate and a Hardware\u2019s Pack. They\u2019re free, and waiting for you in Crates.')),
+    h('div', { class: 'foot' }, h('button', { class: 'btn2 on', text: 'SEE MY CRATES', onclick: () => { SFX.ui(); closeSheet(s); setTab('crates'); } }))], { noClose: true });
+}
+setInterval(() => { if (G.coinNote && G.eq && !FIGHT && !FG && !TR && !topSheet() && !document.querySelector('#intro, #skit')) coinNoteShow(); }, 1500);
 
 // ---- picking an arena skin ------------------------------------------------------------
 function skinThumb(id) {
@@ -15240,7 +15269,7 @@ async function netInit() {
       if (snap.exists) {
         const r = JSON.parse(snap.data().g);
         if (r && r.v === 1 && (r.t || 0) > (G.t || 0)) {
-          G = bzRevoke(Object.assign(freshSave(), r)); chessGrant(G); applySettings(); save(); renderView();
+          G = bzRevoke(Object.assign(freshSave(), r)); chessGrant(G); coinResetGift(G); applySettings(); save(); renderView();
           const w = document.getElementById('welcome'); if (w && G.starter) { closeSheet(w); welcome(); }
         }
       }
@@ -15301,6 +15330,7 @@ function loop(ts) {
 function boot() {
   if (!G.bzReset) { bzRevoke(G); save(); }
   if (chessGrant(G)) { save(); setTimeout(() => toast('The King is yours. He\u2019s your fighter now, and in Balls.', 4200), 2600); }
+  if (coinResetGift(G)) saveQuiet();
   applySettings();
   const wake = () => { SFX.resume(); if (G.music) MUSIC.play(FIGHT ? fightSong() : 'menu'); };
   addEventListener('pointerdown', wake, { once: true });
