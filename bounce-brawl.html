@@ -272,6 +272,79 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 .st-row input:focus { border-color: var(--o); }
 /* BeeZap's /kick: the real menu, brought up over the fight for a moment */
 .kicklayer { position: fixed; inset: 0; pointer-events: none; }
+/* Beeliner Factory: its own full screen */
+#facgame { position: fixed; inset: 0; z-index: 38; display: flex; flex-direction: column; background: #0c0805; color: #f2e8d0; font-family: var(--fb); overflow: hidden; }
+#facgame .i.coin { width: 15px; height: 15px; vertical-align: -2px; }
+.fg-top { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #1a1209; border-bottom: 3px solid #3a2a12; flex-wrap: wrap; max-width: 760px; width: 100%; margin: 0 auto; box-sizing: border-box; }
+.fg-back { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; border: 2px solid #5c4210; border-radius: 6px; background: #241909; color: #e8d8b0; font: 400 16px/1 var(--fd); letter-spacing: 2px; cursor: pointer; }
+.fg-back .i { width: 14px; height: 14px; }
+.fg-cash { display: flex; align-items: center; gap: 5px; padding: 6px 10px; border-radius: 6px; background: #0c0805; font: 400 20px/1 var(--fd); letter-spacing: 1px; }
+.fg-cash b { font-weight: 400; }
+.fg-lvl { margin-left: auto; display: grid; justify-items: center; gap: 1px; padding: 5px 12px; border: 0; border-bottom: 4px solid #a06a08; border-radius: 7px; background: #ffc926; color: #2a1a04; font: 400 18px/1 var(--fd); letter-spacing: 1px; cursor: pointer; }
+.fg-lvl small { font: 600 11px/1 var(--fb); }
+.fg-lvl:disabled, .fg-yel:disabled { background: #3a3228; border-bottom-color: #241e16; color: #8a7c66; cursor: default; }
+.fg-machine { position: relative; max-width: 760px; width: 100%; margin: 0 auto; flex: none; }
+.fg-line { display: block; width: 100%; height: 138px; }
+.fg-press { position: absolute; left: 28px; bottom: -14px; display: grid; gap: 3px; z-index: 2; }
+.fg-store { display: flex; align-items: center; gap: 4px; padding: 3px 7px; border-radius: 5px; background: rgba(12,8,5,.92); font: 400 16px/1 var(--fd); letter-spacing: 1px; }
+.fg-store b { font-weight: 400; } .fg-store small { margin-left: 5px; font: 600 10px/1 var(--fb); color: #8fbf6a; } .fg-store small.bad { color: #ff6a5a; }
+.fg-yel { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 7px 12px; border: 0; border-bottom: 4px solid #a06a08; border-radius: 7px; background: #ffc926; color: #2a1a04; font: 400 18px/1 var(--fd); letter-spacing: 1px; cursor: pointer; }
+.fg-yel:active:not(:disabled) { transform: translateY(2px); border-bottom-width: 2px; }
+.fg-yel.want { animation: fgWant 1s steps(2, end) infinite; }
+@keyframes fgWant { 50% { background: #fff0a0; } }
+.fg-mid { position: relative; flex: 1; min-height: 0; max-width: 760px; width: 100%; margin: 0 auto; background: #120d07; }
+.fg-scroll { height: 100%; overflow-y: auto; padding: 22px 10px 12px 28px; box-sizing: border-box; }
+.fg-rail { position: absolute; left: 3px; top: 0; bottom: 0; width: 18px; z-index: 1; pointer-events: none; background: linear-gradient(90deg, #0a0603 0 3px, #e2c27e 3px 6px, #ffb81f 6px 12px, #6a4a18 12px 15px, #0a0603 15px 18px); }
+.fg-rail::after { content: ""; position: absolute; left: 6px; top: 0; bottom: 0; width: 6px; background: linear-gradient(#ffe9a8 0 3px, transparent 3px) 0 0 / 3px 24px repeat-y, linear-gradient(#ffe9a8 0 3px, transparent 3px) 3px 12px / 3px 24px repeat-y; animation: fgRail 1s steps(8, end) infinite; }
+@keyframes fgRail { to { background-position: 0 -24px, 3px -12px; } }
+.fg-rooms { display: grid; gap: 10px; }
+.fg-room { position: relative; border: 2px solid #3a2a12; border-radius: 9px; background: #1d150c; }
+.fg-room:not(.fg-next)::before { content: ""; position: absolute; left: -11px; top: 88px; width: 10px; height: 12px; background: #ffb81f; border-top: 3px solid #0a0603; border-bottom: 3px solid #0a0603; box-sizing: border-box; }
+.fr-head { border-radius: 7px 7px 0 0; }
+.fr-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 10px; background: #261b0e; }
+.fr-head b { display: block; font: 400 19px/1.1 var(--fd); letter-spacing: 1.5px; }
+.fr-rate { font-size: 13px; font-weight: 600; color: #c9b890; } .fr-rate i { font-style: normal; color: #ffd24a; }
+.fg-reset { padding: 6px 9px; border: 2px solid #ffc926; border-radius: 6px; background: #3a2a08; color: #ffd24a; font: 400 15px/1 var(--fd); letter-spacing: 1px; cursor: pointer; white-space: nowrap; }
+.fg-reset:disabled { border-color: #3a3228; background: none; color: #6a5e4c; cursor: default; }
+.fr-comb { display: block; width: 100%; height: 128px; cursor: pointer; touch-action: pan-y; }
+.fr-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; }
+.fr-foot > span { font: 400 17px/1 var(--fd); letter-spacing: 1.5px; color: #c9b890; }
+.fg-next { display: flex; align-items: center; gap: 12px; padding: 10px 12px; flex-wrap: wrap; border-style: dashed; }
+.fr-pic { width: 64px; height: 48px; image-rendering: pixelated; }
+.fr-nx { flex: 1 1 150px; display: grid; gap: 2px; font-size: 12.5px; font-weight: 600; color: #a89878; }
+.fr-nx b { font: 400 19px/1 var(--fd); letter-spacing: 1.5px; color: #f2e8d0; }
+.fg-bar { display: grid; grid-template-columns: 1fr 1.2fr .8fr 1fr; gap: 6px; padding: 7px 10px max(7px, env(safe-area-inset-bottom)); background: #1a1209; border-top: 3px solid #3a2a12; max-width: 760px; width: 100%; margin: 0 auto; box-sizing: border-box; }
+.fg-bar button { display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 46px; padding: 3px 4px; border: 2px solid #5c4210; border-radius: 8px; background: #2a1e0e; color: #f2e8d0; font: 400 15px/1 var(--fd); letter-spacing: 1px; cursor: pointer; }
+.fg-bar b { font-weight: 400; font-size: 16px; } .fg-bar small { font: 600 11px/1 var(--fb); color: #c9b890; display: inline-flex; gap: 3px; align-items: center; }
+.fg-bar button:disabled { opacity: .55; cursor: default; }
+.fg-bar .fg-boost.on { border-color: #ff9de0; background: #3e1a34; opacity: 1; }
+.fg-bar .fg-tab.hot { border-color: #ffc926; background: #4a3408; }
+.fg-sheet { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; padding: 14px; background: rgba(6,4,2,.78); }
+.fs-card { width: min(420px, 100%); box-sizing: border-box; padding: 12px; border: 3px solid #5c4210; border-radius: 10px; background: #1d150c; }
+.fs-body { display: grid; gap: 9px; margin-top: 10px; font-size: 13.5px; font-weight: 600; color: #c9b890; }
+.fs-body h3 { margin: 0; font: 400 28px/1 var(--fd); letter-spacing: 2px; color: #ffd24a; }
+.fs-body p { margin: 0; line-height: 1.35; }
+.fs-big { font: 400 26px/1.1 var(--fd); letter-spacing: 1px; color: #f2e8d0; }
+.fs-bar { height: 10px; border: 2px solid #5c4210; border-radius: 5px; overflow: hidden; background: #0c0805; } .fs-bar i { display: block; height: 100%; background: #ffc926; }
+.fg-bulkrow { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+.fg-bulk { padding: 5px 12px; border: 2px solid #5c4210; border-radius: 6px; background: #241909; color: #ffd24a; font: 400 16px/1 var(--fd); letter-spacing: 1.5px; cursor: pointer; }
+.fg-line { touch-action: pan-y; cursor: ew-resize; }
+.fg-bar .fg-chest.hot { border-color: #ffc926; background: #4a3408; }
+.fg-gold { position: absolute; z-index: 4; width: 80px; height: 60px; padding: 0; border: 0; background: none; cursor: pointer; }
+.fg-gold canvas { width: 80px; height: 60px; image-rendering: pixelated; animation: fgGold .5s steps(2, end) infinite; }
+@keyframes fgGold { 50% { filter: brightness(1.45); } }
+.fs-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid #3a2a12; }
+.fs-row b { font: 400 19px/1 var(--fd); letter-spacing: 1.5px; color: #f2e8d0; } .fs-row i { font: 400 11px var(--fm); font-style: normal; color: #ffd24a; } .fs-row p { margin: 3px 0 0; font-size: 12px; }
+.fs-stat { font-size: 12.5px; line-height: 1.4; color: #c9b890; }
+/* the way in */
+.fg-intro { position: absolute; inset: 0; z-index: 9; display: grid; place-items: center; align-content: center; gap: 12px; background: #080503; overflow: hidden; cursor: pointer; }
+.fi-line { position: absolute; left: 0; right: 0; top: 24%; height: 8px; background: repeating-linear-gradient(90deg, #ffc926 0 16px, #c98510 16px 24px); transform-origin: 0 50%; }
+.fi-bee { position: absolute; top: calc(24% - 34px); width: 96px; height: 72px; image-rendering: pixelated; }
+.fi-big { font: 400 clamp(52px, 13vw, 120px)/.92 var(--fd); letter-spacing: 3px; color: #ffc926; text-align: center; } .fi-big span { color: #f2e8d0; }
+.fi-sub { font: 400 14px var(--fm); letter-spacing: 3px; color: #a89878; }
+/* with Beeliner Factory (and Hook) the menu has more rows: fit them on shorter screens */
+@media (min-width: 861px) and (max-height: 860px) { .m-t { font-size: 31px; } .m-item { padding: 5px 14px 5px 12px; } .logo-wrap { margin-bottom: 14px; } .logo-main { font-size: 72px; } }
+@media (min-width: 861px) and (max-height: 690px) { .m-t { font-size: 25px; } .m-s { display: none; } .m-item { padding: 3px 14px 3px 12px; } }
 .devform { display: flex; gap: 8px; flex: 1; justify-content: flex-end; min-width: 240px; max-width: 400px; }
 .namebox { display: grid; gap: 10px; justify-items: center; margin-top: 10px; width: min(340px, 100%); }
 .namein { width: 100%; box-sizing: border-box; background: #08080a; border: 1px solid var(--line2); border-radius: 8px; padding: 10px 14px; font: 400 26px var(--fd); letter-spacing: 4px; color: #fff; text-align: center; outline: none; }
@@ -1005,7 +1078,7 @@ svg.mst.on { fill: var(--gold); }
 // A fight is played out from a seed, separately in each player's browser, so
 // the simulation may only use + - * / and sqrt (the same in every engine):
 // no Math.sin/cos/atan2/hypot/pow/exp, no Math.random, no clocks.
-const VERSION = 30;
+const VERSION = 31;
 const HP_SCALE = 0.33;                     // every ball's health is scaled by this, so fights end sooner
 const TAU = 6.283185307179586, PI = 3.141592653589793, HALF_PI = 1.5707963267948966;
 const DT = 1 / 60, SUB = 3;            // 60 steps a second, 3 physics substeps each
@@ -6661,6 +6734,34 @@ function bzScars(A, c, S, t) {
   }
 }
 
+
+// ===== the factory's bees: pixel art, drawn here from scratch (never the BeeZap picture) =====
+// Two wing frames over one body; each character is a pixel. . empty, y body, k stripes, o tail, w wing, W wing edge, e eye
+const BEE_PIX = {
+  a: ['................', '.....WWW.WWW....', '....WwwwWwwwW...', '....WwwwWwwwW...', '.....WWwWwWW....', '...kkkkkkkkk.k..', '..kyykkyykkyyk..', '.kyyykkyykkyeek.', 'kkyyykkyykkyyyk.', '.koyykkyykkyyk..', '..kkkkkkkkkkk...', '................'],
+  b: ['................', '................', '................', '.....WWW.WWW....', '....WwwwWwwwW...', '...kkkkkkkkk.k..', '..kyykkyykkyyk..', '.kyyykkyykkyeek.', 'kkyyykkyykkyyyk.', '.koyykkyykkyyk..', '..kkkWWwWwWWk...', '.....WWW.WW.....'],
+};
+// cell: how big one pixel is. x, y: the middle of the bee. dir: 1 faces right, -1 left. kind: its colours
+function drawBee(c, x, y, cell, flap, dir, kind) {
+  const map = (flap || 0) % 1 < 0.5 ? BEE_PIX.a : BEE_PIX.b, k = kind || BEE_KINDS[0], x0 = x - 8 * cell, y0 = y - 6 * cell;
+  const pal = { y: k.y, k: k.k, o: k.o, w: '#c9eaff', W: '#ffffff', e: '#f4f4f4' };
+  for (let r = 0; r < map.length; r++) for (let q = 0; q < 16; q++) {
+    const v = map[r][dir < 0 ? 15 - q : q];
+    if (v !== '.') { c.fillStyle = pal[v]; c.fillRect(x0 + q * cell, y0 + r * cell, cell + 0.2, cell + 0.2); }
+  }
+}
+// every kind of bee to hatch: name, body, stripes, tail, how much it carries, and how rare (0 common to 4 one of a kind)
+const BEE_KINDS = [
+  ['Worker', '#ffc926', '#1c1408', '#e88b12', 1, 0], ['Buttercup', '#ffe36b', '#3a2a10', '#f0b53a', 1.2, 0], ['Clay', '#d98b4a', '#2c170c', '#a85c2a', 1.3, 0], ['Mint', '#8fe6b0', '#123021', '#4cb87e', 1.4, 0],
+  ['Blush', '#ff9dbb', '#3c1626', '#e0668c', 1.5, 0], ['Sky', '#8fd0ff', '#102a44', '#4a94d6', 1.6, 0], ['Pebble', '#b6b6bf', '#26262c', '#85858f', 1.7, 0], ['Moss', '#94b84a', '#20290c', '#65852a', 1.8, 0],
+  ['Rust', '#d9652c', '#2a0f06', '#a23f14', 2.2, 1], ['Lilac', '#c6a4ff', '#2a1a48', '#9670dc', 2.4, 1], ['Teal', '#3fcfc0', '#0a2c2a', '#1f9a8e', 2.6, 1], ['Peach', '#ffbe8f', '#3e2212', '#e88e55', 2.8, 1],
+  ['Cherry', '#f04a5e', '#2c0810', '#b81f35', 3, 1], ['Denim', '#5b84d6', '#101a38', '#3a5cac', 3.3, 1], ['Lime', '#c8f03a', '#1e2a06', '#94bd14', 3.6, 1], ['Cocoa', '#a06a3c', '#20120a', '#744720', 4, 1],
+  ['Copper', '#e89a5a', '#401c0a', '#fff0d0', 5.5, 2], ['Frost', '#e4f6ff', '#2a5a7a', '#a8dcff', 6, 2], ['Ember', '#ff7a1f', '#3a0a02', '#ffd24a', 6.6, 2], ['Plum', '#8e3fa8', '#1c0824', '#e07aff', 7.2, 2],
+  ['Jade', '#1fae72', '#04241a', '#b8ffd8', 8, 2], ['Coral', '#ff6f6f', '#3e1020', '#ffd0b0', 9, 2],
+  ['Midnight', '#2e3a78', '#0a0c22', '#8fa0ff', 14, 3], ['Sunburst', '#ffdf3f', '#c43a0a', '#ff7a1f', 16, 3], ['Ghost', '#eeeef8', '#8a8aa8', '#c8c8e4', 18, 3], ['Lava', '#2a1a18', '#ff5a1f', '#ffc21f', 21, 3],
+  ['Royal', '#7a2fd6', '#ffd24a', '#ffd24a', 34, 4], ['Gilded', '#ffd700', '#7a5400', '#fff4b0', 40, 4],
+].map(([name, y, k, o, power, rar], id) => ({ id, name, y, k, o, power, rar }));
+
 // ===== sound: every effect is synthesised, no audio files ==================
 const SFX = (() => {
   let ac = null, out = null, sfxBus = null, musBus = null, nbuf = null;
@@ -7272,7 +7373,6 @@ const Q = new URLSearchParams(location.search);
 const SAVE_KEY = 'bouncebrawl.v1' + (Q.get('save') ? '.' + Q.get('save') : '');
 const STAKES = [50, 200, 800, 3000];
 const BOT_PAY = 100;                          // a bot fight pays this win or lose; bots are only for when you can't afford a bet
-const WIN_BONUS = 0.25;                      // a PvP winner also gets 25% of the stake from the house
 const RANKS = [['Bronze', 0, '#c98a55'], ['Silver', 200, '#c3ccd8'], ['Gold', 500, '#ffd633'], ['Platinum', 900, '#7fe0d4'], ['Diamond', 1400, '#8fb8ff'], ['Champion', 2000, '#ff2d78']];
 const CRATES = [
   { id: 'mixed', name: 'Mixed Crate', price: 250, col: '#8a93a6', odds: { C: 64, R: 26, E: 7.4, L: 2, M: 0.6, S: 0.15 }, pool: () => BALLS, blurb: 'Any ball in the game, even a Mythic.' },
@@ -7585,6 +7685,7 @@ let TAB = 'menu', MSEL = 0;
 // [id, title, subtitle, has something waiting, shown (always if missing)]
 const MENU = [
   ['fight', 'Fight', () => G.eq && G.coins < STAKES[0] ? 'Out of coins · beat bots to earn some' : G.streak > 1 ? `On a ${G.streak} win streak` : 'Bet coins against a player', () => !!G.eq && G.coins < STAKES[0]],
+  ['factory', 'Beeliner Factory', () => { const f = facGet(); facTick(); return `${facNum(f.honey)} honey · an idle game for coins`; }, () => { const f = facGet(), m = facMission(f); return m.have >= m.want; }],
   ['hook', 'Hook', () => 'Watch fights \u00b7 take someone\u2019s place', () => false, () => G.eq === 'beezap'],
   ['cup', 'Events', () => { const n = cupNext(G.cup); return raidFree() ? `Boss raid: ${bossToday().name} · free today` : n ? `The Box Cup · ${CUP_ROUNDS[n[0]].toLowerCase()} next` : 'Boss raids · The Box Cup'; }, () => raidFree() || !!cupNext(G.cup)],
   ['daily', 'Daily', () => dailySub(), () => dailyReady() > 0],
@@ -7596,6 +7697,7 @@ const MENU = [
 const isHot = it => !!(it[3] && G.starter && it[3]());
 const navItems = () => MENU.filter(m => !m[4] || m[4]());
 function setTab(t) {
+  if (t === 'factory') { facOpen(); return; }   // a game of its own, over everything else
   const items = navItems(), from = items.findIndex(m => m[0] === TAB), to = items.findIndex(m => m[0] === t);
   TAB = t;
   const root = $('#panelroot'), old = root.querySelector('.panel:not(.under):not(.out)');
@@ -7679,6 +7781,7 @@ function panelShell(sub, title, sign) {
   // every section one tap away, without going back to the menu
   const tabs = h('nav', { class: 'ptabs', 'aria-label': 'Sections' });
   for (const it of navItems()) {
+    if (it[0] === 'factory') continue;
     const on = it[0] === TAB;
     tabs.append(h('button', { class: (on ? 'sel' : '') + (isHot(it) ? ' hot' : ''), 'aria-current': on ? 'page' : null, text: it[1].toUpperCase(),
       onclick: () => { if (!on) { SFX.ui(); setTab(it[0]); } } }));
@@ -7732,7 +7835,7 @@ function panelFight() {
   for (const s of STAKES) {
     row.append(h('button', { class: 'stake' + (G.stake === s ? ' sel' : ''), 'aria-pressed': G.stake === s ? 'true' : 'false', disabled: G.coins < s,
       onclick: () => { G.stake = s; save(); SFX.ui(); renderPanel(true); } },
-      h('span', { class: 'v', html: COIN_SVG + fmt(s) }), h('small', { text: 'WIN +' + fmt(s * (1 + WIN_BONUS)) })));
+      h('span', { class: 'v', html: COIN_SVG + fmt(s) }), h('small', { text: 'WIN ' + fmt(s * 2) })));
   }
   const broke = G.coins < STAKES[0];
   const rcv = h('canvas');
@@ -7769,7 +7872,7 @@ function ffaBox() {
 }
 function statusBits(broke) {
   if (broke) return [h('i', { class: 'dot' }), `OUT OF COINS. BOTS PAY ${BOT_PAY} COINS A FIGHT, WIN OR LOSE.`];
-  if (G.streak > 0) return [h('i', { class: 'dot live' }), `${G.streak} WIN STREAK · NEXT WIN +${Math.min(G.streak, STREAK_MAX) * STREAK_STEP * 100}% OF THE STAKE`];
+  if (G.streak > 0) return [h('i', { class: 'dot live' }), `${G.streak} WIN STREAK`];
   return [h('i', { class: 'dot live' }), 'MATCHED BY TROPHIES'];
 }
 
@@ -8302,7 +8405,7 @@ function settleFight(F) {
   if (F.mode === 'watch') { watchResult(F); return; }
   F.settled = true;
   const w = F.S.winner, mine = w === F.mySide, draw = w === -1;
-  let coins = 0, tro = 0, paid = 0, bonus = 0;
+  let coins = 0, tro = 0, paid = 0;
   const cupStart = G.coins;
   if (F.mode === 'cup') { cupRecord(F, false); coins = G.coins - cupStart; }
   const raid = F.mode === 'boss' ? raidPay(F, false) : null;
@@ -8319,12 +8422,10 @@ function settleFight(F) {
     // a hooked fight: beating the BeeZap pays well, the BeeZap winning pays a little
     paid = coins = !mine ? 0 : F.S.F[F.mySide].def.id === 'beezap' ? 100 : 300;
   } else if (F.mode === 'pvp') {
-    paid = draw ? F.stake : mine ? Math.round(F.stake * (2 + WIN_BONUS)) : 0;
+    paid = draw ? F.stake : mine ? F.stake * 2 : 0;   // the pot, nothing on top: 50 against 50 wins 100
     coins = paid - F.stake;
     tro = draw ? 0 : mine ? 30 + ((F.foe.tro || 0) > G.tro ? 5 : 0) : -Math.min(G.tro, 20);
     if (draw) G.d++; else if (mine) { G.w++; G.streak++; G.bstreak = Math.max(G.bstreak, G.streak); } else { G.l++; G.streak = 0; }
-    if (mine) bonus = Math.round(F.stake * STREAK_STEP * Math.min(G.streak - 1, STREAK_MAX));
-    paid += bonus; coins += bonus;
   }
   G.coins += paid; G.tro += tro; G.peak = Math.max(G.peak, G.tro);
   F.coins = coins; F.tro = tro;
@@ -8338,7 +8439,6 @@ function settleFight(F) {
   const tiles = h('div', { class: 'tiles' }, h('div', { class: 'tile' + (coins > 0 ? ' hi' : '') }, h('div', { class: 'l', text: 'Coins' }), h('div', { class: 'v', html: COIN_SVG + cu(coins) })));
   if (F.mode === 'pvp' || F.mode === 'ffa') tiles.append(h('div', { class: 'tile' + (tro > 0 ? ' hi' : '') }, h('div', { class: 'l', text: 'Trophies' }), h('div', { class: 'v', html: TRO_SVG + cu(tro) })));
   if (raid) tiles.append(h('div', { class: 'tile hi' }, h('div', { class: 'l', text: 'Damage' }), h('div', { class: 'v', html: cu(raid.dmg) })));
-  if (bonus) tiles.append(h('div', { class: 'tile hi' }, h('div', { class: 'l', text: `Streak x${G.streak}` }), h('div', { class: 'v', html: COIN_SVG + cu(bonus) })));
   const extra = h('div', { class: 'rlines' });
   const xpBar = h('i', { style: { width: (ups.length ? 0 : xp0 * 100) + '%' } });
   if (xp) extra.append(h('div', { class: 'rl' }, h('span', { class: 'mono', text: `+${xp} XP` }), h('span', { class: 'xpmini' }, xpBar), h('span', { text: 'LV ' + G.plv })));
@@ -8397,6 +8497,7 @@ function botFight(force) {
 // ---- keyboard: the menu like ROTFALL's, plus fight shortcuts ---------------------
 function onKey(e) {
   if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+  if (FG) { if (e.key === 'Escape') facClose(); return; }
   const k = e.key;
   if (k === 'm' || k === 'M') { G.sfx = G.music = !(G.sfx || G.music); SFX.sfx = G.sfx; SFX.music = G.music; if (G.music) { SFX.resume(); MUSIC.play(FIGHT ? fightSong() : 'menu'); } save(); toast(G.sfx ? 'Sound on' : 'Sound off', 1200); return; }
   if (FIGHT) {
@@ -8417,8 +8518,8 @@ function onKey(e) {
   } else {
     if (k === 'Escape' || k === 'Backspace') { e.preventDefault(); SFX.ui(); setTab('menu'); }
     else if (k === 'ArrowLeft' || k === 'ArrowRight') {
-      const i = navItems().findIndex(m => m[0] === TAB);
-      e.preventDefault(); SFX.ui(); setTab(navItems()[(i + (k === 'ArrowRight' ? 1 : navItems().length - 1)) % navItems().length][0]);
+      const tabs = navItems().filter(m => m[0] !== 'factory'), i = tabs.findIndex(m => m[0] === TAB);
+      e.preventDefault(); SFX.ui(); setTab(tabs[(i + (k === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length][0]);
     }
     else if (k === 'Enter' && (TAB === 'fight' || TAB === 'cup')) { const b = document.querySelector('.panel .go'); if (b && !b.disabled) b.click(); }
   }
@@ -8438,7 +8539,6 @@ const QUESTS = {
   gim:     { n: [2, 3], coins: 300, txt: n => `Win ${n} fights with a gimmick ball` },
 };
 const QUEST_XP = 50;
-const STREAK_STEP = 0.1, STREAK_MAX = 5;   // each ranked win in a row adds 10% of the stake, up to +50%
 function today() { const d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
 function untilTomorrow() {
   const d = new Date(), ms = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1) - d;
@@ -8670,7 +8770,7 @@ function panelDaily() {
         h('dt', { text: 'XP' }), h('dd', { text: 'Ranked win 40, loss 15. Bot win 12. Quest 50.' }))),
     h('div', { class: 'box' }, h('div', { class: 'h', text: 'Win streak' }),
       h('div', { class: 'plv' }, h('span', { class: 'n', text: G.streak + (G.streak === 1 ? ' WIN' : ' WINS') }), h('span', { class: 'mono', text: 'BEST ' + G.bstreak })),
-      h('p', { class: 'note', text: `Every ranked win in a row adds ${STREAK_STEP * 100}% of the stake to the prize, up to +${STREAK_STEP * STREAK_MAX * 100}%. A loss resets it.` })));
+      h('p', { class: 'note', text: 'Your best run of ranked wins in a row. A loss resets it.' })));
   body.append(h('div', { class: 'fp' }, left, right));
   return p;
 }
@@ -11751,9 +11851,10 @@ if (Q.has('ffa')) {
 const TOUR = [
   { tab: 'menu', t: 'Hi! I’m the Bee.', b: 'Welcome to Bounce Brawl. Balls fight on their own in a box, and you bet on yours. Let me show you around.' },
   { tab: 'menu', at: '#mnav', t: 'The menu', b: 'Everything is in here: fights, events, daily stuff, crates, your balls, ranks and settings.' },
-  { tab: 'fight', at: '.stakes', t: 'Pick a stake', b: 'You bet coins against a real player. Win and you take the whole pot, plus a bonus from the house.' },
+  { tab: 'fight', at: '.stakes', t: 'Pick a stake', b: 'You bet coins against a real player, and they bet the same. Win and you take the pot: 50 against 50 pays 100.' },
   { tab: 'fight', at: '.fp .go', t: 'Find an opponent', b: 'Press this and you are matched with someone near your trophies. Out of coins? It turns into a bot fight, which pays win or lose.' },
   { tab: 'fight', at: '.ffabox', t: 'Free for all', b: 'Eight balls, one box, last one standing. Free to enter, and everyone gets paid. Empty seats get bots.' },
+  { tab: 'menu', at: '[data-go="factory"]', t: 'Beeliner Factory', b: 'A whole idle game in here. Bees make honey while you are away, and the exchange turns it into coins.' },
   { tab: 'cup', at: '.raid', t: 'Events', b: 'A giant boss every day: hit it for coins, bring it down for a Legend Crate. And The Box Cup, an eight-ball tournament.' },
   { tab: 'daily', at: '.quest', t: 'Daily', b: 'Quests that pay coins, a free crate every day, and your level. Levelling up gives you crates too.' },
   { tab: 'crates', at: '.cgrid', t: 'Hardware’s crates', b: 'Spend coins on crates. A ball you already have levels up instead, and an Epic or better is promised every 10 crates.' },
@@ -12399,6 +12500,425 @@ function titleSkit(onEnd) {
   };
 }
 
+
+// ===== Beeliner Factory: an idle game of its own, opened from the menu, for honey the exchange turns into coins =======
+// Bees fill the cells of stacked rooms with nectar. It runs up a pipe to the jar line, which packs it into jars that ride
+// off down the belt, and each jar that leaves pays honey, which is the money here. Honey buys room upgrades (more cells,
+// more bees, more nectar) and line upgrades (a faster belt, bigger jars, a better price). A room at the top of its levels
+// can be reset for a lasting multiplier. Levelling up the factory pays a bonus and opens the next room, each with a new
+// kind of bee. Tap a room to rush it, swipe the belt to speed it up. It keeps running while you're away, up to FAC.AWAY.
+const FAC = { AWAY: 8 * 3600, TAP: 8, BOOST: 300, BOOST_WAIT: 900, CHEST: 1200, BEES: 12 };
+const HONEY_SVG = '<svg class="i coin" viewBox="0 0 20 20"><rect x="4" y="5" width="12" height="13" rx="1.5" fill="#ffb81f" stroke="#7a4d00" stroke-width="1.3"/><rect x="3" y="2" width="14" height="4" fill="#e8e4d0" stroke="#7a4d00" stroke-width="1.3"/></svg>';
+const DROP_SVG = '<svg class="i coin" viewBox="0 0 20 20"><path d="M10 2c3 4.200 5.500 7 5.500 10a5.500 5.500 0 0 1-11 0C4.500 9 7 6.200 10 2z" fill="#ffd96a" stroke="#7a4d00" stroke-width="1.3" stroke-linejoin="round"/></svg>';
+const FAC_END = ['', 'K', 'M', 'B', 'T'];
+function facNum(n) {
+  if (n < 100) return n < 10 ? n.toFixed(1) : n.toFixed(0);
+  if (n < 1000) return String(Math.round(n));
+  const e = Math.floor(Math.log10(n) / 3), v = n / Math.pow(1000, e), m = v.toFixed(v < 100 ? 2 : 1);
+  if (e < FAC_END.length) return m + FAC_END[e];
+  const k = e - FAC_END.length;
+  return m + String.fromCharCode(97 + Math.floor(k / 26) % 26) + String.fromCharCode(97 + k % 26);   // aa, ab, ac...
+}
+function facGet() {
+  if (!G.fac || G.fac.v !== 3) G.fac = { v: 3, honey: 20, store: 0, made: 0, at: Date.now(), day: 0, sold: 0, lvl: 0, line: { speed: 0, size: 0, price: 0 }, rooms: [{ L: 1, m: 1, r: 0 }], boost: 0, boostAt: 0, chestAt: 0, mis: 0, seen: 0 };
+  return G.fac;
+}
+// ---- the numbers ----
+const facBoosted = f => Date.now() < f.boost;
+const facBase = i => 0.5 * Math.pow(7, i);                                  // nectar a second from level 1 of room i
+const facRoomRate = (f, i) => { const r = f.rooms[i]; return facBase(i) * r.L * Math.pow(2, Math.floor(r.L / 25)) * r.m * (facBoosted(f) ? 2 : 1) * (FG && FG.t < (FG.rush[i] || 0) ? 2 : 1); };
+const facNectar = f => f.rooms.reduce((s, r, i) => s + facRoomRate(f, i), 0);
+const facRoomCost = (i, L) => 5 * Math.pow(6, i) * Math.pow(1.1, L - 1);
+const facCapL = r => 50 + 25 * r.r;                                          // the top level, where a room can be reset
+const facOpenCost = i => 300 * Math.pow(20, i - 1);
+const facLevelCost = f => 250 * Math.pow(60, f.lvl);
+const FAC_LINE = [
+  { id: 'speed', name: 'Belt Speed', what: 'Jars leave 12% faster', base: 15, grow: 1.7 },
+  { id: 'size', name: 'Jar Size', what: 'Each jar holds 35% more nectar', base: 20, grow: 1.75 },
+  { id: 'price', name: 'Jar Price', what: 'Nectar sells for 12% more', base: 40, grow: 1.9 },
+];
+const facLineCost = (f, u) => u.base * Math.pow(u.grow, f.line[u.id]);
+const facJarsPerSec = f => 0.5 * Math.pow(1.12, f.line.speed);
+const facJarSize = f => 2 * Math.pow(1.35, f.line.size);
+const facThrough = f => facJarsPerSec(f) * facJarSize(f) * (facBoosted(f) ? 2 : 1) * (FG ? 1 + FG.swipe : 1);   // nectar a second the line can take
+const facPrice = f => Math.pow(1.12, f.line.price) * Math.pow(1.15, f.lvl);                                      // honey for each nectar
+const facIncome = f => Math.min(facNectar(f), facThrough(f)) * facPrice(f);
+function facTick() {
+  const f = facGet(), now = Date.now(), secs = clamp((now - f.at) / 1000, 0, FAC.AWAY);
+  f.at = now;
+  f.store += facNectar(f) * secs;
+  const used = Math.min(f.store, facThrough(f) * secs), got = used * facPrice(f);
+  f.store -= used; f.honey += got; f.made += got;
+  return got;
+}
+// how many levels "x1 / x10 / max" means for a room, stopping at its top level
+function facBulk(f, i, mode) {
+  const r = f.rooms[i], top = facCapL(r), room = top - r.L, one = facRoomCost(i, r.L), g = 1.1, sum = n => one * (Math.pow(g, n) - 1) / (g - 1);
+  const n = mode === 'max' ? clamp(Math.floor(Math.log(1 + f.honey * (g - 1) / one) / Math.log(g)), 1, Math.max(1, room)) : Math.min(mode, Math.max(1, room));
+  return { n, cost: sum(n), full: room <= 0 };
+}
+// the exchange: dearer with each room you've opened, and each coin sold today makes the next dearer, so it can't flood the game
+const facCoinBase = f => 25 * Math.pow(6, f.rooms.length - 1);
+function facToday(f) { const d = Math.floor(Date.now() / 864e5); if (f.day !== d) { f.day = d; f.sold = 0; } return f.sold; }
+function facQuote(f, honey) {
+  const x0 = facToday(f), a = facCoinBase(f), spent = c => a * (c + (c * (c + 2 * x0)) / 2000);
+  let c = Math.floor(-1000 - x0 + Math.sqrt((1000 + x0) * (1000 + x0) + 2000 * honey / a));
+  while (c > 0 && spent(c) > honey) c--;
+  return { coins: Math.max(0, c), honey: c > 0 ? spent(c) : 0 };
+}
+// missions come one after another, each bigger than the last
+function facMission(f) {
+  const n = f.mis, k = n % 4, tier = Math.floor(n / 4);
+  if (k === 0) { const want = 10 + tier * 15; return { txt: `Get a room to level ${want}`, have: Math.max(...f.rooms.map(r => r.L)), want }; }
+  if (k === 1) { const want = 2 + tier * 2; return { txt: `Open ${want} rooms`, have: f.rooms.length, want }; }
+  if (k === 2) { const want = 1 + tier; return { txt: `Reset rooms ${want} ${want === 1 ? 'time' : 'times'}`, have: f.rooms.reduce((s, r) => s + r.r, 0), want }; }
+  const want = 2000 * Math.pow(30, tier); return { txt: `Make ${facNum(want)} honey`, have: f.made, want };
+}
+// ---- the screen ----
+let FG = null;
+function facOpen() {
+  if (FG) return;
+  const f = facGet(), away = facTick();
+  const num = h('b'), coins = h('b'), levelUp = h('button', { class: 'fg-lvl', onclick: () => facLevelUp() });
+  const lineCv = h('canvas', { class: 'fg-line', 'aria-label': 'The belt. Swipe it to speed it up.' }), lineBtn = h('button', { class: 'fg-yel', onclick: () => facSheet('line') }), store = h('div', { class: 'fg-store' });
+  const rooms = h('div', { class: 'fg-rooms' }), bulk = h('button', { class: 'fg-bulk', onclick: () => { FG.bulk = FG.bulk === 1 ? 10 : FG.bulk === 10 ? 'max' : 1; facDraw(); SFX.ui(); } });
+  const boostBtn = h('button', { class: 'fg-boost', onclick: () => facBoost() }), chestBtn = h('button', { class: 'fg-chest', onclick: () => facChest() }), sellBtn = h('button', { class: 'fg-tab', onclick: () => facSheet('sell') }), misBtn = h('button', { class: 'fg-tab', onclick: () => facSheet('mis') });
+  const root = h('div', { id: 'facgame', role: 'region', 'aria-label': 'Beeliner Factory' },
+    h('div', { class: 'fg-top' },
+      h('button', { class: 'fg-back', html: BACK_SVG + ' BACK', onclick: () => facClose() }),
+      h('div', { class: 'fg-cash', title: 'Honey', html: HONEY_SVG }, num), h('div', { class: 'fg-cash', title: 'Coins', html: COIN_SVG }, coins), levelUp),
+    h('div', { class: 'fg-machine' }, lineCv, h('div', { class: 'fg-press' }, store, lineBtn)),
+    h('div', { class: 'fg-mid' }, h('div', { class: 'fg-rail' }), h('div', { class: 'fg-scroll' }, h('div', { class: 'fg-bulkrow' }, bulk), rooms)),
+    h('div', { class: 'fg-bar' }, sellBtn, boostBtn, chestBtn, misBtn));
+  document.body.append(root);
+  FG = { root, num, coins, levelUp, lineCv, lineBtn, store, rooms, bulk: 1, bulkBtn: bulk, boostBtn, chestBtn, sellBtn, misBtn, row: [], t: 0, uiT: 0, saveT: 0, tapT: 0, pops: [], jarPops: [], rush: {}, swipe: 0, swiped: false, lastX: null, goldT: 35 + Math.random() * 40, cv: root, sheet: null, tick: facFrame };
+  PREVIEWS.add(FG);
+  const swipe = ev => { if (FG && FG.lastX !== null) { FG.swipe = Math.min(2.5, FG.swipe + Math.abs(ev.clientX - FG.lastX) / 180); if (Math.abs(ev.clientX - FG.lastX) > 2) FG.swiped = true; FG.lastX = ev.clientX; } };
+  lineCv.addEventListener('pointerdown', ev => { if (FG) FG.lastX = ev.clientX; });
+  lineCv.addEventListener('pointermove', swipe);
+  for (const name of ['pointerup', 'pointerleave', 'pointercancel']) lineCv.addEventListener(name, () => { if (FG) FG.lastX = null; });
+  facRooms(); facDraw();
+  if (away > 1 && Date.now() - f.seen > 60000) setTimeout(() => { if (FG) toast(`While you were away: +${facNum(away)} honey`, 2600); }, 1900);
+  f.seen = Date.now();
+  SFX.ui();
+  facIntro(root);
+}
+// a clean way in: one bee flies dead straight across the dark with a line of honey behind it, the name lands, and it lifts
+function facIntro(root) {
+  if (REDUCED || (/HeadlessChrome/.test(navigator.userAgent) && !/[?&]facintro=1/.test(location.search))) return;
+  const bee = h('canvas', { width: 96, height: 72, class: 'fi-bee' }), line = h('i', { class: 'fi-line' }), big = h('div', { class: 'fi-big', html: 'BEELINER<br><span>FACTORY</span>' }), sub = h('div', { class: 'fi-sub', text: 'HONEY IN, COINS OUT' });
+  drawBee(bee.getContext('2d'), 48, 36, 6, 0.2, 1, BEE_KINDS[0]);
+  const el = h('div', { class: 'fg-intro', 'aria-hidden': 'true' }, line, bee, big, sub);
+  root.append(el);
+  const gone = () => { if (!el.isConnected || el.dataset.out) return; el.dataset.out = 1; const a = el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, fill: 'forwards' }); a.onfinish = () => el.remove(); };
+  bee.animate([{ left: '-14%' }, { left: '110%' }], { duration: 760, easing: 'linear', fill: 'both' });
+  line.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: 760, easing: 'linear', fill: 'both' });
+  big.animate([{ transform: 'scale(2.2)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { delay: 520, duration: 200, easing: 'cubic-bezier(.2,.9,.3,1)', fill: 'both' });
+  sub.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { delay: 800, duration: 200, fill: 'both' });
+  setTimeout(() => { if (el.isConnected) SFX.clack(); }, 620);
+  el.addEventListener('pointerdown', gone);
+  setTimeout(gone, 1750);
+}
+function facClose() {
+  if (!FG) return;
+  facTick(); FG.swipe = 0;
+  const g = FG; FG = null;
+  save(); SFX.ui();
+  PREVIEWS.delete(g); g.root.remove();
+  if (TAB === 'menu') renderMenu();
+}
+function facLevelUp() {
+  const f = facGet(); facTick();
+  const c = facLevelCost(f);
+  if (f.honey < c) return;
+  // a bonus back, a better price for good, and the next room can be opened
+  f.honey += c * 0.4 - c; f.lvl++; save(); SFX.reveal(2);
+  toast(`Factory level ${f.lvl + 1}: +${facNum(c * 0.4)} honey, and jars sell for more`, 2600);
+  facDraw();
+}
+function facBoost() {
+  const f = facGet(); facTick();
+  if (Date.now() < f.boostAt) return;
+  f.boost = Date.now() + FAC.BOOST * 1000; f.boostAt = Date.now() + (FAC.BOOST + FAC.BOOST_WAIT) * 1000; SFX.reveal(1); save(); facDraw();
+}
+function facChest() {
+  const f = facGet(); facTick();
+  if (Date.now() < f.chestAt) return;
+  const pay = Math.max(100, facIncome(f) * 180);
+  f.honey += pay; f.made += pay; f.chestAt = Date.now() + FAC.CHEST * 1000; SFX.reveal(3); save();
+  toast(`Treasure: +${facNum(pay)} honey`, 2400); facDraw();
+}
+function facBuyLevels(i) {
+  const f = facGet(); facTick();
+  const q = facBulk(f, i, FG.bulk);
+  if (q.full || f.honey < q.cost) return;
+  f.honey -= q.cost; f.rooms[i].L += q.n; SFX.coin(); save(); facDraw();
+}
+function facOpenRoom() {
+  const f = facGet(); facTick();
+  const i = f.rooms.length, c = facOpenCost(i);
+  if (i >= BEE_KINDS.length || f.lvl < i || f.honey < c) return;
+  f.honey -= c; f.rooms.push({ L: 1, m: 1, r: 0 }); SFX.reveal(3); save();
+  toast(`Room ${i + 1} open: ${BEE_KINDS[i].name} bees`, 2400);
+  facRooms(); facDraw();
+}
+function facReset(i) {
+  const f = facGet(), r = f.rooms[i]; facTick();
+  if (r.L < facCapL(r)) return;
+  r.L = 1; r.r++; r.m *= 1.7; SFX.reveal(2); save();
+  toast(`Room ${i + 1} reset: everything it makes is now x${r.m.toFixed(1)}`, 2400);
+  const row = FG.row[i]; if (row) row.cells = null;
+  facDraw();
+}
+// the rooms, plus a card for the next one
+function facRooms() {
+  const f = facGet();
+  FG.rooms.replaceChildren(); FG.row = [];
+  f.rooms.forEach((r, i) => {
+    const k = BEE_KINDS[i], head = h('div', { class: 'fr-rate' }), cv = h('canvas', { class: 'fr-comb', role: 'button', 'aria-label': `Tap to rush room ${i + 1}` }), count = h('span'), buy = h('button', { class: 'fg-yel', onclick: () => facBuyLevels(i) }), reset = h('button', { class: 'fg-reset', onclick: () => facReset(i) });
+    cv.addEventListener('pointerdown', ev => facTap(i, ev, cv));
+    const el = h('div', { class: 'fg-room' }, h('div', { class: 'fr-head' }, h('div', {}, h('b', { text: `ROOM ${i + 1}: ${k.name.toUpperCase()}` }), head), reset), cv, h('div', { class: 'fr-foot' }, count, buy));
+    FG.rooms.append(el);
+    FG.row.push({ i, k, head, cv, count, buy, reset, el, bees: [], cells: null });
+  });
+  if (f.rooms.length < BEE_KINDS.length) {
+    const i = f.rooms.length, k = BEE_KINDS[i], open = h('button', { class: 'fg-yel', onclick: () => facOpenRoom() }), pic = h('canvas', { width: 64, height: 48, class: 'fr-pic' }), note = h('span');
+    drawBee(pic.getContext('2d'), 32, 24, 4, 0.2, 1, k);
+    FG.next = { open, i, note };
+    FG.rooms.append(h('div', { class: 'fg-room fg-next' }, pic, h('div', { class: 'fr-nx' }, h('b', { text: `ROOM ${i + 1}: ${k.name.toUpperCase()}` }), note), open));
+  } else FG.next = null;
+}
+function facDraw() {
+  if (!FG) return;
+  const f = facGet();
+  const inn = facNectar(f), thru = facThrough(f), lc = facLevelCost(f), q = facQuote(f, f.honey), mis = facMission(f), wait = Math.ceil((f.boostAt - Date.now()) / 1000), on = facBoosted(f), chest = Math.ceil((f.chestAt - Date.now()) / 1000);
+  FG.num.textContent = facNum(f.honey); FG.coins.textContent = fmt(G.coins);
+  FG.levelUp.innerHTML = `LEVEL UP<small>${HONEY_SVG}${facNum(lc)}</small>`; FG.levelUp.disabled = f.honey < lc;
+  const backed = inn > thru * 1.01;
+  FG.store.innerHTML = `${DROP_SVG}<b>${facNum(f.store)}</b><small class="${backed ? 'bad' : ''}">${backed ? 'BACKING UP' : 'FLOWING'}</small>`;
+  FG.lineBtn.textContent = 'UPGRADE'; FG.lineBtn.classList.toggle('want', backed && FAC_LINE.some(u => f.honey >= facLineCost(f, u)));
+  for (const r of FG.row) {
+    const room = f.rooms[r.i], top = facCapL(room), b = facBulk(f, r.i, FG.bulk);
+    r.head.innerHTML = `${DROP_SVG}${facNum(facRoomRate(f, r.i))}/s${room.m > 1.01 ? ` <i>x${room.m.toFixed(1)}</i>` : ''}`;
+    r.count.textContent = `LV ${room.L}/${top}`;
+    r.buy.innerHTML = b.full ? 'FULLY UPGRADED' : `+${b.n} LV ${HONEY_SVG}<span>${facNum(b.cost)}</span>`; r.buy.disabled = b.full || f.honey < b.cost;
+    r.reset.textContent = room.L >= top ? `RESET x${(room.m * 1.7).toFixed(1)}` : 'RESET'; r.reset.disabled = room.L < top;
+  }
+  if (FG.next) {
+    const c = facOpenCost(FG.next.i), lvlOk = f.lvl >= FG.next.i;
+    FG.next.note.textContent = lvlOk ? `Its bees make ${facNum(facBase(FG.next.i))} nectar a second at level 1` : `Needs factory level ${FG.next.i + 1}: you're on ${f.lvl + 1}`;
+    FG.next.open.innerHTML = lvlOk ? `OPEN ${HONEY_SVG}<span>${facNum(c)}</span>` : 'LEVEL UP FIRST'; FG.next.open.disabled = !lvlOk || f.honey < c;
+  }
+  FG.bulkBtn.textContent = FG.bulk === 'max' ? 'BUY MAX' : 'BUY x' + FG.bulk;
+  FG.sellBtn.innerHTML = `<b>EXCHANGE</b><small>${COIN_SVG}${fmt(q.coins)}</small>`;
+  FG.boostBtn.innerHTML = on ? `<b>BOOST x2</b><small>${Math.ceil((f.boost - Date.now()) / 1000)}s left</small>` : wait > 0 ? `<b>BOOST x2</b><small>in ${Math.floor(wait / 60)}:${pad2(wait % 60)}</small>` : '<b>BOOST x2</b><small>5 min, free</small>';
+  FG.boostBtn.disabled = on || wait > 0; FG.boostBtn.classList.toggle('on', on);
+  FG.chestBtn.innerHTML = chest > 0 ? `<b>TREASURE</b><small>in ${Math.floor(chest / 60)}:${pad2(chest % 60)}</small>` : '<b>TREASURE</b><small>READY!</small>'; FG.chestBtn.disabled = chest > 0; FG.chestBtn.classList.toggle('hot', chest <= 0);
+  FG.misBtn.innerHTML = `<b>MISSION</b><small>${mis.have >= mis.want ? 'READY!' : Math.min(99, Math.floor(mis.have / mis.want * 100)) + '%'}</small>`; FG.misBtn.classList.toggle('hot', mis.have >= mis.want);
+  if (FG.sheet) FG.sheet.draw();
+}
+function facSheet(kind) {
+  if (FG.sheet) FG.sheet.el.remove();
+  const body = h('div', { class: 'fs-body' }), close = () => { el.remove(); if (FG) FG.sheet = null; }, el = h('div', { class: 'fg-sheet', onclick: ev => { if (ev.target === el) close(); } }, h('div', { class: 'fs-card' }, h('button', { class: 'fg-back', text: 'CLOSE', onclick: close }), body));
+  FG.root.append(el);
+  let draw;
+  if (kind === 'sell') {
+    const big = h('div', { class: 'fs-big' }), all = h('button', { class: 'fg-yel', onclick: () => sell(1) }), half = h('button', { class: 'fg-yel', onclick: () => sell(0.5) }), rate = h('small');
+    const sell = share => { const f = facGet(); facTick(); const q = facQuote(f, f.honey * share); if (q.coins < 1) { SFX.tink(); return; } f.honey = Math.max(0, f.honey - q.honey); f.sold += q.coins; G.coins += q.coins; save(); SFX.coin(); toast(`Sold honey for ${fmt(q.coins)} coins`, 1800); facDraw(); };
+    body.append(h('h3', { text: 'THE EXCHANGE' }), h('p', { text: 'Honey in, Bounce Brawl coins out. The more you sell in a day the less it buys, and each room you open makes coins dearer.' }), big, all, half, rate);
+    draw = () => { const f = facGet(), a = facQuote(f, f.honey), b = facQuote(f, f.honey / 2); big.innerHTML = `${HONEY_SVG} ${facNum(f.honey)}`; all.innerHTML = `SELL ALL ${COIN_SVG}<span>${fmt(a.coins)}</span>`; all.disabled = a.coins < 1; half.innerHTML = `SELL HALF ${COIN_SVG}<span>${fmt(b.coins)}</span>`; half.disabled = b.coins < 1; rate.textContent = `${fmt(facToday(f))} coins sold today`; };
+  } else if (kind === 'line') {
+    const rows = FAC_LINE.map(u => { const lv = h('i'), buy = h('button', { class: 'fg-yel', onclick: () => { const f = facGet(); facTick(); const c = facLineCost(f, u); if (f.honey < c) return; f.honey -= c; f.line[u.id]++; SFX.coin(); save(); facDraw(); } }); return { u, lv, buy, el: h('div', { class: 'fs-row' }, h('div', {}, h('b', { text: u.name.toUpperCase() }), lv, h('p', { text: u.what })), buy) }; });
+    const stat = h('div', { class: 'fs-stat' });
+    body.append(h('h3', { text: 'THE JAR LINE' }), stat, ...rows.map(r => r.el));
+    draw = () => { const f = facGet(); stat.innerHTML = `${facJarsPerSec(f).toFixed(2)} jars a second · ${facNum(facJarSize(f))} nectar a jar<br>Sends ${facNum(facThrough(f))} nectar a second · ${facNum(facIncome(f))} honey a second`; for (const r of rows) { const c = facLineCost(f, r.u); r.lv.textContent = ` LV ${f.line[r.u.id]}`; r.buy.innerHTML = `${HONEY_SVG}<span>${facNum(c)}</span>`; r.buy.disabled = f.honey < c; } };
+  } else {
+    const txt = h('div', { class: 'fs-big' }), bar = h('i'), go = h('button', { class: 'fg-yel', onclick: () => { const f = facGet(), m = facMission(f); if (m.have < m.want) return; const pay = Math.max(50, facIncome(f) * 120); f.honey += pay; f.mis++; save(); SFX.reveal(2); toast(`Mission done: +${facNum(pay)} honey`, 2200); facDraw(); } });
+    body.append(h('h3', { text: 'MISSION' }), txt, h('div', { class: 'fs-bar' }, bar), go);
+    draw = () => { const f = facGet(), m = facMission(f); txt.textContent = m.txt; bar.style.width = clamp(m.have / m.want * 100, 0, 100) + '%'; go.innerHTML = m.have >= m.want ? `CLAIM ${HONEY_SVG}<span>${facNum(Math.max(50, facIncome(f) * 120))}</span>` : `${facNum(m.have)} / ${facNum(m.want)}`; go.disabled = m.have < m.want; };
+  }
+  FG.sheet = { el, draw }; draw(); SFX.ui();
+}
+// a tap on a room sends its bees straight to work: a burst of nectar and double speed for a moment
+function facTap(i, ev, cv) {
+  const f = facGet();
+  if (FG.t - FG.tapT < 1 / FAC.TAP) return;
+  FG.tapT = FG.t; facTick();
+  const got = Math.max(0.5, facRoomRate(f, i) * 0.5), b = cv.getBoundingClientRect();
+  f.store += got;
+  FG.rush[i] = FG.t + 1.2;
+  FG.pops.push({ i, x: ev.clientX - b.left, y: ev.clientY - b.top, t: 0, txt: '+' + facNum(got) });
+  SFX.pop(); facDraw();
+}
+// now and then a golden bee flies straight across. Tap it for half a minute's worth of honey
+function facGold() {
+  const pic = h('canvas', { width: 80, height: 60 }), y = 12 + Math.random() * 62, btn = h('button', { class: 'fg-gold', 'aria-label': 'A golden bee! Tap it.', style: { top: y + '%' } }, pic);
+  drawBee(pic.getContext('2d'), 40, 30, 5, 0.2, 1, { y: '#ffe14d', k: '#b87a00', o: '#fff4b0' });
+  FG.root.append(btn);
+  const a = btn.animate([{ left: '-90px' }, { left: '100%' }], { duration: 7000, easing: 'linear', fill: 'both' });
+  a.onfinish = () => btn.remove();
+  btn.addEventListener('pointerdown', () => {
+    const f = facGet(); facTick();
+    const pay = Math.max(25, facIncome(f) * 30);
+    f.honey += pay; f.made += pay; SFX.reveal(2); toast(`Golden bee: +${facNum(pay)} honey`, 2000); btn.remove(); save(); facDraw();
+  });
+}
+function facHex(c, x, y, r) { c.beginPath(); for (let a = 0; a < 6; a++) { const t = Math.PI / 6 + a * Math.PI / 3; if (a) c.lineTo(x + Math.cos(t) * r, y + Math.sin(t) * r); else c.moveTo(x + Math.cos(t) * r, y + Math.sin(t) * r); } c.closePath(); }
+function facFrame(dt) {
+  if (!FG || !FG.root.isConnected) { PREVIEWS.delete(this); return; }
+  const f = facGet();
+  FG.t += dt;
+  FG.swipe = Math.max(0, FG.swipe - dt * 1.1);
+  facTick();
+  if ((FG.uiT -= dt) <= 0) { FG.uiT = 0.2; facDraw(); }
+  if ((FG.saveT += dt) > 15) { FG.saveT = 0; save(); }
+  if ((FG.goldT -= dt) <= 0) { FG.goldT = 50 + Math.random() * 70; facGold(); }
+  facDrawLine(f, dt);
+  for (const r of FG.row) { const b = r.cv.getBoundingClientRect(); if (b.bottom > 0 && b.top < innerHeight && b.width) facDrawRoom(f, r, b, dt); }
+  FG.pops = FG.pops.filter(p => (p.t += dt) < 0.8);
+}
+const facFit = (cv, b) => { const d = Math.min(2, devicePixelRatio || 1), w = Math.round(b.width * d), hh = Math.round(b.height * d); if (cv.width !== w || cv.height !== hh) { cv.width = w; cv.height = hh; } const c = cv.getContext('2d'); c.setTransform(d, 0, 0, d, 0, 0); c.imageSmoothingEnabled = false; return c; };
+// the honey pipe up from the rooms and into the tank, the tank's nozzle filling jars, and the belt taking them away.
+// All of it on a grid of 3 pixel blocks, the same size as the bees' pixels. Each jar off the end pays
+function facDrawLine(f, dt) {
+  const cv = FG.lineCv, b = cv.getBoundingClientRect();
+  if (!b.width) return;
+  const c = facFit(cv, b), W = b.width, H = b.height, t = FG.t, u = 3, jps = facJarsPerSec(f) * (facBoosted(f) ? 2 : 1) * (1 + FG.swipe), income = facIncome(f);
+  const P = (x, y, w, h, col) => { c.fillStyle = col; c.fillRect(x * u, y * u, w * u, h * u); };
+  const OUT = '#0a0603', HI = '#e2c27e', SH = '#6a4a18', HON = '#ffb81f', BUB = '#ffe9a8', RIV = '#fff0c0', RED = '#e0482f', REDD = '#96261a';
+  const ST1 = '#e2ded0', ST2 = '#a5a093', ST3 = '#646053', YL1 = '#ffe07a', YL2 = '#f5b81c', YL3 = '#b87c0e', DK = '#2a1c0c';
+  const gw = Math.ceil(W / u), gh = Math.ceil(H / u), mid = Math.round(Math.min(204, W * 0.52) / u), row = Math.floor((H - 24) / u), mx = mid * u;
+  const belt = 50 + Math.min(jps, 6) * 26, gap = Math.max(54, belt / Math.max(0.05, jps)), flow = 7 + Math.min(jps, 6) * 3;
+  const busy = clamp(facNectar(f) / Math.max(0.001, facThrough(f)), 0.1, 1), backed = f.store > 1;
+  FG.beltX = (FG.beltX || 0) + belt * dt;
+  // the back wall: dark planks
+  c.fillStyle = '#17110c'; c.fillRect(0, 0, W, H);
+  for (let x = 0; x < gw; x += 11) P(x, 0, 11, gh, (x / 11) % 2 ? '#1c150e' : '#1f1810');
+  // the belt comes first, so the pipe and the button sit in front of it: a steel top with studs running along it, rollers turning below
+  const go = Math.floor(FG.beltX / u), bx = 7;
+  P(bx, row, gw - bx, 1, '#8a7a64'); P(bx, row + 1, gw - bx, 1, '#4a3a2a'); P(bx, row + 2, gw - bx, 5, '#241c14');
+  for (let x = bx + (go % 8); x < gw; x += 8) P(x, row + 1, 2, 1, '#2a2018');
+  for (let x = bx + 2; x < gw; x += 7) { P(x, row + 3, 4, 3, '#3a2e22'); P(x + (go % 4), row + 3 + (go >> 2) % 3, 1, 1, '#8a7a64'); }
+  // the pipe: in line with the one down the side of the rooms, and glass, so the honey shows
+  const hw = 24, hx = mid - hw / 2, hy = 1, ht = 17, py = 3, E = hx - 3;
+  P(2, py, E - 2, 1, OUT); P(1, py + 1, 1, gh, OUT);
+  P(2, py + 1, E - 2, 1, HI); P(2, py + 2, 1, gh, HI);
+  P(3, py + 2, E - 3, 2, HON); P(3, py + 4, 2, gh, HON);
+  P(5, py + 4, E - 5, 1, SH); P(5, py + 5, 1, gh, SH);
+  P(6, py + 5, E - 6, 1, OUT); P(6, py + 6, 1, gh, OUT);
+  const up = gh - py - 3, all = up + E - 4, many = Math.max(4, Math.round(all / 8));
+  for (let n = 0; n < many; n++) {
+    const s = (t * flow + n * all / many) % all;
+    if (s < up) P(3 + n % 2, gh - 1 - Math.floor(s), 1, 1, BUB);
+    else P(3 + Math.floor(s - up), py + 2 + n % 2, 1, 1, BUB);
+  }
+  // solid steel clamps along it
+  const clamp4 = (x, w) => { P(x, py - 1, w, 8, ST2); P(x, py - 1, w, 1, ST1); P(x, py - 1, 1, 8, ST1); P(x, py + 6, w, 1, ST3); P(x + w - 1, py, 1, 7, ST3); };
+  for (let x = 14; x < E - 8; x += 18) clamp4(x, 4);
+  // the tank: painted like a bee, domed on top
+  for (let r = 0; r < ht; r++) {
+    const i = r < 3 ? [6, 3, 1][r] : r === ht - 1 ? 1 : 0;
+    P(hx + i, hy + r, hw - 2 * i, 1, OUT);
+    if (r && r < ht - 1) P(hx + i + 1, hy + r, hw - 2 * i - 2, 1, r < 3 ? YL1 : YL2);
+  }
+  P(hx + 1, hy + 3, 1, ht - 7, YL1); P(hx + hw - 3, hy + 3, 2, ht - 7, YL3);
+  P(hx + 4, hy + 2, 2, ht - 6, DK); P(hx + hw - 6, hy + 2, 2, ht - 6, DK);
+  clamp4(E, 4);   // the flange where the pipe meets it
+  // a steel band round its foot
+  P(hx + 1, hy + ht - 4, hw - 2, 1, ST1); P(hx + 1, hy + ht - 3, hw - 2, 1, ST2); P(hx + 1, hy + ht - 2, hw - 2, 1, ST3);
+  for (let x = hx + 3; x < hx + hw - 2; x += 6) P(x, hy + ht - 3, 1, 1, OUT);
+  // a window showing how much is in it
+  const wx = hx + 7, wy = hy + 4, lv = Math.max(1, Math.round(6 * (backed ? 1 : busy)));
+  P(wx, wy, 10, 8, OUT); P(wx + 1, wy + 1, 8, 6, '#2a1e10');
+  P(wx + 1, wy + 7 - lv, 8, lv, backed ? '#ff8a3a' : HON); P(wx + 1, wy + 7 - lv, 8, 1, BUB);
+  P(wx + 1 + Math.floor(t * 4) % 7, wy + 7 - lv, 2, 1, backed ? '#ff8a3a' : HON);
+  P(wx + 2 + Math.floor(t * 1.3) % 6, wy + 6 - Math.floor(t * 5) % lv, 1, 1, BUB);
+  P(wx + 2, wy + 2, 1, 3, 'rgba(255,255,255,0.4)');
+  // a red valve wheel on the side, turning as the line runs
+  const vy = hy + 7, vx = hx + hw + 5;
+  P(hx + hw, vy - 1, 3, 1, ST1); P(hx + hw, vy, 3, 1, ST2); P(hx + hw, vy + 1, 3, 1, ST3);
+  P(vx - 1, vy - 3, 3, 1, RED); P(vx - 2, vy - 2, 1, 1, RED); P(vx + 2, vy - 2, 1, 1, RED); P(vx - 3, vy - 1, 1, 3, RED);
+  P(vx + 3, vy - 1, 1, 3, REDD); P(vx - 2, vy + 2, 1, 1, REDD); P(vx + 2, vy + 2, 1, 1, REDD); P(vx - 1, vy + 3, 3, 1, REDD);
+  if (Math.floor(t * (1.5 + Math.min(jps, 6) * 0.8)) % 2) { P(vx - 2, vy, 5, 1, RED); P(vx, vy - 2, 1, 5, RED); } else for (let d = -1; d <= 1; d++) { P(vx + d, vy + d, 1, 1, RED); P(vx + d, vy - d, 1, 1, RED); }
+  P(vx, vy, 1, 1, RIV);
+  // the nozzle: one solid piece of steel under the tank, a neck, a collar, then stepping in to the tip. Lit from the left like the rest
+  const ny = hy + ht, steel = (y, w, h) => { P(mid - w, y, 2 * w, h, ST2); P(mid - w, y, Math.ceil(w / 3), h, ST1); P(mid + w - Math.ceil(w / 3), y, Math.ceil(w / 3), h, ST3); };
+  steel(ny - 1, 5, 2);
+  P(mid - 8, ny + 1, 16, 1, ST1); P(mid - 8, ny + 2, 16, 1, ST2); P(mid - 8, ny + 3, 16, 1, ST3);
+  P(mid - 8, ny + 2, 1, 1, OUT); P(mid + 7, ny + 2, 1, 1, OUT);
+  steel(ny + 4, 6, 1); steel(ny + 5, 4, 1); P(mid - 3, ny + 6, 6, 1, ST3);
+  P(mid - 3, ny + 7, 6, 1, OUT); P(mid - 1, ny + 7, 2, 1, HON);
+  // the jars: empty coming in from behind the button, filling under the nozzle, then the lid and label go on
+  const off = FG.beltX % gap, full = clamp(busy + (backed ? 1 : 0), 0.5, 1), from = FG.store.parentElement.getBoundingClientRect().right - b.left;
+  let pour = 0;
+  c.save(); c.beginPath(); c.rect(from, 0, W - from, H); c.clip();
+  for (let x = bx * u + off - gap; x < W + 22; x += gap) {
+    const j = Math.round(x / u), q = clamp((x - (mx - 12)) / 24, 0, 1), lvl = Math.round(7 * full * q), done = x > mx + 22;
+    P(j - 3, row - 9, 6, 8, '#2a1e10');
+    if (lvl) { P(j - 3, row - 1 - lvl, 6, lvl, HON); P(j - 3, row - 1 - lvl, 1, lvl, '#ffd96a'); P(j - 3, row - 1 - lvl, 6, 1, BUB); }
+    P(j - 4, row - 9, 1, 8, '#e8e4d0'); P(j + 3, row - 9, 1, 8, '#b4b0a0'); P(j - 3, row - 1, 6, 1, '#b4b0a0');
+    P(j + 1, row - 7, 1, 3, 'rgba(255,255,255,0.7)');
+    if (done) { P(j - 4, row - 10, 8, 1, '#e0a02c'); P(j - 4, row - 9, 8, 1, '#7a4d00'); P(j - 2, row - 6, 4, 3, '#fff4d0'); P(j - 1, row - 5, 2, 1, '#c98a1c'); }
+    if (Math.abs(x - mx) < 12) pour = row - 1 - lvl;
+  }
+  c.restore();
+  // pouring while a jar's under it, a slow drip when not
+  if (pour) for (let y = ny + 8; y < pour; y++) P(mid - 1, y, 2, 1, (y + Math.floor(t * 20)) % 3 ? HON : BUB);
+  else { const d = (t * 1.6) % 1; P(mid - 1 + Math.floor(t) % 2, ny + 8 + Math.floor(d * (row - 1 - ny - 8)), 1, 1, HON); }
+  // each jar off the end: the honey it just made
+  FG.jarN = FG.jarN || 0;
+  const passed = Math.floor(FG.beltX / gap), jarPay = income / Math.max(0.05, jps);
+  if (passed > FG.jarN) { if (income > 0) FG.jarPops.push({ t: 0, txt: '+' + facNum(jarPay) }); FG.jarN = passed; }
+  c.textAlign = 'right'; c.textBaseline = 'middle'; c.font = `400 26px ${FONT_D}`;
+  for (const p of FG.jarPops) { p.t += dt; c.globalAlpha = clamp(1 - p.t / 0.9, 0, 1); c.fillStyle = 'rgba(0,0,0,0.85)'; c.fillText(p.txt, W - 7, H * 0.42 - p.t * 28 + 2); c.fillStyle = '#ffd24a'; c.fillText(p.txt, W - 9, H * 0.42 - p.t * 28); }
+  c.globalAlpha = 1;
+  FG.jarPops = FG.jarPops.filter(p => p.t < 0.9);
+  c.font = `400 17px ${FONT_D}`; c.fillStyle = facBoosted(f) ? '#ff9de0' : '#c9b890'; c.fillText(`${facNum(income)} HONEY/S`, W - 8, 15);
+  if (!FG.swiped) { c.textAlign = 'center'; c.font = `400 15px ${FONT_D}`; c.fillStyle = `rgba(255,214,90,${(0.55 + 0.35 * Math.sin(t * 3)).toFixed(2)})`; c.fillText('< SWIPE THE BELT >', (mx + W) / 2 + 20, (row + 4.5) * u); }
+}
+// a room: a honeycomb with its open cells lit. Bees fly straight to an open cell, fill it, and off the drop goes up the pipe
+function facDrawRoom(f, r, b, dt) {
+  const c = facFit(r.cv, b), W = b.width, H = b.height, k = r.k, t = FG.t, R = 19, dx = R * Math.sqrt(3), dy = R * 1.5, room = f.rooms[r.i];
+  const rushed = t < (FG.rush[r.i] || 0), openN = 3 + Math.floor(room.L / 3), beesN = clamp(1 + Math.floor(room.L / 6), 1, FAC.BEES), each = facRoomRate(f, r.i) / beesN * 1.2;
+  if (!r.cells || r.w !== W) {
+    r.w = W; r.cells = [];
+    for (let row = 0; row * dy + R * 0.2 < H; row++) for (let x = R + (row & 1) * dx / 2; x < W; x += dx) r.cells.push({ x, y: R * 0.9 + row * dy, fill: 0, drop: 0, order: 0 });
+    // the cells open from the left, a row at a time, nearest the pipe first
+    r.cells.sort((p, q) => p.x - q.x || p.y - q.y).forEach((q, n) => { q.order = n; });
+    r.bees = [];
+  }
+  const open = r.cells.slice(0, Math.min(openN, r.cells.length));
+  c.fillStyle = '#120d07'; c.fillRect(0, 0, W, H);
+  for (const q of r.cells) {
+    const on = q.order < open.length;
+    facHex(c, q.x, q.y, R - 1.5); c.fillStyle = on ? '#2a1c0a' : '#150f08'; c.fill();
+    c.lineWidth = 2.5; c.strokeStyle = on ? k.y : '#2c2010'; c.globalAlpha = on ? 0.85 : 1; c.stroke(); c.globalAlpha = 1;
+    if (on && q.fill > 0.01) { facHex(c, q.x, q.y, (R - 4) * Math.min(1, q.fill)); c.fillStyle = '#ffb81f'; c.fill(); }
+    if (q.drop > 0) { q.drop -= dt; c.fillStyle = '#fff4c0'; c.fillRect(q.x - 3, q.y - 8 * (1 - q.drop) - 2, 6, 6); }
+  }
+  while (r.bees.length < beesN) { const a = open[Math.floor(Math.random() * open.length)]; r.bees.push({ x: a.x, y: a.y, to: null, cell: a, sit: 0.3 + Math.random(), dir: Math.random() < 0.5 ? 1 : -1, seed: Math.random() * 9 }); }
+  r.bees.length = beesN;
+  const speed = (rushed ? 340 : 120) * dt, fillRate = (rushed ? 2.2 : 0.8) + Math.min(room.L, 100) * 0.008;
+  for (const be of r.bees) {
+    if (be.to) {
+      const ex = be.to.x - be.x, ey = be.to.y - be.y, d = Math.sqrt(ex * ex + ey * ey);
+      if (d <= speed) { be.x = be.to.x; be.y = be.to.y; be.cell = be.to; be.to = null; }
+      else { be.x += ex / d * speed; be.y += ey / d * speed; }
+    } else {
+      be.cell.fill = (be.cell.fill || 0) + fillRate * dt;
+      if (be.cell.fill >= 1) {
+        be.cell.fill = 0; be.cell.drop = 0.5;
+        if (FG.pops.length < 40) FG.pops.push({ i: r.i, x: be.x, y: be.y - 12, t: 0, txt: '+' + facNum(each) });
+        be.to = open[Math.floor(Math.random() * open.length)]; be.dir = be.to.x >= be.x ? 1 : -1;
+      }
+    }
+    drawBee(c, Math.round(be.x), Math.round(be.y - 3 + Math.sin(t * 7 + be.seed) * 1.5), 2, (t * (rushed ? 12 : 6) + be.seed) % 1, be.dir, k);
+  }
+  c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = `400 19px ${FONT_D}`;
+  for (const p of FG.pops) if (p.i === r.i) { c.globalAlpha = clamp(1 - p.t / 0.8, 0, 1); c.fillStyle = 'rgba(0,0,0,0.85)'; c.fillText(p.txt, p.x + 1.5, p.y - p.t * 34 + 1.5); c.fillStyle = '#fff'; c.fillText(p.txt, p.x, p.y - p.t * 34); }
+  c.globalAlpha = 1;
+}
+
 // ===== players online: presence, matchmaking, leaderboard =================
 // Everything goes through each viewer's presence (the platform's "who is here"
 // object), which every viewer may set. A match is two players who each name
@@ -12486,7 +13006,7 @@ function findMatch(stake) {
   const spin = h('canvas', { class: 'spin', width: 240, height: 240 });
   const s = sheet([
     spin, h('h2', { text: 'FINDING AN OPPONENT' }),
-    h('div', { class: 'lsub', html: 'STAKE ' + COIN_SVG + ' <span class="mono">' + fmt(stake) + '</span> · WINNER TAKES <span class="mono">' + fmt(stake * (2 + WIN_BONUS)) + '</span>' }),
+    h('div', { class: 'lsub', html: 'STAKE ' + COIN_SVG + ' <span class="mono">' + fmt(stake) + '</span> · WINNER TAKES <span class="mono">' + fmt(stake * 2) + '</span>' }),
     status, hint,
     h('div', { class: 'foot' }, h('button', { class: 'btn2', text: 'CANCEL', onclick: () => closeSheet(s) }))]);
   s.onclose = () => { if (!MM.match) cancelMatch(); MM.sheet = null; };
