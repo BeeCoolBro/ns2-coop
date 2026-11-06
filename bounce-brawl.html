@@ -6563,7 +6563,7 @@ function mapShapeMask(c, S) {
 }
 
 // ---- BeeZap's health is in the walls: the box's outline breaks up as it gets hurt ----
-// Only for the eyes: the walls hold exactly the same. Hairline cracks first, running into the floor. Then pieces of the
+// Only for the eyes: the walls hold exactly the same. The outline trembles, harder the more hurt it is. Hairline cracks first, running into the floor. Then pieces of the
 // outline break away with a burst of sparks, in runs rather than evenly, and what's left turns from honey to red. Then
 // the rest starts to corrupt: pieces jump sideways with their colours split, flicker out, and throw off stray blocks.
 const SCAR_BOX = [-1, -1, 1, -1, 1, 1, -1, 1];
@@ -6596,6 +6596,13 @@ function bzScars(A, c, S, t) {
   const memo = A.scar && A.scar.key === key ? A.scar : (A.scar = { key, seen: new Set(), first: true });
   const isGone = q => d > 0.14 + q.go * 1.1;
   c.save(); c.lineCap = 'butt'; c.lineJoin = 'round';
+  // the old outline goes, leaving a dark trench where it was: what's drawn from here on trembles over it, and the
+  // holes are just the pieces not drawn back
+  c.beginPath();
+  for (const q of segs) { c.moveTo(px(q.x0), px(q.y0)); c.lineTo(px(q.x1), px(q.y1)); }
+  c.lineWidth = 14; c.strokeStyle = '#040305'; c.stroke();
+  const quiver = Math.floor(t * 30), amp = 0.7 + d * 4;
+  c.translate((scarRnd(1, quiver) - 0.5) * 2 * amp, (scarRnd(2, quiver) - 0.5) * 2 * amp);
   // cracks running in from the wall, longer and more of them as it gets worse
   c.beginPath();
   for (const q of segs) {
@@ -6607,10 +6614,6 @@ function bzScars(A, c, S, t) {
   }
   c.lineWidth = 3.5; c.strokeStyle = 'rgba(0,0,0,0.75)'; c.stroke();
   c.lineWidth = 1.1; c.strokeStyle = `rgba(255,${Math.round(225 - d * 150)},${Math.round(190 - d * 150)},${(0.3 + d * 0.4).toFixed(3)})`; c.stroke();
-  // what's broken away: a hole right through the wall
-  c.beginPath();
-  for (const q of segs) if (isGone(q)) { c.moveTo(px(q.x0), px(q.y0)); c.lineTo(px(q.x1), px(q.y1)); }
-  c.lineWidth = 15; c.strokeStyle = '#040305'; c.stroke();
   // what's left: it goes from honey to red, and more and more of it comes loose
   const red = clamp(d * 1.45 - 0.1, 0, 1), col = `rgb(${Math.round(246 + 9 * red)},${Math.round(195 - 155 * red)},${Math.round(60 - 10 * red)})`, loose = [];
   c.beginPath();
@@ -6619,7 +6622,7 @@ function bzScars(A, c, S, t) {
     if (d > 0.3 + q.bad * 0.65) { loose.push(q); continue; }
     c.moveTo(px(q.x0), px(q.y0)); c.lineTo(px(q.x1), px(q.y1));
   }
-  c.lineWidth = 3 + d * 2.5; c.strokeStyle = col; c.globalAlpha = clamp(d * 3.2, 0, 1); c.stroke(); c.globalAlpha = 1;
+  c.lineWidth = 4.5 + d * 2; c.strokeStyle = col; c.stroke();
   // the corrupted pieces: each jumps to a new place a dozen times a second, colours split, and sometimes isn't there
   for (const q of loose) {
     const r0 = scarRnd(q.i, tick);
