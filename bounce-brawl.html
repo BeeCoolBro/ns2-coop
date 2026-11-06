@@ -8991,8 +8991,10 @@ function fightFrame(F, dt) {
       else if (F.pt > 1.6 && !F.settled) { showBanner(F, ''); settleFight(F); }
     }
   }
-  F.arena.step(dt * (F.phase === 'ko' ? 0.35 : 1));
-  F.arena.draw(S, F.t);
+  if (!(F.wheel && F.wheel.opaque)) {
+    F.arena.step(dt * (F.phase === 'ko' ? 0.35 : 1));
+    F.arena.draw(S, F.t);
+  }
   bzChaos(F, dt);
   bzHurtUI(F, dt);
 }
@@ -13869,8 +13871,8 @@ function ckStage(cls) {
   document.body.append(cv);
   return cv;
 }
-function ckFit(cv) {
-  const W = innerWidth, H = innerHeight, d = Math.min(2, devicePixelRatio || 1), w = Math.round(W * d), hh = Math.round(H * d);
+function ckFit(cv, most) {
+  const W = innerWidth, H = innerHeight, d = Math.min(most || 2, devicePixelRatio || 1), w = Math.round(W * d), hh = Math.round(H * d);
   if (cv.width !== w || cv.height !== hh) { cv.width = w; cv.height = hh; }
   const c = cv.getContext('2d');
   c.setTransform(d, 0, 0, d, 0, 0);
@@ -13965,7 +13967,7 @@ function ckEndKind(F) {
   const S = F.S;
   if (F.ckEnded || REDUCED) return null;
   const w = S.winner >= 0 ? S.F[S.winner] : null;
-  if (w && w.def.id === 'chess') return { k: 'win', loser: S.F.length > 2 ? S.F[S.out[S.out.length - 2]] : S.F[1 - S.winner] };
+  if (w && w.def.id === 'chess') return { k: 'win', queen: w.u.form === 'queen', loser: S.F.length > 2 ? S.F[S.out[S.out.length - 2]] : S.F[1 - S.winner] };
   if (S.F.length > 2) { const me = S.F[F.mySide]; return me && me.def.id === 'chess' ? { k: 'lose' } : null; }   // a free for all: only its own player
   return S.F.some(f => f.def.id === 'chess') ? { k: 'lose' } : null;
 }
@@ -14038,101 +14040,6 @@ function ckLoseFrame(F, dt) {
   }
   if (T >= A.END) ckFinish(F, W);
 }
-// WINNING: the loser's ball alone on a board. Rook, rook, bishop, bishop, then the King on a knight, and time stops
-const CK_WIN = { R1: 0.75, R2: 1.5, B1: 2.2, B2: 2.8, K: 3.3, STOP: 3.92, END: 7 };
-function ckWinFrame(F, dt) {
-  const W = F.wheel, T = (W.T += dt), A = CK_WIN, { c, W: w, H: hh } = ckFit(W.cv), K = Math.min(w / 1000, hh / 620), stopped = T >= A.STOP;
-  const t = Math.min(T, A.STOP);        // from here on, nothing on the board moves
-  c.clearRect(0, 0, w, hh);
-  c.fillStyle = `rgba(4,3,2,${Math.min(1, T * 5).toFixed(3)})`; c.fillRect(0, 0, w, hh);
-  const shake = W.shake || 0;
-  c.save();
-  c.translate(w / 2 + (Math.random() - 0.5) * shake, hh / 2 + (Math.random() - 0.5) * shake);
-  c.scale(K, K); c.translate(-500, -310);
-  // the board, going away from us
-  const FAR = 300, near = 680, bw = (y) => 320 + (y - FAR) * 2.5, rowY = r => FAR + (near - FAR) * Math.pow(r / 8, 1.55);
-  c.globalAlpha = Math.min(1, T * 3);
-  for (let r = 0; r < 8; r++) for (let q = 0; q < 8; q++) {
-    const y0 = rowY(r), y1 = rowY(r + 1), w0 = bw(y0), w1 = bw(y1);
-    c.beginPath(); c.moveTo(500 + (q / 8 - 0.5) * w0, y0); c.lineTo(500 + ((q + 1) / 8 - 0.5) * w0, y0); c.lineTo(500 + ((q + 1) / 8 - 0.5) * w1, y1); c.lineTo(500 + (q / 8 - 0.5) * w1, y1); c.closePath();
-    c.fillStyle = (r + q) % 2 ? '#cfc09a' : '#2a2118'; c.fill();
-  }
-  c.globalAlpha = 1;
-  // where the ball is: pushed from beat to beat
-  const seg = (a, b) => ckEase(clamp((t - a) / (b - a), 0, 1));
-  const hit1 = A.R1 + 0.22, hit2 = A.R2 + 0.22, hit3 = A.B1 + 0.2, hit4 = A.B2 + 0.2;
-  let bx = 500 - 230 * seg(hit1, hit1 + 0.42) + 390 * seg(hit2, hit2 + 0.5), by = 400 - 250 * seg(hit2, hit2 + 0.5);
-  bx -= 60 * seg(hit3, hit3 + 0.3) - 80 * seg(hit4, hit4 + 0.3); by -= 26 * seg(hit3, hit3 + 0.3) + 20 * seg(hit4, hit4 + 0.3);
-  const air = 400 - by;
-  // its shadow on the board
-  c.beginPath(); c.ellipse(bx, 442, 62 - air * 0.12, 15 - air * 0.03, 0, 0, TAU); c.fillStyle = 'rgba(0,0,0,0.45)'; c.fill();
-  const img = ballIcon(W.end.loser.def.id, 220), spin = seg(hit1, hit1 + 0.4) * -1.1 + seg(hit2, hit2 + 0.5) * 3 + seg(hit3, hit3 + 0.4) * -2 + seg(hit4, hit4 + 0.4) * 2.5;
-  const blink = [hit1, hit2, hit3, hit4, A.STOP].some(x => t >= x && t < x + 0.07);
-  c.save(); c.translate(bx, by); c.rotate(spin); c.drawImage(img, -66, -66, 132, 132);
-  if (blink) { c.globalCompositeOperation = 'lighter'; c.drawImage(img, -66, -66, 132, 132); }
-  c.restore();
-  // rook from the right, then rook from the left
-  const rook = (t0, from, to, stayAt) => {
-    if (t < t0) return;
-    const u = ckEase(clamp((t - t0) / 0.22, 0, 1)), back = clamp((t - stayAt) / 0.4, 0, 1), x = from + (to - from) * u;
-    c.save(); c.globalAlpha = 1 - back;
-    ckPiece(c, 'rook', x, 386, 2.3, '#e9dfc8', '#17130c', 2.5);
-    c.restore();
-  };
-  rook(A.R1, 1150, 500 + 82, hit1 + 0.1);
-  rook(A.R2, -160, 270 - 82, hit2 + 0.12);
-  // the bishops slash through: from below right to top left, then from below left to top right. The cuts hang in the air
-  const slash = (t0, ax, ay, bx2, by2) => {
-    if (t < t0) return;
-    const u = clamp((t - t0) / 0.36, 0, 1), x = ax + (bx2 - ax) * u, y = ay + (by2 - ay) * u, gone = clamp((t - t0 - 0.36) / 0.3, 0, 1);
-    c.save(); c.lineCap = 'round'; c.globalAlpha = stopped ? 1 : 1 - gone * 0.85;
-    c.strokeStyle = '#fff'; c.lineWidth = 8 * (1 - gone * 0.7); c.beginPath(); c.moveTo(ax, ay); c.lineTo(x, y); c.stroke();
-    c.strokeStyle = 'rgba(242,194,48,0.8)'; c.lineWidth = 20 * (1 - gone * 0.7); c.globalAlpha *= 0.4; c.stroke();
-    c.restore();
-    if (u < 1) { const dx = bx2 - ax, dy = by2 - ay; c.save(); c.translate(x, y); c.rotate(Math.atan2(dy, dx) + Math.PI / 2); ckPiece(c, 'bishop', 0, 0, 1.9, '#e9dfc8', '#17130c', 2.5); c.restore(); }
-  };
-  slash(A.B1, 1130, 700, 110, -120);
-  slash(A.B2, -130, 700, 1000, -160);
-  // the King, up off the board on a knight, lance first, into it
-  if (t >= A.K) {
-    const q = clamp((t - A.K) / (A.STOP - A.K), 0, 1), e2 = q * q * (3 - 2 * q), x0 = 240, y0 = 720, x = x0 + (bx - 120 - x0) * e2, y = y0 + (by + 70 - y0) * e2 - Math.sin(q * PI) * 110;
-    ckPiece(c, 'knight', x, y + 30, 2.4, '#3a2f22', '#e9dfc8', 2.5);
-    ckPiece(c, 'king', x - 6, y - 58, 1.7, '#e9dfc8', '#17130c', 2.5);
-    c.lineCap = 'round';
-    const tx = x + 210, ty = y - 110;
-    c.lineWidth = 12; c.strokeStyle = '#17130c'; c.beginPath(); c.moveTo(x + 8, y - 26); c.lineTo(tx, ty); c.stroke();
-    c.lineWidth = 6; c.strokeStyle = '#f2c230'; c.stroke();
-  }
-  c.restore();
-  // the beats: a jolt and a sound for each
-  const beat = (x, fn) => { if (T >= x && !(W.b = W.b || {})[x]) { W.b[x] = 1; fn(); } };
-  beat(hit1, () => { W.shake = 26; SFX.clang(); SFX.ko(); });
-  beat(hit2, () => { W.shake = 32; SFX.clang(); SFX.ko(); });
-  beat(hit3 - 0.1, () => { W.shake = 16; SFX.noise(0.26, 0.12, 'bandpass', 1200, 4200, 0.9); });
-  beat(hit4 - 0.1, () => { W.shake = 18; SFX.noise(0.26, 0.12, 'bandpass', 1200, 4200, 0.9); });
-  beat(A.STOP, () => { W.shake = 0; SFX.clang(); SFX.ko(); });
-  if (!stopped) W.shake = Math.max(0, shake - dt * 90);
-  // time stops: the colour drains, a white flash, and the word
-  if (stopped) {
-    const s = T - A.STOP;
-    c.fillStyle = `rgba(36,30,44,${Math.min(0.58, s * 3).toFixed(3)})`; c.fillRect(0, 0, w, hh);
-    if (s < 0.2) { c.fillStyle = `rgba(255,255,255,${(1 - s / 0.2).toFixed(3)})`; c.fillRect(0, 0, w, hh); }
-    if (s > 0.28) {
-      const q = clamp((s - 0.28) / 0.34, 0, 1), size = Math.round(Math.min(w * 0.158, hh * 0.4)), z = 1.45 - ckEase(q) * 0.45, cx = w / 2, cy = hh * 0.5;
-      c.save(); c.translate(cx, cy); c.scale(z, z); c.globalAlpha = q;
-      c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = `400 ${size}px ${FONT_D}`; c.lineJoin = 'round';
-      c.lineWidth = size * 0.09; c.strokeStyle = '#1e1203'; c.strokeText('CHECKMATE', 0, 0);
-      // shiny gold, with a bright band going across
-      const tw = c.measureText('CHECKMATE').width, band = -tw * 0.8 + ((s - 0.5) % 1.5) / 1.5 * tw * 2.6;
-      const g = c.createLinearGradient(band - size * 0.7, -size * 0.5, band + size * 0.7, size * 0.5);
-      g.addColorStop(0, '#d29a1c'); g.addColorStop(0.4, '#ffd24a'); g.addColorStop(0.5, '#fffbe2'); g.addColorStop(0.6, '#ffd24a'); g.addColorStop(1, '#b67f0e');
-      c.fillStyle = g; c.fillText('CHECKMATE', 0, 0);
-      c.restore();
-    }
-    if (T >= A.END) ckFinish(F, W);
-  }
-}
-
 // ---- the code typed on BeeSide's front page leaves a note in this browser; here it becomes the ball -----------------------
 function chessGrant(s) {
   let on = false;
@@ -14163,6 +14070,791 @@ addEventListener('keydown', e => {
     toast('The King is yours. He\u2019s your fighter now, and in Balls.', 4200);
   });
 }, true);
+
+
+// ===== The King wins: the finishing sequence, in almost every case the Queen's doing ====================================
+// A rook from the right, a rook from the left and up into the air, a bishop through it from below right, another from below
+// left, then the King on a knight and a lance through the middle, and time stops. Everything on the board is worked out from
+// the scene clock alone (no state stepped from frame to frame), so it's smooth at any frame rate, slow motion is just the
+// clock running slowly, and when the clock stops every spark stays exactly where it is. Looks only: the fight is already over.
+const CMK = {
+  F: 900, R: 85, X1: 255, LANCE: 430,
+  LAND: 0.62, T1: 1.3, T2: 2.2, T3: 2.86, T4: 3.42,   // the ball lands, then the four hits, on the scene clock
+  K0: 3.4, K1: 3.84, STOP: 4.5,             // the King sets off, leaves the ground, and the lance goes in
+  HOLD: 3.3,                                // real seconds from time stopping to the result
+  QX: 230, QZ: 760, QH: 340,                // where the Queen stands to give her orders: the back of the board, out of the way
+};
+const CMK_AIM = [0.78, 0.62], CMK_TILT = 0.3;
+const cmkSm = (a, b, x) => { const q = clamp((x - a) / (b - a), 0, 1); return q * q * (3 - 2 * q); };
+const cmkOut = (k, x) => (x <= 0 ? 0 : 1 - Math.exp(-k * x));
+const cmkRnd = (a, b) => a + Math.random() * (b - a);
+const cmkMix = (a, b, q) => [0, 1, 2].map(i => Math.round(a[i] + (b[i] - a[i]) * q));
+
+// ---- where everything is at scene time t ---------------------------------------------------------------------------------
+function cmkBallAt(t) {
+  const A = CMK, r = A.R, t1 = t - A.T1, t2 = t - A.T2, t3 = t - A.T3, t4 = t - A.T4;
+  let x = 0, y = r, rot = 0;
+  if (t1 < 0) {
+    const d = (t - (A.LAND - 0.36)) / 0.36;
+    if (d < 1) { const q = Math.max(0, d); y = r + 1100 * (1 - q * q); }
+    else { const a = t - A.LAND; y = r + 96 * Math.exp(-4.4 * a) * Math.abs(Math.sin(9.5 * a)); rot = 0.2 * Math.exp(-3 * a) * Math.sin(7 * a); }
+    x = 2.6 * Math.sin(t * 74) * cmkSm(A.T1 - 0.42, A.T1, t);   // it shivers as the rook comes
+  } else {
+    x = -A.X1 * cmkOut(5.2, t1);
+    y = r + 72 * Math.exp(-3.2 * t1) * Math.abs(Math.sin(8.8 * t1));
+    rot = -3.4 * cmkOut(2.6, t1);
+    if (t2 > 0) { x += 370 * cmkOut(3.4, t2); y += 395 * cmkOut(3.9, t2) + 16 * t2; rot += 4.6 * cmkOut(2.2, t2); }
+    if (t3 > 0) { x -= 58 * cmkOut(7, t3); y += 24 * cmkOut(7, t3); rot -= 2.6 * cmkOut(3, t3); }
+    if (t4 > 0) { x += 88 * cmkOut(7, t4); y += 14 * cmkOut(7, t4); rot += 3 * cmkOut(3, t4); }
+  }
+  return { x, y, z: 400, rot };
+}
+// side 1 comes from the right, -1 from the left. It runs in, hits, gives a little ground, rocks, and goes back the way it came
+function cmkRookAt(t, T, side, contact) {
+  const a = T - t, b = t - T;
+  if (a > 0.5 || b > 1.32) return null;
+  if (a > 0) return { x: contact + side * 1700 * Math.pow(a / 0.5, 2.2), y: 0, z: 400, tilt: -side * 0.13 * cmkSm(0.5, 0.25, a) };
+  const out = cmkSm(0.68, 1.32, b);
+  return { x: contact - side * 76 * cmkOut(9, b) + side * 1750 * out * out, y: 0, z: 400, tilt: side * 0.19 * Math.exp(-4.4 * b) * Math.sin(11 * b) - side * 0.1 * out };
+}
+function cmkBishopAt(t, T, dir) {
+  const c = cmkBallAt(T), L = (t - T) * 3000;
+  return { x: c.x + dir[0] * L, y: c.y + dir[1] * L, z: c.z + dir[2] * L };
+}
+const CMK_B1 = [-0.72, 0.68, 0.14], CMK_B2 = [0.72, 0.68, 0.14];
+// the King on his knight: a gallop along the board, a crouch, up off the ground, and into it
+function cmkKingAt(t) {
+  const A = CMK, B = cmkBallAt(A.STOP), far = A.R * 1.45, hx = B.x + CMK_AIM[0] * (far - A.LANCE), hy = B.y + CMK_AIM[1] * (far - A.LANCE);
+  const cs = Math.cos(CMK_TILT), sn = Math.sin(CMK_TILT), mx = hx - (40 * cs - 232 * sn), my = hy - (40 * sn + 232 * cs), Lx = mx - 250;
+  if (t < A.K0) return null;
+  let x, y, z, tilt, sq;
+  if (t < A.K1) {
+    const a = t - A.K0, q = a / (A.K1 - A.K0);
+    x = -1400 + (Lx + 1400) * Math.pow(q, 1.7); y = 26 * Math.abs(Math.sin(17 * a)) * (1 - cmkSm(0.8, 1, q)); z = 300;
+    tilt = 0.07 * Math.sin(17 * a) * (1 - cmkSm(0.8, 1, q)); sq = 1 - 0.16 * cmkSm(0.78, 1, q);
+  } else {
+    const a = t - A.K1, q = clamp(a / (A.STOP - A.K1), 0, 1), e = 1 - Math.pow(1 - q, 2.2);
+    x = Lx + (mx - Lx) * e; y = my * e + 34 * Math.sin(PI * q); z = 300 + 100 * e; tilt = CMK_TILT * cmkSm(0, 0.3, q); sq = 0.84 + 0.16 * cmkSm(0, 0.06, a) + 0.09 * Math.exp(-7 * a);
+  }
+  const c2 = Math.cos(tilt), s2 = Math.sin(tilt), hand = [x + 40 * c2 - 232 * s2, y + 40 * s2 + 232 * c2];
+  const at = cmkBallAt(t), full = Math.atan2(at.y - hand[1], at.x - hand[0]), blend = cmkSm(A.K1 - 0.12, A.K1 + 0.22, t);
+  return { x, y, z, tilt, sq, hand, ang: 0.08 + (full - 0.08) * blend };
+}
+const CMK_CAM = [
+  [0, 0, 480, -990, -236], [0.78, 0, 336, -790, -130], [CMK.T1, 30, 318, -730, -120], [CMK.T1 + 0.4, -110, 318, -720, -112], [CMK.T2, -150, 318, -690, -100],
+  [CMK.T2 + 0.42, 10, 400, -640, -10], [CMK.T4 - 0.1, 44, 410, -620, -6], [CMK.K1 + 0.03, -40, 372, -700, -30], [CMK.STOP, 4, 400, -600, 0],
+];
+// a smooth path through the camera's positions, with no stops at them
+function cmkCamAt(t) {
+  const K = CMK_CAM, n = K.length;
+  if (t <= K[0][0]) return { x: K[0][1], y: K[0][2], z: K[0][3], h: K[0][4] };
+  if (t >= K[n - 1][0]) return { x: K[n - 1][1], y: K[n - 1][2], z: K[n - 1][3], h: K[n - 1][4] };
+  let i = 0;
+  while (t > K[i + 1][0]) i++;
+  const a = K[i], b = K[i + 1], p = K[Math.max(0, i - 1)], s = K[Math.min(n - 1, i + 2)], d = b[0] - a[0], q = (t - a[0]) / d, q2 = q * q, q3 = q2 * q, o = [];
+  for (let j = 1; j <= 4; j++) {
+    const m0 = (b[j] - p[j]) / (b[0] - p[0]) * d, m1 = (s[j] - a[j]) / (s[0] - a[0]) * d;
+    o.push((2 * q3 - 3 * q2 + 1) * a[j] + (q3 - 2 * q2 + q) * m0 + (-2 * q3 + 3 * q2) * b[j] + (q3 - q2) * m1);
+  }
+  return { x: o[0], y: o[1], z: o[2], h: o[3] };
+}
+
+// ---- the pieces, shaded once, then just drawn ------------------------------------------------------------------------------
+const CMK_PAL = {
+  ivory: { hi: '#fffaf0', mid: '#eadfc6', lo: '#b9a988', deep: '#75664b', line: '#1b150d', vein: 'rgba(120,96,62,.24)', band: '#a8987a', metal: '#f2c230', shine: 'rgba(255,255,255,.75)' },
+  gold: { hi: '#fff3bd', mid: '#f2c230', lo: '#b9820f', deep: '#6b4706', line: '#241703', vein: 'rgba(120,70,0,.26)', band: '#a8740c', metal: '#fff3bd', shine: 'rgba(255,255,240,.85)' },
+  ebony: { hi: '#6d5b46', mid: '#3a2f22', lo: '#241b13', deep: '#110c07', line: '#040302', vein: 'rgba(255,232,190,.08)', band: '#16100a', metal: '#d8a31f', shine: 'rgba(255,236,200,.4)' },
+};
+const CMK_SPR = {};
+function cmkSprite(kind, pal) {
+  const key = kind + ':' + pal;
+  if (CMK_SPR[key]) return CMK_SPR[key];
+  const P = CMK_PAL[pal], S = 7, ox = 28, oy = 40, cv = document.createElement('canvas');
+  cv.width = 56 * S; cv.height = 76 * S;
+  const x = cv.getContext('2d'), all = new Path2D(CK_D[kind]);
+  all.addPath(new Path2D(CK_D.base));
+  x.scale(S, S); x.translate(ox, oy);
+  x.lineJoin = 'round'; x.lineCap = 'round'; x.lineWidth = 1.7; x.strokeStyle = P.line; x.stroke(all);
+  x.save(); x.clip(all);
+  // round in the middle, lit from the upper left, dark low down
+  let g = x.createLinearGradient(-20, 0, 20, 0);
+  g.addColorStop(0, P.lo); g.addColorStop(0.14, P.mid); g.addColorStop(0.34, P.hi); g.addColorStop(0.56, P.mid); g.addColorStop(0.84, P.lo); g.addColorStop(1, P.deep);
+  x.fillStyle = g; x.fillRect(-30, -40, 60, 80);
+  g = x.createLinearGradient(0, -34, 0, 32);
+  g.addColorStop(0, 'rgba(255,255,255,.2)'); g.addColorStop(0.5, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(0,0,0,.34)');
+  x.fillStyle = g; x.fillRect(-30, -40, 60, 80);
+  // veins in the stone
+  x.lineWidth = 0.28; x.strokeStyle = P.vein;
+  for (let i = 0; i < 12; i++) {
+    let a = cmkRnd(-20, 20), b = cmkRnd(-34, 30);
+    x.beginPath(); x.moveTo(a, b);
+    for (let j = 0; j < 5; j++) { a += cmkRnd(-2.6, 2.6); b += cmkRnd(1.2, 4.6); x.lineTo(a, b); }
+    x.stroke();
+  }
+  const band = (y, h) => {
+    g = x.createLinearGradient(0, y, 0, y + h);
+    g.addColorStop(0, 'rgba(0,0,0,.42)'); g.addColorStop(0.35, 'rgba(0,0,0,.08)'); g.addColorStop(0.45, 'rgba(255,255,255,.34)'); g.addColorStop(1, 'rgba(0,0,0,.22)');
+    x.fillStyle = g; x.fillRect(-30, y, 60, h);
+  };
+  const line = (col, w, pts) => { x.lineWidth = w; x.strokeStyle = col; x.beginPath(); pts.forEach((p, i) => (i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]))); x.stroke(); };
+  // the foot of every piece
+  band(19.5, 2.4); band(24.8, 1.7);
+  if (kind === 'rook') {
+    band(-9, 2.6);
+    for (const y of [-3, 3.5, 10]) line('rgba(0,0,0,.2)', 0.4, [[-14, y], [14, y]]);
+    [[-4, -3, 3.5], [5, -3, 3.5], [0.5, 3.5, 10], [-8, 3.5, 10], [8, 3.5, 10], [-3, 10, 19], [5, 10, 19]].forEach(([a, b, c]) => line('rgba(0,0,0,.18)', 0.4, [[a, b], [a, c]]));
+    x.fillStyle = 'rgba(0,0,0,.34)'; x.fillRect(-9, -22, 6, 3); x.fillRect(3, -22, 6, 3);
+    line('rgba(255,255,255,.5)', 0.5, [[-15.5, -26.6], [-9.4, -26.6]]); line('rgba(255,255,255,.5)', 0.5, [[-2.6, -26.6], [2.6, -26.6]]); line('rgba(255,255,255,.3)', 0.5, [[9.4, -26.6], [15.5, -26.6]]);
+  } else if (kind === 'knight') {
+    // the mane, a jaw and a bit: no eye, it's a carved shape
+    for (let i = 0; i < 7; i++) { const q = i / 6, a = -13.5 + q * 7, b = -22 + q * 22; line('rgba(0,0,0,.38)', 0.55, [[a - 0.6, b], [a + 3.4, b - 2.2 + q], [a + 6, b + 0.5 + q]]); }
+    line('rgba(0,0,0,.42)', 0.7, [[3, -7], [6, -12], [13, -13]]);
+    line('rgba(255,255,255,.34)', 0.55, [[2, -24], [10, -19], [17, -10]]);
+    line('rgba(0,0,0,.34)', 0.5, [[14, -6], [18, -5]]);
+    band(14.5, 2);
+  } else if (kind === 'bishop') {
+    band(-1.8, 3.2);
+    line('rgba(0,0,0,.6)', 1, [[1.2, -23], [6.4, -13.5]]);
+    line('rgba(255,255,255,.5)', 0.4, [[2.1, -23], [7.2, -13.8]]);
+    x.fillStyle = P.shine; x.beginPath(); x.ellipse(-0.9, -30.9, 0.9, 0.7, 0, 0, TAU); x.fill();
+  } else if (kind === 'pawn') {
+    band(-3.8, 3.4);
+    x.fillStyle = P.shine; x.beginPath(); x.ellipse(-3.6, -17.5, 2.8, 3.8, -0.5, 0, TAU); x.fill();
+  } else if (kind === 'queen') {
+    band(-7.8, 3.6);
+    line(P.metal, 0.8, [[-9, -13], [0, -11], [9, -13]]);
+    for (const [a, b] of [[-5, -10], [0, -9.4], [5, -10]]) { x.fillStyle = '#b3261e'; x.beginPath(); x.arc(a, b, 0.95, 0, TAU); x.fill(); x.fillStyle = 'rgba(255,255,255,.7)'; x.fillRect(a - 0.5, b - 0.6, 0.4, 0.4); }
+  } else if (kind === 'king') {
+    band(-7.8, 3.6);
+    x.fillStyle = P.metal; x.fillRect(-2, -32, 4, 11.6); x.fillRect(-5, -27, 10, 3);
+    line('rgba(255,255,255,.75)', 0.5, [[-1.5, -31.6], [-1.5, -21]]);
+    line('rgba(0,0,0,.34)', 0.7, [[-8, -9], [0, -19], [8, -9]]);
+    line(P.metal, 0.8, [[-10, -13], [0, -11], [10, -13]]);
+  }
+  x.restore();
+  // a hard highlight down the lit side and a rim of light on the other
+  x.save(); x.clip(all);
+  x.lineWidth = 0.7; x.strokeStyle = 'rgba(255,255,255,.4)'; x.translate(0.6, 0.45); x.stroke(all);
+  x.translate(-1.5, -0.2); x.strokeStyle = 'rgba(0,0,0,.2)'; x.lineWidth = 0.9; x.stroke(all);
+  x.restore();
+  return (CMK_SPR[key] = { cv, S, ox, oy });
+}
+// h: how tall on screen. Its foot goes at (x, y)
+function cmkDraw(c, s, x, y, h, rot, sx, sy) {
+  const u = h / 62, w = s.cv.width / s.S * u, ht = s.cv.height / s.S * u;
+  c.save(); c.translate(x, y); if (rot) c.rotate(rot); if (sx !== undefined) c.scale(sx, sy);
+  c.drawImage(s.cv, -s.ox * u, -(s.oy + 30) * u, w, ht);
+  c.restore();
+}
+let CMK_PUFF = null, CMK_BLOB = null;
+function cmkSoft() {
+  if (CMK_PUFF) return;
+  const mk = (stops) => { const cv = document.createElement('canvas'); cv.width = cv.height = 128; const x = cv.getContext('2d'), g = x.createRadialGradient(64, 64, 0, 64, 64, 64); stops.forEach(([a, b]) => g.addColorStop(a, b)); x.fillStyle = g; x.fillRect(0, 0, 128, 128); return cv; };
+  CMK_PUFF = mk([[0, 'rgba(226,212,184,.55)'], [0.5, 'rgba(206,190,160,.22)'], [1, 'rgba(190,175,150,0)']]);
+  CMK_BLOB = mk([[0, 'rgba(0,0,0,.72)'], [0.6, 'rgba(0,0,0,.42)'], [1, 'rgba(0,0,0,0)']]);
+}
+
+// ---- built once when it opens: all the sparks, chips, dust, cracks and tile waves, each knowing when it happens -----------------
+function cmkBuild(W) {
+  const A = CMK, def = W.end.loser.def, sc = { ps: [], rings: [], waves: [], floorCracks: [], stars: [], ballCracks: [], motes: [], q: 2, dtAvg: 1 / 60, lastDrop: 0 };
+  cmkSoft();
+  const B1 = cmkBallAt(A.T1), B2 = cmkBallAt(A.T2), B3 = cmkBallAt(A.T3), B4 = cmkBallAt(A.T4), B5 = cmkBallAt(A.STOP), R = A.R;
+  sc.rookA = B1.x + R + 64; sc.rookB = B2.x - R - 64;
+  sc.icon = ballIcon(def.id, 256); sc.fit = ART_OUT[def.id] && !def.grows ? 0.66 : 0.86; sc.col = def.col || '#cccccc';
+  // sparks fly, chips tumble, dust rolls: each is a closed formula from its starting push, so it can be asked where it is at any moment
+  const spark = (t0, x, y, z, n, sp, o) => { for (let i = 0; i < n; i++) {
+    const a = cmkRnd(0, TAU), up = cmkRnd(-0.5, 1), v = cmkRnd(sp * 0.3, sp), bx = (o && o.bias) || 0;
+    sc.ps.push({ k: 's', t0, x, y, z, vx: Math.cos(a) * v + bx * sp * 0.5, vy: up * v * 0.8 + ((o && o.lift) || 0), vz: Math.sin(a) * v * 0.5, d: 3.4, g: 760, life: cmkRnd(0.32, 0.86), w: cmkRnd(1.6, 3.8) });
+  } };
+  const chips = (t0, x, y, z, n, sp, o) => { for (let i = 0; i < n; i++) {
+    const a = cmkRnd(0, TAU), v = cmkRnd(sp * 0.25, sp), bx = (o && o.bias) || 0;
+    sc.ps.push({ k: 'c', t0, x, y, z, vx: Math.cos(a) * v + bx * sp * 0.6, vy: Math.abs(Math.sin(a)) * v * 0.9, vz: cmkRnd(-120, 120), d: 1.7, g: 1150, life: cmkRnd(0.8, 1.7), s: cmkRnd(5, 15), rot: cmkRnd(0, TAU), vr: cmkRnd(-13, 13), col: i % 4 === 0 ? '#14110c' : i % 3 === 0 ? '#ffffff' : sc.col, sides: i % 2 ? 3 : 4 });
+  } };
+  const dust = (t0, x, z, n, sp, o) => { for (let i = 0; i < n; i++) {
+    const a = cmkRnd(0, TAU), v = cmkRnd(sp * 0.3, sp);
+    sc.ps.push({ k: 'd', t0: t0 + cmkRnd(0, 0.05), x, y: cmkRnd(4, 26), z, vx: Math.cos(a) * v + ((o && o.vx) || 0), vy: cmkRnd(20, 120), vz: Math.sin(a) * v * 0.55, d: 2.6, g: 0, life: cmkRnd(0.5, 1.15), s: cmkRnd(36, 110) });
+  } };
+  // bits of the board itself, thrown up by a blow: marble and walnut
+  const stones = (t0, x, z, n, sp) => { for (let i = 0; i < n; i++) {
+    const a = cmkRnd(0, TAU), v = cmkRnd(sp * 0.2, sp);
+    sc.ps.push({ k: 'c', t0, x: x + cmkRnd(-60, 60), y: 3, z: z + cmkRnd(-70, 70), vx: Math.cos(a) * v * 0.7, vy: cmkRnd(sp * 0.35, sp * 1.05), vz: Math.sin(a) * v * 0.4, d: 1.2, g: 1700, life: cmkRnd(0.7, 1.35), s: cmkRnd(4, 13), rot: cmkRnd(0, TAU), vr: cmkRnd(-14, 14), col: i % 2 ? '#d6c8a6' : '#2e2218', sides: 4 });
+  } };
+  const crack = (t0, x, z, arms, reach) => {
+    const lines = [];
+    for (let i = 0; i < arms; i++) {
+      const a = i / arms * TAU + cmkRnd(-0.3, 0.3), pts = [[x, z]]; let px = x, pz = z, b = a;
+      const n = 3 + Math.floor(cmkRnd(0, 3));
+      for (let j = 0; j < n; j++) { const l = reach / n * cmkRnd(0.6, 1.3); b += cmkRnd(-0.55, 0.55); px += Math.cos(b) * l; pz += Math.sin(b) * l * 0.8; pts.push([clamp(px, -400, 400), clamp(pz, 0, 800)]); }
+      lines.push(pts);
+    }
+    sc.floorCracks.push({ t0, lines });
+  };
+  const star = (t0, x, y, z, r, life, hot) => { const n = 11 + Math.floor(cmkRnd(0, 4)), sp = []; for (let i = 0; i < n; i++) sp.push(cmkRnd(0.72, 1.3)); sc.stars.push({ t0, x, y, z, r, life, sp, a0: cmkRnd(0, TAU), hot }); };
+  const hit = (t0, x, y, z, pow, bias) => {
+    spark(t0, x, y, z, Math.round(46 * pow), 1500 * pow, { bias });
+    chips(t0, x, y, z, Math.round(16 * pow), 900 * pow, { bias });
+    star(t0, x, y, z, 138 * pow, 0.18, 1);
+  };
+  // the ball coming down on the board
+  dust(A.LAND, 0, 400, 10, 240); sc.rings.push({ t0: A.LAND, x: 0, z: 400, R: 190, life: 0.42, w: 3 }); sc.waves.push({ t0: A.LAND, x: 0, z: 400, a: 12 });
+  // the rooks: dust behind them as they come, then the hit, a shockwave, the board jumping and cracking
+  for (const [T, side, con, ball] of [[A.T1, 1, sc.rookA, B1], [A.T2, -1, sc.rookB, B2]]) {
+    for (let i = 0; i < 14; i++) { const a = 0.46 * (i / 14); sc.ps.push({ k: 'd', t0: T - a, x: con + side * 1700 * Math.pow(a / 0.5, 2.2), y: 12, z: 400 + cmkRnd(-40, 40), vx: side * cmkRnd(60, 200), vy: cmkRnd(30, 110), vz: cmkRnd(-90, 90), d: 2.4, g: 0, life: cmkRnd(0.5, 1), s: cmkRnd(50, 120) }); }
+    const hx = side > 0 ? ball.x + R * 0.9 : ball.x - R * 0.9;
+    hit(T, hx, 100, 400, side > 0 ? 1 : 1.2, -side * 0.5);
+    dust(T, hx, 400, 16, 460);
+    stones(T, hx, 400, 26, 900);
+    for (let i = 0; i < 10; i++) { const a = cmkRnd(0, TAU), v = cmkRnd(120, 640); sc.ps.push({ k: 'c', t0: T, x: hx + side * 60, y: cmkRnd(40, 220), z: 400, vx: side * Math.abs(Math.cos(a)) * v, vy: Math.abs(Math.sin(a)) * v, vz: cmkRnd(-90, 90), d: 1.6, g: 1250, life: cmkRnd(0.7, 1.4), s: cmkRnd(4, 11), rot: cmkRnd(0, TAU), vr: cmkRnd(-12, 12), col: i % 2 ? '#eadfc6' : '#b9a988', sides: 4 }); }
+    sc.rings.push({ t0: T, x: hx, z: 400, R: 480, life: 0.5, w: 7 });
+    sc.waves.push({ t0: T, x: hx, z: 400, a: side > 0 ? 30 : 38 });
+    crack(T, hx, 400, 9, 230);
+  }
+  // the bishops go straight through it
+  hit(A.T3, B3.x, B3.y, B3.z, 0.9, -0.3); hit(A.T4, B4.x, B4.y, B4.z, 0.95, 0.3);
+  // the King: hoofbeats, the leap breaking the board, and everything the lance throws out, which is what gets caught when time stops
+  for (let i = 0; i < 10; i++) { const a = A.K0 + (A.K1 - A.K0) * (0.3 + i / 14), p = cmkKingAt(a); sc.ps.push({ k: 'd', t0: a, x: p.x, y: 10, z: p.z + cmkRnd(-30, 30), vx: cmkRnd(-160, -40), vy: cmkRnd(20, 90), vz: cmkRnd(-60, 60), d: 2.4, g: 0, life: cmkRnd(0.5, 0.95), s: cmkRnd(40, 90) }); }
+  const lp = cmkKingAt(A.K1);
+  dust(A.K1, lp.x, lp.z, 16, 420); stones(A.K1, lp.x, lp.z, 20, 760); sc.rings.push({ t0: A.K1, x: lp.x, z: lp.z, R: 340, life: 0.42, w: 5 }); sc.waves.push({ t0: A.K1, x: lp.x, z: lp.z, a: 26 }); crack(A.K1, lp.x, lp.z, 7, 170);
+  const inAt = A.STOP - 0.13, enter = [B5.x - CMK_AIM[0] * R * 0.7, B5.y - CMK_AIM[1] * R * 0.7], exit = [B5.x + CMK_AIM[0] * R * 0.9, B5.y + CMK_AIM[1] * R * 0.9];
+  spark(inAt, enter[0], enter[1], 400, 60, 1500, { bias: -0.5 }); spark(inAt, exit[0], exit[1], 400, 90, 2100, { bias: 0.6, lift: 240 }); chips(inAt, exit[0], exit[1], 400, 36, 1400, { bias: 0.6 });
+  star(inAt, B5.x, B5.y, 400, 230, 0.36, 1); sc.stars[sc.stars.length - 1].back = 1; sc.exit = exit;
+  // cracks across the ball itself, from wherever each hit landed, in ball coordinates so they turn with it
+  const web = (t0, ang, arms, reach) => { const lines = []; for (let i = 0; i < arms; i++) { let x = Math.cos(ang) * 0.98, y = Math.sin(ang) * 0.98, b = ang + PI + cmkRnd(-0.85, 0.85); const pts = [[x, y]], n = 4; for (let j = 0; j < n; j++) { const l = reach / n * cmkRnd(0.7, 1.25); b += cmkRnd(-0.5, 0.5); x += Math.cos(b) * l; y += Math.sin(b) * l; pts.push([x, y]); } lines.push(pts); } sc.ballCracks.push({ t0, lines }); };
+  web(A.T1, 0.1, 4, 0.75); web(A.T2, 2.7, 5, 0.95); web(A.T3, 0.9, 5, 1.05); web(A.T4, 2.2, 6, 1.15); web(inAt, -0.7, 9, 1.5);
+  // the marble and the walnut, each square a little different, going dark with distance
+  sc.tiles = [];
+  const LT = [214, 200, 166], DK = [46, 34, 24];
+  for (let r = 0; r < 8; r++) { const row = []; for (let q = 0; q < 8; q++) { const base = (r + q) % 2 ? LT : DK, j = cmkRnd(-9, 9), fog = 1 - 0.46 * (r / 7); const col = base.map(v => Math.round(clamp(v + j, 0, 255) * fog)); row.push({ col: `rgb(${col})`, side: `rgb(${col.map(v => Math.round(v * 0.42))})`, jit: cmkRnd(0, 1) }); } sc.tiles.push(row); }
+  sc.veins = []; sc.grain = [];
+  for (let r = 0; r < 8; r++) for (let q = 0; q < 8; q++) {
+    const x0 = -400 + q * 100, z0 = r * 100;
+    if ((r + q) % 2) for (let v = 0; v < 2; v++) { let a = x0 + cmkRnd(4, 96), b = z0 + cmkRnd(4, 96), th = cmkRnd(0, TAU); const pts = [[a, b]]; for (let j = 0; j < 4; j++) { th += cmkRnd(-0.7, 0.7); a = clamp(a + Math.cos(th) * 22, x0, x0 + 100); b = clamp(b + Math.sin(th) * 22, z0, z0 + 100); pts.push([a, b]); } sc.veins.push(pts); }
+    else for (let v = 0; v < 4; v++) { const b = z0 + cmkRnd(6, 94), w = cmkRnd(-5, 5); sc.grain.push([[x0 + 2, b], [x0 + 50, b + w], [x0 + 98, b + cmkRnd(-3, 3)]]); }
+  }
+  for (let i = 0; i < 70; i++) sc.motes.push({ x: cmkRnd(-720, 720), y: cmkRnd(10, 900), z: cmkRnd(60, 900), f: cmkRnd(0.25, 0.8), p: cmkRnd(0, TAU), v: cmkRnd(5, 24), s: cmkRnd(0.9, 2.4) });
+  // what the clock stops for, and what it sets off
+  const big = (fn) => fn;
+  sc.hits = [
+    { t: A.T1, hold: 0.085, amp: 26, go: big(() => { SFX.clang(); SFX.ko(); }) },
+    { t: A.T2, hold: 0.1, amp: 32, go: big(() => { SFX.clang(); SFX.ko(); }) },
+    { t: A.T3, hold: 0.07, amp: 18, go: big(() => { SFX.clang(); }) },
+    { t: A.T4, hold: 0.07, amp: 20, go: big(() => { SFX.clang(); }) },
+  ];
+  const whoosh = (hi) => () => SFX.noise(0.26, 0.13, 'bandpass', hi ? 1200 : 500, hi ? 4200 : 2400, 0.9);
+  sc.cues = [
+    { t: A.LAND, go: () => { SFX.clack(); } },
+    { t: A.T1 - 0.34, go: whoosh(0) }, { t: A.T2 - 0.34, go: whoosh(0) }, { t: A.T3 - 0.1, go: whoosh(1) }, { t: A.T4 - 0.1, go: whoosh(1) },
+    { t: A.K0 + 0.18, go: () => SFX.clack() }, { t: A.K0 + 0.3, go: () => SFX.clack() }, { t: A.K0 + 0.4, go: () => SFX.clack() }, { t: A.K1, go: () => { SFX.clang(); whoosh(0)(); } },
+  ];
+  sc.shakes = [];
+  sc.queen = !!W.end.queen;
+  sc.orders = [A.T1 - 0.5, A.T2 - 0.5, A.T3 - 0.26, A.T4 - 0.26, A.K0 - 0.1];
+  sc.squash = [{ t: A.LAND, a: 0.26, ang: HALF_PI }, { t: A.T1, a: 0.38, ang: 0 }, { t: A.T2, a: 0.42, ang: -0.75 }, { t: A.T3, a: 0.2, ang: -0.7 }, { t: A.T4, a: 0.2, ang: 0.7 }, { t: inAt, a: 0.14, ang: -0.67 }];
+  return sc;
+}
+
+// ---- the clock: real time in, scene time out. A hit holds it for a beat; it hangs in the air, and crawls for the last of the lance --
+function cmkClock(W, sc, dt) {
+  const A = CMK, t = W.scene;
+  for (const q of sc.cues) if (!q.done && t >= q.t) { q.done = 1; q.go(); }
+  if (W.holdLeft > 0) { W.holdLeft -= dt; return; }
+  W.sinceHold += dt;
+  let sp = 0.3 + 0.7 * cmkSm(0, 0.17, W.sinceHold);
+  sp *= 1 - 0.26 * cmkSm(A.T2 + 0.3, A.T2 + 0.58, t) * (1 - cmkSm(A.T4 + 0.14, A.T4 + 0.36, t));
+  sp *= 1 - 0.72 * cmkSm(A.STOP - 0.42, A.STOP - 0.1, t);
+  let next = t + dt * sp;
+  for (const h of sc.hits) if (!h.done && next >= h.t) {
+    next = h.t; h.done = 1; W.holdLeft = h.hold; W.sinceHold = 0; h.go();
+    sc.shakes.push({ at: W.T, amp: h.amp, p: cmkRnd(0, TAU) });
+    break;
+  }
+  W.scene = Math.min(A.STOP, next);
+}
+function cmkShake(W, sc) {
+  let x = 0, y = 0;
+  for (const s of sc.shakes) { const a = W.T - s.at; if (a > 0.9) continue; const e = s.amp * Math.exp(-6.5 * a); x += e * Math.sin(58 * a + s.p); y += e * 0.7 * Math.sin(47 * a + s.p * 1.7); }
+  return [x, y];
+}
+
+// ---- drawing a moment ----------------------------------------------------------------------------------------------------------
+function cmkScene(c, w, h, W, sc, t) {
+  const A = CMK, K = Math.min(h / 620, Math.max(w / 1000, w / 690)), vw = w / K, vh = h / K, cam = cmkCamAt(t), sh = W.scene >= A.STOP ? [0, 0] : cmkShake(W, sc), q2 = sc.q;
+  const P = (x, y, z) => { const k = A.F / Math.max(40, z - cam.z); return [(x - cam.x) * k, cam.h + (cam.y - y) * k, k]; };
+  c.save();
+  let g = c.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, '#0a0806'); g.addColorStop(0.5, '#17110c'); g.addColorStop(1, '#070504');
+  c.fillStyle = g; c.fillRect(0, 0, w, h);
+  c.translate(w / 2 + sh[0] * K, h / 2 + sh[1] * K); c.scale(K, K);
+  // the hall behind the board: columns, further off than anything, so they slide slowly as the camera moves
+  for (const x of [-1320, -980, -660, 660, 980, 1320]) {
+    const a = P(x - 46, 1500, 1120), b = P(x + 46, 0, 1120);
+    c.fillStyle = '#120d09'; c.fillRect(a[0], a[1], b[0] - a[0], b[1] - a[1]);
+    c.fillStyle = '#1b140e'; c.fillRect(a[0], a[1], (b[0] - a[0]) * 0.22, b[1] - a[1]);
+    c.fillStyle = '#0a0705'; c.fillRect(a[0] + (b[0] - a[0]) * 0.8, a[1], (b[0] - a[0]) * 0.2, b[1] - a[1]);
+  }
+  const fl = [P(-3200, 0, 1120), P(3200, 0, 1120)], nearY = vh;
+  g = c.createLinearGradient(0, fl[0][1], 0, fl[0][1] + 280);
+  g.addColorStop(0, '#0d0a07'); g.addColorStop(1, '#16110c');
+  c.fillStyle = g; c.fillRect(-vw, fl[0][1], vw * 2, nearY);
+  // the board
+  const introA = cmkSm(0, 0.42, t), corner = (x, y, z) => P(x, y, z), quad = (a, b, d, e, col) => { c.fillStyle = col; c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.lineTo(d[0], d[1]); c.lineTo(e[0], e[1]); c.closePath(); c.fill(); };
+  c.globalAlpha = introA;
+  quad(corner(-440, 0, 840), corner(440, 0, 840), corner(440, 0, -40), corner(-440, 0, -40), '#3b2614');
+  quad(corner(-440, 0, -40), corner(440, 0, -40), corner(440, -30, -40), corner(-440, -30, -40), '#1c1109');
+  c.lineWidth = 2.2; c.strokeStyle = 'rgba(216,170,76,.85)'; c.beginPath();
+  { const p = [corner(-408, 0, 808), corner(408, 0, 808), corner(408, 0, -8), corner(-408, 0, -8)]; c.moveTo(p[0][0], p[0][1]); p.slice(1).forEach(v => c.lineTo(v[0], v[1])); c.closePath(); c.stroke(); }
+  c.globalAlpha = 1;
+  // a rook ploughing along lifts the squares it passes over, only while it's charging
+  const plough = [];
+  if (t < A.T1) { const o = cmkRookAt(t, A.T1, 1, sc.rookA); if (o) plough.push(o); }
+  if (t > A.T1 && t < A.T2) { const o = cmkRookAt(t, A.T2, -1, sc.rookB); if (o) plough.push(o); }
+  for (let r = 7; r >= 0; r--) for (let q = 0; q < 8; q++) {
+    const T = sc.tiles[r][q], x0 = -400 + q * 100, x1 = x0 + 100, z0 = r * 100, z1 = z0 + 100;
+    // the squares drop into place, far ones first
+    const inQ = clamp((t - (0.03 + (7 - r) * 0.032 + T.jit * 0.05)) / 0.24, 0, 1);
+    if (inQ <= 0) continue;
+    let l = 560 * (1 - (1 - Math.pow(1 - inQ, 3)));
+    const cx = x0 + 50, cz = z0 + 50;
+    for (const v of sc.waves) { const a = t - v.t0; if (a <= 0 || a > 1.5) continue; const d = Math.sqrt((cx - v.x) * (cx - v.x) + (cz - v.z) * (cz - v.z)), f = (d - 800 * a) / 120; if (f > 3 || f < -3) continue; l += v.a * Math.exp(-2.5 * a) * Math.exp(-f * f); }
+    for (const rk of plough) { const dx = (cx - rk.x) / 92, dz = (cz - rk.z) / 120, f = dx * dx + dz * dz; if (f < 5) l += 15 * Math.exp(-f); }
+    if (inQ < 1) c.globalAlpha = Math.min(1, inQ * 2.4);
+    const a = corner(x0, l, z1), b = corner(x1, l, z1), d = corner(x1, l, z0), e = corner(x0, l, z0);
+    if (l > 0.8) quad(e, d, corner(x1, 0, z0), corner(x0, 0, z0), T.side);
+    quad(a, b, d, e, T.col);
+    if (inQ < 1) c.globalAlpha = 1;
+  }
+  if (t > 0.5) {
+    const fade = cmkSm(0.5, 0.8, t);
+    // the fine lines: marble veins and walnut grain, and the joins between squares
+    if (q2 > 0) {
+      const path = (list) => { c.beginPath(); for (const pts of list) pts.forEach((p, i) => { const v = corner(p[0], 0, p[1]); if (i) c.lineTo(v[0], v[1]); else c.moveTo(v[0], v[1]); }); c.stroke(); };
+      c.lineWidth = 0.8; c.strokeStyle = `rgba(92,74,48,${(0.5 * fade).toFixed(3)})`; path(sc.veins);
+      c.lineWidth = 0.7; c.strokeStyle = `rgba(0,0,0,${(0.42 * fade).toFixed(3)})`; path(sc.grain);
+    }
+    c.lineWidth = 1; c.strokeStyle = `rgba(0,0,0,${(0.5 * fade).toFixed(3)})`; c.beginPath();
+    for (let i = 0; i <= 8; i++) { const a = corner(-400 + i * 100, 0, 0), b = corner(-400 + i * 100, 0, 800), d = corner(-400, 0, i * 100), e = corner(400, 0, i * 100); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.moveTo(d[0], d[1]); c.lineTo(e[0], e[1]); }
+    c.stroke();
+  }
+  // where the board's been broken
+  for (const f of sc.floorCracks) {
+    const q = cmkSm(f.t0, f.t0 + 0.13, t);
+    if (q <= 0) continue;
+    c.lineCap = 'round';
+    for (const pass of [[3.4, 'rgba(6,4,2,.86)'], [1, 'rgba(255,222,160,.5)']]) {
+      c.lineWidth = pass[0]; c.strokeStyle = pass[1]; c.beginPath();
+      for (const L of f.lines) { const n = Math.max(1, Math.ceil(q * (L.length - 1))); for (let i = 0; i <= n; i++) { const v = corner(L[i][0], 0, L[i][1]); if (i) c.lineTo(v[0], v[1]); else c.moveTo(v[0], v[1]); } }
+      c.stroke();
+    }
+    c.lineCap = 'butt';
+  }
+  const ball = cmkBallAt(t), bs = P(ball.x, ball.y, ball.z), br = A.R * bs[2];
+  // the pool of light it's sitting in
+  { const f = P(clamp(ball.x, -300, 300) * 0.8, 0, 400), fore = cam.y / (400 - cam.z), rad = 430 * f[2];
+    c.save(); c.translate(f[0], f[1]); c.scale(1, Math.max(0.1, fore));
+    g = c.createRadialGradient(0, 0, 0, 0, 0, rad);
+    g.addColorStop(0, 'rgba(255,240,205,.24)'); g.addColorStop(0.55, 'rgba(255,235,195,.08)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(0, 0, rad, 0, TAU); c.fill(); c.restore();
+  }
+  const rookA = cmkRookAt(t, A.T1, 1, sc.rookA), rookB = cmkRookAt(t, A.T2, -1, sc.rookB), king = cmkKingAt(t), rookH = 262, queenA = sc.queen ? cmkSm(0.2, 0.75, t) : 0;
+  // what the board reflects, and the shadows it takes
+  c.save();
+  { const p = [corner(-400, 0, 800), corner(400, 0, 800), corner(400, 0, 0), corner(-400, 0, 0)]; c.beginPath(); c.moveTo(p[0][0], p[0][1]); p.slice(1).forEach(v => c.lineTo(v[0], v[1])); c.closePath(); c.clip(); }
+  if (q2 > 0) {
+    c.globalAlpha = 0.17;
+    const flip = (kind, pal, o, H) => { const f = P(o.x, 0, o.z); cmkDraw(c, cmkSprite(kind, pal), f[0], f[1], H * f[2], -(o.tilt || 0), 1, -0.9); };
+    if (queenA) { c.globalAlpha = 0.17 * queenA; flip('queen', 'gold', { x: A.QX, z: A.QZ }, A.QH); c.globalAlpha = 0.17; }
+    if (rookA) flip('rook', 'ivory', rookA, rookH);
+    if (rookB) flip('rook', 'ivory', rookB, rookH);
+    const low = 1 - cmkSm(A.R, A.R + 140, ball.y);
+    if (low > 0 && ball.y < 800) { c.globalAlpha = 0.15 * low; const f = P(ball.x, 0, ball.z), s = 2 * A.R * f[2] / sc.fit, up = (ball.y) * f[2]; c.save(); c.translate(f[0], f[1] + up); c.scale(1, -0.86); c.rotate(ball.rot); c.drawImage(sc.icon, -s / 2, -s / 2, s, s); c.restore(); }
+    c.globalAlpha = 1;
+  }
+  const blob = (x, y, z, r0) => { const f = P(x, 0, z), lift = clamp(1 - y / 900, 0.22, 1), s = r0 * f[2] * (2 + y / 900), fore = cam.y / (z - cam.z); c.save(); c.globalAlpha = lift * 0.85; c.translate(f[0], f[1]); c.scale(1, Math.max(0.12, fore)); c.drawImage(CMK_BLOB, -s, -s, s * 2, s * 2); c.restore(); };
+  if (queenA) blob(A.QX, 0, A.QZ, 70);
+  if (rookA) blob(rookA.x, 0, rookA.z, 88);
+  if (rookB) blob(rookB.x, 0, rookB.z, 88);
+  if (king) blob(king.x, king.y, king.z, 92);
+  if (ball.y < 1000) blob(ball.x, ball.y, ball.z, 84);
+  c.restore();
+  // shock rings along the floor
+  for (const r of sc.rings) {
+    const a = (t - r.t0) / r.life;
+    if (a <= 0 || a >= 1) continue;
+    const f = P(r.x, 0, r.z), fore = Math.max(0.12, cam.y / (r.z - cam.z)), rad = r.R * f[2] * (1 - Math.pow(1 - a, 2.4));
+    c.save(); c.translate(f[0], f[1]); c.scale(1, fore); c.beginPath(); c.arc(0, 0, rad, 0, TAU); c.restore();
+    c.lineWidth = r.w * (1 - a); c.strokeStyle = `rgba(255,240,205,${(0.75 * (1 - a)).toFixed(3)})`; c.stroke();
+  }
+  // the light coming down on it, and the dust hanging in the light
+  { const a = P(-120, 1500, 400), b = P(120, 1500, 400), d = P(430, 0, 400), e = P(-430, 0, 400); g = c.createLinearGradient(0, a[1], 0, d[1]); let bump = 0; for (const T of [A.T1, A.T2, A.T3, A.T4]) { const o = t - T; if (o > 0 && o < 0.5) bump = Math.max(bump, Math.exp(-7 * o)); } g.addColorStop(0, `rgba(255,240,205,${(0.1 + 0.14 * bump).toFixed(3)})`); g.addColorStop(1, 'rgba(255,240,205,0)'); c.fillStyle = g; c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.lineTo(d[0], d[1]); c.lineTo(e[0], e[1]); c.closePath(); c.fill(); }
+  c.fillStyle = 'rgba(255,240,210,.5)';
+  for (const m of sc.motes) { const f = P(m.x + Math.sin(t * m.f + m.p) * 26, m.y + ((t * m.v) % 40), m.z), s = m.s * f[2]; c.fillRect(f[0], f[1], s, s); }
+  // the Queen, at the back of the board, giving the orders
+  if (queenA) {
+    let lift = 0, up = 1;
+    for (const o of sc.orders) { const a = t - o; if (a > 0 && a < 0.8) { const e = Math.exp(-5.5 * a) * Math.sin(Math.min(a * 9, PI)); lift += 34 * Math.max(0, e); up += 0.05 * Math.max(0, e); } }
+    const f = P(A.QX, lift, A.QZ);
+    c.globalAlpha = queenA; cmkDraw(c, cmkSprite('queen', 'gold'), f[0], f[1], A.QH * f[2], 0, up, up); c.globalAlpha = 1;
+    for (const o of sc.orders) { const a = (t - o) / 0.42; if (a <= 0 || a >= 1) continue; const v = P(A.QX, A.QH + 8 + lift, A.QZ), rad = (24 + 150 * (1 - (1 - a) * (1 - a))) * v[2]; c.beginPath(); c.arc(v[0], v[1], rad, 0, TAU); c.lineWidth = 4 * (1 - a); c.strokeStyle = `rgba(255,214,100,${((1 - a) * 0.9).toFixed(3)})`; c.stroke(); }
+  }
+  // a hard star where something lands
+  const drawStars = (back) => {
+    for (const s of sc.stars) {
+      if (!!s.back !== back) continue;
+      const a = (t - s.t0) / s.life;
+      if (a <= 0 || a >= 1) continue;
+      const f = P(s.x, s.y, s.z), R0 = s.r * f[2] * (0.45 + 0.75 * Math.pow(a, 0.5)), fade = 1 - a * a, n2 = s.sp.length;
+      for (const [mul, col] of [[1, `rgba(255,210,74,${(0.9 * fade).toFixed(3)})`], [0.62, `rgba(255,255,255,${fade.toFixed(3)})`]]) {
+        c.fillStyle = col; c.beginPath();
+        for (let i = 0; i < n2; i++) { const th = s.a0 + i / n2 * TAU, r0 = R0 * mul * s.sp[i], th2 = th + PI / n2, r1 = R0 * mul * 0.36; const x1 = f[0] + Math.cos(th) * r0, y1 = f[1] + Math.sin(th) * r0, x2 = f[0] + Math.cos(th2) * r1, y2 = f[1] + Math.sin(th2) * r1; if (i) c.lineTo(x1, y1); else c.moveTo(x1, y1); c.lineTo(x2, y2); }
+        c.closePath(); c.fill();
+      }
+    }
+  };
+  drawStars(true);
+  // a rook, with what it left behind it in the air
+  const rookDraw = (r, T, side, con) => {
+    if (!r) return;
+    const f = P(r.x, 0, r.z);
+    if (q2 > 0 && t < T) for (let j = 4; j >= 1; j--) { const o = cmkRookAt(t - j * 0.016, T, side, con); if (!o) continue; const v = P(o.x, 0, o.z); c.globalAlpha = 0.34 - j * 0.07; cmkDraw(c, cmkSprite('rook', 'ivory'), v[0], v[1], rookH * v[2], o.tilt); }
+    c.globalAlpha = 1;
+    cmkDraw(c, cmkSprite('rook', 'ivory'), f[0], f[1], rookH * f[2], r.tilt);
+  };
+  rookDraw(rookA, A.T1, 1, sc.rookA); rookDraw(rookB, A.T2, -1, sc.rookB);
+  // the King on his knight, and the lance
+  if (king) {
+    const f = P(king.x, king.y, king.z), hor = 2 - king.sq;
+    cmkDraw(c, cmkSprite('knight', 'ebony'), f[0], f[1], 278 * f[2], -king.tilt, hor, king.sq);
+    const up = 148 * king.sq, kx = king.x - up * Math.sin(king.tilt), ky = king.y + up * Math.cos(king.tilt), v = P(kx, ky, king.z);
+    cmkDraw(c, cmkSprite('king', 'ivory'), v[0], v[1], 246 * v[2], -king.tilt * 0.6 + 0.04);
+    cmkLance(c, P, king, t, bs, br, A);
+  }
+  // the ball, with the fading copies it leaves when it's moving fast
+  if (ball.y < 1500) {
+    if (q2 > 0) for (let j = 5; j >= 1; j--) {
+      const o = cmkBallAt(t - j * 0.012), d = Math.abs(o.x - ball.x) + Math.abs(o.y - ball.y);
+      if (d < 6 * j) continue;
+      const v = P(o.x, o.y, o.z), s = 2 * A.R * v[2] / sc.fit;
+      c.globalAlpha = 0.24 - j * 0.04; c.save(); c.translate(v[0], v[1]); c.rotate(o.rot); c.drawImage(sc.icon, -s / 2, -s / 2, s, s); c.restore();
+    }
+    c.globalAlpha = 1;
+    cmkBall(c, sc, ball, bs, br, t, 0);
+  }
+  // the bishops: a blade of light on the way through, and the cut it leaves hanging in the air
+  for (const [T, dir] of [[A.T3, CMK_B1], [A.T4, CMK_B2]]) cmkBishop(c, P, sc, t, T, dir, q2);
+  // everything flying: dust, chips, sparks, in that order
+  const n = sc.ps.length;
+  for (let i = 0; i < n; i++) {
+    const p = sc.ps[i], a = t - p.t0;
+    if (a <= 0 || a >= p.life) continue;
+    if (q2 === 0 && i % 2) continue;
+    const e = (1 - Math.exp(-p.d * a)) / p.d, life = a / p.life;
+    let y = p.y + p.vy * e - 0.5 * p.g * a * a;
+    if (y < 0) y = -y * 0.25;
+    const v = P(p.x + p.vx * e, y, p.z + p.vz * e);
+    if (p.k === 'd') {
+      const s = p.s * (0.5 + a * 1.6) * v[2];
+      c.globalAlpha = (1 - life) * (1 - life) * 0.75; c.drawImage(CMK_PUFF, v[0] - s / 2, v[1] - s / 2, s, s);
+    } else if (p.k === 'c') {
+      const s = p.s * v[2], ang = p.rot + p.vr * a;
+      c.globalAlpha = 1 - life * life * life; c.fillStyle = p.col; c.save(); c.translate(v[0], v[1]); c.rotate(ang); c.beginPath();
+      if (p.sides === 3) { c.moveTo(0, -s); c.lineTo(s * 0.9, s * 0.7); c.lineTo(-s * 0.7, s * 0.5); } else { c.moveTo(-s * 0.8, -s * 0.5); c.lineTo(s * 0.5, -s * 0.8); c.lineTo(s * 0.8, s * 0.5); c.lineTo(-s * 0.4, s * 0.7); }
+      c.closePath(); c.fill(); c.restore();
+    } else {
+      const a0 = Math.max(0, a - 0.022), e0 = (1 - Math.exp(-p.d * a0)) / p.d, u = P(p.x + p.vx * e0, Math.abs(p.y + p.vy * e0 - 0.5 * p.g * a0 * a0), p.z + p.vz * e0);
+      c.globalAlpha = 1 - life * life; c.lineWidth = p.w * v[2] * (1 - life * 0.6); c.lineCap = 'round';
+      c.strokeStyle = life < 0.28 ? '#fffbe8' : life < 0.62 ? '#ffd24a' : '#ff8a2a';
+      c.beginPath(); c.moveTo(u[0], u[1]); c.lineTo(v[0], v[1]); c.stroke();
+    }
+  }
+  c.globalAlpha = 1; c.lineCap = 'butt';
+  // the instant of a hit: a hard star, thick lines rushing in, a touch of light over everything
+  drawStars(false);
+  const rushLines = (at, life, cx, cy, n3, reach) => {
+    const a = (t - at) / life;
+    if (a < 0 || a >= 1) return;
+    const seed = at * 977;
+    c.fillStyle = `rgba(255,250,235,${(0.6 * (1 - a)).toFixed(3)})`;
+    for (let i = 0; i < n3; i++) {
+      const r1 = Math.sin(seed + i * 12.9898) * 43758.5453, r2 = r1 - Math.floor(r1), th = i / n3 * TAU + r2 * 0.2, inner = reach * (0.34 + r2 * 0.2) * (1 - a * 0.2), wd = 0.005 + r2 * 0.012, out = reach * 1.6;
+      c.beginPath(); c.moveTo(cx + Math.cos(th) * inner, cy + Math.sin(th) * inner); c.lineTo(cx + Math.cos(th - wd) * out, cy + Math.sin(th - wd) * out); c.lineTo(cx + Math.cos(th + wd) * out, cy + Math.sin(th + wd) * out); c.closePath(); c.fill();
+    }
+  };
+  if (q2 > 0) {
+    rushLines(A.T1, 0.14, bs[0], bs[1], 44, Math.max(vw, vh) * 0.62);
+    rushLines(A.T2, 0.16, bs[0], bs[1], 54, Math.max(vw, vh) * 0.62);
+    rushLines(A.STOP - 0.2, 0.21, bs[0], bs[1], 80, Math.max(vw, vh) * 0.62);
+  }
+  c.restore();
+  // a touch of light across the whole screen on the big hits, and the dark edges of the picture
+  for (const [T, amt] of [[A.T1, 0.3], [A.T2, 0.36], [A.T3, 0.2], [A.T4, 0.22]]) { const a = W.scene - T; if (a >= 0 && a < 0.25) { c.fillStyle = `rgba(255,246,222,${(amt * Math.exp(-16 * a)).toFixed(3)})`; c.fillRect(0, 0, w, h); } }
+  g = c.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.34, w / 2, h / 2, Math.max(w, h) * 0.74);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.72)');
+  c.fillStyle = g; c.fillRect(0, 0, w, h);
+  sc.frameCam = { cam, K, P };
+}
+// the ball: squashed by what just hit it, stretched by how fast it's going, cut in two for a moment by a blade, and cracking
+function cmkBall(c, sc, ball, bs, br, t, gold) {
+  const A = CMK, s = 2 * br / sc.fit;
+  let sq = 0, ang = 0;
+  for (const e of sc.squash) { const a = t - e.t; if (a < 0 || a > 0.8) continue; const v = e.a * Math.exp(-8.5 * a) * Math.cos(25 * a); if (Math.abs(v) > Math.abs(sq)) { sq = v; ang = e.ang; } }
+  const before = cmkBallAt(t - 0.012), dx = ball.x - before.x, dy = ball.y - before.y, sp = Math.sqrt(dx * dx + dy * dy) / 0.012, st = clamp((sp - 420) / 5200, 0, 0.2);
+  if (st > Math.abs(sq)) { sq = -st; ang = Math.atan2(-dy, dx); }
+  // a blade through it: for a moment it's two pieces either side of the cut
+  let cut = 0, cdir = null;
+  for (const [T, dir] of [[A.T3, CMK_B1], [A.T4, CMK_B2]]) { const a = t - T; if (a > 0 && a < 0.5) { const v = 0.22 * br * Math.exp(-7 * a); if (v > cut) { cut = v; cdir = dir; } } }
+  const one = () => {
+    c.save(); c.rotate(ang); c.scale(1 - sq, 1 + sq * 0.72); c.rotate(-ang); c.rotate(ball.rot);
+    c.drawImage(sc.icon, -s / 2, -s / 2, s, s);
+    let flash = 0;
+    for (const T of [A.T1, A.T2, A.T3, A.T4, A.STOP - 0.13]) { const a = t - T; if (a >= 0 && a < 0.2) flash = Math.max(flash, Math.exp(-15 * a)); }
+    if (flash > 0.02) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = flash; c.drawImage(sc.icon, -s / 2, -s / 2, s, s); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; }
+    cmkBallCracks(c, sc, br, t, gold);
+    c.restore();
+  };
+  c.save(); c.translate(bs[0], bs[1]);
+  if (cut > 0.4) {
+    const th = Math.atan2(-cdir[1], cdir[0]), nx = -Math.sin(th), ny = Math.cos(th);
+    for (const side of [1, -1]) {
+      c.save(); c.rotate(th); c.beginPath(); c.rect(-s, side > 0 ? 0 : -s, s * 2, s); c.clip(); c.rotate(-th);
+      c.translate(nx * side * cut + Math.cos(th) * side * cut * 0.5, ny * side * cut + Math.sin(th) * side * cut * 0.5);
+      one(); c.restore();
+    }
+  } else one();
+  c.restore();
+}
+function cmkBallCracks(c, sc, br, t, gold) {
+  const A = CMK, hot = gold ? 1 : cmkSm(A.STOP - 0.1, A.STOP, t);
+  c.save(); c.beginPath(); c.arc(0, 0, br * 0.995, 0, TAU); c.clip(); c.lineCap = 'round'; c.lineJoin = 'round';
+  for (const w of sc.ballCracks) {
+    const q = cmkSm(w.t0, w.t0 + 0.11, t);
+    if (q <= 0) continue;
+    const line = (width, col) => { c.lineWidth = width; c.strokeStyle = col; c.beginPath(); for (const L of w.lines) { const n = Math.max(1, Math.ceil(q * (L.length - 1))); for (let i = 0; i <= n; i++) { const x = L[i][0] * br, y = L[i][1] * br; if (i) c.lineTo(x, y); else c.moveTo(x, y); } } c.stroke(); };
+    if (!gold) line(Math.max(1.4, br * 0.028), 'rgba(8,6,4,.9)');
+    if (hot > 0) line(Math.max(1, br * 0.022), `rgba(255,214,90,${hot.toFixed(3)})`);
+    else line(Math.max(0.7, br * 0.012), 'rgba(255,255,255,.34)');
+  }
+  c.restore();
+}
+function cmkLance(c, P, king, t, bs, br, A) {
+  const ca = Math.cos(king.ang), sa = Math.sin(king.ang), hx = king.hand[0], hy = king.hand[1], z = king.z, at = (d, o) => P(hx + ca * d - sa * (o || 0), hy + sa * d + ca * (o || 0), z);
+  const tip = at(A.LANCE), butt = at(-80), head = at(A.LANCE - 86), v0 = at(44), k = P(hx, hy, z)[2];
+  c.save();
+  // it goes in: nothing of it is drawn inside the ball, so it comes out the far side
+  c.beginPath(); c.rect(-4000, -4000, 8000, 8000); c.arc(bs[0], bs[1], br * 0.98, 0, TAU); c.clip('evenodd');
+  // the pennant, near the head
+  { const a0 = A.LANCE - 150, pts = [], low = [];
+    for (let i = 0; i <= 6; i++) { const q = i / 6, w = Math.sin(t * 24 - q * 5) * 13 * q, base = a0 - 118 * q; pts.push(at(base, 8 + w)); low.push(at(base, 8 + w + 46 * (1 - q))); }
+    c.fillStyle = '#b3261e'; c.beginPath(); pts.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); low.reverse().forEach(p => c.lineTo(p[0], p[1])); c.closePath(); c.fill();
+    c.lineWidth = 1.4; c.strokeStyle = '#3a0a06'; c.stroke();
+  }
+  // the shaft, banded, with a highlight along it
+  c.lineCap = 'round';
+  c.lineWidth = 21 * k; c.strokeStyle = '#17110a'; c.beginPath(); c.moveTo(butt[0], butt[1]); c.lineTo(head[0], head[1]); c.stroke();
+  c.lineWidth = 15 * k; c.strokeStyle = '#d8a31f'; c.stroke();
+  c.lineCap = 'butt';
+  c.lineWidth = 15 * k; c.strokeStyle = '#7f5a10'; c.beginPath();
+  for (let d = 60; d < A.LANCE - 90; d += 42) { const a = at(d), b = at(d + 15); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); }
+  c.stroke();
+  { const a = at(-70, 3.6), b = at(A.LANCE - 90, 3.6); c.lineWidth = 3 * k; c.strokeStyle = 'rgba(255,245,200,.85)'; c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke(); }
+  // the steel head
+  { const a = at(A.LANCE - 86, 21), b = at(A.LANCE - 86, -21), m = at(A.LANCE - 62, 0);
+    c.fillStyle = '#e8edf2'; c.beginPath(); c.moveTo(tip[0], tip[1]); c.lineTo(a[0], a[1]); c.lineTo(m[0], m[1]); c.closePath(); c.fill();
+    c.fillStyle = '#8b97a4'; c.beginPath(); c.moveTo(tip[0], tip[1]); c.lineTo(b[0], b[1]); c.lineTo(m[0], m[1]); c.closePath(); c.fill();
+    c.lineWidth = 1.6; c.strokeStyle = '#14181d'; c.beginPath(); c.moveTo(tip[0], tip[1]); c.lineTo(a[0], a[1]); c.lineTo(m[0], m[1]); c.lineTo(b[0], b[1]); c.closePath(); c.stroke();
+  }
+  // the guard, where he holds it
+  { const a = at(58, 7), b = at(58, -7), d = at(14, -32), e = at(14, 32), g = c.createLinearGradient(e[0], e[1], d[0], d[1]);
+    g.addColorStop(0, '#fff0b4'); g.addColorStop(0.45, '#d8a31f'); g.addColorStop(1, '#6e4a06');
+    c.fillStyle = g; c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.lineTo(d[0], d[1]); c.lineTo(e[0], e[1]); c.closePath(); c.fill();
+    c.lineWidth = 1.8; c.strokeStyle = '#241703'; c.stroke();
+    if (v0) c.lineWidth = 1;
+  }
+  c.restore();
+}
+function cmkBishop(c, P, sc, t, T, dir, q2) {
+  const a = t - T;
+  if (a < -0.34) return;
+  const hit = cmkBallAt(T);
+  // the cut itself stays, thinning out, once it's through (dir is where it's heading; p is its point)
+  if (a > 0) {
+    const s0 = P(hit.x - dir[0] * 1200, hit.y - dir[1] * 1200, Math.max(-200, hit.z - dir[2] * 1200)), s1 = P(hit.x + dir[0] * 1200, hit.y + dir[1] * 1200, hit.z + dir[2] * 1200), w = 1.5 + 11 * Math.exp(-6 * a), fade = 0.42 + 0.58 * Math.exp(-3 * a);
+    c.lineCap = 'round';
+    c.lineWidth = w * 2.2; c.strokeStyle = `rgba(242,194,48,${(0.4 * fade).toFixed(3)})`; c.beginPath(); c.moveTo(s0[0], s0[1]); c.lineTo(s1[0], s1[1]); c.stroke();
+    c.lineWidth = w; c.strokeStyle = `rgba(255,252,240,${fade.toFixed(3)})`; c.stroke();
+    c.lineCap = 'butt';
+  }
+  if (a > 0.34) return;
+  const p = cmkBishopAt(t, T, dir), v = P(p.x, p.y, p.z), back = cmkBishopAt(t - 0.17, T, dir), u = P(back.x, back.y, back.z), dx = v[0] - u[0], dy = v[1] - u[1], L = Math.sqrt(dx * dx + dy * dy) || 1, ux = dx / L, uy = dy / L, nx = -uy, ny = ux, th = Math.atan2(dx, -dy), H = 214;
+  // a long blade of light behind it, wide at the head and coming to nothing
+  const hw = 24 * v[2];
+  for (const [mul, col] of [[1, 'rgba(242,194,48,.5)'], [0.45, 'rgba(255,255,250,.95)']]) {
+    const g = c.createLinearGradient(u[0], u[1], v[0], v[1]);
+    g.addColorStop(0, col.replace(/[\d.]+\)$/, '0)')); g.addColorStop(1, col);
+    c.fillStyle = g; c.beginPath(); c.moveTo(u[0], u[1]); c.lineTo(v[0] + nx * hw * mul, v[1] + ny * hw * mul); c.lineTo(v[0] - nx * hw * mul, v[1] - ny * hw * mul); c.closePath(); c.fill();
+  }
+  const foot = (w) => [w[0] - ux * H * w[2], w[1] - uy * H * w[2]];
+  if (q2 > 0) for (let j = 3; j >= 1; j--) { const o = cmkBishopAt(t - j * 0.011, T, dir), w = P(o.x, o.y, o.z), f = foot(w); c.globalAlpha = 0.3 - j * 0.07; cmkDraw(c, cmkSprite('bishop', 'ivory'), f[0], f[1], H * w[2], th); }
+  c.globalAlpha = 1;
+  const f = foot(v);
+  cmkDraw(c, cmkSprite('bishop', 'ivory'), f[0], f[1], H * v[2], th);
+}
+
+// ---- time stops -----------------------------------------------------------------------------------------------------------------
+function cmkFreeze(W, sc, cv) {
+  const copy = () => { const o = document.createElement('canvas'); o.width = cv.width; o.height = cv.height; o.getContext('2d').drawImage(cv, 0, 0); return o; };
+  sc.snap = copy(); sc.gray = copy(); sc.stopT = W.T;
+  // the colour drained out of a copy of the moment, slightly cold
+  const x = sc.gray.getContext('2d'), im = x.getImageData(0, 0, cv.width, cv.height), d = im.data;
+  for (let i = 0; i < d.length; i += 4) { const l = 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2], v = clamp((l - 128) * 1.14 + 118, 0, 255); d[i] = v * 0.95; d[i + 1] = v * 0.96; d[i + 2] = Math.min(255, v * 1.08); }
+  x.putImageData(im, 0, 0);
+  sc.frozen = sc.frameCam;
+  SFX.clang(); SFX.ko();
+}
+// the word, built from a stack of gold: each letter its own picture, so they can land one at a time
+function cmkGold(w, h, d) {
+  const txt = 'CHECKMATE', m = document.createElement('canvas').getContext('2d');
+  let size = Math.min(w * 0.158, h * 0.3);
+  m.font = `400 ${size}px ${FONT_D}`;
+  let total = 0;
+  const gapF = 0.055;
+  for (const ch of txt) total += m.measureText(ch).width + size * gapF;
+  size *= Math.min(1, w * 0.92 / total);
+  m.font = `400 ${size * d}px ${FONT_D}`;
+  const pad = Math.ceil(size * d * 0.26), gap = size * d * gapF, letters = [];
+  let x = 0;
+  const cell = Math.ceil(size * d * 1.22) + pad * 2, depth = Math.max(4, Math.round(size * d * 0.075)), midY = Math.round(cell / 2 - depth * 0.4), y0 = midY - size * d * 0.4, y1 = midY + size * d * 0.4;
+  const faceGrad = (cx) => {
+    const g = cx.createLinearGradient(0, y0, 0, y1);
+    g.addColorStop(0, '#fff8cc'); g.addColorStop(0.2, '#ffe27e'); g.addColorStop(0.44, '#d4950f'); g.addColorStop(0.495, '#8f5f06'); g.addColorStop(0.505, '#fff3b6'); g.addColorStop(0.62, '#ffd24a'); g.addColorStop(0.86, '#b77c0b'); g.addColorStop(1, '#7a4f05');
+    return g;
+  };
+  for (const ch of txt) {
+    const cw = Math.ceil(m.measureText(ch).width), o = document.createElement('canvas'), f = document.createElement('canvas');
+    o.width = f.width = cw + pad * 2; o.height = f.height = cell;
+    const cx = o.getContext('2d'), fx = f.getContext('2d');
+    for (const q of [cx, fx]) { q.font = m.font; q.textBaseline = 'middle'; q.textAlign = 'left'; q.lineJoin = 'round'; }
+    // its depth, stacked up from dark bronze
+    for (let i = depth; i >= 1; i--) { const q = i / depth, col = cmkMix([120, 78, 12], [22, 12, 2], q); cx.fillStyle = `rgb(${col})`; cx.fillText(ch, pad, midY + i); }
+    cx.lineWidth = size * d * 0.034; cx.strokeStyle = '#241503'; cx.strokeText(ch, pad, midY);
+    cx.fillStyle = faceGrad(cx); cx.fillText(ch, pad, midY);
+    cx.lineWidth = Math.max(1, size * d * 0.006); cx.strokeStyle = 'rgba(255,252,226,.72)'; cx.strokeText(ch, pad, midY);
+    fx.fillStyle = '#fff'; fx.fillText(ch, pad, midY);
+    letters.push({ o, f, x: x / d, w: o.width / d, h: o.height / d, cw: cw / d });
+    x += cw + gap;
+  }
+  const full = (x - gap) / d, word = document.createElement('canvas');
+  word.width = Math.ceil(full * d) + pad * 2; word.height = cell;
+  const wx = word.getContext('2d');
+  letters.forEach(L => wx.drawImage(L.f, L.x * d, 0));
+  const tmp = document.createElement('canvas'); tmp.width = word.width; tmp.height = word.height;
+  return { letters, word, tmp, full, size, cell: cell / d, pad: pad / d, d };
+}
+function cmkFrozen(c, w, h, W, sc, d) {
+  const A = CMK, s = W.T - sc.stopT, fz = sc.frozen, ball = cmkBallAt(A.STOP), bp = fz.P(ball.x, ball.y, ball.z), px = w / 2 + bp[0] * fz.K, py = h / 2 + bp[1] * fz.K, br = A.R * bp[2] * fz.K;
+  // the camera is the only thing still moving: a slow push in on the stab
+  const z = 1 + 0.085 * (1 - Math.pow(1 - clamp(s / 3.8, 0, 1), 2.4));
+  c.save();
+  c.translate(px, py); c.scale(z, z); c.translate(-px, -py);
+  c.drawImage(sc.snap, 0, 0, w, h);
+  // the colour goes, from the lance outwards
+  const diag = Math.sqrt(w * w + h * h), q = clamp(s / 0.62, 0, 1), r = diag * (1 - Math.pow(1 - q, 2.2));
+  if (q < 1) { c.save(); c.beginPath(); c.arc(px, py, r, 0, TAU); c.clip(); c.drawImage(sc.gray, 0, 0, w, h); c.restore(); c.beginPath(); c.arc(px, py, r, 0, TAU); c.lineWidth = 2 + 10 * (1 - q); c.strokeStyle = `rgba(255,250,235,${(0.9 * (1 - q)).toFixed(3)})`; c.stroke(); }
+  else c.drawImage(sc.gray, 0, 0, w, h);
+  // only its wounds keep their colour, burning gold
+  c.save(); c.translate(px, py); c.rotate(0);
+  c.save(); c.rotate(ball.rot); cmkBallCracks(c, sc, br, A.STOP, 1); c.restore();
+  c.restore();
+  c.restore();
+  // a darker band for the word to sit on
+  const cy = h * 0.71, band = c.createLinearGradient(0, cy - h * 0.25, 0, cy + h * 0.25), dq = cmkSm(0.1, 0.7, s);
+  band.addColorStop(0, 'rgba(8,6,12,0)'); band.addColorStop(0.5, `rgba(8,6,12,${(0.72 * dq).toFixed(3)})`); band.addColorStop(1, 'rgba(8,6,12,0)');
+  c.fillStyle = `rgba(14,10,20,${(0.26 * dq).toFixed(3)})`; c.fillRect(0, 0, w, h);
+  c.fillStyle = band; c.fillRect(0, 0, w, h);
+  if (s < 0.17) { c.fillStyle = `rgba(255,255,255,${(1 - s / 0.17).toFixed(3)})`; c.fillRect(0, 0, w, h); }
+  // CHECKMATE, a letter at a time
+  const LS = 0.42, STAG = 0.062, DUR = 0.28;
+  if (s < LS) return;
+  if (!sc.gold || sc.goldD !== d) { sc.gold = cmkGold(w, h, d); sc.goldD = d; }
+  const G = sc.gold, n = G.letters.length, ox = w / 2 - G.full / 2 - G.pad, oy = cy - G.cell / 2, landed = LS + (n - 1) * STAG + DUR, all = s >= landed;
+  // rays behind it once it's all there
+  const ry = cmkSm(landed - 0.1, landed + 0.5, s);
+  if (ry > 0) {
+    c.save(); c.translate(w / 2, cy); c.rotate(s * 0.07);
+    const n2 = 18, RR = Math.max(w, h) * 0.8;
+    for (let i = 0; i < n2; i++) { c.rotate(TAU / n2); c.beginPath(); c.moveTo(0, 0); c.lineTo(RR, -RR * 0.055); c.lineTo(RR, RR * 0.055); c.closePath(); c.fillStyle = `rgba(255,212,90,${(0.075 * ry * (i % 2 ? 0.55 : 1)).toFixed(3)})`; c.fill(); }
+    c.restore();
+  }
+  // the whole word settles from each letter's landing
+  let wy = 0;
+  G.letters.forEach((L, i) => {
+    const q2 = (s - (LS + i * STAG + DUR)) ;
+    if (q2 > 0 && q2 < 0.34) wy += Math.exp(-13 * q2) * Math.sin(40 * q2) * G.size * 0.018;
+    if (q2 >= 0 && !L.tick) { L.tick = 1; if (i === n - 1) { SFX.clang(); SFX.reveal(3); } else SFX.clack(); }
+  });
+  c.save(); c.translate(ox, oy + wy);
+  G.letters.forEach((L, i) => {
+    const q3 = clamp((s - (LS + i * STAG)) / DUR, 0, 1);
+    if (q3 <= 0) return;
+    const e = ckBack(q3), sc2 = 1 + (1 - e) * 1.05, lx = L.x + L.w / 2, ly = G.cell / 2;
+    c.save(); c.globalAlpha = Math.min(1, q3 * 3.2); c.translate(lx, ly - (1 - e) * G.size * 0.22); c.scale(sc2, sc2); c.drawImage(L.o, -L.w / 2, -L.h / 2, L.w, L.h); c.restore();
+  });
+  // the bright band going across the gold, cut to the shape of the letters
+  if (all) {
+    const t2 = G.tmp.getContext('2d'), bw = G.tmp.width, bh = G.tmp.height, cyc = 1.9, u = ((s - landed) % cyc) / 1.15;
+    if (u < 1) {
+      const pos = -bw * 0.3 + (bw * 1.6) * u, sk = bh * 0.5;
+      t2.globalCompositeOperation = 'source-over'; t2.clearRect(0, 0, bw, bh); t2.drawImage(G.word, 0, 0);
+      t2.globalCompositeOperation = 'source-in';
+      const g = t2.createLinearGradient(pos - bh * 0.7, 0, pos + bh * 0.7, sk * 0.6);
+      g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.42, 'rgba(255,255,240,.25)'); g.addColorStop(0.5, 'rgba(255,255,255,.95)'); g.addColorStop(0.58, 'rgba(255,255,240,.25)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+      t2.fillStyle = g; t2.fillRect(0, 0, bw, bh);
+      c.drawImage(G.tmp, 0, 0, bw / G.d, bh / G.d);
+    }
+    // little stars catching the light on the corners of the letters
+    if (!sc.glints) { sc.glints = []; G.letters.forEach((L, i) => { if (i % 2 === 0 || i === n - 1) sc.glints.push({ x: L.x + G.pad + L.cw * cmkRnd(0.1, 0.9), y: G.cell / 2 + G.size * (Math.random() < 0.6 ? -0.36 : 0.33), p: cmkRnd(0, 1.6), r: G.size * cmkRnd(0.1, 0.17) }); }); }
+    for (const g2 of sc.glints) {
+      const a = ((s - landed + g2.p) % 1.6) / 0.55;
+      if (a >= 1) continue;
+      const v = Math.sin(a * PI), R0 = g2.r * v;
+      c.save(); c.translate(g2.x, g2.y); c.rotate(a * 0.9);
+      c.fillStyle = `rgba(255,255,250,${v.toFixed(3)})`; c.beginPath();
+      for (let i = 0; i < 8; i++) { const th = i / 8 * TAU, rr = i % 2 ? R0 * 0.14 : R0 * (i % 4 ? 0.62 : 1); if (i) c.lineTo(Math.cos(th) * rr, Math.sin(th) * rr); else c.moveTo(Math.cos(th) * rr, Math.sin(th) * rr); }
+      c.closePath(); c.fill(); c.restore();
+    }
+  }
+  c.restore();
+  // a gold rule under it, from a little diamond in the middle
+  const ru = cmkSm(landed - 0.08, landed + 0.5, s);
+  if (ru > 0) {
+    const ly = cy + G.size * 0.56, half = G.full * 0.46 * ru;
+    for (const side of [1, -1]) { const g3 = c.createLinearGradient(w / 2, 0, w / 2 + side * half, 0); g3.addColorStop(0, 'rgba(255,214,100,.95)'); g3.addColorStop(1, 'rgba(255,214,100,0)'); c.fillStyle = g3; c.fillRect(side > 0 ? w / 2 : w / 2 - half, ly - 1, half, 2); }
+    const dm = G.size * 0.06 * ckBack(clamp(ru * 1.6, 0, 1));
+    c.fillStyle = '#ffe27e'; c.beginPath(); c.moveTo(w / 2, ly - dm); c.lineTo(w / 2 + dm, ly); c.lineTo(w / 2, ly + dm); c.lineTo(w / 2 - dm, ly); c.closePath(); c.fill();
+  }
+}
+function ckWinFrame(F, dt) {
+  const W = F.wheel, A = CMK;
+  if (!W.sc) { W.sc = cmkBuild(W); W.scene = 0; W.holdLeft = 0; W.sinceHold = 1; if (W.cv.animate) W.cv.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: 'ease-out' }); }
+  const sc = W.sc;
+  W.T += dt;
+  W.opaque = W.T > 0.32;      // nothing to see behind it now, so the fight needn't be drawn
+  // if a machine can't keep up, drop the finer detail rather than the smoothness
+  if (!W.manual) {
+    sc.dtAvg += (dt - sc.dtAvg) * 0.07;
+    if (W.T > 0.9 && sc.dtAvg > 0.027 && sc.q > 0 && W.T - sc.lastDrop > 1) { sc.q--; sc.lastDrop = W.T; sc.dtAvg = 1 / 60; }
+  }
+  if (!sc.snap) cmkClock(W, sc, dt);
+  const max = sc.q === 0 ? 1 : 2, { c, W: w, H: h } = ckFit(W.cv, max), d = Math.min(max, devicePixelRatio || 1);
+  if (!sc.snap) {
+    cmkScene(c, w, h, W, sc, W.scene);
+    if (W.scene >= A.STOP) cmkFreeze(W, sc, W.cv);
+  }
+  if (sc.snap) {
+    c.setTransform(d, 0, 0, d, 0, 0);
+    cmkFrozen(c, w, h, W, sc, d);
+    if (W.T - sc.stopT >= A.HOLD) ckFinish(F, W);
+  }
+}
 
 // ===== players online: presence, matchmaking, leaderboard =================
 // Everything goes through each viewer's presence (the platform's "who is here"
