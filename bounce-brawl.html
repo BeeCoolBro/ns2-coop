@@ -270,6 +270,8 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 .st-row .d { font-size: 12px; color: #55555e; font-weight: 600; }
 .st-row input { min-width: 0; flex: 1; max-width: 280px; background: #08080a; border: 1px solid var(--line2); border-radius: 8px; padding: 8px 12px; font: 400 20px var(--fd); letter-spacing: 3px; color: #fff; outline: none; }
 .st-row input:focus { border-color: var(--o); }
+/* BeeZap's /kick: the real menu, brought up over the fight for a moment */
+.kicklayer { position: fixed; inset: 0; pointer-events: none; }
 .devform { display: flex; gap: 8px; flex: 1; justify-content: flex-end; min-width: 240px; max-width: 400px; }
 .namebox { display: grid; gap: 10px; justify-items: center; margin-top: 10px; width: min(340px, 100%); }
 .namein { width: 100%; box-sizing: border-box; background: #08080a; border: 1px solid var(--line2); border-radius: 8px; padding: 10px 14px; font: 400 26px var(--fd); letter-spacing: 4px; color: #fff; text-align: center; outline: none; }
@@ -676,6 +678,17 @@ svg.mst.on { fill: var(--gold); }
 .bzsug div { padding: 2px 10px; color: #c9c9d1; white-space: pre; }
 .bzsug div.hi { background: #2c3a52; color: #fff; }
 .bzsug i { font-style: normal; color: #7a7a86; }
+.bzsug u { text-decoration: none; color: #6a6a76; margin-left: 12px; }
+.bzsug div.hi u { color: #9fb3cf; }
+.bzsug.live div { cursor: pointer; }
+.bzlines .big0, .bzlines .big0 .th, .bzlines .big0 .ts { color: #ff5555; }
+/* typing a real command: an invisible box takes the keys, and the line above draws what it says, as Minecraft's does */
+.bzin { position: relative; }
+.bzin .ghost { color: #666672; }
+.bzin .bad { color: #ff5555; }
+.bzin .real { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; padding: 0; font-size: 16px; background: none; cursor: text; }
+.bzin .ask { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); padding-left: 10px; background: #121216; color: #ffd60a; font-size: 11px; letter-spacing: 1px; pointer-events: none; }
+@media (hover: none) { .bzin .ask .keys { display: none; } }
 .bzside { padding: 10px 12px; background: #101013; font: 400 12px/1.6 var(--tm); color: #a9a9b3; }
 .bzside h4 { margin: 0 0 4px; font: 600 11px/1 var(--ui); letter-spacing: .6px; text-transform: uppercase; white-space: pre; color: #6f6f7a; }
 .bzside h4 ~ h4 { margin-top: 12px; }
@@ -992,7 +1005,7 @@ svg.mst.on { fill: var(--gold); }
 // A fight is played out from a seed, separately in each player's browser, so
 // the simulation may only use + - * / and sqrt (the same in every engine):
 // no Math.sin/cos/atan2/hypot/pow/exp, no Math.random, no clocks.
-const VERSION = 28;
+const VERSION = 29;
 const HP_SCALE = 0.33;                     // every ball's health is scaled by this, so fights end sooner
 const TAU = 6.283185307179586, PI = 3.141592653589793, HALF_PI = 1.5707963267948966;
 const DT = 1 / 60, SUB = 3;            // 60 steps a second, 3 physics substeps each
@@ -3501,6 +3514,13 @@ function beezapRoll(S, f) {
 // first, then the slots, a minigame, a new modifier and an admin command in a shuffled order. Winning big moves a map
 // bend to the front of the queue. Each is announced first (the fight stops for it) and lands on the step after.
 // A spin at a health mark goes ahead of all of them and always happens, once the gap has passed, even past BZ_TAKES.
+const BZ_KICK_DMG = 8;
+// what a command does and to whom. The fight's own pick uses it, and so does a command BeeZap's player types: the
+// fight waits for them on every screen, and a screen with nobody typing just keeps the fight's own pick
+function bzAdminFor(S, cmd, o) {
+  const ffa = S.F.length > 2;
+  return { cmd, all: ffa && (cmd === 'freeze' || cmd === 'tp' || cmd === 'nerf' || cmd === 'smite') ? 1 : 0, ts: ffa && cmd === 'kick' ? o.kt : o.ts, pair: cmd === 'feud' ? o.pr : null };
+}
 const BZ_TAKES = 6, BZ_PACE = 48;                  // with nobody getting hurt, the fight counts as over after BZ_PACE s
 const bzGap = S => (S.F.length > 2 ? 5 : 3.5);     // never closer together than this
 function bzTake(S) { S.bzTakes++; S.bzLast = S.t; }
@@ -3737,13 +3757,13 @@ function bzTick(S, f, dt) {
     if (k === 'admin') {
       const foes = S.F.filter(x => x !== f && x.alive), ffa = S.F.length > 2;
       const list = ffa ? BZ_CMDS_FFA.filter(c => c !== 'feud' || foes.length >= 2) : BZ_CMDS, cmd = list[Math.floor(S.rng() * list.length)];
-      let tgt = f.foe, pair = null;
-      if (ffa && cmd === 'kick') tgt = foes[Math.floor(S.rng() * foes.length)];
-      if (cmd === 'feud') { const i = Math.floor(S.rng() * foes.length); let j = Math.floor(S.rng() * (foes.length - 1)); if (j >= i) j++; pair = [foes[i], foes[j]]; }
-      const all = ffa && (cmd === 'freeze' || cmd === 'tp' || cmd === 'nerf' || cmd === 'smite') ? 1 : 0;
-      z.pend = { t: 0.01, k: 'admin', cmd, all, ts: tgt.side, pair: pair && pair.map(x => x.side) };
+      const o = { ts: f.foe.side, kt: f.foe.side, pr: null };
+      if (ffa) o.kt = foes[Math.floor(S.rng() * foes.length)].side;
+      if (ffa && foes.length >= 2) { const i = Math.floor(S.rng() * foes.length); let j = Math.floor(S.rng() * (foes.length - 1)); if (j >= i) j++; o.pr = [foes[i].side, foes[j].side]; }
+      const d = bzAdminFor(S, cmd, o);
+      z.pend = Object.assign({ t: 0.01, k: 'admin' }, d);
       bzTake(S);
-      emit(S, { e: 'admin', id: f.id, side: f.side, cmd, foe: tgt.def.id, ts: tgt.side, all, pair: pair && pair.map(x => x.def.id) });
+      emit(S, { e: 'admin', id: f.id, side: f.side, cmd, foe: S.F[d.ts].def.id, ts: d.ts, all: d.all, pair: d.pair && d.pair.map(s => S.F[s].def.id), list: list.filter((c, i) => list.indexOf(c) === i), o });
     } else if (k === 'slot') {
       const { r, res } = bzSpin(S);
       z.pend = { t: 0.01, k: 'slot', r, res };
@@ -3806,9 +3826,11 @@ function bzLand(S, f, p) {
       warpTo(S, t, cx, cy); applyFx(S, f, t, { stun: 0.4 });
     } else if (p.cmd === 'god') { f.bz.godT = 2.5; emit(S, { e: 'shieldup', id: f.id }); }
     else if (p.cmd === 'nerf') applyFx(S, f, t, { weak: 4 });
-    else if (p.cmd === 'kick') {          // kicked from the game: gone for a moment, then rejoins in the far corner
+    else if (p.cmd === 'kick') {          // kicked to the menu (the screens show that first): it rejoins in the far corner, hurt
       const b = S.box, cx = f.x < (b.x0 + b.x1) / 2 ? b.x1 : b.x0, cy = f.y < (b.y0 + b.y1) / 2 ? b.y1 : b.y0;
-      warpTo(S, t, cx, cy); t.vx = t.vy = 0; t.st.phaseT = Math.max(t.st.phaseT, 1.8); applyFx(S, f, t, { stun: 1.8 });
+      warpTo(S, t, cx, cy); t.vx = t.vy = 0;
+      hurt(S, f, t, BZ_KICK_DMG, 'zap', t.x, t.y);   // before it fades in: nothing touches a ball that's phased out
+      t.st.phaseT = Math.max(t.st.phaseT, 0.8); applyFx(S, f, t, { stun: 0.5 });
       emit(S, { e: 'phase', id: t.id });
     }
     else { hurt(S, f, t, 7, 'zap', t.x, t.y); emit(S, { e: 'bolt', x: t.x, y: t.y, r: 60 }); }
@@ -5212,7 +5234,7 @@ class Arena {
     if (!this.layer) mapTop(c, S, t);
     this.effects(S, t);
     if (this.opt.sound && !this.layer) mapLights(c, S, t);
-    for (const f of S.F) if (grow(f) > 0.9) this.tag(S, f);
+    for (const f of S.F) if (grow(f) > 0.9 && this.gone !== f.side) this.tag(S, f);
     this.numbers();
     const ts = Math.max(S.tstop[0], S.tstop[1]);
     if (ts > 0) { c.fillStyle = `rgba(120,110,90,${0.16 * clamp(ts / 0.3, 0, 1)})`; c.fillRect(-60, -60, ARENA + 120, ARENA + 120); }
@@ -5268,7 +5290,7 @@ class Arena {
 
   fighter(S, f, t) {
     const c = this.c;
-    if (!f.alive) return;
+    if (!f.alive || this.gone === f.side) return;   // gone: kicked to the menu for the moment
     // a BeeZap in disguise: drawn as the ball it is pretending to be, with that ball's weapons
     const mk = this.masks && this.masks.find(m => m.side === f.side);
     if (mk && !mk.off) {
@@ -7443,7 +7465,7 @@ function bgTick(dt) {
     } });
     bgNew();
   }
-  if (TAB !== 'menu' || FIGHT) return;
+  if ((TAB !== 'menu' || FIGHT) && !BZ_KICKED) return;
   BGF.a.resize();
   BGF.acc = Math.min(BGF.acc + dt, 0.2);
   while (BGF.acc >= DT && !BGF.S.over) { BGF.acc -= DT; step(BGF.S); BGF.a.events(BGF.S); }
@@ -9027,7 +9049,7 @@ const BZ_TAKE = { wheel: 1, admin: 1, slot: 1, game: 1, hookin: 1, mod: 1, shape
 function openTake(F) {
   const e = F.wheelQ.shift();
   if (!e) { F.wheel = null; return; }
-  (e.e === 'reveal' ? openReveal : e.e === 'hookin' ? openHookin : e.e === 'wheel' ? openWheel : e.e === 'admin' ? openAdmin : e.e === 'game' ? openGame : e.e === 'mod' ? openMod : e.e === 'shape' ? openShape : openSlots)(F, e);
+  (e.e === 'reveal' ? openReveal : e.e === 'hookin' ? openHookin : e.e === 'wheel' ? openWheel : e.e === 'admin' ? openAdmin : e.e === 'game' ? openGame : e.e === 'mod' ? openMod : e.e === 'shape' ? openShape : e.e === 'kickout' ? openKick : openSlots)(F, e);
 }
 function openWheel(F, e) {
   const mine = e.side === F.mySide, wrap = F.root.querySelector('.arena');
@@ -9320,8 +9342,12 @@ function bzSuggest(W, text) {
   W.sug.classList.toggle('on', W.sug.children.length > 0);
 }
 function consoleFrame(F, dt) {
-  const W = F.wheel, A = F.arena, T = (W.T += dt), CH = 0.07;
+  const W = F.wheel, A = F.arena, CH = 0.07;
+  // while a real command is being typed the console's own clock waits for it
+  const T = W.ask && W.ask.on ? W.T : (W.T += dt);
   A.cv.style.opacity = '0';
+  if (W.ask && !W.ask.on && T >= W.ask.at) bzAskOpen(F, W);
+  if (W.ask && W.ask.on) bzAskTick(F, W, dt);
   while (W.i < W.script.length && T >= W.script[W.i][0]) {
     const [at, cls, text, then] = W.script[W.i++];
     if (W.typing && cls !== 'cmd') bzSend(F, W);
@@ -9370,20 +9396,189 @@ function bzGlitch(g, src, hit, amp) {
   }
   c.fillStyle = 'rgba(0,0,0,0.22)'; for (let y = 0; y < g.h; y += 3 * g.dpr) c.fillRect(0, y, g.w, g.dpr);
 }
+function bzAdminText(e) {
+  const nm = id => (BALL[id] ? BALL[id].name : 'Enemy').toUpperCase();
+  return e.cmd === 'feud' ? [`/feud ${nm(e.pair[0])} ${nm(e.pair[1])}`, `${nm(e.pair[0])} and ${nm(e.pair[1])} now only want each other gone.`]
+    : e.all ? BZ_CMD_ALL[e.cmd] : BZ_CMD_TXT[e.cmd](nm(e.foe));
+}
 function openAdmin(F, e) {
-  const nm = id => (BALL[id] ? BALL[id].name : 'Enemy').toUpperCase(), foe = nm(e.foe);
-  const [cmd, out] = e.cmd === 'feud' ? [`/feud ${nm(e.pair[0])} ${nm(e.pair[1])}`, `${nm(e.pair[0])} and ${nm(e.pair[1])} now only want each other gone.`]
-    : e.all ? BZ_CMD_ALL[e.cmd] : BZ_CMD_TXT[e.cmd](foe);
-  const TYPE0 = 1.3, run = TYPE0 + cmd.length * 0.07 + 1.2;
-  bzConsole(F, e, 'admin', [
+  const intro = [
     [0.2, 'warn', `Tick ${1000 + Math.floor(F.S.t * 60)} took ${180 + Math.floor(F.S.t * 7) % 300}ms. Running 6 ticks behind.`],
     [0.55, 'warn', 'BeeZap moved too quickly! (ignored: player is op)'],
     [0.9, 'sys', 'RCON session opened by BeeZap from /127.0.0.1'],
+  ];
+  const who = bzWho(F, e.side);
+  // a real player types it, and everyone else watches them do it
+  if (who.k !== 'ai' && e.list) {
+    bzConsole(F, e, 'admin', intro, 1e9);
+    const W = F.wheel;
+    W.ask = { at: 1.2, on: false, who, me: who.k === 'me', text: '', sel: 0, t: 0, pub: 0, dirty: false, shown: null };
+    W.key = bzGameKey(F, 500 + F.S.n % 500);
+    return;
+  }
+  // nobody to type it: it types its own
+  const [cmd, out] = bzAdminText(e), TYPE0 = 1.3, run = TYPE0 + cmd.length * 0.07 + 1.2;
+  if (e.cmd === 'kick') F.wheelQ.unshift({ e: 'kickout', ts: e.ts });   // straight after the console: off to the menu
+  bzConsole(F, e, 'admin', intro.concat([
     [TYPE0, 'cmd', cmd],
     [run - 1.0, 'bar', ''],
     [run, 'ok', '[SERVER] ' + out, () => adminBend(F, e)],
     [run + 0.7, 'audit', '[AUDIT] Command history wiped by BeeZap'],
-  ], run + 2.6);
+  ]), run + 2.6);
+}
+// ---- typing a command, the way Minecraft's chat box does it ----
+// The box starts on "/" with every command listed over it. Each letter narrows the list, the top match is shown in
+// grey ahead of what's typed, Tab fills it in, the arrows choose another, Enter runs it. Each letter goes out to the
+// other screens as it's typed (in the same presence field the minigames use), and the last message says what ran.
+// The fight waits meanwhile. Run out of time and the fight's own pick runs instead.
+const BZ_ASK = 12, BZ_ASK_NET = 8;      // seconds to type; how much longer other screens wait for someone gone quiet
+const BZ_WORDS = { freeze: '/freeze', tp: '/tp', god: '/god', nerf: '/nerf', smite: '/smite', kick: '/kick', border: '/worldborder', gravity: '/gravity', rotate: '/rotate', clear: '/kill', feud: '/feud' };
+const BZ_WORD_ID = Object.keys(BZ_WORDS);
+const BZ_WHAT = { freeze: ['<player>', 'freeze them solid'], tp: ['<player>', 'throw them in a corner'], god: ['', 'take no damage'], nerf: ['<player>', 'weaken them'], smite: ['<player>', 'lightning'], kick: ['<player>', 'send them to the menu'],
+  border: ['set', 'walls close in'], gravity: ['<player>', 'pull them sideways'], rotate: ['world', 'turn the whole map'], clear: ['@e', 'delete shots and hazards'], feud: ['<player> <player>', 'two of them fight'] };
+const BZ_ABC = " abcdefghijklmnopqrstuvwxyz0123456789/@~-_.'", BZ_SENT = 63;   // letters as small numbers; 63 means it ran
+const bzEnc = t => [...t].map(ch => BZ_ABC.indexOf(ch)).filter(i => i >= 0);
+const bzDec = m => m.map(i => BZ_ABC[i] || '').join('');
+function bzAskOpen(F, W) {
+  const a = W.ask, e = W.e;
+  a.on = true;
+  a.words = e.list.map(c => BZ_WORDS[c]);
+  a.names = {};
+  for (const x of F.S.F) if (x.side !== e.side && x.alive) a.names[x.def.name.toLowerCase().replace(/[^a-z0-9 ]/g, '')] = x.side;
+  W.ghost = h('span', { class: 'ghost' }); W.hint = h('span', { class: 'ask' });
+  W.input.append(W.ghost, W.hint);
+  if (a.me) {
+    bzLog(F, W, 'ok', '[SERVER] You have the console. Type a command.');
+    W.sug.classList.add('live');
+    const inp = W.real = h('input', { class: 'real', type: 'text', maxlength: 40, autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', 'aria-label': 'Type a command', value: '/' });
+    // the text cursor stays at the end: what's typed is drawn on the line above, with no cursor to move about
+    const toEnd = () => { const n = inp.value.length; inp.setSelectionRange(n, n); };
+    inp.addEventListener('input', () => { bzAskSet(W, inp.value); toEnd(); });
+    inp.addEventListener('focus', () => setTimeout(toEnd, 0));
+    inp.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter') { ev.preventDefault(); bzAskRun(F, W); }
+      else if (ev.key === 'Tab') { ev.preventDefault(); bzAskFill(W); }
+      else if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') { ev.preventDefault(); a.sel += ev.key === 'ArrowDown' ? 1 : -1; a.shown = null; }
+      else if (ev.key === 'Escape') inp.blur();
+      else if (ev.key === 'ArrowLeft' || ev.key === 'Home') ev.preventDefault();
+      ev.stopPropagation();
+    });
+    W.input.append(inp);
+    W.con.addEventListener('pointerup', () => { if (W.real && document.activeElement !== W.real) W.real.focus(); });
+    setTimeout(() => { if (W.real) W.real.focus(); }, 60);
+    bzAskSet(W, '/');
+  } else {
+    bzLog(F, W, 'sys', `${W.bee} is typing a command...`);
+    a.text = '/';
+  }
+  SFX.blip();
+}
+// what's in the box, cleaned to letters every screen can show, always starting with the slash
+function bzAskSet(W, raw) {
+  const a = W.ask;
+  let v = [...String(raw).toLowerCase()].filter(ch => BZ_ABC.includes(ch)).join('').replace(/^\/*/, '/').slice(0, 40);
+  if (W.real && W.real.value !== v) W.real.value = v;
+  if (v !== a.text) { a.text = v; a.sel = 0; a.dirty = true; SFX.tick(0.1); }
+}
+// the list over the box, and the grey ahead of what's typed. Done from the text alone, so every screen draws the same
+function bzAskDraw(W) {
+  const a = W.ask, text = a.text, key = text + '|' + a.sel;
+  if (a.shown === key) return;
+  a.shown = key;
+  const sp = text.indexOf(' '), word = sp < 0 ? text : text.slice(0, sp), id = a.words.indexOf(word) >= 0 ? BZ_WORD_ID.find(c => BZ_WORDS[c] === word) : null;
+  let rows = [], bad = false;
+  if (sp < 0) {
+    rows = a.words.filter(w => w.startsWith(word)).map(w => { const c = BZ_WORD_ID.find(k => BZ_WORDS[k] === w), [use, what] = BZ_WHAT[c]; return { fill: w, label: w, rest: w.slice(word.length) + (use ? ' ' + use : ''), use, what }; });
+    bad = !rows.length;
+  } else if (id) {
+    const arg = text.slice(sp + 1), [use, what] = BZ_WHAT[id];
+    if (use.startsWith('<player>')) rows = Object.keys(a.names).filter(n => n.startsWith(arg) && n !== arg).map(n => ({ fill: word + ' ' + n, label: n, rest: n.slice(arg.length), use: '', what: '' }));
+    if (!rows.length && !arg) rows = [{ fill: null, label: word, rest: use, use, what }];
+  } else bad = true;
+  a.rows = rows;
+  if (rows.length) a.sel = ((a.sel % rows.length) + rows.length) % rows.length;
+  const top = Math.max(0, Math.min(a.sel - 3, rows.length - 7));
+  W.sug.textContent = '';
+  rows.slice(top, top + 7).forEach((r, i) => {
+    const d = h('div', { class: i + top === a.sel ? 'hi' : '' }, r.label, h('i', { text: r.use ? ' ' + r.use : '' }), r.what ? h('u', { text: r.what }) : null);
+    if (a.me && r.fill) d.addEventListener('pointerdown', ev => { ev.preventDefault(); a.sel = i + top; bzAskFill(W); });
+    W.sug.append(d);
+  });
+  W.sug.classList.toggle('on', rows.length > 0);
+  W.typed.textContent = text; W.typed.className = bad ? 'bad' : '';
+  W.ghost.textContent = rows.length ? rows[a.sel].rest : '';
+}
+function bzAskFill(W) {
+  const a = W.ask;
+  bzAskDraw(W);
+  const r = a.rows && a.rows[a.sel];
+  if (!r || !r.fill) return;
+  bzAskSet(W, r.fill);
+  if (W.real) { W.real.value = a.text; W.real.setSelectionRange(a.text.length, a.text.length); }
+  SFX.tick(0.4);
+}
+// Enter: runs the command, or the one highlighted if it's only part typed. Anything else gets Minecraft's red answer
+function bzAskRun(F, W) {
+  const a = W.ask;
+  bzAskDraw(W);
+  let text = a.text.trim();
+  if (text.indexOf(' ') < 0 && a.words.indexOf(text) < 0 && a.rows.length && a.rows[a.sel].fill) text = a.rows[a.sel].fill;
+  const sp = text.indexOf(' '), word = sp < 0 ? text : text.slice(0, sp), cmd = BZ_WORD_ID.find(c => BZ_WORDS[c] === word);
+  if (!cmd || a.words.indexOf(word) < 0) {
+    bzLog(F, W, 'big0', 'Unknown or incomplete command: ' + text);
+    SFX.drop(); bzJolt(W.input, BZ_WOB, 300);
+    return;
+  }
+  const ts = sp < 0 ? -1 : a.names[text.slice(sp + 1).trim()];
+  NET.set({ gm: { k: W.key, m: bzEnc(text).concat(BZ_SENT, BZ_WORD_ID.indexOf(cmd), ts === undefined || ts < 0 ? 15 : ts) } });
+  bzAskDone(F, W, cmd, text, ts);
+}
+// every screen, once it knows what ran: the command is set in the waiting fight, and the rest of the console plays out
+function bzAskDone(F, W, cmd, text, ts) {
+  const e = W.e, S = F.S, f = S.F[e.side], o = Object.assign({}, e.o);
+  if (S.F.length > 2 && ts >= 0 && S.F[ts] && S.F[ts].alive && ts !== e.side) o.kt = ts;   // a free for all's /kick can pick who
+  const d = bzAdminFor(S, cmd, o);
+  Object.assign(e, { cmd, all: d.all, ts: d.ts, foe: S.F[d.ts].def.id, pair: d.pair && d.pair.map(s => S.F[s].def.id) });
+  if (f.bz && f.bz.pend && f.bz.pend.k === 'admin') Object.assign(f.bz.pend, d);
+  if (cmd === 'kick') F.wheelQ.unshift({ e: 'kickout', ts: d.ts });
+  W.ask = null;
+  if (W.real) { W.real.remove(); W.real = null; }
+  W.ghost.remove(); W.hint.remove(); W.typed.className = '';
+  const [auto, out] = bzAdminText(e), T = W.T, sentWord = text.split(' ')[0] === BZ_WORDS[cmd];
+  W.typing = { text: sentWord ? text : auto, at: T, n: 0 };
+  bzSend(F, W);
+  W.script.push([T + 0.1, 'bar', ''], [T + 1, 'ok', '[SERVER] ' + out, () => adminBend(F, e)], [T + 1.7, 'audit', '[AUDIT] Command history wiped by BeeZap']);
+  W.end = T + 3.6;
+}
+function bzAskTick(F, W, dt) {
+  const a = W.ask;
+  a.t += dt;
+  const left = Math.max(0, Math.ceil(BZ_ASK - a.t));
+  if (a.me) {
+    W.hint.textContent = '';
+    W.hint.append(h('span', { class: 'keys', text: 'TAB FILLS IN · ENTER RUNS · ' }), String(left));
+    if ((a.pub -= dt) <= 0 && a.dirty) { a.pub = 0.1; a.dirty = false; NET.set({ gm: { k: W.key, m: bzEnc(a.text) } }); }
+    if (a.t >= BZ_ASK) {
+      // out of time: the fight's own pick, and it's said out loud so nobody waits
+      NET.set({ gm: { k: W.key, m: bzEnc('/').concat(BZ_SENT, BZ_WORD_ID.indexOf(W.e.cmd), 15) } });
+      bzAskDone(F, W, W.e.cmd, '/', -1);
+      return;
+    }
+  } else {
+    W.hint.textContent = `${W.bee.toUpperCase()} IS TYPING · ${left}`;
+    const m = bzNetMoves(a.who.peer, W.key);
+    if (m) {
+      const fin = m.indexOf(BZ_SENT), text = bzDec(fin >= 0 ? m.slice(0, fin) : m);
+      if (text && text !== a.text) { a.text = text; a.sel = 0; SFX.tick(0.1); }
+      if (fin >= 0) {
+        const id = BZ_WORD_ID[m[fin + 1]];
+        bzAskDone(F, W, W.e.list.indexOf(id) >= 0 ? id : W.e.cmd, text, m[fin + 2] < 15 ? m[fin + 2] : -1);
+        return;
+      }
+    }
+    if (a.t >= BZ_ASK + BZ_ASK_NET) { bzAskDone(F, W, W.e.cmd, '/', -1); return; }   // they've gone quiet: the fight's own pick
+  }
+  bzAskDraw(W);
 }
 // ---- the reveal: against a BeeZap you see a plain ball until the fight starts; then it glitches back
 // to BeeZap (with the owner's "sike" clip) and the console announces it. Its owner sees all of it too.
@@ -9445,7 +9640,7 @@ function adminBend(F, e) {
   else if (e.cmd === 'tp') { bzJolt(wrap, BZ_TP, 700); SFX.warp(); }
   else if (e.cmd === 'god') { bzMark(bee, 'bz-god', 5.4); SFX.reveal(2); }
   else if (e.cmd === 'nerf') { bzMark(foe, 'bz-nerf', 6.9); SFX.drop(); }
-  else if (e.cmd === 'kick') { bzMark(foe, 'bz-kicked', 4.7); SFX.rip(); SFX.drop(); }
+  else if (e.cmd === 'kick') { bzMark(foe, 'bz-kicked', 8.9); SFX.rip(); SFX.drop(); }
   else if (e.cmd === 'border') { bzShake(F, BZ_SHAKE, 500); SFX.tstop(); SFX.boom(); }
   else if (e.cmd === 'gravity') { bzJolt(wrap, BZ_WOB, 500); SFX.warp(); SFX.charge(); }
   else if (e.cmd === 'rotate') { bzShake(F, BZ_SHAKE, 400); SFX.hole(); SFX.warp(); }
@@ -9453,6 +9648,81 @@ function adminBend(F, e) {
   else { bzSmite(F); SFX.zap(); SFX.boom(); }
 }
 
+// ---- /kick: you're sent back to the menu for 5 seconds. Then the menu's words and buttons fall off the screen and
+// there's the fight again, with you back in the far corner and hurt. The fight waits on every screen, so nobody gets
+// ahead; everyone else sees that ball gone from the box and how long until it's back.
+const BZ_KICK = { MENU: 5, FALL: 0.95 };
+let BZ_KICKED = false;                       // the menu's own little fight runs behind it for the moment
+function openKick(F, e) {
+  const A = F.arena, mine = e.ts === F.mySide && F.mode !== 'watch';
+  const W = F.wheel = { kind: 'kick', e, T: 0, frame: kickFrame, close() {} };
+  if (mine) {
+    W.menu = kickMenu();
+    W.close = () => { W.menu.back(); };
+  } else {
+    W.cv = bzLayer(F); A.gone = e.ts;
+    const who = F.all ? F.all[e.ts] : e.ts === F.mySide ? F.me : F.foe;
+    W.name = (who && who.name ? who.name : 'Enemy').toUpperCase();
+    W.close = () => { W.cv.remove(); A.gone = null; };
+  }
+}
+function kickFrame(F, dt) {
+  const W = F.wheel, K = BZ_KICK, T = (W.T += dt);
+  if (W.menu) { if (!W.fell && T >= K.MENU) { W.fell = 1; W.menu.fall(); } }
+  else {
+    const g = bzFit(F, W.cv), c = g.c, s = g.size, cx = g.x + s / 2, y = g.y + s * 0.42, d = g.dpr, q = clamp(T / 0.25, 0, 1);
+    c.save(); c.globalAlpha = q * clamp((K.MENU + K.FALL - T) / 0.3, 0, 1); c.textAlign = 'center'; c.textBaseline = 'middle';
+    const line = (txt, px, yy, col) => { c.font = `400 ${Math.round(px)}px ${FONT_D}`; c.fillStyle = 'rgba(0,0,0,0.85)'; c.fillText(txt, cx + 2 * d, yy + 2 * d, s * 0.92); c.fillStyle = col; c.fillText(txt, cx, yy, s * 0.92); };
+    line(W.name + ' WAS KICKED', s * 0.075, y, '#fff');
+    line(T < K.MENU ? 'BACK IN ' + Math.ceil(K.MENU - T) : 'HERE THEY COME', s * 0.042, y + s * 0.085, '#ffd633');
+    c.restore();
+  }
+  if (T >= K.MENU + K.FALL) {
+    W.close();
+    if (!W.menu) SFX.warp();
+    openTake(F);
+  }
+}
+// the real menu, up to date and untouchable, over the fight. Under it a solid layer and the menu's own background
+function kickMenu() {
+  const menu = $('#menu'), bg = $('#bg'), wasHidden = menu.hidden, cs = getComputedStyle(menu), anims = [];
+  const base = h('div', { class: 'kicklayer', style: { zIndex: 43, background: '#050506' } });
+  const shade = h('div', { class: 'kicklayer', style: { zIndex: 45, backgroundColor: cs.backgroundColor, backgroundImage: cs.backgroundImage } });
+  document.body.append(base, shade);
+  menu.hidden = false; menu.inert = true;
+  Object.assign(menu.style, { zIndex: 46, background: 'none', overflow: 'hidden' });
+  bg.style.zIndex = 44; bg.classList.remove('fade');
+  renderMenu();
+  BZ_KICKED = true;
+  MUSIC.play('menu');
+  toast('You were kicked by BeeZap', 3200);
+  return {
+    // everything drops off the bottom of the screen, the lowest first, and the fight is there behind it
+    fall() {
+      const pieces = [...menu.querySelectorAll('.m-hint, #mcard, #mnav .m-item, .logo-sub, .logo-main, .logo-tag, .m-top, .m-ver')]
+        .map(el => ({ el, r: el.getBoundingClientRect() })).filter(p => p.r.width && p.r.height && p.r.top < innerHeight).sort((p, q) => q.r.bottom - p.r.bottom);
+      const FALL = BZ_KICK.FALL * 1000, last = FALL * 0.3, step = last / Math.max(1, pieces.length - 1);   // in ms here
+      pieces.forEach(({ el, r }, i) => {
+        const dx = (Math.random() - 0.5) * 90, turn = (Math.random() - 0.5) * 34;
+        if (!REDUCED) anims.push(el.animate([{ transform: getComputedStyle(el).transform }, { transform: `translate(${dx.toFixed(0)}px, ${(innerHeight - r.top + 60).toFixed(0)}px) rotate(${turn.toFixed(0)}deg)` }], { delay: i * step, duration: FALL - last, easing: 'cubic-bezier(.5,0,.9,.55)', fill: 'forwards' }));
+        else el.style.visibility = 'hidden';
+      });
+      for (const layer of [base, shade, bg, menu.querySelector('.vig')]) anims.push(layer.animate([{ opacity: 1 }, { opacity: 0 }], { delay: FALL * 0.15, duration: FALL * 0.6, fill: 'forwards' }));
+      SFX.rip(); SFX.drop();
+      for (const o of document.querySelectorAll('.toast')) o.remove();
+    },
+    back() {
+      for (const a of anims) a.cancel();
+      base.remove(); shade.remove();
+      Object.assign(menu.style, { zIndex: '', background: '', overflow: '' });
+      for (const el of menu.querySelectorAll('.m-hint, #mcard, #mnav .m-item, .logo-sub, .logo-main, .logo-tag, .m-top, .m-ver')) el.style.visibility = '';
+      menu.inert = false; menu.hidden = wasHidden;
+      bg.style.zIndex = ''; bg.classList.remove('fade');
+      BZ_KICKED = false;
+      if (FIGHT) { MUSIC.play(fightSong()); SFX.boom(true); }
+    },
+  };
+}
 // ---- the slots: the box turns out to be the screen of a slot machine ----
 const BZ_SLOT = { OUT: 0.95, FLK: 0.45, PULL: 1.6, SPIN: 1.75, STOP: [2.9, 3.6, 4.4], HOLD: 6.2, IN: 0.85, FLK2: 0.4 };
 const BZ_SYMS = ['7', 'bar', 'cherry', 'bee', 'bell', 'diamond', 'skull'];
