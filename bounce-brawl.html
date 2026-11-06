@@ -1005,7 +1005,7 @@ svg.mst.on { fill: var(--gold); }
 // A fight is played out from a seed, separately in each player's browser, so
 // the simulation may only use + - * / and sqrt (the same in every engine):
 // no Math.sin/cos/atan2/hypot/pow/exp, no Math.random, no clocks.
-const VERSION = 29;
+const VERSION = 30;
 const HP_SCALE = 0.33;                     // every ball's health is scaled by this, so fights end sooner
 const TAU = 6.283185307179586, PI = 3.141592653589793, HALF_PI = 1.5707963267948966;
 const DT = 1 / 60, SUB = 3;            // 60 steps a second, 3 physics substeps each
@@ -3828,10 +3828,9 @@ function bzLand(S, f, p) {
     else if (p.cmd === 'nerf') applyFx(S, f, t, { weak: 4 });
     else if (p.cmd === 'kick') {          // kicked to the menu (the screens show that first): it rejoins in the far corner, hurt
       const b = S.box, cx = f.x < (b.x0 + b.x1) / 2 ? b.x1 : b.x0, cy = f.y < (b.y0 + b.y1) / 2 ? b.y1 : b.y0;
-      warpTo(S, t, cx, cy); t.vx = t.vy = 0;
-      hurt(S, f, t, BZ_KICK_DMG, 'zap', t.x, t.y);   // before it fades in: nothing touches a ball that's phased out
-      t.st.phaseT = Math.max(t.st.phaseT, 0.8); applyFx(S, f, t, { stun: 0.5 });
-      emit(S, { e: 'phase', id: t.id });
+      [t.x, t.y] = inBox(S, cx, cy, t.r + 4); t.vx = t.vy = 0;   // no warp effect: the screens have just shown it crashing down here
+      hurt(S, f, t, BZ_KICK_DMG, 'zap', t.x, t.y);
+      applyFx(S, f, t, { stun: 0.5 });
     }
     else { hurt(S, f, t, 7, 'zap', t.x, t.y); emit(S, { e: 'bolt', x: t.x, y: t.y, r: 60 }); }
   } else if (p.res === 'jackpot') { aoe(S, f, t.x, t.y, 80, 16, 600, 0, 'blast'); applyFx(S, f, t, { stun: 1 }); emit(S, { e: 'boom', x: t.x, y: t.y, r: 110, big: 1, crit: 1 }); }
@@ -5160,6 +5159,10 @@ class Arena {
 
   draw(S, t) {
     const c = this.c, k = this.k;
+    if (this.goneFrom) {
+      const f = S.F[this.gone];
+      if (!f || f.x !== this.goneFrom[0] || f.y !== this.goneFrom[1] || ++this.goneN > 5) { this.gone = null; this.goneFrom = null; }
+    }
     ME_SIDE = this.me;
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.clearRect(0, 0, this.cv.width, this.cv.height);
@@ -9418,7 +9421,7 @@ function openAdmin(F, e) {
   }
   // nobody to type it: it types its own
   const [cmd, out] = bzAdminText(e), TYPE0 = 1.3, run = TYPE0 + cmd.length * 0.07 + 1.2;
-  if (e.cmd === 'kick') F.wheelQ.unshift({ e: 'kickout', ts: e.ts });   // straight after the console: off to the menu
+  if (e.cmd === 'kick') F.wheelQ.unshift({ e: 'kickout', ts: e.ts, side: e.side });   // straight after the console: off to the menu
   bzConsole(F, e, 'admin', intro.concat([
     [TYPE0, 'cmd', cmd],
     [run - 1.0, 'bar', ''],
@@ -9540,7 +9543,7 @@ function bzAskDone(F, W, cmd, text, ts) {
   const d = bzAdminFor(S, cmd, o);
   Object.assign(e, { cmd, all: d.all, ts: d.ts, foe: S.F[d.ts].def.id, pair: d.pair && d.pair.map(s => S.F[s].def.id) });
   if (f.bz && f.bz.pend && f.bz.pend.k === 'admin') Object.assign(f.bz.pend, d);
-  if (cmd === 'kick') F.wheelQ.unshift({ e: 'kickout', ts: d.ts });
+  if (cmd === 'kick') F.wheelQ.unshift({ e: 'kickout', ts: d.ts, side: e.side });
   W.ask = null;
   if (W.real) { W.real.remove(); W.real = null; }
   W.ghost.remove(); W.hint.remove(); W.typed.className = '';
@@ -9640,7 +9643,7 @@ function adminBend(F, e) {
   else if (e.cmd === 'tp') { bzJolt(wrap, BZ_TP, 700); SFX.warp(); }
   else if (e.cmd === 'god') { bzMark(bee, 'bz-god', 5.4); SFX.reveal(2); }
   else if (e.cmd === 'nerf') { bzMark(foe, 'bz-nerf', 6.9); SFX.drop(); }
-  else if (e.cmd === 'kick') { bzMark(foe, 'bz-kicked', 8.9); SFX.rip(); SFX.drop(); }
+  else if (e.cmd === 'kick') { bzMark(foe, 'bz-kicked', 16); SFX.rip(); SFX.drop(); }
   else if (e.cmd === 'border') { bzShake(F, BZ_SHAKE, 500); SFX.tstop(); SFX.boom(); }
   else if (e.cmd === 'gravity') { bzJolt(wrap, BZ_WOB, 500); SFX.warp(); SFX.charge(); }
   else if (e.cmd === 'rotate') { bzShake(F, BZ_SHAKE, 400); SFX.hole(); SFX.warp(); }
@@ -9648,78 +9651,175 @@ function adminBend(F, e) {
   else { bzSmite(F); SFX.zap(); SFX.boom(); }
 }
 
-// ---- /kick: you're sent back to the menu for 5 seconds. Then the menu's words and buttons fall off the screen and
-// there's the fight again, with you back in the far corner and hurt. The fight waits on every screen, so nobody gets
-// ahead; everyone else sees that ball gone from the box and how long until it's back.
-const BZ_KICK = { MENU: 5, FALL: 0.95 };
+// ---- /kick: you're thrown out of the fight, and it looks final ----
+// You're cut straight to the menu with no message at all, and the music dies, as if it's all over. After 5 seconds
+// it comes apart: the menu shakes, the screen cracks down the middle, its words and buttons tumble off, the
+// background splits and falls, and there's the fight. Your ball drops from the top of the screen and crashes into the
+// far corner as the music slams back in. The fight waits on every screen for all of it, so nobody gets ahead; everyone
+// else sees that ball gone from the box with a countdown, then the same crash.
+const BZ_KICK = { MENU: 5, SHAKE: 0.5, FALL: 1.15, DROP: 0.5, HOLD: 1.05 };   // seconds
 let BZ_KICKED = false;                       // the menu's own little fight runs behind it for the moment
+const BZ_SLAM = [{ transform: 'none' }, { transform: 'translate(-26px, 16px)', offset: 0.08 }, { transform: 'translate(22px, -18px)', offset: 0.2 }, { transform: 'translate(-16px, 10px)', offset: 0.34 }, { transform: 'translate(10px, -7px)', offset: 0.5 }, { transform: 'translate(-5px, 3px)', offset: 0.7 }, { transform: 'none' }];
 function openKick(F, e) {
-  const A = F.arena, mine = e.ts === F.mySide && F.mode !== 'watch';
-  const W = F.wheel = { kind: 'kick', e, T: 0, frame: kickFrame, close() {} };
-  if (mine) {
-    W.menu = kickMenu();
-    W.close = () => { W.menu.back(); };
-  } else {
-    W.cv = bzLayer(F); A.gone = e.ts;
-    const who = F.all ? F.all[e.ts] : e.ts === F.mySide ? F.me : F.foe;
-    W.name = (who && who.name ? who.name : 'Enemy').toUpperCase();
-    W.close = () => { W.cv.remove(); A.gone = null; };
-  }
+  const A = F.arena, S = F.S, mine = e.ts === F.mySide && F.mode !== 'watch', t = S.F[e.ts], bee = S.F[e.side], wrap = F.root.querySelector('.arena');
+  // where it's going to land, worked out the way the fight will when it moves again
+  const b = S.box, [bx, by] = inBox(S, bee.x < (b.x0 + b.x1) / 2 ? b.x1 : b.x0, bee.y < (b.y0 + b.y1) / 2 ? b.y1 : b.y0, t.r + 4), [lx, ly] = shapePlace(S, bx, by, t.r);
+  const cv = bzLayer(F), up = wrap.offsetTop, down = Math.max(0, F.root.clientHeight - up - wrap.offsetHeight);
+  cv.style.top = -up + 'px'; cv.style.height = `calc(100% + ${up + down}px)`;   // the whole height of the screen, to fall the whole way
+  const who = F.all ? F.all[e.ts] : e.ts === F.mySide ? F.me : F.foe;
+  const W = F.wheel = { kind: 'kick', e, T: 0, cv, mine, at: [lx, ly], r: t.r, id: t.def.id, off: Math.round(up * (A.dpr || 1)), name: (who && who.name ? who.name : 'Enemy').toUpperCase(), frame: kickFrame, tick: 99,
+    close() {
+      // it stays hidden until the fight has actually moved it, so it can't flash up where it was
+      cv.remove(); A.goneFrom = [t.x, t.y]; A.goneN = 0; F.acc = DT;
+      for (const p of F.root.querySelectorAll('.bz-kicked')) p.classList.remove('bz-kicked');
+      if (W.menu) { W.menu.back(); if (!W.landed && FIGHT) MUSIC.play(fightSong()); }
+    } };
+  A.gone = e.ts;
+  A.shake = 0;
+  if (mine) W.menu = kickMenu();
+  else { SFX.rip(); SFX.boom(true); }
 }
 function kickFrame(F, dt) {
-  const W = F.wheel, K = BZ_KICK, T = (W.T += dt);
-  if (W.menu) { if (!W.fell && T >= K.MENU) { W.fell = 1; W.menu.fall(); } }
-  else {
-    const g = bzFit(F, W.cv), c = g.c, s = g.size, cx = g.x + s / 2, y = g.y + s * 0.42, d = g.dpr, q = clamp(T / 0.25, 0, 1);
-    c.save(); c.globalAlpha = q * clamp((K.MENU + K.FALL - T) / 0.3, 0, 1); c.textAlign = 'center'; c.textBaseline = 'middle';
-    const line = (txt, px, yy, col) => { c.font = `400 ${Math.round(px)}px ${FONT_D}`; c.fillStyle = 'rgba(0,0,0,0.85)'; c.fillText(txt, cx + 2 * d, yy + 2 * d, s * 0.92); c.fillStyle = col; c.fillText(txt, cx, yy, s * 0.92); };
-    line(W.name + ' WAS KICKED', s * 0.075, y, '#fff');
-    line(T < K.MENU ? 'BACK IN ' + Math.ceil(K.MENU - T) : 'HERE THEY COME', s * 0.042, y + s * 0.085, '#ffd633');
+  const W = F.wheel, K = BZ_KICK, A = F.arena, T = (W.T += dt), g = bzFit(F, W.cv), c = g.c, s = g.size, d = g.dpr;
+  const t1 = K.MENU, t2 = t1 + K.SHAKE, t3 = t2 + K.FALL, t4 = t3 + K.DROP, end = t4 + K.HOLD;
+  c.translate(0, W.off);
+  const cx = g.x + s / 2, line = (txt, px, yy, col, z, a) => {
+    c.save(); c.translate(cx, yy); c.scale(z || 1, z || 1); c.globalAlpha = a === undefined ? 1 : a; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.font = `400 ${Math.round(px)}px ${FONT_D}`; c.fillStyle = 'rgba(0,0,0,0.9)'; c.fillText(txt, 3 * d, 3 * d, s * 0.94); c.fillStyle = col; c.fillText(txt, 0, 0, s * 0.94); c.restore();
+  };
+  if (W.menu) {
+    if (!W.m1 && T >= t1) { W.m1 = 1; W.menu.shake(); }
+    if (!W.m2 && T >= t2) { W.m2 = 1; W.menu.fall(); }
+  } else if (T < t4) {
+    // everyone else: the name slams up, and the seconds go by until it's back
+    const q = clamp(T / 0.22, 0, 1), left = Math.ceil(t3 - T), jit = T < 0.4 ? (Math.random() - 0.5) * s * 0.012 : 0;
+    line(W.name + ' WAS KICKED', s * 0.082, g.y + s * 0.4 + jit, '#ff4656', 1 + (1 - easeBack(q)) * 1.8, clamp(q * 2, 0, 1));
+    if (T >= 0.25) {
+      if (left !== W.tick && left > 0 && T < t3) { W.tick = left; W.pulse = T; SFX.tick(0.6); }
+      const pz = 1 + 0.4 * Math.max(0, 1 - (T - (W.pulse || 0)) / 0.25);
+      line(T < t3 ? String(left) : 'HERE THEY COME', T < t3 ? s * 0.11 : s * 0.06, g.y + s * 0.53, '#ffd633', T < t3 ? pz : 1);
+    }
+  }
+  if (!W.m3 && T >= t1) { W.m3 = 1; SFX.hole(); }
+  const flip = A.flip ? ARENA - W.at[0] : W.at[0], sx = g.x + flip * A.k, sy = g.y + W.at[1] * A.k, rp = W.r * A.k, icon = Math.ceil(rp * 2);
+  const ball = (x, y, ang, a, zx, zy) => { c.save(); c.translate(x, y); c.rotate(ang); c.scale(zx || 1, zy || 1); c.globalAlpha = a; c.drawImage(ballIcon(W.id, Math.max(32, Math.round(icon / d))), -rp, -rp, rp * 2, rp * 2); c.restore(); };
+  // it falls from above the top of the screen, faster and faster, trailing copies of itself
+  if (T >= t3 && T < t4) {
+    if (!W.m4) { W.m4 = 1; SFX.charge(); }
+    const q = (T - t3) / K.DROP, top = -W.off - rp * 2, yAt = u => top + (sy - top) * u * u;
+    for (let i = 5; i >= 1; i--) { const u = Math.max(0, q - i * 0.05); ball(sx, yAt(u), u * 18, 0.08 * (6 - i)); }
+    ball(sx, yAt(q), q * 18, 1);
+  }
+  if (!W.landed && T >= t4) kickLand(F, W, sx, sy);
+  if (W.landed) {
+    const u = T - t4, q = clamp(u / K.HOLD, 0, 1), zq = clamp(u / 0.28, 0, 1);
+    // the floor where it hit: cracks running out and fading
+    c.save(); c.lineJoin = 'round'; c.lineCap = 'round';
+    for (const pts of W.cracks) {
+      const len = clamp(u / 0.12, 0, 1), n = Math.max(2, Math.ceil(pts.length * len));
+      c.beginPath(); pts.slice(0, n).forEach(([x, y], i) => (i ? c.lineTo(sx + x, sy + y) : c.moveTo(sx + x, sy + y)));
+      c.globalAlpha = 1 - q * q; c.lineWidth = 6 * d; c.strokeStyle = 'rgba(0,0,0,0.85)'; c.stroke(); c.lineWidth = 2 * d; c.strokeStyle = '#fff0d8'; c.stroke();
+    }
     c.restore();
+    // it squashes flat and springs back up
+    const sq = u < 0.1 ? 1 - u / 0.1 : Math.exp(-(u - 0.1) * 9) * Math.cos((u - 0.1) * 26) * 0.5;
+    ball(sx, sy + rp * 0.35 * Math.max(0, sq), 0, 1, 1 + 0.5 * sq, 1 - 0.45 * sq);
+    // a white flash that goes red and away, then the words
+    const fl = 1 - u / 0.4;
+    if (fl > 0) { c.fillStyle = u < 0.07 ? 'rgba(255,255,255,0.92)' : `rgba(255,50,70,${(0.55 * fl * fl).toFixed(3)})`; c.fillRect(-W.off, -W.off, g.w + W.off * 2, g.h + W.off * 2); }
+    if (u > 0.08) {
+      const a = 1 - easeIO((u - K.HOLD + 0.25) / 0.25), z = 1 + (1 - easeBack(clamp((u - 0.08) / 0.24, 0, 1))) * 2.4;
+      line(W.mine ? 'YOU’RE BACK' : W.name + ' IS BACK', s * 0.135, g.y + s * 0.4, '#fff', z, a);
+      if (u > 0.3) line(W.mine ? 'DID YOU THINK IT WAS OVER?' : 'AND THEY ARE NOT HAPPY', s * 0.05, g.y + s * 0.51, '#ffd633', 1, a * clamp((u - 0.3) / 0.12, 0, 1));
+    }
   }
-  if (T >= K.MENU + K.FALL) {
-    W.close();
-    if (!W.menu) SFX.warp();
-    openTake(F);
-  }
+  if (T >= end) { W.close(); openTake(F); }
 }
-// the real menu, up to date and untouchable, over the fight. Under it a solid layer and the menu's own background
+function kickLand(F, W, sx, sy) {
+  const A = F.arena, s = ARENA;
+  W.landed = true;
+  W.cracks = [];
+  for (let i = 0; i < 11; i++) {
+    const ang = i * TAU / 11 + (Math.random() - 0.5) * 0.4, far = (0.22 + Math.random() * 0.3) * ARENA * A.k, pts = [[0, 0]], n = 6;
+    for (let j = 1; j <= n; j++) { const u = j / n * far, wob = (Math.random() - 0.5) * far * 0.11; pts.push([Math.cos(ang) * u - Math.sin(ang) * wob, Math.sin(ang) * u + Math.cos(ang) * wob]); }
+    W.cracks.push(pts);
+  }
+  const [x, y] = W.at;
+  A.ring(x, y, W.r, W.r * 7, '#fff', 9, 0.5); A.ring(x, y, W.r, W.r * 4.5, '#ff4656', 7, 0.65); A.ring(x, y, W.r, s * 0.5, '#ffd633', 3, 0.85);
+  A.burst(x, y, 44, '#fff', 950, 0.7, 6); A.burst(x, y, 30, '#ff4656', 620, 0.8, 5);
+  A.shake = 18;
+  bzShake(F, BZ_SLAM, 800);
+  for (const p of F.root.querySelectorAll('.bz-kicked')) p.classList.remove('bz-kicked');
+  SFX.boom(); SFX.clang(); SFX.zap();
+  if (W.menu) MUSIC.play(fightSong());   // and the music comes back with it
+}
+// the real menu, up to date and untouchable, over the fight, with the message over that
 function kickMenu() {
-  const menu = $('#menu'), bg = $('#bg'), wasHidden = menu.hidden, cs = getComputedStyle(menu), anims = [];
-  const base = h('div', { class: 'kicklayer', style: { zIndex: 43, background: '#050506' } });
+  const menu = $('#menu'), bg = $('#bg'), wasHidden = menu.hidden, cs = getComputedStyle(menu), anims = [], K = BZ_KICK;
+  const pct = () => { const a = [], n = 10; for (let i = 0; i <= n; i++) a.push([50 + (i === 0 || i === n ? 0 : (Math.random() - 0.5) * 11), i * 100 / n]); return a; }, seam = pct();
+  const poly = pts => `polygon(${pts.map(([x, y]) => x.toFixed(1) + '% ' + y.toFixed(1) + '%').join(', ')})`;
+  const half = pts => h('div', { class: 'kicklayer', style: { zIndex: 43, background: '#050506', clipPath: poly(pts) } });
+  const left = half([[0, 0], ...seam, [0, 100]]), right = half([[100, 0], ...seam, [100, 100]]);
   const shade = h('div', { class: 'kicklayer', style: { zIndex: 45, backgroundColor: cs.backgroundColor, backgroundImage: cs.backgroundImage } });
-  document.body.append(base, shade);
+  const red = h('div', { class: 'kicklayer', style: { zIndex: 47, opacity: 0, background: 'radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(255,30,50,.5) 100%)' } });
+  const crack = h('div', { class: 'kicklayer', style: { zIndex: 48, background: '#fff', opacity: 0, clipPath: poly([...seam.map(([x, y]) => [x - 0.22, y]), ...seam.slice().reverse().map(([x, y]) => [x + 0.22, y])]) } });
+  document.body.append(left, right, shade, red, crack);
   menu.hidden = false; menu.inert = true;
   Object.assign(menu.style, { zIndex: 46, background: 'none', overflow: 'hidden' });
   bg.style.zIndex = 44; bg.classList.remove('fade');
   renderMenu();
   BZ_KICKED = true;
-  MUSIC.play('menu');
-  toast('You were kicked by BeeZap', 3200);
+  MUSIC.stop();                               // the music dies with it, and the menu sits in silence
+  SFX.tstop();
+  const add = (el, frames, o) => { if (el.animate) anims.push(el.animate(frames, o)); };
+  const pieces = () => [...menu.querySelectorAll('.m-hint, #mcard, #mnav .m-item, .logo-sub, .logo-main, .logo-tag, .m-top, .m-ver')]
+    .map(el => ({ el, r: el.getBoundingClientRect() })).filter(p => p.r.width && p.r.height && p.r.top < innerHeight).sort((p, q) => q.r.bottom - p.r.bottom);
   return {
-    // everything drops off the bottom of the screen, the lowest first, and the fight is there behind it
+    // something's wrong: it all trembles harder and harder, and the edges go red
+    shake() {
+      const MS = K.SHAKE * 1000;
+      add(red, [{ opacity: 0 }, { opacity: 0.25, offset: 0.3 }, { opacity: 0.1, offset: 0.5 }, { opacity: 1 }], { duration: MS, fill: 'forwards' });
+      if (REDUCED) return;
+      for (const { el } of pieces()) {
+        const fr = [{ transform: 'none' }]; let i;
+        for (i = 1; i < 10; i++) { const a = i * i * 0.07; fr.push({ transform: `translate(${((Math.random() - 0.5) * a * 2).toFixed(1)}px, ${((Math.random() - 0.5) * a * 2).toFixed(1)}px) rotate(${((Math.random() - 0.5) * a * 0.3).toFixed(2)}deg)` }); }
+        add(el, fr, { duration: MS });
+      }
+    },
+    // the screen cracks down the middle, everything on it lets go, and the background splits and drops
     fall() {
-      const pieces = [...menu.querySelectorAll('.m-hint, #mcard, #mnav .m-item, .logo-sub, .logo-main, .logo-tag, .m-top, .m-ver')]
-        .map(el => ({ el, r: el.getBoundingClientRect() })).filter(p => p.r.width && p.r.height && p.r.top < innerHeight).sort((p, q) => q.r.bottom - p.r.bottom);
-      const FALL = BZ_KICK.FALL * 1000, last = FALL * 0.3, step = last / Math.max(1, pieces.length - 1);   // in ms here
-      pieces.forEach(({ el, r }, i) => {
-        const dx = (Math.random() - 0.5) * 90, turn = (Math.random() - 0.5) * 34;
-        if (!REDUCED) anims.push(el.animate([{ transform: getComputedStyle(el).transform }, { transform: `translate(${dx.toFixed(0)}px, ${(innerHeight - r.top + 60).toFixed(0)}px) rotate(${turn.toFixed(0)}deg)` }], { delay: i * step, duration: FALL - last, easing: 'cubic-bezier(.5,0,.9,.55)', fill: 'forwards' }));
-        else el.style.visibility = 'hidden';
+      const FALL = K.FALL * 1000, list = pieces(), last = FALL * 0.32, step = last / Math.max(1, list.length - 1), hang = 110;
+      add(crack, [{ opacity: 1, transform: 'scaleY(0)', transformOrigin: '50% 0' }, { opacity: 1, transform: 'scaleY(1)', transformOrigin: '50% 0', offset: 0.3 }, { opacity: 1, transform: 'scaleY(1)', transformOrigin: '50% 0', offset: 0.75 }, { opacity: 0, transform: 'scaleY(1)', transformOrigin: '50% 0' }], { duration: 300, fill: 'forwards' });
+      add(red, [{ opacity: 1 }, { opacity: 0 }], { delay: FALL * 0.3, duration: FALL * 0.5, fill: 'forwards' });
+      SFX.clang(); SFX.rip();
+      list.forEach(({ el, r }, i) => {
+        if (REDUCED) { el.style.visibility = 'hidden'; return; }
+        const dx = (Math.random() - 0.5) * 200, turn = (Math.random() < 0.5 ? -1 : 1) * (14 + Math.random() * 42), j = (Math.random() < 0.5 ? -1 : 1) * (3 + Math.random() * 7);
+        const dur = FALL - last, h1 = hang / dur;
+        add(el, [
+          { transform: 'none', easing: 'ease-out' },
+          { transform: `translateY(14px) rotate(${j.toFixed(1)}deg)`, offset: h1, easing: 'cubic-bezier(.45,0,.95,.6)' },
+          { transform: `translate(${dx.toFixed(0)}px, ${(innerHeight - r.top + 80 + r.width * 0.8).toFixed(0)}px) rotate(${turn.toFixed(0)}deg)` },   // far enough for a long title on the turn to clear the edge
+        ], { delay: i * step, duration: dur, fill: 'both' });
       });
-      for (const layer of [base, shade, bg, menu.querySelector('.vig')]) anims.push(layer.animate([{ opacity: 1 }, { opacity: 0 }], { delay: FALL * 0.15, duration: FALL * 0.6, fill: 'forwards' }));
-      SFX.rip(); SFX.drop();
-      for (const o of document.querySelectorAll('.toast')) o.remove();
+      setTimeout(() => { if (BZ_KICKED) SFX.boom(true); }, FALL * 0.4);
+      add(shade, [{ opacity: 1 }, { opacity: 0 }], { delay: 60, duration: 240, fill: 'forwards' });
+      add(bg, [{ opacity: 1 }, { opacity: 0 }], { delay: 60, duration: 240, fill: 'forwards' });
+      add(menu.querySelector('.vig'), [{ opacity: 1 }, { opacity: 0 }], { delay: 60, duration: 240, fill: 'forwards' });
+      const splits = [[left, -1], [right, 1]];
+      for (const [p, side] of splits) {
+        if (REDUCED) { p.style.visibility = 'hidden'; continue; }
+        add(p, [{ transform: 'none', easing: 'cubic-bezier(.5,0,.95,.6)' }, { transform: `translate(${side * 9}vw, 112vh) rotate(${side * 13}deg)` }], { delay: FALL * 0.22, duration: FALL * 0.78, fill: 'forwards' });
+      }
     },
     back() {
       for (const a of anims) a.cancel();
-      base.remove(); shade.remove();
+      for (const el of [left, right, shade, red, crack]) el.remove();
       Object.assign(menu.style, { zIndex: '', background: '', overflow: '' });
       for (const el of menu.querySelectorAll('.m-hint, #mcard, #mnav .m-item, .logo-sub, .logo-main, .logo-tag, .m-top, .m-ver')) el.style.visibility = '';
       menu.inert = false; menu.hidden = wasHidden;
       bg.style.zIndex = ''; bg.classList.remove('fade');
       BZ_KICKED = false;
-      if (FIGHT) { MUSIC.play(fightSong()); SFX.boom(true); }
     },
   };
 }
