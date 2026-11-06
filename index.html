@@ -1879,5 +1879,36 @@ h1 .bee { background: none !important; color: var(--gold) !important; -webkit-te
   requestAnimationFrame(loop);
 })();
 </script>
+<script>
+/* A code typed anywhere on this page unlocks a ball in Bounce Brawl 2. Only its SHA-256 is here. */
+(function () {
+  var KEY = '124d247023819f3a8be5cfb0a64996714c3abffa0e97bd31d52a5be2f9befba3', N = 15, typed = '';
+  if (!window.crypto || !crypto.subtle || !window.TextEncoder) return;
+  function shown() {
+    var a = document.createElement('a');
+    a.href = '/bounce-brawl';
+    a.textContent = 'THE KING IS YOURS. OPEN BOUNCE BRAWL';
+    a.style.cssText = 'position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:2147483000;max-width:calc(100vw - 32px);box-sizing:border-box;text-align:center;padding:14px 22px;border:2px solid #f2c230;border-radius:8px;background:#120d05;color:#ffdd70;font:800 16px/1.3 system-ui,sans-serif;letter-spacing:3px;text-decoration:none;';
+    document.body.appendChild(a);
+  }
+  // the number keys pick doors, so a number that comes straight after letters is part of something being typed
+  var wordAt = -1e9;
+  window.addEventListener('keydown', function (e) {
+    if (!e.key || e.key.length !== 1) return;
+    var now = performance.now();
+    if (/[a-z]/i.test(e.key)) wordAt = now;
+    else if (/[0-9]/.test(e.key) && now - wordAt < 2000) { wordAt = now; e.stopPropagation(); }
+    typed = (typed + e.key.toLowerCase()).slice(-N);
+    if (typed.length < N) return;
+    var tried = typed;
+    crypto.subtle.digest('SHA-256', new TextEncoder().encode(tried)).then(function (d) {
+      var hex = Array.prototype.map.call(new Uint8Array(d), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+      if (hex !== KEY) return;
+      try { localStorage.setItem('bouncebrawl.chess', '1'); } catch (err) {}
+      shown();
+    });
+  }, true);
+})();
+</script>
 </body>
 </html>
