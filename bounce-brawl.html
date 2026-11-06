@@ -1193,7 +1193,7 @@ button * { pointer-events: none; }
 // A fight is played out from a seed, separately in each player's browser, so
 // the simulation may only use + - * / and sqrt (the same in every engine):
 // no Math.sin/cos/atan2/hypot/pow/exp, no Math.random, no clocks.
-const VERSION = 32;
+const VERSION = 33;
 const HP_SCALE = 0.33;                     // every ball's health is scaled by this, so fights end sooner
 const TAU = 6.283185307179586, PI = 3.141592653589793, HALF_PI = 1.5707963267948966;
 const DT = 1 / 60, SUB = 3;            // 60 steps a second, 3 physics substeps each
@@ -2695,7 +2695,7 @@ BALL_LIST.push(
   { id: 'copycat', name: 'Copycat', rar: 'M', cat: 'trick', special: 1, col: '#9b8cff', hp: 200,
     init(S, f) {
       let d = f.foe.def;
-      if (!d || d.id === 'copycat' || d.id === 'beezap' || d.id === 'chess') d = BALL.sword;
+      if (!d || d.id === 'copycat' || d.id === 'beezap' || d.id === 'theking') d = BALL.sword;
       const me = f.def;
       f.def = Object.assign({}, d, { id: me.id, name: me.name, col: me.col, rar: me.rar, cat: me.cat, special: 1, copied: d.id,
         dmgMod: d.dmgMod ? (S2, f2, t, k) => 0.85 * d.dmgMod(S2, f2, t, k) : () => 0.85 });
@@ -4503,21 +4503,24 @@ const CK = {
   queen: { hp: 36, r: 44, contact: 1 },
   last: { hp: 22, r: 36, contact: 0.25, vmin: 60, vmax: 90 },
 };
-const CK_HIT = { lance: 7, qRook: 5, qKnight: 7, qBishop: 4.5, qPawn: 3 };
-const CK_EVERY = 7, CK_QUEEN = 3.4, CK_ROWS = 8;
+const CK_HIT = { lance: 7, qRook: 5.5, qKnight: 8, qBishop: 5, qPawn: 3.4 };   // she summons less often than she did, and hits as hard over time
+const CK_PACE = 0.88;   // how fast he plays, against every other ball's 1. His charges every 7 seconds stay every 7: they just travel slower
+const CK_EVERY = 7, CK_QUEEN = 3.4 / CK_PACE, CK_ROWS = 8;
+const CK_CRUISE = 620, CK_SETTLE = 1.2;   // balls lose no speed by themselves, so a charge would go on for good: he settles back to this
+const ckLo = S => VMIN * S.vmul * CK_PACE, ckHi = S => VMAX * S.vmul * CK_PACE;
 function ckForm(S, f, to) {
   const c = CK[to], u = f.u, from = u.form;
   u.form = to;
   f.r = f.r0 = c.r * S.rmul; f.m = c.r * c.r / 1600 * S.rmul * S.rmul;
   f.hp = f.maxHp = c.hp * f.hpMul; f.contact = c.contact; f.dotAcc = 0;
   f.st.burnT = 0; f.st.poison = 0;
-  u.vmin = c.vmin; u.vmax = c.vmax; u.charge = 0; u.sac = 0; u.mount = 0; u.rush = 0; u.twin = null; u.ps = []; u.safe = S.t + 0.45;
+  u.vmin = c.vmin || ckLo(S); u.vmax = c.vmax || ckHi(S); u.charge = 0; u.sac = 0; u.mount = 0; u.rush = 0; u.twin = null; u.ps = []; u.safe = S.t + 0.45;
   if (to === 'pawn') {
     if (!S.chess) S.chess = { at: S.t };
     S.shape = null;
     u.row = 0; u.advT = 0; u.pushT = S.t + 2.5; u.dirX = f.x < ARENA / 2 ? 1 : -1;
   }
-  if (to === 'queen') { f.cd.qn = 1.2; u.qLast = -1; u.pgT = 0; }
+  if (to === 'queen') { f.cd.qn = 1.2 / CK_PACE; u.qLast = -1; u.pgT = 0; }
   emit(S, { e: 'chess', id: f.id, side: f.side, from, to, x: f.x, y: f.y });
 }
 function ckLast(S, f) {
@@ -4549,7 +4552,7 @@ function ckLethal(S, f) {
 }
 function ckRush(S, f) {
   const u = f.u;
-  u.rush = S.t + 2.5; u.vmin = 900; u.vmax = 1450; u.safe = S.t + 0.25;
+  u.rush = S.t + 2.5; u.vmin = 900 * CK_PACE; u.vmax = 1450 * CK_PACE; u.safe = S.t + 0.25;
   emit(S, { e: 'ckfx', k: 'rush', x: f.x, y: f.y });
 }
 function ckSteer(S, f, sp, dt, turn) {
@@ -4562,7 +4565,7 @@ function ckKnight(S, f, dt) {
   const u = f.u, w = u.twin;
   if (u.rush) {
     if (u.rushHit || S.t > u.rush) { ckForm(S, f, 'bishop'); return; }
-    if (!stuck(S, f)) ckSteer(S, f, 1450 * S.vmul, dt, 9);
+    if (!stuck(S, f)) ckSteer(S, f, 1450 * CK_PACE * S.vmul, dt, 9);
     return;
   }
   if (!u.split) {
@@ -4579,19 +4582,19 @@ function ckKnight(S, f, dt) {
   if (!w) return;
   if (!w.alive) { u.twin = null; ckRush(S, f); return; }
   if (stuck(S, f)) return;
-  const R = 54 * S.rmul, spin = 5, mx = (f.x + w.x) / 2, my = (f.y + w.y) / 2;
+  const R = 54 * S.rmul, spin = 5 * CK_PACE, mx = (f.x + w.x) / 2, my = (f.y + w.y) / 2;
   u.oa += spin * dt;
   const t = f.foe, [ux, uy] = t && t.alive ? toward({ x: mx, y: my }, t) : [0, 0];
-  const cx = dcos(u.oa), sy = dsin(u.oa), vm = 330 * S.vmul, nx = mx + ux * vm * dt, ny = my + uy * vm * dt, tang = R * spin;
+  const cx = dcos(u.oa), sy = dsin(u.oa), vm = 330 * CK_PACE * S.vmul, nx = mx + ux * vm * dt, ny = my + uy * vm * dt, tang = R * spin;
   f.x = nx + cx * R; f.y = ny + sy * R; w.x = nx - cx * R; w.y = ny - sy * R;
   f.vx = ux * vm - sy * tang; f.vy = uy * vm + cx * tang; w.vx = ux * vm + sy * tang; w.vy = uy * vm - cx * tang;
 }
 function ckBishop(S, f, dt) {
   const u = f.u;
   if (!u.mount) return;
-  if (S.t > u.mount) { u.mount = 0; u.vmin = undefined; u.vmax = undefined; return; }
+  if (S.t > u.mount) { u.mount = 0; u.vmin = ckLo(S); u.vmax = ckHi(S); return; }
   if (stuck(S, f)) return;
-  ckSteer(S, f, 1500 * S.vmul, dt, 7);
+  ckSteer(S, f, 1500 * CK_PACE * S.vmul, dt, 7);
   // the lance reaches out ahead of it, and gets one good hit per charge
   if (u.lanced) return;
   const sp = vlen(f.vx, f.vy) || 1, tx = f.x + f.vx / sp * (f.r + 54), ty = f.y + f.vy / sp * (f.r + 54);
@@ -4607,16 +4610,16 @@ function ckBishop(S, f, dt) {
     }
   }
 }
-function ckPawnStep(S, f) { f.u.row++; f.u.advT = S.t + 0.35; f.u.pushT = S.t + 2.5; emit(S, { e: 'ckfx', k: 'step', x: f.x, y: f.y }); }
+function ckPawnStep(S, f) { f.u.row++; f.u.advT = S.t + 0.35 / CK_PACE; f.u.pushT = S.t + 2.5; emit(S, { e: 'ckfx', k: 'step', x: f.x, y: f.y }); }
 function ckPawn(S, f, dt) {
   const u = f.u, b = S.box;
   if (u.row >= CK_ROWS - 1) { emit(S, { e: 'promote', side: f.side, id: f.id, x: f.x, y: f.y }); ckForm(S, f, 'queen'); return; }
   if (stuck(S, f)) return;
   if (S.t > u.pushT) ckPawnStep(S, f);       // nobody coming at it: it pushes on by itself, slowly
   const sq = (b.y1 - b.y0) / CK_ROWS, ty = b.y1 - sq * (u.row + 0.5);
-  f.y += clamp(ty - f.y, -520 * dt, 520 * dt);
+  f.y += clamp(ty - f.y, -520 * CK_PACE * dt, 520 * CK_PACE * dt);
   if (f.x - f.r <= b.x0 + 1) u.dirX = 1; else if (f.x + f.r >= b.x1 - 1) u.dirX = -1;
-  f.vx = u.dirX * 400 * S.vmul; f.vy = 0;
+  f.vx = u.dirX * 400 * CK_PACE * S.vmul; f.vy = 0;
 }
 // ---- what the Queen brings on. They live on the ball, and only the side's enemies can be touched by them --------------
 function ckQueenAct(S, f) {
@@ -4627,19 +4630,19 @@ function ckQueenAct(S, f) {
   u.qLast = k;
   const sq = (b.x1 - b.x0) / CK_ROWS, m = (b.x0 + b.x1) / 2;
   if (k === 0) {        // a rook from each side, closing on it
-    u.ps.push({ k: 'rook', x: b.x0 + 20, y: t.y, vx: 860 * S.vmul, life: 1.3 }, { k: 'rook', x: b.x1 - 20, y: t.y, vx: -860 * S.vmul, life: 1.3 });
+    u.ps.push({ k: 'rook', x: b.x0 + 20, y: t.y, vx: 860 * CK_PACE * S.vmul, life: 1.3 / CK_PACE }, { k: 'rook', x: b.x1 - 20, y: t.y, vx: -860 * CK_PACE * S.vmul, life: 1.3 / CK_PACE });
   } else if (k === 1) { // a knight that hunts it in L shapes
-    u.ps.push({ k: 'knight', x: f.x, y: f.y, ax: f.x, ay: f.y, bx: f.x, by: f.y, T: 1, D: 0.34, wait: 0, n: 0, z: 0 });
+    u.ps.push({ k: 'knight', x: f.x, y: f.y, ax: f.x, ay: f.y, bx: f.x, by: f.y, T: 1, D: 0.34 / CK_PACE, wait: 0, n: 0, z: 0 });
   } else if (k === 2) { // a bishop each side of her, converging on it
     for (const s of [-1, 1]) {
-      const p = { k: 'bishop', x: f.x + s * (f.r + 34), y: f.y, vx: 0, vy: 0, life: 1.2 }, [ux, uy] = lead(S, p, t, 960);
-      p.vx = ux * 960 * S.vmul; p.vy = uy * 960 * S.vmul; p.a = 0;
+      const p = { k: 'bishop', x: f.x + s * (f.r + 34), y: f.y, vx: 0, vy: 0, life: 1.2 / CK_PACE }, [ux, uy] = lead(S, p, t, 960 * CK_PACE);
+      p.vx = ux * 960 * CK_PACE * S.vmul; p.vy = uy * 960 * CK_PACE * S.vmul; p.a = 0;
       u.ps.push(p);
     }
   } else {              // three pawns in a line, in its quarter of the board, moving up one at a time
     const qx = t.x < m ? b.x0 : m, y = (t.y < m ? m : b.y1) - sq * 0.5;
     for (let i = 0; i < 3; i++) u.ps.push({ k: 'pawn', x: qx + sq * (i + 1), y, ty: y, first: 1 });
-    u.pgT = 0.3; u.pgN = 0;
+    u.pgT = 0.3 / CK_PACE; u.pgN = 0;
   }
   emit(S, { e: 'ckfx', k: 'summon', n: k, x: f.x, y: f.y });
 }
@@ -4665,14 +4668,14 @@ function ckPieces(S, f, dt) {
     if (row.length) {
       const p = row[(u.pgN++) % row.length];
       p.ty -= sq * (p.first ? 2 : 1); p.first = 0;
-      u.pgT = 0.26;
+      u.pgT = 0.26 / CK_PACE;
       emit(S, { e: 'ckfx', k: 'tap', x: p.x, y: p.ty });
     } else u.pgT = 0;
   }
   for (const p of u.ps) {
     if (p.k === 'rook') {
       p.x += p.vx * dt;
-      if (t && t.alive) p.y += clamp(t.y - p.y, -280 * dt, 280 * dt);
+      if (t && t.alive) p.y += clamp(t.y - p.y, -280 * CK_PACE * dt, 280 * CK_PACE * dt);
       if ((p.life -= dt) <= 0 || p.x < b.x0 - 40 || p.x > b.x1 + 40) { p.dead = 1; continue; }
       ckTouch(S, f, p, 26, CK_HIT.qRook);
     } else if (p.k === 'knight') {
@@ -4681,7 +4684,7 @@ function ckPieces(S, f, dt) {
         const q = clamp(p.T / p.D, 0, 1);
         p.x = p.ax + (p.bx - p.ax) * q; p.y = p.ay + (p.by - p.ay) * q; p.z = 4 * q * (1 - q);
         if (q >= 1) {
-          p.wait = 0.1; p.z = 0;
+          p.wait = 0.1 / CK_PACE; p.z = 0;
           emit(S, { e: 'ckfx', k: 'land', x: p.x, y: p.y });
           if (ckTouch(S, f, p, 42, CK_HIT.qKnight)) continue;
           if (++p.n >= 12) { p.dead = 1; continue; }
@@ -4699,7 +4702,7 @@ function ckPieces(S, f, dt) {
       if ((p.life -= dt) <= 0 || p.x < b.x0 - 30 || p.x > b.x1 + 30 || p.y < b.y0 - 30 || p.y > b.y1 + 30) { p.dead = 1; continue; }
       ckTouch(S, f, p, 22, CK_HIT.qBishop);
     } else {
-      p.y += clamp(p.ty - p.y, -640 * dt, 640 * dt);
+      p.y += clamp(p.ty - p.y, -640 * CK_PACE * dt, 640 * CK_PACE * dt);
       if (ckTouch(S, f, p, 22, CK_HIT.qPawn)) continue;
       if (p.y <= b.y0 + sq * 0.4) p.dead = 1;
     }
@@ -4707,8 +4710,8 @@ function ckPieces(S, f, dt) {
   if (u.ps.some(p => p.dead)) u.ps = u.ps.filter(p => !p.dead);
 }
 const CK_DEF = {
-  id: 'chess', name: 'The King', rar: 'M', cat: 'trick', special: 1, hidden: 1, giveOnly: 1, secret: 1, col: '#e9dfc8', hp: CK.king.hp / HP_SCALE, r: CK.king.r, contact: CK.king.contact, upright: 1,
-  init(S, f) { f.u.form = 'king'; f.u.ps = []; },
+  id: 'theking', name: 'The King', rar: 'M', cat: 'trick', special: 1, hidden: 1, giveOnly: 1, secret: 1, col: '#e9dfc8', hp: CK.king.hp / HP_SCALE, r: CK.king.r, contact: CK.king.contact, upright: 1,
+  init(S, f) { f.u.form = 'king'; f.u.ps = []; f.u.vmin = ckLo(S); f.u.vmax = ckHi(S); },
   onLethal: ckLethal,
   takeMod(S, f, src, kind) {
     const u = f.u;
@@ -4727,35 +4730,39 @@ const CK_DEF = {
     if (u.rush && !u.rushHit) { u.rushHit = 1; emit(S, { e: 'ckfx', k: 'stab', x: t.x, y: t.y }); return f.hp; }   // all the health it has
     return d;
   },
-  onWall(S, f) { if (f.u.charge) { f.u.charge = 0; f.u.vmax = f.u.sac ? 1750 : undefined; emit(S, { e: 'ckfx', k: 'wall', x: f.x, y: f.y }); } },
+  onWall(S, f) { if (f.u.charge) { f.u.charge = 0; f.u.vmax = f.u.sac ? 1750 * CK_PACE : ckHi(S); emit(S, { e: 'ckfx', k: 'wall', x: f.x, y: f.y }); } },
   update(S, f, dt) {
     const u = f.u, t = f.foe;
     if (u.form === 'rook' && every(f, 'rk', dt, CK_EVERY) && t && t.alive) {
       // really fast, dead straight, along whichever axis has further to go to reach it
-      const dx = t.x - f.x, dy = t.y - f.y, wide = Math.abs(dx) >= Math.abs(dy), sp = 1600 * S.vmul;
+      const dx = t.x - f.x, dy = t.y - f.y, wide = Math.abs(dx) >= Math.abs(dy), sp = 1600 * CK_PACE * S.vmul;
       f.vx = wide ? (dx < 0 ? -sp : sp) : 0; f.vy = wide ? 0 : (dy < 0 ? -sp : sp);
-      u.charge = S.t + 0.9; u.chX = f.vx; u.chY = f.vy; u.vmax = 1650 * S.vmul;
+      u.charge = S.t + 0.9 / CK_PACE; u.chX = f.vx; u.chY = f.vy; u.vmax = 1650 * CK_PACE * S.vmul;
       emit(S, { e: 'ckfx', k: 'charge', x: f.x, y: f.y });
     } else if (u.form === 'bishop' && every(f, 'bs', dt, CK_EVERY) && t && t.alive) {
-      u.mount = S.t + 1.1; u.lanced = 0; u.vmin = 1000; u.vmax = 1550 * S.vmul;
+      u.mount = S.t + 1.1 / CK_PACE; u.lanced = 0; u.vmin = 1000 * CK_PACE; u.vmax = 1550 * CK_PACE * S.vmul;
       emit(S, { e: 'ckfx', k: 'mount', x: f.x, y: f.y });
     } else if (u.form === 'queen' && every(f, 'qn', dt, CK_QUEEN)) ckQueenAct(S, f);
   },
   always(S, f, dt) {
     const u = f.u;
+    if (!u.charge && !u.mount && !u.sac && !u.rush) {
+      const sp = vlen(f.vx, f.vy), over = sp - CK_CRUISE * S.vmul;
+      if (over > 0) { const k = 1 - CK_SETTLE * dt * over / sp; f.vx *= k; f.vy *= k; }
+    }
     switch (u.form) {
       case 'king':
         if (f.hp <= f.maxHp / 2) { u.saved = f.hp; ckForm(S, f, 'rook'); }
         break;
       case 'rook':
         if (u.charge) {
-          if (S.t > u.charge) { u.charge = 0; u.vmax = u.sac ? 1750 : undefined; }
+          if (S.t > u.charge) { u.charge = 0; u.vmax = u.sac ? 1750 * CK_PACE : ckHi(S); }
           else if (!stuck(S, f)) { f.vx = u.chX; f.vy = u.chY; }
         }
         // half the time, at half health: THE ROOK. The dice are the fight's own, so every screen agrees
         if (!u.sacked && f.hp <= f.maxHp / 2) {
           u.sacked = 1;
-          if (S.rng() < 0.5) { u.sac = 1; u.vmin = 1050; u.vmax = 1750; f.contact = 1.2; emit(S, { e: 'sac', side: f.side, id: f.id, x: f.x, y: f.y }); }
+          if (S.rng() < 0.5) { u.sac = 1; u.vmin = 1050 * CK_PACE; u.vmax = 1750 * CK_PACE; f.contact = 1.2; emit(S, { e: 'sac', side: f.side, id: f.id, x: f.x, y: f.y }); }
         }
         break;
       case 'knight': ckKnight(S, f, dt); break;
@@ -4766,7 +4773,7 @@ const CK_DEF = {
   },
   desc: 'A whole chess set. The King castles at half health into a Rook that charges down the files, and may be sacrificed. Then a Knight that splits, a Bishop with a lance, and a Pawn that climbs the board when hit from above and promotes to a Queen, who summons the rest. When she falls the King limps back on. Only then is it over.',
 };
-BALL_LIST.push(CK_DEF); BALL.chess = CK_DEF;
+BALL_LIST.push(CK_DEF); BALL.theking = CK_DEF;
 
 // ===== drawing: balls, weapons, shots, the arena =========================
 // Everything here only reads the simulation; nothing it does can change a fight.
@@ -7188,8 +7195,8 @@ function ckPiece(c, kind, x, y, s, fill, edge, lw, flip) {
 }
 const CK_LOOK = { king: ['#e9dfc8', '#17130c'], rook: ['#e9dfc8', '#17130c'], knight: ['#e9dfc8', '#17130c'], bishop: ['#e9dfc8', '#17130c'], pawn: ['#e9dfc8', '#17130c'], queen: ['#f2c230', '#17130c'], last: ['#8d8a80', '#26231c'], sac: ['#d8321f', '#fff1dc'] };
 const ckLookOf = f => { const u = f && f.u; return u && u.sac ? CK_LOOK.sac : CK_LOOK[(u && u.form) || 'king']; };
-ART_BG.chess = (c, k, f) => { circ(c, 0, 0, 40); c.fillStyle = ckLookOf(f)[0]; c.fill(); };
-ART.chess = (c, k, f) => { const L = ckLookOf(f), form = (f && f.u && f.u.form) || 'king'; ckPiece(c, form, 0, 1, 0.88, L[1], L[0], 0); };
+ART_BG.theking = (c, k, f) => { circ(c, 0, 0, 40); c.fillStyle = ckLookOf(f)[0]; c.fill(); };
+ART.theking = (c, k, f) => { const L = ckLookOf(f), form = (f && f.u && f.u.form) || 'king'; ckPiece(c, form, 0, 1, 0.88, L[1], L[0], 0); };
 DRONE2.ckknight = (c, d) => {
   circ(c, d.x, d.y, d.r); c.fillStyle = '#e9dfc8'; c.fill(); c.lineWidth = 2.4; c.strokeStyle = '#14110c'; c.stroke();
   ckPiece(c, 'knight', d.x, d.y + 1, d.r / 40 * 0.88, '#17130c', '#e9dfc8', 0);
@@ -7203,7 +7210,7 @@ function chessIcon(form, px) {
   cv.width = cv.height = Math.round(px * dpr);
   const c = cv.getContext('2d');
   c.scale(dpr, dpr);
-  drawBall(c, BALL.chess, px / 2, px / 2, px / 2 * 0.86, { u: { form } }, 0);
+  drawBall(c, BALL.theking, px / 2, px / 2, px / 2 * 0.86, { u: { form } }, 0);
   return (CK_ICON[key] = cv);
 }
 // the pawn turns the whole box into a chess board, for the rest of the fight
@@ -7226,7 +7233,7 @@ function chessFloor(c, S) {
 // under the balls: the knight the bishop rides, its lance, and the rook's sacrifice burning round it
 function chessUnder(c, S, t) {
   for (const f of S.F) {
-    if (f.def.id !== 'chess' || !f.alive) continue;
+    if (f.def.id !== 'theking' || !f.alive) continue;
     const u = f.u;
     if (u.form === 'bishop' && u.mount > S.t) {
       const sp = vlen(f.vx, f.vy) || 1, ux = f.vx / sp, uy = f.vy / sp;
@@ -7244,7 +7251,7 @@ function chessUnder(c, S, t) {
 }
 function chessTop(c, S, t, A) {
   for (const f of S.F) {
-    if (f.def.id !== 'chess' || !f.u.ps) continue;
+    if (f.def.id !== 'theking' || !f.u.ps) continue;
     const L = '#e9dfc8', E = '#17130c', me = f.side;
     for (const p of f.u.ps) {
       c.save();
@@ -8903,7 +8910,7 @@ function startFight(o) {
   if (o.mode === 'pvp') { G.coins -= o.stake; save(); }
   MUSIC.play(fightSong()); MUSIC.boost(false);
   if (!REDUCED && S.F.some(f => f.def.id === 'beezap')) bzDeathFilm();   // loaded now, so it's ready if BeeZap goes down
-  if (!REDUCED && S.F.some(f => f.def.id === 'chess')) filmOf(CK_SAC);
+  if (!REDUCED && S.F.some(f => f.def.id === 'theking')) filmOf(CK_SAC);
   arena.resize(); arena.draw(S, 0);
   updatePlates(F);
   fxStart(F);
@@ -13406,14 +13413,19 @@ function facBulk(f, i, mode) {
   const n = mode === 'max' ? clamp(Math.floor(Math.log(1 + f.honey * (g - 1) / one) / Math.log(g)), 1, Math.max(1, room)) : Math.min(mode, Math.max(1, room));
   return { n, cost: sum(n), full: room <= 0 };
 }
-// the exchange: dearer with each room you've opened, and each coin sold today makes the next dearer, so it can't flood the game
+// the exchange: dearer with each room you've opened, and each coin sold today makes the next dearer. Honey grows far faster than
+// any price, so what really stops it flooding the game is the most it will pay out in a day
+const FAC_DAY_COINS = 2000;
 const facCoinBase = f => 25 * Math.pow(6, f.rooms.length - 1);
 function facToday(f) { const d = Math.floor(Date.now() / 864e5); if (f.day !== d) { f.day = d; f.sold = 0; } return f.sold; }
-function facQuote(f, honey) {
+const facLeft = f => Math.max(0, FAC_DAY_COINS - facToday(f));
+function facRefill() { const m = Math.ceil((864e5 - Date.now() % 864e5) / 6e4), hrs = Math.floor(m / 60); return hrs ? `${hrs}h ${m % 60}m` : `${m}m`; }
+function facQuote(f, honey, most = facLeft(f)) {
   const K = 1000, x0 = facToday(f), a = facCoinBase(f), spent = c => a * (c + (c * (c + 2 * x0)) / (2 * K));   // K coins sold makes a coin twice the price
   let c = Math.floor(-K - x0 + Math.sqrt((K + x0) * (K + x0) + 2 * K * honey / a));
   // the sum can round a coin over. Stepping back has to count even at huge numbers, where taking off 1 changes nothing
   while (c > 0 && spent(c) > honey) c = Math.floor(c - Math.max(1, c * 1e-12));
+  c = Math.min(c, most);   // only the honey those coins cost is taken
   return { coins: Math.max(0, c), honey: c > 0 ? spent(c) : 0 };
 }
 // missions come one after another, each bigger than the last
@@ -13630,7 +13642,7 @@ function facDraw() {
     facSet(FG.next.open, lvlOk ? `OPEN ${HONEY_SVG}<span>${facNum(c)}</span>` : 'LEVEL UP FIRST'); FG.next.open.disabled = !lvlOk || f.honey < c;
   }
   FG.bulkBtn.textContent = FG.bulk === 'max' ? 'BUY MAX' : 'BUY x' + FG.bulk;
-  facSet(FG.sellBtn, `<b>EXCHANGE</b><small>${COIN_SVG}${fmt(q.coins)}</small>`);
+  facSet(FG.sellBtn, `<b>EXCHANGE</b><small>${facLeft(f) < 1 ? 'SOLD OUT' : COIN_SVG + fmt(q.coins)}</small>`);
   facSet(FG.boostBtn, on ? `<b>BOOST x2</b><small>${Math.ceil((f.boost - Date.now()) / 1000)}s left</small>` : wait > 0 ? `<b>BOOST x2</b><small>in ${Math.floor(wait / 60)}:${pad2(wait % 60)}</small>` : '<b>BOOST x2</b><small>5 min, free</small>');
   FG.boostBtn.disabled = on || wait > 0; FG.boostBtn.classList.toggle('on', on);
   facSet(FG.chestBtn, chest > 0 ? `<b>TREASURE</b><small>in ${Math.floor(chest / 60)}:${pad2(chest % 60)}</small>` : '<b>TREASURE</b><small>READY!</small>'); FG.chestBtn.disabled = chest > 0; FG.chestBtn.classList.toggle('hot', chest <= 0);
@@ -13650,9 +13662,10 @@ function facSheet(kind) {
   let draw;
   if (kind === 'sell') {
     const big = h('div', { class: 'fs-big' }), all = h('button', { class: 'fg-yel', onclick: () => sell(1) }), half = h('button', { class: 'fg-yel', onclick: () => sell(0.5) }), rate = h('small');
-    const sell = share => { const f = facGet(); facTick(); const q = facQuote(f, f.honey * share); if (q.coins < 1) { SFX.tink(); return; } f.honey = Math.max(0, f.honey - q.honey); f.sold += q.coins; G.coins += q.coins; save(); SFX.coin(); toast(`Sold honey for ${fmt(q.coins)} coins`, 1800); facDraw(); facFly(share === 1 ? all : half, FG.coins, COIN_SVG, 7); };
-    body.append(h('h3', { text: 'THE EXCHANGE' }), h('p', { text: 'Honey in, Bounce Brawl coins out. The more you sell in a day the less it buys, and each room you open makes coins dearer.' }), big, all, half, rate);
-    draw = () => { const f = facGet(), a = facQuote(f, f.honey), b = facQuote(f, f.honey / 2); facSet(big, `${HONEY_SVG} ${facNum(f.honey)}`); facSet(all, `SELL ALL ${COIN_SVG}<span>${fmt(a.coins)}</span>`); all.disabled = a.coins < 1; facSet(half, `SELL HALF ${COIN_SVG}<span>${fmt(b.coins)}</span>`); half.disabled = b.coins < 1; rate.textContent = `${fmt(facToday(f))} coins sold today`; };
+    const quote = (f, share) => share < 1 ? facQuote(f, f.honey * share, Math.ceil(facLeft(f) * share)) : facQuote(f, f.honey);
+    const sell = share => { const f = facGet(); facTick(); const q = quote(f, share); if (q.coins < 1) { SFX.tink(); return; } f.honey = Math.max(0, f.honey - q.honey); f.sold += q.coins; G.coins += q.coins; save(); SFX.coin(); toast(`Sold honey for ${fmt(q.coins)} coins`, 1800); facDraw(); facFly(share === 1 ? all : half, FG.coins, COIN_SVG, 7); };
+    body.append(h('h3', { text: 'THE EXCHANGE' }), h('p', { text: `Honey in, Bounce Brawl coins out, up to ${fmt(FAC_DAY_COINS)} coins a day. The more you sell in a day the less it buys, and each room you open makes coins dearer.` }), big, all, half, rate);
+    draw = () => { const f = facGet(), a = quote(f, 1), b = quote(f, 0.5), out = facLeft(f) < 1; facSet(big, `${HONEY_SVG} ${facNum(f.honey)}`); facSet(all, out ? 'SOLD OUT TODAY' : `SELL ALL ${COIN_SVG}<span>${fmt(a.coins)}</span>`); all.disabled = a.coins < 1; facSet(half, out ? 'SOLD OUT TODAY' : `SELL HALF ${COIN_SVG}<span>${fmt(b.coins)}</span>`); half.disabled = b.coins < 1; rate.textContent = `${fmt(Math.min(facToday(f), FAC_DAY_COINS))} / ${fmt(FAC_DAY_COINS)} coins sold today` + (out ? `. More in ${facRefill()}` : ''); };
   } else if (kind === 'line') {
     const small = n => n < 100 ? n.toFixed(2) : facNum(n);
     const rows = [['Belt Speed', 'Jars a second', f => small(facJarsPerSec(f))], ['Jar Size', 'Nectar a jar', f => small(facJarSize(f))], ['Jar Price', 'Honey for each nectar', f => small(facPrice(f))]].map(([name, what, val]) => { const now = h('span', { class: 'fs-val' }); return { val, now, el: h('div', { class: 'fs-row' }, h('div', {}, h('b', { text: name.toUpperCase() }), h('p', { text: what })), now) }; });
@@ -13967,9 +13980,9 @@ function ckEndKind(F) {
   const S = F.S;
   if (F.ckEnded || REDUCED) return null;
   const w = S.winner >= 0 ? S.F[S.winner] : null;
-  if (w && w.def.id === 'chess') return { k: 'win', queen: w.u.form === 'queen', loser: S.F.length > 2 ? S.F[S.out[S.out.length - 2]] : S.F[1 - S.winner] };
-  if (S.F.length > 2) { const me = S.F[F.mySide]; return me && me.def.id === 'chess' ? { k: 'lose' } : null; }   // a free for all: only its own player
-  return S.F.some(f => f.def.id === 'chess') ? { k: 'lose' } : null;
+  if (w && w.def.id === 'theking') return { k: 'win', queen: w.u.form === 'queen', loser: S.F.length > 2 ? S.F[S.out[S.out.length - 2]] : S.F[1 - S.winner] };
+  if (S.F.length > 2) { const me = S.F[F.mySide]; return me && me.def.id === 'theking' ? { k: 'lose' } : null; }   // a free for all: only its own player
+  return S.F.some(f => f.def.id === 'theking') ? { k: 'lose' } : null;
 }
 function openCkEnd(F, end) {
   F.ckEnded = 1;
@@ -14044,9 +14057,9 @@ function ckLoseFrame(F, dt) {
 function chessGrant(s) {
   let on = false;
   try { on = localStorage.getItem('bouncebrawl.chess') === '1'; } catch (e) {}
-  if (!on || s.owned.chess) return false;
-  s.owned.chess = { lvl: 1, copies: 0 };
-  s.eq = 'chess';
+  if (!on || s.owned.theking) return false;
+  s.owned.theking = { lvl: 1, copies: 0 };
+  s.eq = 'theking';
   return true;
 }
 
@@ -14078,13 +14091,13 @@ addEventListener('keydown', e => {
 // the scene clock alone (no state stepped from frame to frame), so it's smooth at any frame rate, slow motion is just the
 // clock running slowly, and when the clock stops every spark stays exactly where it is. Looks only: the fight is already over.
 const CMK = {
-  F: 900, R: 85, X1: 255, LANCE: 430,
+  F: 900, R: 85, X1: 255, LANCE: 500,
   LAND: 0.62, T1: 1.3, T2: 2.2, T3: 2.86, T4: 3.42,   // the ball lands, then the four hits, on the scene clock
   K0: 3.4, K1: 3.84, STOP: 4.5,             // the King sets off, leaves the ground, and the lance goes in
   HOLD: 3.3,                                // real seconds from time stopping to the result
   QX: 230, QZ: 760, QH: 340,                // where the Queen stands to give her orders: the back of the board, out of the way
 };
-const CMK_AIM = [0.78, 0.62], CMK_TILT = 0.3;
+const CMK_AIM = [0.9, 0.44], CMK_TILT = 0.3, CMK_HAND = [-8, 226], CMK_LUNGE = 0.2;
 const cmkSm = (a, b, x) => { const q = clamp((x - a) / (b - a), 0, 1); return q * q * (3 - 2 * q); };
 const cmkOut = (k, x) => (x <= 0 ? 0 : 1 - Math.exp(-k * x));
 const cmkRnd = (a, b) => a + Math.random() * (b - a);
@@ -14098,7 +14111,7 @@ function cmkBallAt(t) {
     const d = (t - (A.LAND - 0.36)) / 0.36;
     if (d < 1) { const q = Math.max(0, d); y = r + 1100 * (1 - q * q); }
     else { const a = t - A.LAND; y = r + 96 * Math.exp(-4.4 * a) * Math.abs(Math.sin(9.5 * a)); rot = 0.2 * Math.exp(-3 * a) * Math.sin(7 * a); }
-    x = 2.6 * Math.sin(t * 74) * cmkSm(A.T1 - 0.42, A.T1, t);   // it shivers as the rook comes
+    x = 2.6 * Math.sin(t * 74) * cmkSm(A.T1 - 0.42, A.T1 - 0.1, t) * (1 - cmkSm(A.T1 - 0.1, A.T1, t));   // it shivers as the rook comes
   } else {
     x = -A.X1 * cmkOut(5.2, t1);
     y = r + 72 * Math.exp(-3.2 * t1) * Math.abs(Math.sin(8.8 * t1));
@@ -14115,30 +14128,40 @@ function cmkRookAt(t, T, side, contact) {
   if (a > 0.5 || b > 1.32) return null;
   if (a > 0) return { x: contact + side * 1700 * Math.pow(a / 0.5, 2.2), y: 0, z: 400, tilt: -side * 0.13 * cmkSm(0.5, 0.25, a) };
   const out = cmkSm(0.68, 1.32, b);
-  return { x: contact - side * 76 * cmkOut(9, b) + side * 1750 * out * out, y: 0, z: 400, tilt: side * 0.19 * Math.exp(-4.4 * b) * Math.sin(11 * b) - side * 0.1 * out };
+  return { x: contact - side * 76 * cmkOut(9, b) + side * 1750 * out * out, y: 0, z: 400, tilt: -side * 0.13 * Math.exp(-13 * b) + side * 0.19 * Math.exp(-4.4 * b) * Math.sin(11 * b) - side * 0.1 * out };
 }
 function cmkBishopAt(t, T, dir) {
   const c = cmkBallAt(T), L = (t - T) * 3000;
   return { x: c.x + dir[0] * L, y: c.y + dir[1] * L, z: c.z + dir[2] * L };
 }
 const CMK_B1 = [-0.72, 0.68, 0.14], CMK_B2 = [0.72, 0.68, 0.14];
-// the King on his knight: a gallop along the board, a crouch, up off the ground, and into it
+// the King on his knight: a gallop along the board, a crouch, up off the ground, a moment hanging there, and then the lunge
 function cmkKingAt(t) {
-  const A = CMK, B = cmkBallAt(A.STOP), far = A.R * 1.45, hx = B.x + CMK_AIM[0] * (far - A.LANCE), hy = B.y + CMK_AIM[1] * (far - A.LANCE);
-  const cs = Math.cos(CMK_TILT), sn = Math.sin(CMK_TILT), mx = hx - (40 * cs - 232 * sn), my = hy - (40 * sn + 232 * cs), Lx = mx - 250;
+  const A = CMK, B = cmkBallAt(A.STOP), far = A.R * 2.1, hx = B.x + CMK_AIM[0] * (far - A.LANCE), hy = B.y + CMK_AIM[1] * (far - A.LANCE), H0 = CMK_HAND[0], H1 = CMK_HAND[1];
+  const cs = Math.cos(CMK_TILT), sn = Math.sin(CMK_TILT), mx = hx - (H0 * cs - H1 * sn), my = hy - (H0 * sn + H1 * cs), px = mx - 340, py = my - 22, Lx = mx - 480;
   if (t < A.K0) return null;
   let x, y, z, tilt, sq;
   if (t < A.K1) {
     const a = t - A.K0, q = a / (A.K1 - A.K0);
-    x = -1400 + (Lx + 1400) * Math.pow(q, 1.7); y = 26 * Math.abs(Math.sin(17 * a)) * (1 - cmkSm(0.8, 1, q)); z = 300;
+    x = -1500 + (Lx + 1500) * Math.pow(q, 1.7); y = 26 * Math.abs(Math.sin(17 * a)) * (1 - cmkSm(0.8, 1, q)); z = 300;
     tilt = 0.07 * Math.sin(17 * a) * (1 - cmkSm(0.8, 1, q)); sq = 1 - 0.16 * cmkSm(0.78, 1, q);
   } else {
-    const a = t - A.K1, q = clamp(a / (A.STOP - A.K1), 0, 1), e = 1 - Math.pow(1 - q, 2.2);
-    x = Lx + (mx - Lx) * e; y = my * e + 34 * Math.sin(PI * q); z = 300 + 100 * e; tilt = CMK_TILT * cmkSm(0, 0.3, q); sq = 0.84 + 0.16 * cmkSm(0, 0.06, a) + 0.09 * Math.exp(-7 * a);
+    const a = t - A.K1, L0 = A.STOP - CMK_LUNGE, q = clamp(a / (L0 - A.K1), 0, 1), e = 1 - Math.pow(1 - q, 2.6), l = cmkSm(L0, A.STOP - 0.03, t);
+    x = Lx + (px - Lx) * e + (mx - px) * l; y = py * e + 46 * Math.sin(PI * q) + (my - py) * l; z = 300 + 100 * e; tilt = CMK_TILT * cmkSm(0, 0.5, q); sq = 0.84 + (0.16 + 0.1 * Math.exp(-7 * a)) * cmkSm(0, 0.07, a);
   }
-  const c2 = Math.cos(tilt), s2 = Math.sin(tilt), hand = [x + 40 * c2 - 232 * s2, y + 40 * s2 + 232 * c2];
+  const c2 = Math.cos(tilt), s2 = Math.sin(tilt), hand = [x + H0 * c2 - H1 * s2, y + H0 * s2 + H1 * c2];
   const at = cmkBallAt(t), full = Math.atan2(at.y - hand[1], at.x - hand[0]), blend = cmkSm(A.K1 - 0.12, A.K1 + 0.22, t);
   return { x, y, z, tilt, sq, hand, ang: 0.08 + (full - 0.08) * blend };
+}
+// exactly when the lance's point touches the ball, and exactly when it comes out the other side
+function cmkStab() {
+  const A = CMK; let inAt = 0, outAt = 0;
+  for (let t = A.STOP - CMK_LUNGE - 0.1; t <= A.STOP; t += 0.002) {
+    const k = cmkKingAt(t), b = cmkBallAt(t), tx = k.hand[0] + Math.cos(k.ang) * A.LANCE, ty = k.hand[1] + Math.sin(k.ang) * A.LANCE, d = Math.sqrt((tx - b.x) * (tx - b.x) + (ty - b.y) * (ty - b.y));
+    if (!inAt && d <= A.R) inAt = t;
+    else if (inAt && !outAt && d >= A.R) outAt = t;
+  }
+  return [inAt || A.STOP - 0.14, outAt || A.STOP - 0.05];
 }
 const CMK_CAM = [
   [0, 0, 480, -990, -236], [0.78, 0, 336, -790, -130], [CMK.T1, 30, 318, -730, -120], [CMK.T1 + 0.4, -110, 318, -720, -112], [CMK.T2, -150, 318, -690, -100],
@@ -14315,8 +14338,9 @@ function cmkBuild(W) {
   for (let i = 0; i < 10; i++) { const a = A.K0 + (A.K1 - A.K0) * (0.3 + i / 14), p = cmkKingAt(a); sc.ps.push({ k: 'd', t0: a, x: p.x, y: 10, z: p.z + cmkRnd(-30, 30), vx: cmkRnd(-160, -40), vy: cmkRnd(20, 90), vz: cmkRnd(-60, 60), d: 2.4, g: 0, life: cmkRnd(0.5, 0.95), s: cmkRnd(40, 90) }); }
   const lp = cmkKingAt(A.K1);
   dust(A.K1, lp.x, lp.z, 16, 420); stones(A.K1, lp.x, lp.z, 20, 760); sc.rings.push({ t0: A.K1, x: lp.x, z: lp.z, R: 340, life: 0.42, w: 5 }); sc.waves.push({ t0: A.K1, x: lp.x, z: lp.z, a: 26 }); crack(A.K1, lp.x, lp.z, 7, 170);
-  const inAt = A.STOP - 0.13, enter = [B5.x - CMK_AIM[0] * R * 0.7, B5.y - CMK_AIM[1] * R * 0.7], exit = [B5.x + CMK_AIM[0] * R * 0.9, B5.y + CMK_AIM[1] * R * 0.9];
-  spark(inAt, enter[0], enter[1], 400, 60, 1500, { bias: -0.5 }); spark(inAt, exit[0], exit[1], 400, 90, 2100, { bias: 0.6, lift: 240 }); chips(inAt, exit[0], exit[1], 400, 36, 1400, { bias: 0.6 });
+  const [inAt, outAt] = cmkStab(), enter = [B5.x - CMK_AIM[0] * R * 0.95, B5.y - CMK_AIM[1] * R * 0.95], exit = [B5.x + CMK_AIM[0] * R, B5.y + CMK_AIM[1] * R];
+  sc.inAt = inAt; sc.outAt = outAt;
+  spark(inAt, enter[0], enter[1], 400, 70, 1500, { bias: -0.5 }); spark(outAt, exit[0], exit[1], 400, 110, 2600, { bias: 0.7, lift: 200 }); chips(outAt, exit[0], exit[1], 400, 44, 1900, { bias: 0.7 });
   star(inAt, B5.x, B5.y, 400, 230, 0.36, 1); sc.stars[sc.stars.length - 1].back = 1; sc.exit = exit;
   // cracks across the ball itself, from wherever each hit landed, in ball coordinates so they turn with it
   const web = (t0, ang, arms, reach) => { const lines = []; for (let i = 0; i < arms; i++) { let x = Math.cos(ang) * 0.98, y = Math.sin(ang) * 0.98, b = ang + PI + cmkRnd(-0.85, 0.85); const pts = [[x, y]], n = 4; for (let j = 0; j < n; j++) { const l = reach / n * cmkRnd(0.7, 1.25); b += cmkRnd(-0.5, 0.5); x += Math.cos(b) * l; y += Math.sin(b) * l; pts.push([x, y]); } lines.push(pts); } sc.ballCracks.push({ t0, lines }); };
@@ -14345,6 +14369,7 @@ function cmkBuild(W) {
     { t: A.LAND, go: () => { SFX.clack(); } },
     { t: A.T1 - 0.34, go: whoosh(0) }, { t: A.T2 - 0.34, go: whoosh(0) }, { t: A.T3 - 0.1, go: whoosh(1) }, { t: A.T4 - 0.1, go: whoosh(1) },
     { t: A.K0 + 0.18, go: () => SFX.clack() }, { t: A.K0 + 0.3, go: () => SFX.clack() }, { t: A.K0 + 0.4, go: () => SFX.clack() }, { t: A.K1, go: () => { SFX.clang(); whoosh(0)(); } },
+    { t: A.STOP - CMK_LUNGE, go: whoosh(1) }, { t: sc.inAt, go: () => { SFX.clang(); SFX.ko(); } },
   ];
   sc.shakes = [];
   sc.queen = !!W.end.queen;
@@ -14361,7 +14386,7 @@ function cmkClock(W, sc, dt) {
   W.sinceHold += dt;
   let sp = 0.3 + 0.7 * cmkSm(0, 0.17, W.sinceHold);
   sp *= 1 - 0.26 * cmkSm(A.T2 + 0.3, A.T2 + 0.58, t) * (1 - cmkSm(A.T4 + 0.14, A.T4 + 0.36, t));
-  sp *= 1 - 0.72 * cmkSm(A.STOP - 0.42, A.STOP - 0.1, t);
+  sp *= 1 - 0.72 * cmkSm(A.STOP - CMK_LUNGE - 0.14, A.STOP - CMK_LUNGE + 0.05, t);
   let next = t + dt * sp;
   for (const h of sc.hits) if (!h.done && next >= h.t) {
     next = h.t; h.done = 1; W.holdLeft = h.hold; W.sinceHold = 0; h.go();
@@ -14522,10 +14547,10 @@ function cmkScene(c, w, h, W, sc, t) {
   rookDraw(rookA, A.T1, 1, sc.rookA); rookDraw(rookB, A.T2, -1, sc.rookB);
   // the King on his knight, and the lance
   if (king) {
-    const f = P(king.x, king.y, king.z), hor = 2 - king.sq;
+    const f = P(king.x, king.y, king.z), hor = 2 - king.sq, up = 112 * king.sq, co = Math.cos(king.tilt), si = Math.sin(king.tilt), back = -66;
+    const v = P(king.x + back * co - up * si, king.y + back * si + up * co, king.z);
+    cmkDraw(c, cmkSprite('king', 'ivory'), v[0], v[1], 226 * v[2], -king.tilt * 0.6 + 0.04);
     cmkDraw(c, cmkSprite('knight', 'ebony'), f[0], f[1], 278 * f[2], -king.tilt, hor, king.sq);
-    const up = 148 * king.sq, kx = king.x - up * Math.sin(king.tilt), ky = king.y + up * Math.cos(king.tilt), v = P(kx, ky, king.z);
-    cmkDraw(c, cmkSprite('king', 'ivory'), v[0], v[1], 246 * v[2], -king.tilt * 0.6 + 0.04);
     cmkLance(c, P, king, t, bs, br, A);
   }
   // the ball, with the fading copies it leaves when it's moving fast
@@ -14582,7 +14607,7 @@ function cmkScene(c, w, h, W, sc, t) {
   if (q2 > 0) {
     rushLines(A.T1, 0.14, bs[0], bs[1], 44, Math.max(vw, vh) * 0.62);
     rushLines(A.T2, 0.16, bs[0], bs[1], 54, Math.max(vw, vh) * 0.62);
-    rushLines(A.STOP - 0.2, 0.21, bs[0], bs[1], 80, Math.max(vw, vh) * 0.62);
+    rushLines(sc.inAt - 0.015, A.STOP - sc.inAt + 0.05, bs[0], bs[1], 80, Math.max(vw, vh) * 0.62);
   }
   c.restore();
   // a touch of light across the whole screen on the big hits, and the dark edges of the picture
@@ -14606,7 +14631,7 @@ function cmkBall(c, sc, ball, bs, br, t, gold) {
     c.save(); c.rotate(ang); c.scale(1 - sq, 1 + sq * 0.72); c.rotate(-ang); c.rotate(ball.rot);
     c.drawImage(sc.icon, -s / 2, -s / 2, s, s);
     let flash = 0;
-    for (const T of [A.T1, A.T2, A.T3, A.T4, A.STOP - 0.13]) { const a = t - T; if (a >= 0 && a < 0.2) flash = Math.max(flash, Math.exp(-15 * a)); }
+    for (const T of [A.T1, A.T2, A.T3, A.T4, sc.inAt, sc.outAt]) { const a = t - T; if (a >= 0 && a < 0.2) flash = Math.max(flash, Math.exp(-15 * a)); }
     if (flash > 0.02) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = flash; c.drawImage(sc.icon, -s / 2, -s / 2, s, s); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; }
     cmkBallCracks(c, sc, br, t, gold);
     c.restore();
@@ -14623,14 +14648,14 @@ function cmkBall(c, sc, ball, bs, br, t, gold) {
   c.restore();
 }
 function cmkBallCracks(c, sc, br, t, gold) {
-  const A = CMK, hot = gold ? 1 : cmkSm(A.STOP - 0.1, A.STOP, t);
+  const A = CMK, hot = gold ? 1 : cmkSm(A.STOP - 0.1, A.STOP, t), last = sc.ballCracks[sc.ballCracks.length - 1];
   c.save(); c.beginPath(); c.arc(0, 0, br * 0.995, 0, TAU); c.clip(); c.lineCap = 'round'; c.lineJoin = 'round';
   for (const w of sc.ballCracks) {
     const q = cmkSm(w.t0, w.t0 + 0.11, t);
     if (q <= 0) continue;
     const line = (width, col) => { c.lineWidth = width; c.strokeStyle = col; c.beginPath(); for (const L of w.lines) { const n = Math.max(1, Math.ceil(q * (L.length - 1))); for (let i = 0; i <= n; i++) { const x = L[i][0] * br, y = L[i][1] * br; if (i) c.lineTo(x, y); else c.moveTo(x, y); } } c.stroke(); };
     if (!gold) line(Math.max(1.4, br * 0.028), 'rgba(8,6,4,.9)');
-    if (hot > 0) line(Math.max(1, br * 0.022), `rgba(255,214,90,${hot.toFixed(3)})`);
+    if (hot > 0) line(Math.max(1, br * (w === last ? 0.026 : 0.014)), `rgba(255,214,90,${(hot * (w === last ? 1 : 0.42)).toFixed(3)})`);
     else line(Math.max(0.7, br * 0.012), 'rgba(255,255,255,.34)');
   }
   c.restore();
@@ -14642,7 +14667,7 @@ function cmkLance(c, P, king, t, bs, br, A) {
   // it goes in: nothing of it is drawn inside the ball, so it comes out the far side
   c.beginPath(); c.rect(-4000, -4000, 8000, 8000); c.arc(bs[0], bs[1], br * 0.98, 0, TAU); c.clip('evenodd');
   // the pennant, near the head
-  { const a0 = A.LANCE - 150, pts = [], low = [];
+  { const a0 = A.LANCE - 272, pts = [], low = [];
     for (let i = 0; i <= 6; i++) { const q = i / 6, w = Math.sin(t * 24 - q * 5) * 13 * q, base = a0 - 118 * q; pts.push(at(base, 8 + w)); low.push(at(base, 8 + w + 46 * (1 - q))); }
     c.fillStyle = '#b3261e'; c.beginPath(); pts.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); low.reverse().forEach(p => c.lineTo(p[0], p[1])); c.closePath(); c.fill();
     c.lineWidth = 1.4; c.strokeStyle = '#3a0a06'; c.stroke();
@@ -14760,10 +14785,9 @@ function cmkFrozen(c, w, h, W, sc, d) {
   const diag = Math.sqrt(w * w + h * h), q = clamp(s / 0.62, 0, 1), r = diag * (1 - Math.pow(1 - q, 2.2));
   if (q < 1) { c.save(); c.beginPath(); c.arc(px, py, r, 0, TAU); c.clip(); c.drawImage(sc.gray, 0, 0, w, h); c.restore(); c.beginPath(); c.arc(px, py, r, 0, TAU); c.lineWidth = 2 + 10 * (1 - q); c.strokeStyle = `rgba(255,250,235,${(0.9 * (1 - q)).toFixed(3)})`; c.stroke(); }
   else c.drawImage(sc.gray, 0, 0, w, h);
-  // only its wounds keep their colour, burning gold
-  c.save(); c.translate(px, py); c.rotate(0);
-  c.save(); c.rotate(ball.rot); cmkBallCracks(c, sc, br, A.STOP, 1); c.restore();
-  c.restore();
+  // only the lance and the wounds it's made keep their colour, burning gold
+  c.save(); c.translate(w / 2, h / 2); c.scale(fz.K, fz.K); cmkLance(c, fz.P, cmkKingAt(A.STOP), A.STOP, bp, A.R * bp[2], A); c.restore();
+  c.save(); c.translate(px, py); c.rotate(ball.rot); cmkBallCracks(c, sc, br, A.STOP, 1); c.restore();
   c.restore();
   // a darker band for the word to sit on
   const cy = h * 0.71, band = c.createLinearGradient(0, cy - h * 0.25, 0, cy + h * 0.25), dq = cmkSm(0.1, 0.7, s);
