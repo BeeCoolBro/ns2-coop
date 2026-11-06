@@ -1149,6 +1149,8 @@ button * { pointer-events: none; }
 .bzdeath { position: fixed; inset: 0; z-index: 100; display: grid; background: #000; }
 .bzdeath video { width: 100%; height: 100%; min-height: 0; object-fit: contain; background: #000; opacity: 0; transition: opacity .25s ease; pointer-events: none; }
 .bzdeath.on video { opacity: 1; }
+/* BeeZap under half health: the border round the screen and what's torn out of the bars */
+.bzglitch { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 41; pointer-events: none; }
 </style>
 
 <canvas id="bg" aria-hidden="true"></canvas>
@@ -6757,11 +6759,13 @@ function scarSegs(sh) {
   }
   return (home.scar = out);
 }
+const BZ_HURT_AT = 0.5;   // how much of its health BeeZap has lost before anything starts to break
 function bzScars(A, c, S, t) {
   if (S.calm || (A.masks && A.masks.some(m => !m.off))) return;
   let d = -1;
   for (const f of S.F) if (f.def && f.def.id === 'beezap') d = Math.max(d, 1 - Math.max(0, f.hp) / f.maxHp);
-  if (d < 0.03) return;
+  d = (d - BZ_HURT_AT) / (1 - BZ_HURT_AT);   // nothing until it's under half health, then the whole scale from there down
+  if (d <= 0) return;
   const b = S.box, k = (b.x1 - b.x0) / 2, m = ARENA / 2, segs = scarSegs(S.shape), tick = Math.floor(t * 13), live = !A.layer;
   const key = S.shape ? S.shape.id : 'box', px = v => m + v * k;
   const memo = A.scar && A.scar.key === key ? A.scar : (A.scar = { key, seen: new Set(), first: true });
@@ -8538,6 +8542,7 @@ function fightFrame(F, dt) {
   F.arena.step(dt * (F.phase === 'ko' ? 0.35 : 1));
   F.arena.draw(S, F.t);
   bzChaos(F, dt);
+  bzHurtUI(F, dt);
 }
 function skipFight() {
   const F = FIGHT;
@@ -8638,6 +8643,7 @@ function endFightScreen() {
   const F = FIGHT;
   if (!F) return;
   if (F.wheel && F.wheel.kind === 'death') closeWheels(F);
+  bzHurtClear(F);
   const root = F.root;
   root.classList.add('out'); root.inert = true;
   setTimeout(() => root.remove(), 260);
@@ -9949,7 +9955,7 @@ function bzAskTick(F, W, dt) {
 // ---- when BeeZap dies: fade to black, the owner's cutscene, then back to the fight or the results. All of it on this screen
 // only: the sim just waits, like for any takeover, so nothing here can make two screens disagree. The film comes from GitHub
 // through jsDelivr, with the copy beside the page if the CDN can't be reached. If neither can, the fight simply carries on
-const BZ_DEATH = { FADE: 0.7, WAIT: 3.5, STALL: 4, FILE: 'bounce-brawl-bee-death.mp4', el: null };
+const BZ_DEATH = { FADE: 0.7, WAIT: 3.5, STALL: 6, FILE: 'bounce-brawl-bee-death.mp4', el: null };
 const BZ_DEATH_CDN = 'https://cdn.jsdelivr.net/gh/BeeCoolBro/ns2-coop@main/' + BZ_DEATH.FILE;
 function bzDeathFilm() {
   if (BZ_DEATH.el) return BZ_DEATH.el;
@@ -9989,9 +9995,13 @@ function deathFrame(F, dt) {
     const p = v.play();
     if (p && p.catch) p.catch(() => { v.muted = true; v.play().catch(() => { W.fail = 1; }); });
   }
-  if (v.currentTime !== W.seen) { if (W.seen >= 0) W.shade.classList.add('on'); W.seen = v.currentTime; W.seenT = W.T; }
+  // only real movement counts as moving: the seek below is smaller than this, so it can't look like progress
+  if (v.currentTime > W.seen + 0.05) { if (W.seen >= 0) W.shade.classList.add('on'); W.seen = v.currentTime; W.seenT = W.T; W.nudged = 0; }
+  // stuck partway on a busy machine: a tiny seek can get it going again, rather than cutting the film short. Twice at most
+  if (W.seen > 0 && !W.nudged && (W.nudges || 0) < 2 && W.T - W.seenT > 1.2) { W.nudged = 1; W.nudges = (W.nudges || 0) + 1; try { v.currentTime = W.seen + 0.02; } catch (e) {} }
   // never leaves a fight stuck: it ends with the film, or if the film can't load or stalls
-  if (v.ended || v.error || v.networkState === 3 || W.fail || W.T - W.seenT > (W.seen > 0 ? D.STALL : D.WAIT)) {
+  // and whatever happens, there's a time by which it's over: a film can never hold up a bet
+  if (v.ended || v.error || v.networkState === 3 || W.fail || W.T - W.seenT > (W.seen > 0 ? D.STALL : D.WAIT) || W.T > D.FADE + (v.duration || 14) + D.STALL) {
     F.wheel = null;
     v.pause();
     if (FIGHT === F) MUSIC.play(fightSong());
@@ -11768,6 +11778,142 @@ function bzChaos(F, dt) {
   if (F.bzClockT > 0) { F.bzClockT -= dt; F.clock.textContent = F.bzClock; }
 }
 
+// ---- BeeZap under half health: the game's own UI starts to break, and a border round the whole screen with it --------
+// Worse the lower it gets. Only looks: it reads the health and never touches the sim, so screens can't disagree. Everything
+// is inline styles and a canvas over the top, put back afterwards. It leaves .arena alone (Arena.resize reads its rect), and
+// no CSS animation classes on #fight or .plate (taking one off replays the screen's entrance)
+const BZ_GLYPHS = '#%&@!?$/<>=+01X';
+const bzGarble = (txt, amt) => [...txt].map(ch => ch !== ' ' && Math.random() < amt ? BZ_GLYPHS[Math.floor(Math.random() * BZ_GLYPHS.length)] : ch).join('');
+const bzRange = (a, b) => a + Math.random() * (b - a);
+function bzHurtLevel(F) {
+  if (REDUCED || F.phase !== 'run' || F.S.over || (F.masks && F.masks.length)) return 0;
+  if (F.wheel && (F.wheel.kind === 'kick' || F.wheel.kind === 'death')) return 0;   // the kick's fake menu has to look real
+  let low = 2;
+  for (const f of F.S.F) if (f.def.id === 'beezap' && f.alive) low = Math.min(low, f.hp / f.maxHp);
+  const at = 1 - BZ_HURT_AT;
+  return low >= at ? 0 : clamp((at - low) / at, 0.001, 1);
+}
+function bzHurtBuild(F) {
+  const r = F.root, cv = h('canvas', { class: 'bzglitch', 'aria-hidden': 'true' });
+  document.body.append(cv);
+  const part = el => ({
+    el, on: 0, next: Math.random() * 0.5,
+    // the way out stays where you can click it: no holes cut in it, and only a small jump
+    soft: !!el.closest('.fbar'), plate: el.classList.contains('plate'), clock: el === F.clock,
+    words: [...el.querySelectorAll('.who, .bn')].map(e => ({ e, was: null })), hpn: el.querySelector('.hpn'), bar: el.querySelector('.hp'),
+  });
+  return { cv, c: cv.getContext('2d'), t: 0, tick: -1, hud: r.querySelector('.hud'), low: r.querySelector('.fbar'), segs: null, parts: [...r.querySelectorAll('.hud .plate, .hud .ffaf, .mid > *, .fbar > *')].map(part) };
+}
+function bzPartOff(p) {
+  const st = p.el.style;
+  st.translate = ''; st.filter = ''; st.clipPath = ''; st.opacity = '';
+  for (const w of p.words) if (w.was !== null) { w.e.textContent = w.was; w.was = null; }
+  p.lie = p.num = null; p.on = 0;
+}
+function bzHurtClear(F) {
+  const g = F.gl;
+  if (!g) return;
+  F.gl = null;
+  g.cv.remove();
+  g.parts.forEach(bzPartOff);
+  for (const e of [g.hud, g.low]) if (e) e.style.translate = '';
+}
+function bzPartJump(F, g, p, q) {
+  const st = p.el.style, a = p.soft ? 1 + q * 2 : 1.5 + q * 13, s = (1 + q * 3.5).toFixed(1);
+  st.translate = `${bzRange(-a, a).toFixed(1)}px ${bzRange(-a, a).toFixed(1) / 3}px`;
+  st.filter = `drop-shadow(${s}px 0 0 rgba(255,0,85,.9)) drop-shadow(-${s}px 0 0 rgba(0,229,255,.9))`;
+  // a strip torn out of it
+  if (!p.soft && Math.random() < 0.3 + q * 0.5) {
+    const y0 = Math.floor(bzRange(5, 70)), y1 = y0 + Math.floor(bzRange(8, 28)), x = Math.floor(bzRange(25, 85));
+    st.clipPath = Math.random() < 0.5 ? `polygon(0 0, 100% 0, 100% ${y0}%, ${x}% ${y0}%, ${x}% ${y1}%, 100% ${y1}%, 100% 100%, 0 100%)` : `polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 ${y1}%, ${100 - x}% ${y1}%, ${100 - x}% ${y0}%, 0 ${y0}%)`;
+  } else st.clipPath = '';
+  st.opacity = Math.random() < 0.15 + q * 0.2 ? '0.5' : '';
+  if (F.wheel) return;   // takeovers write to these plates themselves
+  for (const w of p.words) { if (w.was === null) w.was = w.e.textContent; w.e.textContent = bzGarble(w.was, 0.2 + q * 0.6); }
+  if (p.hpn) p.num = bzGarble(p.hpn.textContent, 0.3 + q * 0.6);
+  if (p.bar) p.lie = bzRange(-1, 1) * (6 + q * 22);
+  if (p.clock) { F.bzClock = bzGarble(F.clock.textContent, 0.5 + q * 0.5); F.bzClockT = 0.08; }
+}
+// the border round the screen: honey going to red, coming apart, the loose pieces jumping about with their colours split
+function bzHurtDraw(F, g, q, tick) {
+  const c = g.c, W = innerWidth, H = innerHeight;
+  if (g.cv.width !== W || g.cv.height !== H) { g.cv.width = W; g.cv.height = H; g.segs = null; }
+  if (!g.segs) {
+    g.segs = [];
+    let i = 0;
+    const run = (len, make) => { for (let at = 0; at < len;) { const n = 40 + scarRnd(i, 1) * 90, e = Math.min(len, at + n); g.segs.push(Object.assign({ i, go: scarRnd(i, 2), bad: scarRnd(i, 3) }, make(at, e))); at = e; i++; } };
+    run(W, (a, b) => ({ x: a, y: 0, w: b - a, h: 0, nx: 0, ny: 1 }));
+    run(W, (a, b) => ({ x: a, y: H, w: b - a, h: 0, nx: 0, ny: -1 }));
+    run(H, (a, b) => ({ x: 0, y: a, w: 0, h: b - a, nx: 1, ny: 0 }));
+    run(H, (a, b) => ({ x: W, y: a, w: 0, h: b - a, nx: -1, ny: 0 }));
+  }
+  c.clearRect(0, 0, W, H);
+  const busy = g.parts.some(p => p.on), T = 3 + q * 9, red = clamp(q * 1.4, 0, 1), col = `rgb(${Math.round(246 + 9 * red)},${Math.round(195 - 155 * red)},${Math.round(60 - 10 * red)})`;
+  const piece = (s, off, along, fill, t) => {
+    // a piece along one edge, its thickness running inward from it
+    const x = s.h ? (s.nx > 0 ? off : W - off - t) : s.x + along, y = s.h ? s.y + along : (s.ny > 0 ? off : H - off - t);
+    c.fillStyle = fill; c.fillRect(x, y, s.h ? t : s.w, s.h ? s.h : t);
+  };
+  for (const s of g.segs) {
+    const r = scarRnd(s.i, tick);
+    // at first it only shows in flashes; from about 40% health it's there all the time, with more and more of it gone
+    if (!busy && q < 0.2) continue;
+    if (q < 0.2 ? r > 0.2 + q * 3 : s.go < q * 0.5 && r > 0.1) continue;
+    if (s.bad < q * 1.1) {
+      if (r < 0.1 + q * 0.2) continue;
+      const off = scarRnd(s.i, tick + 50) * (3 + q * 24), along = (scarRnd(s.i, tick + 90) - 0.5) * q * 30, sp = 1.5 + q * 4;
+      const pair = s.h ? 0 : sp, pairV = s.h ? sp : 0;
+      piece(s, off + pairV, along - pair, 'rgba(0,229,255,0.8)', T);
+      piece(s, Math.max(0, off - pairV), along + pair, 'rgba(255,0,85,0.85)', T);
+      piece(s, off, along, r > 0.85 ? '#fff' : col, T * 0.8);
+    } else piece(s, 0, 0, col, T);
+  }
+  // stray blocks thrown off it, all round the outside
+  const pal = ['#ff0055', '#00e5ff', '#ffd633', '#ffffff', '#0a0a0d'], n = Math.floor(q * 46) * (busy || q > 0.2 ? 1 : 0);
+  for (let j = 0; j < n; j++) {
+    const a = scarRnd(j, tick + 3), edge = Math.floor(a * 4), u = scarRnd(j, tick + 7), d = scarRnd(j, tick + 11) * (10 + q * 70), w = 3 + scarRnd(j, tick + 13) * (6 + q * 30), hh = 2 + scarRnd(j, tick + 17) * (2 + q * 7);
+    c.fillStyle = pal[Math.floor(scarRnd(j, tick + 19) * pal.length)];
+    c.fillRect(edge === 0 ? u * W : edge === 1 ? u * W : edge === 2 ? d : W - d - w, edge === 0 ? d : edge === 1 ? H - d - hh : u * H, w, hh);
+  }
+  // torn strips across the bars above and below the box, never over the box itself
+  if (busy) for (const e of [g.hud, g.low]) {
+    if (!e) continue;
+    const b = e.getBoundingClientRect(), k = 1 + Math.floor(q * 7);
+    for (let j = 0; j < k; j++) {
+      const x = bzRange(-40, W * 0.8), w = bzRange(30, W * (0.1 + q * 0.5));
+      c.fillStyle = pal[Math.floor(Math.random() * pal.length)];
+      c.globalAlpha = 0.45 + Math.random() * 0.45;
+      c.fillRect(x, bzRange(b.top, Math.max(b.top + 1, b.bottom - 6)), w, bzRange(1, 3 + q * 7));
+    }
+    c.globalAlpha = 1;
+  }
+}
+function bzHurtUI(F, dt) {
+  const q = bzHurtLevel(F);   // asked every frame: a BeeZap can hook in partway through a fight
+  if (!q) { if (F.gl) bzHurtClear(F); return; }
+  const g = F.gl || (F.gl = bzHurtBuild(F));
+  g.t += dt;
+  const tick = Math.floor(g.t * 14), fresh = tick !== g.tick;
+  g.tick = tick;
+  for (const p of g.parts) {
+    if (!p.on && g.t >= p.next) {
+      p.on = g.t + bzRange(0.08, 0.24) * (1 + q);
+      p.next = p.on + bzRange(0.4, 1.8) * (0.25 + 5 * (1 - q) * (1 - q));
+      bzPartJump(F, g, p, q);
+    } else if (p.on && g.t >= p.on) bzPartOff(p);
+    else if (p.on && fresh) bzPartJump(F, g, p, q);
+    // updatePlates writes these every frame, so they're put back wrong every frame while it lasts
+    if (p.num && p.hpn) p.hpn.textContent = p.num;
+    if (p.lie !== null && p.lie !== undefined && p.bar) { const w = clamp(parseFloat(p.bar.children[1].style.width) + p.lie, 0, 100) + '%'; p.bar.children[1].style.width = w; }
+  }
+  if (fresh) {
+    // deep in it, the two bars themselves won't sit still
+    const a = q > 0.3 ? (q - 0.3) * 5 : 0;
+    for (const e of [g.hud, g.low]) if (e) e.style.translate = a ? `${bzRange(-a, a).toFixed(1)}px ${bzRange(-a, a).toFixed(1) / 2}px` : '';
+    bzHurtDraw(F, g, q, tick);
+  }
+}
+
 // ---- locked in the collection until someone types the keyphrase --------------------
 // Only the phrase's SHA-256 is here, so reading the page's code doesn't give it away.
 const BZ_KEY = '468fcc281527de3250178e00cdb55cc79cc3c0278294def3c0bbb07483b74305';
@@ -12803,10 +12949,10 @@ function facBulk(f, i, mode) {
   return { n, cost: sum(n), full: room <= 0 };
 }
 // the exchange: dearer with each room you've opened, and each coin sold today makes the next dearer, so it can't flood the game
-const facCoinBase = f => 18 * Math.pow(6, f.rooms.length - 1);
+const facCoinBase = f => 25 * Math.pow(6, f.rooms.length - 1);
 function facToday(f) { const d = Math.floor(Date.now() / 864e5); if (f.day !== d) { f.day = d; f.sold = 0; } return f.sold; }
 function facQuote(f, honey) {
-  const K = 1400, x0 = facToday(f), a = facCoinBase(f), spent = c => a * (c + (c * (c + 2 * x0)) / (2 * K));   // K coins sold makes a coin twice the price
+  const K = 1000, x0 = facToday(f), a = facCoinBase(f), spent = c => a * (c + (c * (c + 2 * x0)) / (2 * K));   // K coins sold makes a coin twice the price
   let c = Math.floor(-K - x0 + Math.sqrt((K + x0) * (K + x0) + 2 * K * honey / a));
   // the sum can round a coin over. Stepping back has to count even at huge numbers, where taking off 1 changes nothing
   while (c > 0 && spent(c) > honey) c = Math.floor(c - Math.max(1, c * 1e-12));
