@@ -13357,7 +13357,8 @@ function facGet() {
 // ---- the numbers ----
 const facBoosted = f => Date.now() < f.boost;
 const facBase = i => 0.5 * Math.pow(7, i);                                  // nectar a second from level 1 of room i
-const facRoomRate = (f, i) => { const r = f.rooms[i]; return facBase(i) * r.L * Math.pow(2, Math.floor(r.L / 25)) * r.m * (facBoosted(f) ? 2 : 1) * (FG && FG.t < (FG.rush[i] || 0) ? 2 : 1); };
+const facRoomBase = (f, i) => { const r = f.rooms[i]; return facBase(i) * r.L * Math.pow(2, Math.floor(r.L / 25)) * r.m; };
+const facRoomRate = (f, i) => facRoomBase(f, i) * (facBoosted(f) ? 2 : 1) * (FG && FG.t < (FG.rush[i] || 0) ? 2 : 1);
 const facNectar = f => f.rooms.reduce((s, r, i) => s + facRoomRate(f, i), 0);
 const facRoomCost = (i, L) => 5 * Math.pow(6, i) * Math.pow(1.1, L - 1);
 const facCapL = r => 50 + 25 * r.r;                                          // the top level, where a room can be reset
@@ -13413,15 +13414,21 @@ function facBulk(f, i, mode) {
   const n = mode === 'max' ? clamp(Math.floor(Math.log(1 + f.honey * (g - 1) / one) / Math.log(g)), 1, Math.max(1, room)) : Math.min(mode, Math.max(1, room));
   return { n, cost: sum(n), full: room <= 0 };
 }
-// the exchange: dearer with each room you've opened, and each coin sold today makes the next dearer. Honey grows far faster than
-// any price, so what really stops it flooding the game is the most it will pay out in a day
-const FAC_DAY_COINS = 2000;
-const facCoinBase = f => 25 * Math.pow(6, f.rooms.length - 1);
+// the exchange. Honey a second goes from 1 to 10^26 in a day of keen play, so no fixed price can keep up: a coin costs seconds of
+// what your factory makes at its best, 9 of them on a small factory, easing down to 2 on a huge one. So coins follow how long it has
+// run, and a bigger factory earns more of them, but only a little more. The best is kept, so resetting rooms can't make coins cheap,
+// and it leaves out boosts and rushes, so active play still pays. The price also doubles over the day's limit
+const FAC_DAY_COINS = 10000;
+const facBaseIncome = f => Math.min(f.rooms.reduce((s, r, i) => s + facRoomBase(f, i), 0), facJarsPerSec(f) * facJarSize(f)) * facPrice(f);
+function facPeak(f) { f.peak = Math.max(f.peak || 0, facBaseIncome(f)); return f.peak; }
+const facCoinSecs = best => Math.max(2, 9 * Math.pow(Math.max(1, best / 5), -0.02));
+const facCoinBase = f => { const best = facPeak(f); return Math.max(25, best * facCoinSecs(best)); };
+const facCoinNow = f => facCoinBase(f) * (1 + facToday(f) / FAC_DAY_COINS);
 function facToday(f) { const d = Math.floor(Date.now() / 864e5); if (f.day !== d) { f.day = d; f.sold = 0; } return f.sold; }
 const facLeft = f => Math.max(0, FAC_DAY_COINS - facToday(f));
 function facRefill() { const m = Math.ceil((864e5 - Date.now() % 864e5) / 6e4), hrs = Math.floor(m / 60); return hrs ? `${hrs}h ${m % 60}m` : `${m}m`; }
 function facQuote(f, honey, most = facLeft(f)) {
-  const K = 1000, x0 = facToday(f), a = facCoinBase(f), spent = c => a * (c + (c * (c + 2 * x0)) / (2 * K));   // K coins sold makes a coin twice the price
+  const K = FAC_DAY_COINS, x0 = facToday(f), a = facCoinBase(f), spent = c => a * (c + (c * (c + 2 * x0)) / (2 * K));
   let c = Math.floor(-K - x0 + Math.sqrt((K + x0) * (K + x0) + 2 * K * honey / a));
   // the sum can round a coin over. Stepping back has to count even at huge numbers, where taking off 1 changes nothing
   while (c > 0 && spent(c) > honey) c = Math.floor(c - Math.max(1, c * 1e-12));
@@ -13664,8 +13671,8 @@ function facSheet(kind) {
     const big = h('div', { class: 'fs-big' }), all = h('button', { class: 'fg-yel', onclick: () => sell(1) }), half = h('button', { class: 'fg-yel', onclick: () => sell(0.5) }), rate = h('small');
     const quote = (f, share) => share < 1 ? facQuote(f, f.honey * share, Math.ceil(facLeft(f) * share)) : facQuote(f, f.honey);
     const sell = share => { const f = facGet(); facTick(); const q = quote(f, share); if (q.coins < 1) { SFX.tink(); return; } f.honey = Math.max(0, f.honey - q.honey); f.sold += q.coins; G.coins += q.coins; save(); SFX.coin(); toast(`Sold honey for ${fmt(q.coins)} coins`, 1800); facDraw(); facFly(share === 1 ? all : half, FG.coins, COIN_SVG, 7); };
-    body.append(h('h3', { text: 'THE EXCHANGE' }), h('p', { text: `Honey in, Bounce Brawl coins out, up to ${fmt(FAC_DAY_COINS)} coins a day. The more you sell in a day the less it buys, and each room you open makes coins dearer.` }), big, all, half, rate);
-    draw = () => { const f = facGet(), a = quote(f, 1), b = quote(f, 0.5), out = facLeft(f) < 1; facSet(big, `${HONEY_SVG} ${facNum(f.honey)}`); facSet(all, out ? 'SOLD OUT TODAY' : `SELL ALL ${COIN_SVG}<span>${fmt(a.coins)}</span>`); all.disabled = a.coins < 1; facSet(half, out ? 'SOLD OUT TODAY' : `SELL HALF ${COIN_SVG}<span>${fmt(b.coins)}</span>`); half.disabled = b.coins < 1; rate.textContent = `${fmt(Math.min(facToday(f), FAC_DAY_COINS))} / ${fmt(FAC_DAY_COINS)} coins sold today` + (out ? `. More in ${facRefill()}` : ''); };
+    body.append(h('h3', { text: 'THE EXCHANGE' }), h('p', { text: `Honey in, Bounce Brawl coins out, up to ${fmt(FAC_DAY_COINS)} coins a day. The more you sell in a day the less it buys, and coins get dearer as your factory grows.` }), big, all, half, rate);
+    draw = () => { const f = facGet(), a = quote(f, 1), b = quote(f, 0.5), out = facLeft(f) < 1; facSet(big, `${HONEY_SVG} ${facNum(f.honey)}`); facSet(all, out ? 'SOLD OUT TODAY' : `SELL ALL ${COIN_SVG}<span>${fmt(a.coins)}</span>`); all.disabled = a.coins < 1; facSet(half, out ? 'SOLD OUT TODAY' : `SELL HALF ${COIN_SVG}<span>${fmt(b.coins)}</span>`); half.disabled = b.coins < 1; rate.textContent = `${fmt(Math.min(facToday(f), FAC_DAY_COINS))} / ${fmt(FAC_DAY_COINS)} coins sold today` + (out ? `. More in ${facRefill()}` : ` · next coin ${facNum(facCoinNow(f))} honey`); };
   } else if (kind === 'line') {
     const small = n => n < 100 ? n.toFixed(2) : facNum(n);
     const rows = [['Belt Speed', 'Jars a second', f => small(facJarsPerSec(f))], ['Jar Size', 'Nectar a jar', f => small(facJarSize(f))], ['Jar Price', 'Honey for each nectar', f => small(facPrice(f))]].map(([name, what, val]) => { const now = h('span', { class: 'fs-val' }); return { val, now, el: h('div', { class: 'fs-row' }, h('div', {}, h('b', { text: name.toUpperCase() }), h('p', { text: what })), now) }; });
