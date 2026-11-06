@@ -273,30 +273,30 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 /* BeeZap's /kick: the real menu, brought up over the fight for a moment */
 .kicklayer { position: fixed; inset: 0; pointer-events: none; }
 /* Beeliner Factory: its own full screen */
-#facgame { position: fixed; inset: 0; z-index: 38; display: flex; flex-direction: column; background: #0c0805; color: #f2e8d0; font-family: var(--fb); overflow: hidden; }
+#facgame { --u: 3; position: fixed; inset: 0; z-index: 38; display: flex; flex-direction: column; background: #0c0805; color: #f2e8d0; font-family: var(--fb); overflow: hidden; }
 #facgame .i.coin { width: 15px; height: 15px; vertical-align: -2px; }
-.fg-top { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #1a1209; border-bottom: 3px solid #3a2a12; flex-wrap: wrap; max-width: 760px; width: 100%; margin: 0 auto; box-sizing: border-box; }
+.fg-top { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #1a1209; border-bottom: 3px solid #3a2a12; flex-wrap: wrap; width: 100%; box-sizing: border-box; }
 .fg-back { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; border: 2px solid #5c4210; border-radius: 6px; background: #241909; color: #e8d8b0; font: 400 16px/1 var(--fd); letter-spacing: 2px; cursor: pointer; }
 .fg-back .i { width: 14px; height: 14px; }
 .fg-cash { display: flex; align-items: center; gap: 5px; padding: 6px 10px; border-radius: 6px; background: #0c0805; font: 400 20px/1 var(--fd); letter-spacing: 1px; }
 .fg-cash b { font-weight: 400; }
-.fg-lvl { margin-left: auto; display: grid; justify-items: center; gap: 1px; padding: 5px 12px; border: 0; border-bottom: 4px solid #a06a08; border-radius: 7px; background: #ffc926; color: #2a1a04; font: 400 18px/1 var(--fd); letter-spacing: 1px; cursor: pointer; }
+.fg-lvl { margin-left: auto; display: grid; justify-items: center; gap: 1px; padding: 5px 12px; border: 0; margin-bottom: 4px; box-shadow: 0 4px 0 #a06a08; border-radius: 7px; background: #ffc926; color: #2a1a04; font: 400 18px/1 var(--fd); letter-spacing: 1px; cursor: pointer; }
 .fg-lvl small { font: 600 11px/1 var(--fb); }
-.fg-lvl:disabled, .fg-yel:disabled { background: #3a3228; border-bottom-color: #241e16; color: #8a7c66; cursor: default; }
-.fg-machine { position: relative; max-width: 760px; width: 100%; margin: 0 auto; flex: none; }
-.fg-line { display: block; width: 100%; height: 138px; }
-.fg-press { position: absolute; left: 28px; bottom: -14px; display: grid; gap: 3px; z-index: 2; }
+.fg-lvl:disabled, .fg-yel:disabled { background: #3a3228; box-shadow: 0 4px 0 #241e16; color: #8a7c66; cursor: default; }
+.fg-machine { position: relative; width: 100%; flex: none; }
+.fg-line { display: block; width: 100%; height: calc(var(--u) * 46px); }
+.fg-press { position: absolute; left: calc(var(--u) * 7px + 7px); bottom: -14px; display: grid; gap: 3px; z-index: 2; }
 .fg-store { display: flex; align-items: center; gap: 4px; padding: 3px 7px; border-radius: 5px; background: rgba(12,8,5,.92); font: 400 16px/1 var(--fd); letter-spacing: 1px; }
 .fg-store b { font-weight: 400; } .fg-store small { margin-left: 5px; font: 600 10px/1 var(--fb); color: #8fbf6a; } .fg-store small.bad { color: #ff6a5a; }
-.fg-yel { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 7px 12px; border: 0; border-bottom: 4px solid #a06a08; border-radius: 7px; background: #ffc926; color: #2a1a04; font: 400 18px/1 var(--fd); letter-spacing: 1px; cursor: pointer; }
-.fg-yel:active:not(:disabled) { transform: translateY(2px); border-bottom-width: 2px; }
-.fg-yel.want { animation: fgWant 1s steps(2, end) infinite; }
-@keyframes fgWant { 50% { background: #fff0a0; } }
-.fg-mid { position: relative; flex: 1; min-height: 0; max-width: 760px; width: 100%; margin: 0 auto; background: #120d07; }
-.fg-scroll { height: 100%; overflow-y: auto; padding: 22px 10px 12px 28px; box-sizing: border-box; }
-.fg-rail { position: absolute; left: 3px; top: 0; bottom: 0; width: 18px; z-index: 1; pointer-events: none; background: linear-gradient(90deg, #0a0603 0 3px, #e2c27e 3px 6px, #ffb81f 6px 12px, #6a4a18 12px 15px, #0a0603 15px 18px); }
-.fg-rail::after { content: ""; position: absolute; left: 6px; top: 0; bottom: 0; width: 6px; background: linear-gradient(#ffe9a8 0 3px, transparent 3px) 0 0 / 3px 24px repeat-y, linear-gradient(#ffe9a8 0 3px, transparent 3px) 3px 12px / 3px 24px repeat-y; animation: fgRail 1s steps(8, end) infinite; }
-@keyframes fgRail { to { background-position: 0 -24px, 3px -12px; } }
+.fg-yel { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 7px 12px; border: 0; margin-bottom: 4px; box-shadow: 0 4px 0 #a06a08; border-radius: 7px; background: #ffc926; color: #2a1a04; font: 400 18px/1 var(--fd); letter-spacing: 1px; cursor: pointer; }
+.fg-yel:active:not(:disabled), .fg-lvl:active:not(:disabled) { translate: 0 3px; box-shadow: 0 1px 0 #a06a08; }
+.fg-yel.want { animation: fgWant 1.3s ease-in-out infinite; }
+@keyframes fgWant { 50% { background-color: #ffeb96; } }
+.fg-mid { position: relative; flex: 1; min-height: 0; width: 100%; background: #120d07; }
+.fg-scroll { height: 100%; overflow-y: auto; padding: 22px 10px 12px calc(var(--u) * 7px + 7px); box-sizing: border-box; }
+.fg-rail { position: absolute; left: calc(var(--u) * 1px); top: 0; bottom: 0; width: calc(var(--u) * 6px); z-index: 1; pointer-events: none; background: linear-gradient(90deg, #0a0603 0 calc(var(--u) * 1px), #e2c27e calc(var(--u) * 1px) calc(var(--u) * 2px), #ffb81f calc(var(--u) * 2px) calc(var(--u) * 4px), #6a4a18 calc(var(--u) * 4px) calc(var(--u) * 5px), #0a0603 calc(var(--u) * 5px) calc(var(--u) * 6px)); }
+.fg-rail::after { content: ""; position: absolute; left: calc(var(--u) * 2px); top: 0; bottom: 0; width: calc(var(--u) * 2px); background: linear-gradient(#ffe9a8 0 calc(var(--u) * 1px), transparent calc(var(--u) * 1px)) 0 0 / calc(var(--u) * 1px) calc(var(--u) * 8px) repeat-y, linear-gradient(#ffe9a8 0 calc(var(--u) * 1px), transparent calc(var(--u) * 1px)) calc(var(--u) * 1px) calc(var(--u) * 4px) / calc(var(--u) * 1px) calc(var(--u) * 8px) repeat-y; animation: fgRail 1s linear infinite; }
+@keyframes fgRail { to { background-position: 0 calc(var(--u) * -8px), calc(var(--u) * 1px) calc(var(--u) * -4px); } }
 .fg-rooms { display: grid; gap: 10px; }
 .fg-room { position: relative; border: 2px solid #3a2a12; border-radius: 9px; background: #1d150c; }
 .fg-room:not(.fg-next)::before { content: ""; position: absolute; left: -11px; top: 88px; width: 10px; height: 12px; background: #ffb81f; border-top: 3px solid #0a0603; border-bottom: 3px solid #0a0603; box-sizing: border-box; }
@@ -313,7 +313,7 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 .fr-pic { width: 64px; height: 48px; image-rendering: pixelated; }
 .fr-nx { flex: 1 1 150px; display: grid; gap: 2px; font-size: 12.5px; font-weight: 600; color: #a89878; }
 .fr-nx b { font: 400 19px/1 var(--fd); letter-spacing: 1.5px; color: #f2e8d0; }
-.fg-bar { display: grid; grid-template-columns: 1fr 1.2fr .8fr 1fr; gap: 6px; padding: 7px 10px max(7px, env(safe-area-inset-bottom)); background: #1a1209; border-top: 3px solid #3a2a12; max-width: 760px; width: 100%; margin: 0 auto; box-sizing: border-box; }
+.fg-bar { display: grid; grid-template-columns: 1fr 1.2fr .8fr 1fr; gap: 6px; padding: 7px 10px max(7px, env(safe-area-inset-bottom)); background: #1a1209; border-top: 3px solid #3a2a12; width: 100%; box-sizing: border-box; }
 .fg-bar button { display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 46px; padding: 3px 4px; border: 2px solid #5c4210; border-radius: 8px; background: #2a1e0e; color: #f2e8d0; font: 400 15px/1 var(--fd); letter-spacing: 1px; cursor: pointer; }
 .fg-bar b { font-weight: 400; font-size: 16px; } .fg-bar small { font: 600 11px/1 var(--fb); color: #c9b890; display: inline-flex; gap: 3px; align-items: center; }
 .fg-bar button:disabled { opacity: .55; cursor: default; }
@@ -331,7 +331,7 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 .fg-line { touch-action: pan-y; cursor: ew-resize; }
 .fg-bar .fg-chest.hot { border-color: #ffc926; background: #4a3408; }
 .fg-gold { position: absolute; z-index: 4; width: 80px; height: 60px; padding: 0; border: 0; background: none; cursor: pointer; }
-.fg-gold canvas { width: 80px; height: 60px; image-rendering: pixelated; animation: fgGold .5s steps(2, end) infinite; }
+.fg-gold canvas { width: 80px; height: 60px; image-rendering: pixelated; animation: fgGold .7s ease-in-out infinite; }
 @keyframes fgGold { 50% { filter: brightness(1.45); } }
 .fs-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid #3a2a12; }
 .fs-row b { font: 400 19px/1 var(--fd); letter-spacing: 1.5px; color: #f2e8d0; } .fs-row i { font: 400 11px var(--fm); font-style: normal; color: #ffd24a; } .fs-row p { margin: 3px 0 0; font-size: 12px; }
@@ -1054,6 +1054,97 @@ svg.mst.on { fill: var(--gold); }
 .shop .crate.stg { animation-name: crateDrop; animation-duration: .6s; animation-timing-function: cubic-bezier(.34, 1.5, .6, 1); }
 @keyframes crateDrop { from { opacity: 0; transform: translateY(-46px) } }
 @media (max-width: 860px) { .sign .sgp { font-size: 38px; letter-spacing: 5px; } .deal { flex-wrap: wrap; } .deal .dp { margin-left: 66px; text-align: left; } }
+/* ---- moving smoothly: controls give when pressed, and nothing snaps ---- */
+/* A click only lands if what was pressed is still there when the press ends. What's inside a button can be redrawn at any
+   moment, so it never takes the press: the button itself does */
+button * { pointer-events: none; }
+.toast { pointer-events: none; }   /* a message over the buttons never gets in the way of them */
+:where(button) { transition: scale .14s var(--ease), filter .16s ease, background-color .16s ease, border-color .16s ease, color .16s ease, opacity .16s ease; }
+.go:active:not(:disabled), .bc:active, .skin:active, .deal:active:not(:disabled), .crate:active:not(:disabled), .seg button:active, .bpick:active, .fg-back:active, .fg-bar button:active:not(:disabled), .fg-bulk:active, .fg-reset:active:not(:disabled) { scale: .97; }
+.go { transition: background .15s, transform .15s var(--ease), scale .14s var(--ease); }
+.bc { transition: border-color .2s, transform .2s var(--ease), scale .14s var(--ease); }
+.skin { transition: border-color .15s, transform .15s var(--ease), scale .14s var(--ease); }
+.deal { transition: transform .15s var(--ease), border-color .15s, scale .14s var(--ease); }
+.seg button { transition: color .15s, background-color .15s, scale .14s var(--ease); }
+.ptabs button { transition: color .15s, border-color .15s, transform .12s var(--ease); }
+.st-row input, .namein { transition: border-color .15s; }
+.m-item.hot .m-t::after, .ptabs button.hot::after { animation: hotDot 1.9s ease-in-out infinite; }
+@keyframes hotDot { 50% { transform: scale(1.35); opacity: .7; } }
+/* the menu: one highlight gliding between the rows */
+#mnav { position: relative; }
+.m-item { z-index: 1; }
+.m-item:hover, .m-item.sel { background: none; }
+.m-item::before { display: none; }
+.m-glide { position: absolute; left: 0; right: 0; top: 0; height: 0; z-index: 0; border-radius: 8px; pointer-events: none; background: linear-gradient(90deg, rgba(255,45,120,.1), transparent 80%); transition: transform .32s var(--ease), height .32s var(--ease); animation: fadeIn .4s ease .2s backwards; }
+.m-glide::before { content: ""; position: absolute; left: 0; top: 18%; bottom: 18%; width: 2px; border-radius: 2px; background: var(--o); transition: background-color .2s; }
+.m-glide.fac { background: linear-gradient(90deg, rgba(255,201,38,.12), transparent 80%); }
+.m-glide.fac::before { background: #ffc926; }
+/* Beeliner Factory's row: its badge where the number goes, its name in honey */
+.m-logo { grid-row: 1 / span 2; width: 48px; height: 48px; margin-left: -9px; align-self: center; transition: scale .3s var(--spring), rotate .3s var(--spring); }
+.m-item.fac:hover .m-logo, .m-item.fac.sel .m-logo { scale: 1.12; rotate: -6deg; }
+.m-item.fac .m-t { color: #a89878; }
+.m-item.fac .m-t b { font-weight: 400; color: #d6a21e; transition: color .2s; }
+.m-item.fac:hover .m-t, .m-item.fac.sel .m-t { color: #fff4d0; }
+.m-item.fac:hover .m-t b, .m-item.fac.sel .m-t b { color: #ffc926; }
+.m-item.fac:hover .m-s, .m-item.fac.sel .m-s { color: #a8853a; }
+@media (min-width: 861px) and (max-height: 690px) { .m-logo { width: 32px; height: 32px; margin-left: -4px; } }
+@media (max-width: 860px) { .m-item.fac .m-t { font-size: min(32px, 8vw); white-space: nowrap; } .m-item.fac:hover .m-t, .m-item.fac.sel .m-t { letter-spacing: 4px; } }
+/* panels: from section to section the header holds still, what's below slides, and the underline runs along the tabs */
+.ptabs { position: relative; }
+.ptab-ind { position: absolute; bottom: 0; height: 2px; background: var(--o); transform-origin: 0 50%; pointer-events: none; }
+.panel.swap:not(.under) { animation: fadeIn .2s ease; }
+.panel.swap:not(.under) .pan-in > :not(.pan-head) { animation: panBody .42s var(--ease); }
+@keyframes panBody { from { opacity: 0; transform: translateX(var(--dx, 40px)); } }
+/* the factory */
+.fg-yel, .fg-lvl { transition: translate .1s var(--ease), box-shadow .1s var(--ease), background-color .18s ease, color .18s ease, filter .15s ease; }
+.fg-yel::before, .fg-lvl::before { content: ""; position: absolute; inset: -3px -3px -7px; }
+.fg-lvl { position: relative; }
+.fg-yel:hover:not(:disabled), .fg-lvl:hover:not(:disabled) { filter: brightness(1.08); }
+.fg-back:hover { border-color: #8c6a20; color: #fff; }
+.fg-bulk:hover { border-color: #8c6a20; }
+.fg-reset:hover:not(:disabled) { background: #4d3a0c; }
+.fg-bar button { transition: scale .14s var(--ease), translate .18s var(--ease), background-color .2s ease, border-color .2s ease, opacity .2s ease; }
+.fg-bar button:hover:not(:disabled) { translate: 0 -2px; border-color: #8c6a20; background-color: #36280f; }
+.fg-bar .fg-tab.hot:hover:not(:disabled), .fg-bar .fg-chest.hot:hover:not(:disabled) { background-color: #5a4009; }
+.fg-room { transition: border-color .2s ease; }
+.fg-room:hover { border-color: #5c4210; }
+.fs-bar i { transition: width .3s var(--ease); }
+.fg-sheet { animation: fadeIn .18s ease; }
+.fs-card { animation: fgPop .3s var(--spring); transition: transform .15s ease; }
+@keyframes fgPop { from { opacity: 0; transform: translateY(14px) scale(.94); } }
+.fg-sheet.closing { pointer-events: none; }
+.fg-sheet.closing .fs-card { transform: scale(.96); }
+.fg-fly { position: absolute; z-index: 8; width: 22px; height: 22px; pointer-events: none; }
+#facgame .fg-fly .i.coin, .fg-fly svg { display: block; width: 22px; height: 22px; }
+.fg-flash { position: absolute; inset: 0; z-index: 7; background: #ffc926; pointer-events: none; }
+.fg-banner { position: absolute; left: 50%; top: 42%; z-index: 8; display: grid; justify-items: center; gap: 6px; text-align: center; white-space: nowrap; pointer-events: none; }
+.fg-banner b { font: 400 clamp(56px, 11vw, 120px)/.9 var(--fd); letter-spacing: 4px; color: #ffc926; paint-order: stroke; -webkit-text-stroke: 8px #0c0805; }
+.fg-banner span { padding: 3px 10px; border-radius: 4px; background: #0c0805; font: 400 clamp(16px, 2.4vw, 24px)/1.2 var(--fd); letter-spacing: 3px; color: #f2e8d0; }
+/* on a PC the factory takes the whole screen: rooms side by side, bigger pixels, and few rooms grow to fill it */
+@media (min-width: 900px) {
+  #facgame { --u: 4; }
+  .fg-top { gap: 12px; padding: 10px 16px; }
+  .fg-back { padding: 9px 14px; font-size: 19px; }
+  .fg-cash { padding: 8px 14px; font-size: 26px; }
+  #facgame .fg-cash .i.coin { width: 20px; height: 20px; vertical-align: -3px; }
+  .fg-lvl { padding: 7px 22px; font-size: 22px; } .fg-lvl small { font-size: 13px; }
+  .fg-store { padding: 5px 10px; font-size: 20px; } .fg-store small { font-size: 12px; }
+  .fg-press .fg-yel { padding: 10px 18px; font-size: 24px; }
+  .fg-scroll { display: flex; flex-direction: column; padding-right: 16px; padding-top: 24px; }
+  .fg-bulkrow { flex: none; }
+  .fg-rooms { display: flex; flex-wrap: wrap; flex: 1 0 auto; gap: 12px; }
+  .fg-room { display: flex; flex-direction: column; flex: 1 1 380px; min-width: 0; }
+  .fg-room:not(.fg-next)::before { left: -16px; width: 16px; }
+  .fr-head, .fr-foot { flex: none; }
+  .fr-comb { flex: 1 0 150px; height: 150px; }
+  .fg-next { flex: 1 1 300px; justify-content: center; align-items: center; text-align: center; flex-wrap: nowrap; gap: 14px; padding: 18px; }
+  .fg-next .fr-nx { flex: none; justify-items: center; }
+  .fr-pic { width: 128px; height: 96px; }
+  .fg-bar { grid-template-columns: repeat(4, 1fr); gap: 10px; padding-inline: 16px; }
+  .fg-bar button { min-height: 58px; } .fg-bar b { font-size: 21px; } .fg-bar small { font-size: 13px; }
+  .fs-card { width: min(520px, 100%); padding: 18px; }
+}
+@media (min-width: 1600px) and (min-height: 860px) { #facgame { --u: 5; } }
 </style>
 
 <canvas id="bg" aria-hidden="true"></canvas>
@@ -7518,6 +7609,11 @@ function toast(msg, ms) {
   document.body.append(t);
   setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 260); }, ms || 2600);
 }
+// Whatever rebuilds a screen on its own waits while a press is going on, or the button under the finger is gone and the click with it
+let PRESS_AT = 0, PRESS_WAIT = null;
+const pressing = () => PRESS_AT && performance.now() - PRESS_AT < 1500;
+addEventListener('pointerdown', () => { PRESS_AT = performance.now(); }, true);
+for (const name of ['pointerup', 'pointercancel']) addEventListener(name, () => { PRESS_AT = 0; if (PRESS_WAIT) { const go = PRESS_WAIT; PRESS_WAIT = null; setTimeout(go, 0); } }, true);
 // a full-screen overlay (crates, matchmaking, a ball's details, the welcome)
 function sheet(content, opt) {
   const s = h('div', { class: 'ov', role: 'dialog', 'aria-modal': 'true' });
@@ -7742,16 +7838,30 @@ function renderCash() {
   };
   CASH.raf = requestAnimationFrame(step);
 }
+// one highlight on the menu, gliding from row to row
+function menuGlide(snap) {
+  const nav = $('#mnav'), g = nav && nav.querySelector('.m-glide'), b = nav && nav.querySelector('.m-item.sel');
+  if (!g || !b) return;
+  if (snap) g.style.transition = 'none';
+  g.style.height = b.offsetHeight + 'px'; g.style.transform = `translate(6px, ${b.offsetTop}px)`;
+  g.classList.toggle('fac', b.dataset.go === 'factory');
+  if (snap) { void g.offsetWidth; g.style.transition = ''; }
+}
+addEventListener('resize', () => menuGlide(true));
 function renderMenu() {
   const nav = $('#mnav');
   nav.replaceChildren();
   const items = navItems();
   items.forEach(([id, title, sub], i) => {
-    const b = h('button', { class: 'm-item' + (i === 0 ? ' play' : '') + (i === MSEL ? ' sel' : '') + (isHot(items[i]) ? ' hot' : ''), 'data-go': id,
-      onclick: () => { SFX.ui(); setTab(id); }, onmouseenter: () => { MSEL = i; for (const x of nav.children) x.classList.toggle('sel', x === b); } },
-      h('span', { class: 'm-n', text: pad2(i + 1) }), h('span', { class: 'm-t', text: title }), h('span', { class: 'm-s', text: sub() }));
+    const fac = id === 'factory';
+    const b = h('button', { class: 'm-item' + (i === 0 ? ' play' : '') + (fac ? ' fac' : '') + (i === MSEL ? ' sel' : '') + (isHot(items[i]) ? ' hot' : ''), 'data-go': id,
+      onclick: () => { SFX.ui(); setTab(id); }, onmouseenter: () => { MSEL = i; for (const x of nav.children) x.classList.toggle('sel', x === b); menuGlide(); } },
+      fac ? facLogo() : h('span', { class: 'm-n', text: pad2(i + 1) }),
+      fac ? h('span', { class: 'm-t' }, h('b', { text: 'Beeliner' }), ' Factory') : h('span', { class: 'm-t', text: title }), h('span', { class: 'm-s', text: sub() }));
     nav.append(b);
   });
+  nav.append(h('i', { class: 'm-glide', 'aria-hidden': 'true' }));
+  menuGlide(true);
   const card = $('#mcard');
   card.replaceChildren();
   if (G.eq) {
@@ -7777,6 +7887,7 @@ function renderOnline() {
     const it = navItems().find(m => m[0] === b.dataset.go);
     if (it) { b.querySelector('.m-s').textContent = it[2](); b.classList.toggle('hot', isHot(it)); }
   }
+  menuGlide(true);
 }
 // sign: [small line, plate] puts a shop sign where the title goes
 function panelShell(sub, title, sign) {
@@ -7801,15 +7912,46 @@ function panelShell(sub, title, sign) {
       body));
   return [p, body];
 }
+// A panel redrawn for a small change (a switch, a filter) swaps at once, so whatever changed eases over from how it looked
+const MORPH = '.seg button, .chips .chip, .skin';
+const lookOf = e => { const s = getComputedStyle(e); return { backgroundColor: s.backgroundColor, borderColor: s.borderTopColor, color: s.color }; };
+function morphFrom(old) {
+  const was = [...old.querySelectorAll(MORPH)].map(e => ({ on: e.classList.contains('sel'), look: lookOf(e) }));
+  return p => {
+    const now = [...p.querySelectorAll(MORPH)];
+    if (now.length !== was.length) return;
+    now.forEach((e, i) => {
+      const on = e.classList.contains('sel');
+      if (on === was[i].on) return;
+      e.animate([was[i].look, lookOf(e)], { duration: 220, easing: 'ease' });
+      if (on) e.animate([{ scale: 0.93 }, { scale: 1 }], { duration: 300, easing: 'cubic-bezier(.34,1.56,.64,1)' });
+    });
+  };
+}
+// moving from section to section the underline slides along the tabs, which scroll to keep the current one in view
+function tabGlide(old, p) {
+  const strip = p.querySelector('.ptabs'), to = strip && strip.querySelector('.sel');
+  if (!to) return;
+  const was = old && old.querySelector('.ptabs'), from = was && was.querySelector('.sel');
+  if (was) strip.scrollLeft = was.scrollLeft;
+  if (from) {
+    const a = from.getBoundingClientRect(), b = to.getBoundingClientRect(), bar = h('i', { class: 'ptab-ind', style: { left: to.offsetLeft + 'px', width: to.offsetWidth + 'px' } });
+    strip.append(bar); to.style.borderBottomColor = 'transparent';
+    bar.animate([{ transform: `translateX(${a.left - b.left}px) scaleX(${a.width / b.width})` }, { transform: 'none' }], { duration: 380, easing: 'cubic-bezier(.16,1,.3,1)' }).onfinish = () => { bar.remove(); to.style.borderBottomColor = ''; };
+  }
+  strip.scrollTo({ left: to.offsetLeft - (strip.clientWidth - to.offsetWidth) / 2, behavior: from ? 'smooth' : 'auto' });
+}
 function renderPanel(keepScroll) {
+  if (keepScroll && pressing()) { PRESS_WAIT = () => { if (TAB !== 'menu') renderPanel(true); }; return; }
   const root = $('#panelroot'), old = root.querySelector('.panel:not(.under):not(.out)'), y = old ? old.scrollTop : 0;
   stopPreviews(root);
   const fn = { fight: panelFight, hook: panelHook, cup: panelCup, daily: panelDaily, crates: panelCrates, balls: panelBalls, players: panelPlayers, settings: panelSettings }[TAB];
   if (!fn) return;
-  const p = fn();
+  const p = fn(), morph = keepScroll && old && !REDUCED ? morphFrom(old) : null;
   if (keepScroll && old) { p.style.animation = 'none'; p.classList.add('still'); }
   else {
     p.style.setProperty('--dx', PANEL_DX + 'px');
+    if (old) p.classList.add('swap');   // from another section: the header stays put and only what's below it slides
     [...p.querySelectorAll(STAGGER)].forEach((e, i) => { e.classList.add('stg'); e.style.setProperty('--i', Math.min(i, 16)); });
   }
   if (keepScroll || REDUCED) root.replaceChildren(p);
@@ -7818,6 +7960,8 @@ function renderPanel(keepScroll) {
     root.append(p);
   }
   if (keepScroll) p.scrollTop = y;
+  if (morph) morph(p);
+  if (!keepScroll && !REDUCED) tabGlide(old, p);
 }
 
 // ---- 01 fight --------------------------------------------------------------------
@@ -7836,9 +7980,14 @@ function panelFight() {
   if (G.coins < G.stake) G.stake = STAKES.filter(s => s <= G.coins).pop() || 50;
   const row = h('div', { class: 'stakes', role: 'group', 'aria-label': 'Stake' });
   for (const s of STAKES) {
-    row.append(h('button', { class: 'stake' + (G.stake === s ? ' sel' : ''), 'aria-pressed': G.stake === s ? 'true' : 'false', disabled: G.coins < s,
-      onclick: () => { G.stake = s; save(); SFX.ui(); renderPanel(true); } },
-      h('span', { class: 'v', html: COIN_SVG + fmt(s) }), h('small', { text: 'WIN ' + fmt(s * 2) })));
+    const b = h('button', { class: 'stake' + (G.stake === s ? ' sel' : ''), 'aria-pressed': G.stake === s ? 'true' : 'false', disabled: G.coins < s,
+      onclick: () => {
+        G.stake = s; save(); SFX.ui();
+        for (const o of row.children) { o.classList.toggle('sel', o === b); o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); }
+        if (!REDUCED) b.animate([{ scale: 0.93 }, { scale: 1 }], { duration: 300, easing: 'cubic-bezier(.34,1.56,.64,1)' });
+      } },
+      h('span', { class: 'v', html: COIN_SVG + fmt(s) }), h('small', { text: 'WIN ' + fmt(s * 2) }));
+    row.append(b);
   }
   const broke = G.coins < STAKES[0];
   const rcv = h('canvas');
@@ -8071,7 +8220,7 @@ function panelBalls() {
   const [p, body] = panelShell(`// ${owned} OF ${BALLS.length} COLLECTED //`, 'BALLS');
   const f = h('div', { class: 'chips', role: 'group', 'aria-label': 'Filter' });
   for (const [k, label] of [['all', 'ALL'], ['off', 'OFFENSE'], ['def', 'DEFENSE'], ['trick', 'TRICK'], ['gim', 'GIMMICK'], ['mine', 'OWNED']]) {
-    f.append(h('button', { class: 'chip' + (BFILTER === k ? ' sel' : ''), 'aria-pressed': BFILTER === k ? 'true' : 'false', text: label, onclick: () => { BFILTER = k; SFX.ui(); renderPanel(true); } }));
+    f.append(h('button', { class: 'chip' + (BFILTER === k ? ' sel' : ''), 'aria-pressed': BFILTER === k ? 'true' : 'false', text: label, onclick: () => { BFILTER = k; SFX.ui(); renderPanel(true); const g = $('#panelroot .bgrid'); if (g && !REDUCED) g.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.16,1,.3,1)' }); } }));
   }
   body.append(f, h('div', { class: 'sec', text: 'Duplicates from crates level a ball up, to LV ' + MAXLVL }));
   const g = h('div', { class: 'bgrid' });
@@ -8515,6 +8664,7 @@ function onKey(e) {
       e.preventDefault();
       MSEL = (MSEL + (k === 'ArrowDown' ? 1 : navItems().length - 1)) % navItems().length;
       [...document.querySelectorAll('#mnav .m-item')].forEach((b, i) => b.classList.toggle('sel', i === MSEL));
+      menuGlide();
       SFX.tick(0.4);
     } else if (k === 'Enter') { e.preventDefault(); SFX.ui(); setTab(navItems()[MSEL][0]); }
     else if (k >= '1' && k <= String(navItems().length)) { MSEL = +k - 1; SFX.ui(); setTab(navItems()[MSEL][0]); }
@@ -9975,7 +10125,7 @@ function kickMenu() {
   MUSIC.stop();                               // the music dies with it, and the menu sits in silence
   SFX.tstop();
   const add = (el, frames, o) => { if (el.animate) anims.push(el.animate(frames, o)); };
-  const pieces = () => [...menu.querySelectorAll('.m-hint, #mcard, #mnav .m-item, .logo-sub, .logo-main, .logo-tag, .m-top, .m-ver')]
+  const pieces = () => [...menu.querySelectorAll('.m-hint, #mcard, #mnav .m-item, #mnav .m-glide, .logo-sub, .logo-main, .logo-tag, .m-top, .m-ver')]
     .map(el => ({ el, r: el.getBoundingClientRect() })).filter(p => p.r.width && p.r.height && p.r.top < innerHeight).sort((p, q) => q.r.bottom - p.r.bottom);
   return {
     // something's wrong: it all trembles harder and harder, and the edges go red
@@ -10019,7 +10169,7 @@ function kickMenu() {
       for (const a of anims) a.cancel();
       for (const el of [left, right, shade, red, crack]) el.remove();
       Object.assign(menu.style, { zIndex: '', background: '', overflow: '' });
-      for (const el of menu.querySelectorAll('.m-hint, #mcard, #mnav .m-item, .logo-sub, .logo-main, .logo-tag, .m-top, .m-ver')) el.style.visibility = '';
+      for (const el of menu.querySelectorAll('.m-hint, #mcard, #mnav .m-item, #mnav .m-glide, .logo-sub, .logo-main, .logo-tag, .m-top, .m-ver')) el.style.visibility = '';
       menu.inert = false; menu.hidden = wasHidden;
       bg.style.zIndex = ''; bg.classList.remove('fade');
       BZ_KICKED = false;
@@ -12087,7 +12237,7 @@ function panelHook() {
     }
   };
   fill();
-  const iv = setInterval(() => { if (!list.isConnected) { clearInterval(iv); return; } fill(); }, 1000);
+  const iv = setInterval(() => { if (!list.isConnected) { clearInterval(iv); return; } if (!pressing()) fill(); }, 1000);
   return p;
 }
 
@@ -12392,7 +12542,7 @@ function titleSkit(onEnd) {
 
   // the rest of the menu slides in from the left, top to bottom. What sits over on the right only comes a little way
   const stand = els => [...document.querySelectorAll(els)].map(el => ({ el, r: el.getBoundingClientRect() })).filter(p => p.r.width && p.r.height && p.r.top < innerHeight);
-  stand('.m-top, .logo-tag, .logo-sub, #mnav .m-item, .m-hint').sort((p, q) => p.r.top - q.r.top).forEach(({ el, r }, i) => {
+  stand('.m-top, .logo-tag, .logo-sub, #mnav .m-item, #mnav .m-glide, .m-hint').sort((p, q) => p.r.top - q.r.top).forEach(({ el, r }, i) => {
     anims.push(el.animate([{ offset: 0, transform: `translateX(${-(r.right + 30)}px)` }], { delay: 30 + i * 40, duration: 430, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' }));
   });
   stand('#mcard, .m-ver').forEach(({ el }) => anims.push(el.animate([{ offset: 0, opacity: 0, transform: 'translateX(-70px)' }], { delay: 260, duration: 430, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' })));
@@ -12511,7 +12661,7 @@ function titleSkit(onEnd) {
 // can be reset for a lasting multiplier. Levelling up the factory pays a bonus and opens the next room, each with a new
 // kind of bee. Tap a room to rush it, swipe the belt to speed it up. Honey never stops: at full speed anywhere on the site,
 // at half speed (FAC.SLOW) with the site closed or its tab hidden, for up to FAC.AWAY.
-const FAC = { AWAY: 8 * 3600, SLOW: 0.5, LIVE: 30, TAP: 8, BOOST: 300, BOOST_WAIT: 900, CHEST: 1200, BEES: 12 };
+const FAC = { AWAY: 4 * 3600, SLOW: 0.5, LIVE: 30, TAP: 8, BOOST: 300, BOOST_WAIT: 900, CHEST: 1200, BEES: 12 };
 const HONEY_SVG = '<svg class="i coin" viewBox="0 0 20 20"><rect x="4" y="5" width="12" height="13" rx="1.5" fill="#ffb81f" stroke="#7a4d00" stroke-width="1.3"/><rect x="3" y="2" width="14" height="4" fill="#e8e4d0" stroke="#7a4d00" stroke-width="1.3"/></svg>';
 const DROP_SVG = '<svg class="i coin" viewBox="0 0 20 20"><path d="M10 2c3 4.200 5.500 7 5.500 10a5.500 5.500 0 0 1-11 0C4.500 9 7 6.200 10 2z" fill="#ffd96a" stroke="#7a4d00" stroke-width="1.3" stroke-linejoin="round"/></svg>';
 const FAC_END = ['', 'K', 'M', 'B', 'T'];
@@ -12552,7 +12702,8 @@ const facSiteSecs = () => { try { return +localStorage.getItem('beeside.onsite')
 function facTick() {
   const f = facGet(), now = Date.now(), gone = Math.max(0, (now - f.at) / 1000), site = facSiteSecs();
   const here = FAC_HERE && gone < FAC.LIVE ? gone : 0, other = clamp(site - (f.siteAt === undefined ? site : f.siteAt), 0, gone - here);
-  const slow = Math.min(gone - here - other, FAC.AWAY) * FAC.SLOW, secs = here + other + slow;
+  const off = gone - here - other, slow = Math.min(off, FAC.AWAY) * FAC.SLOW, secs = here + other + slow;
+  if (off > FAC.AWAY) f.capped = 1;
   f.at = now; f.siteAt = site;
   f.store += facNectar(f) * secs;
   const used = Math.min(f.store, facThrough(f) * secs), got = used * facPrice(f);
@@ -12563,9 +12714,9 @@ function facTick() {
 const facMenuSub = () => `${facNum(facGet().honey)} honey · an idle game for coins`;
 // what came in since you last looked at the factory, said once you're back
 function facWelcome(f, wait) {
-  const got = f.made - (f.left === undefined ? f.made : f.left), slow = f.slow || 0, long = Date.now() - f.seen > 60000;
-  f.left = f.made; f.slow = 0; f.seen = Date.now();
-  if (got > 1 && long) setTimeout(() => { if (FG) toast(`While you were away: +${facNum(got)} honey${slow > got * 0.05 ? ', half speed with the site closed' : ''}`, 3200); }, wait);
+  const got = f.made - (f.left === undefined ? f.made : f.left), slow = f.slow || 0, long = Date.now() - f.seen > 60000, full = f.capped;
+  f.left = f.made; f.slow = 0; f.seen = Date.now(); f.capped = 0;
+  if (got > 1 && long) setTimeout(() => { if (FG) toast(`While you were away: +${facNum(got)} honey${full ? `, stopped at the ${FAC.AWAY / 3600} hour limit` : slow > got * 0.05 ? ', half speed with the site closed' : ''}`, 3400); }, wait);
 }
 function facLeaving() { if (!G.fac) return; const f = facGet(); facTick(); if (FG) { f.left = f.made; f.seen = Date.now(); } save(); }
 document.addEventListener('visibilitychange', () => {
@@ -12588,12 +12739,13 @@ function facBulk(f, i, mode) {
   return { n, cost: sum(n), full: room <= 0 };
 }
 // the exchange: dearer with each room you've opened, and each coin sold today makes the next dearer, so it can't flood the game
-const facCoinBase = f => 25 * Math.pow(6, f.rooms.length - 1);
+const facCoinBase = f => 18 * Math.pow(6, f.rooms.length - 1);
 function facToday(f) { const d = Math.floor(Date.now() / 864e5); if (f.day !== d) { f.day = d; f.sold = 0; } return f.sold; }
 function facQuote(f, honey) {
-  const x0 = facToday(f), a = facCoinBase(f), spent = c => a * (c + (c * (c + 2 * x0)) / 2000);
-  let c = Math.floor(-1000 - x0 + Math.sqrt((1000 + x0) * (1000 + x0) + 2000 * honey / a));
-  while (c > 0 && spent(c) > honey) c--;
+  const K = 1400, x0 = facToday(f), a = facCoinBase(f), spent = c => a * (c + (c * (c + 2 * x0)) / (2 * K));   // K coins sold makes a coin twice the price
+  let c = Math.floor(-K - x0 + Math.sqrt((K + x0) * (K + x0) + 2 * K * honey / a));
+  // the sum can round a coin over. Stepping back has to count even at huge numbers, where taking off 1 changes nothing
+  while (c > 0 && spent(c) > honey) c = Math.floor(c - Math.max(1, c * 1e-12));
   return { coins: Math.max(0, c), honey: c > 0 ? spent(c) : 0 };
 }
 // missions come one after another, each bigger than the last
@@ -12606,12 +12758,62 @@ function facMission(f) {
 }
 // ---- the screen ----
 let FG = null;
+// Only touches a control when its contents really change, and never during a press: rewriting a button's insides between
+// the mouse going down and coming up cancels the click. The next redraw catches up
+const facSet = (el, html) => { if (el._html !== html && !pressing()) { el._html = html; el.innerHTML = html; } };
+// ---- how things move ----
+const facPop = (el, k) => { if (!REDUCED && el) el.animate([{ scale: 1 }, { scale: k || 1.12 }, { scale: 1 }], { duration: 280, easing: 'cubic-bezier(.34,1.56,.64,1)' }); };
+const facFlash = el => { if (!REDUCED && el) el.animate([{ offset: 0, borderColor: '#ffc926', backgroundColor: '#3a2a10' }], { duration: 520, easing: 'ease-out' }); };
+// a few jars or coins burst out of one place and fly to the count they're adding to
+function facFly(from, to, html, n) {
+  if (REDUCED || !FG || !from || !to) return;
+  const a = from.getBoundingClientRect(), b = to.getBoundingClientRect(), ax = a.left + a.width / 2, ay = a.top + a.height / 2, gox = b.left + b.width / 2 - ax, goy = b.top + b.height / 2 - ay, root = FG.root;
+  for (let i = 0; i < n; i++) {
+    const el = h('div', { class: 'fg-fly', html, style: { left: ax - 11 + 'px', top: ay - 11 + 'px' } }), sx = (Math.random() - 0.5) * 110, sy = -24 - Math.random() * 70;
+    root.append(el);
+    el.animate([{ transform: 'scale(.5)', opacity: 0 }, { offset: 0.34, transform: `translate(${sx}px, ${sy}px) scale(1.15)`, opacity: 1 }, { transform: `translate(${gox}px, ${goy}px) scale(.7)`, opacity: 0.9 }], { duration: 520 + i * 40, delay: i * 32, easing: 'cubic-bezier(.45,.05,.55,.95)', fill: 'backwards' }).onfinish = () => { el.remove(); if (to.isConnected) facPop(to, 1.14); };
+  }
+}
+// big news across the middle of the screen, over a quick wash of honey
+function facBanner(big, small) {
+  if (REDUCED || !FG) return;
+  const wash = h('div', { class: 'fg-flash' }), el = h('div', { class: 'fg-banner', 'aria-hidden': 'true' }, h('b', { text: big }), small ? h('span', { text: small }) : null);
+  FG.root.append(wash, el);
+  wash.animate([{ opacity: 0.38 }, { opacity: 0 }], { duration: 480, easing: 'ease-out' }).onfinish = () => wash.remove();
+  el.animate([{ opacity: 0, transform: 'translate(-50%, -50%) scale(1.5)' }, { offset: 0.16, opacity: 1, transform: 'translate(-50%, -50%) scale(1)' }, { offset: 0.72, opacity: 1, transform: 'translate(-50%, -50%) scale(1)' }, { opacity: 0, transform: 'translate(-50%, -72%) scale(1)' }], { duration: 1350, easing: 'cubic-bezier(.16,1,.3,1)' }).onfinish = () => el.remove();
+}
+// the factory comes up piece by piece
+function facDeal(root) {
+  if (REDUCED) return;
+  [...root.querySelectorAll('.fg-top > *, .fg-press > *, .fg-bulkrow > *, .fg-room, .fg-bar > button')].forEach((e, i) => e.animate([{ offset: 0, opacity: 0, transform: 'translateY(14px)' }], { duration: 440, delay: Math.min(i, 18) * 22, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' }));
+}
+// Its badge on Bounce Brawl's menu: a bee on its honey line inside a hexagon, in the factory's own pixels
+function facLogo() {
+  const S = 4, N = 24, cv = h('canvas', { class: 'm-logo', width: N * S, height: N * S, 'aria-hidden': 'true' }), c = cv.getContext('2d');
+  const hex = (r, col) => { c.fillStyle = col; for (let y = 0; y < N; y++) { const d = Math.abs(y + 0.5 - N / 2), half = Math.round(r - d / 1.732); if (d < r * 0.866 && half > 0) c.fillRect((N / 2 - half) * S, y * S, half * 2 * S, S); } };
+  const draw = flap => {
+    c.clearRect(0, 0, N * S, N * S);
+    hex(12, '#0a0603'); hex(10.8, '#ffe07a'); hex(9.7, '#d9860f');
+    c.fillStyle = '#b86c08'; c.fillRect(5 * S, 18 * S, 14 * S, 2 * S);   // the shade along its foot
+    c.fillStyle = '#fff4c8'; c.fillRect(2 * S, 14 * S, 2 * S, 2 * S); c.fillRect(5 * S, 14 * S, 2 * S, 2 * S);   // the line it flies along
+    drawBee(c, 14 * S, 12 * S, S, flap, 1, BEE_KINDS[0]);
+  };
+  draw(0);
+  if (!REDUCED) PREVIEWS.add({ cv, t: 0, fr: 0, tick(dt) {
+    if (!cv.isConnected) { PREVIEWS.delete(this); return; }
+    if (!cv.offsetParent) return;
+    this.t += dt * (cv.parentElement.classList.contains('sel') ? 7 : 2.2);
+    const fr = this.t % 1 < 0.5 ? 0 : 0.6;
+    if (fr !== this.fr) { this.fr = fr; draw(fr); }
+  } });
+  return cv;
+}
 function facOpen() {
   if (FG) return;
   const f = facGet(); facTick();
-  const num = h('b'), coins = h('b'), levelUp = h('button', { class: 'fg-lvl', onclick: () => facLevelUp() });
+  const num = h('b', { text: facNum(f.honey) }), coins = h('b', { 'data-coins': true, text: fmt(G.coins) }), levelUp = h('button', { class: 'fg-lvl', onclick: () => facLevelUp() });
   const lineCv = h('canvas', { class: 'fg-line', 'aria-label': 'The belt. Swipe it to speed it up.' }), lineBtn = h('button', { class: 'fg-yel', onclick: () => facSheet('line') }), store = h('div', { class: 'fg-store' });
-  const rooms = h('div', { class: 'fg-rooms' }), bulk = h('button', { class: 'fg-bulk', onclick: () => { FG.bulk = FG.bulk === 1 ? 10 : FG.bulk === 10 ? 'max' : 1; facDraw(); SFX.ui(); } });
+  const rooms = h('div', { class: 'fg-rooms' }), bulk = h('button', { class: 'fg-bulk', onclick: () => { FG.bulk = FG.bulk === 1 ? 10 : FG.bulk === 10 ? 'max' : 1; facDraw(); SFX.ui(); facPop(bulk, 1.08); } });
   const boostBtn = h('button', { class: 'fg-boost', onclick: () => facBoost() }), chestBtn = h('button', { class: 'fg-chest', onclick: () => facChest() }), sellBtn = h('button', { class: 'fg-tab', onclick: () => facSheet('sell') }), misBtn = h('button', { class: 'fg-tab', onclick: () => facSheet('mis') });
   const root = h('div', { id: 'facgame', role: 'region', 'aria-label': 'Beeliner Factory' },
     h('div', { class: 'fg-top' },
@@ -12621,7 +12823,7 @@ function facOpen() {
     h('div', { class: 'fg-mid' }, h('div', { class: 'fg-rail' }), h('div', { class: 'fg-scroll' }, h('div', { class: 'fg-bulkrow' }, bulk), rooms)),
     h('div', { class: 'fg-bar' }, sellBtn, boostBtn, chestBtn, misBtn));
   document.body.append(root);
-  FG = { root, num, coins, levelUp, lineCv, lineBtn, store, rooms, bulk: 1, bulkBtn: bulk, boostBtn, chestBtn, sellBtn, misBtn, row: [], t: 0, uiT: 0, saveT: 0, tapT: 0, pops: [], jarPops: [], rush: {}, swipe: 0, swiped: false, lastX: null, goldT: 35 + Math.random() * 40, cv: root, sheet: null, tick: facFrame };
+  FG = { root, num, numTxt: facNum(f.honey), showH: f.honey, coins, levelUp, lineCv, lineBtn, store, rooms, bulk: 1, bulkBtn: bulk, boostBtn, chestBtn, sellBtn, misBtn, row: [], t: 0, uiT: 0, saveT: 0, tapT: 0, pops: [], jarPops: [], rush: {}, swipe: 0, swiped: false, lastX: null, goldT: 35 + Math.random() * 40, cv: root, sheet: null, tick: facFrame };
   PREVIEWS.add(FG);
   const swipe = ev => { if (FG && FG.lastX !== null) { FG.swipe = Math.min(2.5, FG.swipe + Math.abs(ev.clientX - FG.lastX) / 180); if (Math.abs(ev.clientX - FG.lastX) > 2) FG.swiped = true; FG.lastX = ev.clientX; } };
   lineCv.addEventListener('pointerdown', ev => { if (FG) FG.lastX = ev.clientX; });
@@ -12634,12 +12836,12 @@ function facOpen() {
 }
 // a clean way in: one bee flies dead straight across the dark with a line of honey behind it, the name lands, and it lifts
 function facIntro(root) {
-  if (REDUCED || (/HeadlessChrome/.test(navigator.userAgent) && !/[?&]facintro=1/.test(location.search))) return;
+  if (REDUCED || (/HeadlessChrome/.test(navigator.userAgent) && !/[?&]facintro=1/.test(location.search))) { facDeal(root); return; }
   const bee = h('canvas', { width: 96, height: 72, class: 'fi-bee' }), line = h('i', { class: 'fi-line' }), big = h('div', { class: 'fi-big', html: 'BEELINER<br><span>FACTORY</span>' }), sub = h('div', { class: 'fi-sub', text: 'HONEY IN, COINS OUT' });
   drawBee(bee.getContext('2d'), 48, 36, 6, 0.2, 1, BEE_KINDS[0]);
   const el = h('div', { class: 'fg-intro', 'aria-hidden': 'true' }, line, bee, big, sub);
   root.append(el);
-  const gone = () => { if (!el.isConnected || el.dataset.out) return; el.dataset.out = 1; const a = el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, fill: 'forwards' }); a.onfinish = () => el.remove(); };
+  const gone = () => { if (!el.isConnected || el.dataset.out) return; el.dataset.out = 1; facDeal(root); const a = el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, fill: 'forwards' }); a.onfinish = () => el.remove(); };
   bee.animate([{ left: '-14%' }, { left: '110%' }], { duration: 760, easing: 'linear', fill: 'both' });
   line.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: 760, easing: 'linear', fill: 'both' });
   big.animate([{ transform: 'scale(2.2)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { delay: 520, duration: 200, easing: 'cubic-bezier(.2,.9,.3,1)', fill: 'both' });
@@ -12653,7 +12855,9 @@ function facClose() {
   const f = facGet(); facTick(); FG.swipe = 0; f.left = f.made; f.seen = Date.now();
   const g = FG; FG = null;
   save(); SFX.ui();
-  PREVIEWS.delete(g); g.root.remove();
+  PREVIEWS.delete(g);
+  if (REDUCED) g.root.remove();
+  else { g.root.style.pointerEvents = 'none'; g.root.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(24px) scale(.985)' }], { duration: 230, easing: 'ease', fill: 'forwards' }).onfinish = () => g.root.remove(); }
   if (TAB === 'menu') renderMenu();
 }
 function facLevelUp() {
@@ -12664,11 +12868,13 @@ function facLevelUp() {
   f.honey += c * 0.4 - c; f.lvl++; save(); SFX.reveal(2);
   toast(`Factory level ${f.lvl + 1}: +${facNum(c * 0.4)} honey, and jars sell for more`, 2600);
   facDraw();
+  facBanner(`LEVEL ${f.lvl + 1}`, 'JARS SELL FOR MORE'); facFly(FG.levelUp, FG.num, HONEY_SVG, 6); if (FG.next) facFlash(FG.next.el);
 }
 function facBoost() {
   const f = facGet(); facTick();
   if (Date.now() < f.boostAt) return;
   f.boost = Date.now() + FAC.BOOST * 1000; f.boostAt = Date.now() + (FAC.BOOST + FAC.BOOST_WAIT) * 1000; SFX.reveal(1); save(); facDraw();
+  facBanner('BOOST x2', '5 MINUTES'); facPop(FG.boostBtn);
 }
 function facChest() {
   const f = facGet(); facTick();
@@ -12676,12 +12882,16 @@ function facChest() {
   const pay = Math.max(100, facIncome(f) * 180);
   f.honey += pay; f.made += pay; f.chestAt = Date.now() + FAC.CHEST * 1000; SFX.reveal(3); save();
   toast(`Treasure: +${facNum(pay)} honey`, 2400); facDraw();
+  facPop(FG.chestBtn); facFly(FG.chestBtn, FG.num, HONEY_SVG, 8);
 }
 function facBuyLevels(i) {
   const f = facGet(); facTick();
   const q = facBulk(f, i, FG.bulk);
   if (q.full || f.honey < q.cost) return;
   f.honey -= q.cost; f.rooms[i].L += q.n; SFX.coin(); save(); facDraw();
+  const row = FG.row[i], b = row.cv.getBoundingClientRect();
+  facPop(row.buy, 1.06); facPop(row.count, 1.18); facFlash(row.el);
+  FG.pops.push({ i, x: b.width / 2, y: b.height * 0.55, t: 0, txt: `+${q.n} LV`, big: 1 });
 }
 function facOpenRoom() {
   const f = facGet(); facTick();
@@ -12689,83 +12899,102 @@ function facOpenRoom() {
   if (i >= BEE_KINDS.length || f.lvl < i || f.honey < c) return;
   f.honey -= c; f.rooms.push({ L: 1, m: 1, r: 0 }); SFX.reveal(3); save();
   toast(`Room ${i + 1} open: ${BEE_KINDS[i].name} bees`, 2400);
-  facRooms(); facDraw();
+  const row = facRoomRow(i);
+  facNextCard(); facDraw();
+  if (!REDUCED) {
+    row.el.animate([{ offset: 0, opacity: 0, transform: 'translateY(18px) scale(.94)' }], { duration: 480, easing: 'cubic-bezier(.34,1.56,.64,1)', fill: 'backwards' });
+    facFlash(row.el);
+    if (FG.next) FG.next.el.animate([{ offset: 0, opacity: 0 }], { duration: 380, delay: 120, fill: 'backwards' });
+    row.el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
 }
 function facReset(i) {
   const f = facGet(), r = f.rooms[i]; facTick();
   if (r.L < facCapL(r)) return;
   r.L = 1; r.r++; r.m *= 1.7; SFX.reveal(2); save();
   toast(`Room ${i + 1} reset: everything it makes is now x${r.m.toFixed(1)}`, 2400);
-  const row = FG.row[i]; if (row) row.cells = null;
+  const row = FG.row[i]; if (row) { row.cells = null; facFlash(row.el); const b = row.cv.getBoundingClientRect(); FG.pops.push({ i, x: b.width / 2, y: b.height * 0.55, t: 0, txt: `x${r.m.toFixed(1)}`, big: 1 }); }
   facDraw();
 }
 // the rooms, plus a card for the next one
-function facRooms() {
-  const f = facGet();
-  FG.rooms.replaceChildren(); FG.row = [];
-  f.rooms.forEach((r, i) => {
+function facRoomRow(i) {
     const k = BEE_KINDS[i], head = h('div', { class: 'fr-rate' }), cv = h('canvas', { class: 'fr-comb', role: 'button', 'aria-label': `Tap to rush room ${i + 1}` }), count = h('span'), buy = h('button', { class: 'fg-yel', onclick: () => facBuyLevels(i) }), reset = h('button', { class: 'fg-reset', onclick: () => facReset(i) });
     cv.addEventListener('pointerdown', ev => facTap(i, ev, cv));
     const el = h('div', { class: 'fg-room' }, h('div', { class: 'fr-head' }, h('div', {}, h('b', { text: `ROOM ${i + 1}: ${k.name.toUpperCase()}` }), head), reset), cv, h('div', { class: 'fr-foot' }, count, buy));
     FG.rooms.append(el);
-    FG.row.push({ i, k, head, cv, count, buy, reset, el, bees: [], cells: null });
-  });
+    return FG.row[i] = { i, k, head, cv, count, buy, reset, el, bees: [], cells: null };
+}
+function facRooms() {
+  FG.rooms.replaceChildren(); FG.row = []; FG.next = null;
+  facGet().rooms.forEach((r, i) => facRoomRow(i));
+  facNextCard();
+}
+function facNextCard() {
+  const f = facGet();
+  if (FG.next) FG.next.el.remove();
+  FG.next = null;
   if (f.rooms.length < BEE_KINDS.length) {
     const i = f.rooms.length, k = BEE_KINDS[i], open = h('button', { class: 'fg-yel', onclick: () => facOpenRoom() }), pic = h('canvas', { width: 64, height: 48, class: 'fr-pic' }), note = h('span');
     drawBee(pic.getContext('2d'), 32, 24, 4, 0.2, 1, k);
-    FG.next = { open, i, note };
-    FG.rooms.append(h('div', { class: 'fg-room fg-next' }, pic, h('div', { class: 'fr-nx' }, h('b', { text: `ROOM ${i + 1}: ${k.name.toUpperCase()}` }), note), open));
-  } else FG.next = null;
+    const el = h('div', { class: 'fg-room fg-next' }, pic, h('div', { class: 'fr-nx' }, h('b', { text: `ROOM ${i + 1}: ${k.name.toUpperCase()}` }), note), open);
+    FG.next = { open, i, note, el };
+    FG.rooms.append(el);
+  }
 }
 function facDraw() {
   if (!FG) return;
   const f = facGet();
   const inn = facNectar(f), thru = facThrough(f), lc = facLevelCost(f), q = facQuote(f, f.honey), mis = facMission(f), wait = Math.ceil((f.boostAt - Date.now()) / 1000), on = facBoosted(f), chest = Math.ceil((f.chestAt - Date.now()) / 1000);
-  FG.num.textContent = facNum(f.honey); FG.coins.textContent = fmt(G.coins);
-  FG.levelUp.innerHTML = `LEVEL UP<small>${HONEY_SVG}${facNum(lc)}</small>`; FG.levelUp.disabled = f.honey < lc;
+  facSet(FG.levelUp, `LEVEL UP<small>${HONEY_SVG}${facNum(lc)}</small>`); FG.levelUp.disabled = f.honey < lc;
   const backed = inn > thru * 1.01;
-  FG.store.innerHTML = `${DROP_SVG}<b>${facNum(f.store)}</b><small class="${backed ? 'bad' : ''}">${backed ? 'BACKING UP' : 'FLOWING'}</small>`;
+  facSet(FG.store, `${DROP_SVG}<b>${facNum(f.store)}</b><small class="${backed ? 'bad' : ''}">${backed ? 'BACKING UP' : 'FLOWING'}</small>`);
   FG.lineBtn.textContent = 'UPGRADE'; FG.lineBtn.classList.toggle('want', backed && f.honey >= facLineCost(f));
   for (const r of FG.row) {
     const room = f.rooms[r.i], top = facCapL(room), b = facBulk(f, r.i, FG.bulk);
-    r.head.innerHTML = `${DROP_SVG}${facNum(facRoomRate(f, r.i))}/s${room.m > 1.01 ? ` <i>x${room.m.toFixed(1)}</i>` : ''}`;
+    facSet(r.head, `${DROP_SVG}${facNum(facRoomRate(f, r.i))}/s${room.m > 1.01 ? ` <i>x${room.m.toFixed(1)}</i>` : ''}`);
     r.count.textContent = `LV ${room.L}/${top}`;
-    r.buy.innerHTML = b.full ? 'FULLY UPGRADED' : `+${b.n} LV ${HONEY_SVG}<span>${facNum(b.cost)}</span>`; r.buy.disabled = b.full || f.honey < b.cost;
+    facSet(r.buy, b.full ? 'FULLY UPGRADED' : `+${b.n} LV ${HONEY_SVG}<span>${facNum(b.cost)}</span>`); r.buy.disabled = b.full || f.honey < b.cost;
     r.reset.textContent = room.L >= top ? `RESET x${(room.m * 1.7).toFixed(1)}` : 'RESET'; r.reset.disabled = room.L < top;
   }
   if (FG.next) {
     const c = facOpenCost(FG.next.i), lvlOk = f.lvl >= FG.next.i;
     FG.next.note.textContent = lvlOk ? `Its bees make ${facNum(facBase(FG.next.i))} nectar a second at level 1` : `Needs factory level ${FG.next.i + 1}: you're on ${f.lvl + 1}`;
-    FG.next.open.innerHTML = lvlOk ? `OPEN ${HONEY_SVG}<span>${facNum(c)}</span>` : 'LEVEL UP FIRST'; FG.next.open.disabled = !lvlOk || f.honey < c;
+    facSet(FG.next.open, lvlOk ? `OPEN ${HONEY_SVG}<span>${facNum(c)}</span>` : 'LEVEL UP FIRST'); FG.next.open.disabled = !lvlOk || f.honey < c;
   }
   FG.bulkBtn.textContent = FG.bulk === 'max' ? 'BUY MAX' : 'BUY x' + FG.bulk;
-  FG.sellBtn.innerHTML = `<b>EXCHANGE</b><small>${COIN_SVG}${fmt(q.coins)}</small>`;
-  FG.boostBtn.innerHTML = on ? `<b>BOOST x2</b><small>${Math.ceil((f.boost - Date.now()) / 1000)}s left</small>` : wait > 0 ? `<b>BOOST x2</b><small>in ${Math.floor(wait / 60)}:${pad2(wait % 60)}</small>` : '<b>BOOST x2</b><small>5 min, free</small>';
+  facSet(FG.sellBtn, `<b>EXCHANGE</b><small>${COIN_SVG}${fmt(q.coins)}</small>`);
+  facSet(FG.boostBtn, on ? `<b>BOOST x2</b><small>${Math.ceil((f.boost - Date.now()) / 1000)}s left</small>` : wait > 0 ? `<b>BOOST x2</b><small>in ${Math.floor(wait / 60)}:${pad2(wait % 60)}</small>` : '<b>BOOST x2</b><small>5 min, free</small>');
   FG.boostBtn.disabled = on || wait > 0; FG.boostBtn.classList.toggle('on', on);
-  FG.chestBtn.innerHTML = chest > 0 ? `<b>TREASURE</b><small>in ${Math.floor(chest / 60)}:${pad2(chest % 60)}</small>` : '<b>TREASURE</b><small>READY!</small>'; FG.chestBtn.disabled = chest > 0; FG.chestBtn.classList.toggle('hot', chest <= 0);
-  FG.misBtn.innerHTML = `<b>MISSION</b><small>${mis.have >= mis.want ? 'READY!' : Math.min(99, Math.floor(mis.have / mis.want * 100)) + '%'}</small>`; FG.misBtn.classList.toggle('hot', mis.have >= mis.want);
+  facSet(FG.chestBtn, chest > 0 ? `<b>TREASURE</b><small>in ${Math.floor(chest / 60)}:${pad2(chest % 60)}</small>` : '<b>TREASURE</b><small>READY!</small>'); FG.chestBtn.disabled = chest > 0; FG.chestBtn.classList.toggle('hot', chest <= 0);
+  facSet(FG.misBtn, `<b>MISSION</b><small>${mis.have >= mis.want ? 'READY!' : Math.min(99, Math.floor(mis.have / mis.want * 100)) + '%'}</small>`); FG.misBtn.classList.toggle('hot', mis.have >= mis.want);
   if (FG.sheet) FG.sheet.draw();
 }
 function facSheet(kind) {
-  if (FG.sheet) FG.sheet.el.remove();
-  const body = h('div', { class: 'fs-body' }), close = () => { el.remove(); if (FG) FG.sheet = null; }, el = h('div', { class: 'fg-sheet', onclick: ev => { if (ev.target === el) close(); } }, h('div', { class: 'fs-card' }, h('button', { class: 'fg-back', text: 'CLOSE', onclick: close }), body));
+  for (const o of FG.root.querySelectorAll('.fg-sheet')) o.remove();
+  FG.sheet = null;
+  const body = h('div', { class: 'fs-body' }), close = () => {
+    if (el.classList.contains('closing')) return;
+    el.classList.add('closing');
+    if (FG && FG.sheet && FG.sheet.el === el) FG.sheet = null;
+    if (REDUCED) el.remove(); else el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, easing: 'ease', fill: 'forwards' }).onfinish = () => el.remove();
+  }, el = h('div', { class: 'fg-sheet', onclick: ev => { if (ev.target === el) close(); } }, h('div', { class: 'fs-card' }, h('button', { class: 'fg-back', text: 'CLOSE', onclick: close }), body));
   FG.root.append(el);
   let draw;
   if (kind === 'sell') {
     const big = h('div', { class: 'fs-big' }), all = h('button', { class: 'fg-yel', onclick: () => sell(1) }), half = h('button', { class: 'fg-yel', onclick: () => sell(0.5) }), rate = h('small');
-    const sell = share => { const f = facGet(); facTick(); const q = facQuote(f, f.honey * share); if (q.coins < 1) { SFX.tink(); return; } f.honey = Math.max(0, f.honey - q.honey); f.sold += q.coins; G.coins += q.coins; save(); SFX.coin(); toast(`Sold honey for ${fmt(q.coins)} coins`, 1800); facDraw(); };
+    const sell = share => { const f = facGet(); facTick(); const q = facQuote(f, f.honey * share); if (q.coins < 1) { SFX.tink(); return; } f.honey = Math.max(0, f.honey - q.honey); f.sold += q.coins; G.coins += q.coins; save(); SFX.coin(); toast(`Sold honey for ${fmt(q.coins)} coins`, 1800); facDraw(); facFly(share === 1 ? all : half, FG.coins, COIN_SVG, 7); };
     body.append(h('h3', { text: 'THE EXCHANGE' }), h('p', { text: 'Honey in, Bounce Brawl coins out. The more you sell in a day the less it buys, and each room you open makes coins dearer.' }), big, all, half, rate);
-    draw = () => { const f = facGet(), a = facQuote(f, f.honey), b = facQuote(f, f.honey / 2); big.innerHTML = `${HONEY_SVG} ${facNum(f.honey)}`; all.innerHTML = `SELL ALL ${COIN_SVG}<span>${fmt(a.coins)}</span>`; all.disabled = a.coins < 1; half.innerHTML = `SELL HALF ${COIN_SVG}<span>${fmt(b.coins)}</span>`; half.disabled = b.coins < 1; rate.textContent = `${fmt(facToday(f))} coins sold today`; };
+    draw = () => { const f = facGet(), a = facQuote(f, f.honey), b = facQuote(f, f.honey / 2); facSet(big, `${HONEY_SVG} ${facNum(f.honey)}`); facSet(all, `SELL ALL ${COIN_SVG}<span>${fmt(a.coins)}</span>`); all.disabled = a.coins < 1; facSet(half, `SELL HALF ${COIN_SVG}<span>${fmt(b.coins)}</span>`); half.disabled = b.coins < 1; rate.textContent = `${fmt(facToday(f))} coins sold today`; };
   } else if (kind === 'line') {
     const small = n => n < 100 ? n.toFixed(2) : facNum(n);
     const rows = [['Belt Speed', 'Jars a second', f => small(facJarsPerSec(f))], ['Jar Size', 'Nectar a jar', f => small(facJarSize(f))], ['Jar Price', 'Honey for each nectar', f => small(facPrice(f))]].map(([name, what, val]) => { const now = h('span', { class: 'fs-val' }); return { val, now, el: h('div', { class: 'fs-row' }, h('div', {}, h('b', { text: name.toUpperCase() }), h('p', { text: what })), now) }; });
-    const lv = h('i', { class: 'fs-lv' }), stat = h('div', { class: 'fs-stat' }), buy = h('button', { class: 'fg-yel fs-all', onclick: () => { const f = facGet(); facTick(); const c = facLineCost(f); if (f.honey < c) return; f.honey -= c; f.line++; SFX.coin(); save(); facDraw(); } });
+    const lv = h('i', { class: 'fs-lv' }), stat = h('div', { class: 'fs-stat' }), buy = h('button', { class: 'fg-yel fs-all', onclick: () => { const f = facGet(); facTick(); const c = facLineCost(f); if (f.honey < c) return; f.honey -= c; f.line++; SFX.coin(); save(); facDraw(); for (const r of rows) facPop(r.now, 1.1); if (!REDUCED) FG.lineCv.animate([{ translate: '0 0' }, { translate: '0 4px' }, { translate: '0 0' }], { duration: 240, easing: 'ease-out' }); } });
     body.append(h('h3', {}, 'THE JAR LINE ', lv), stat, ...rows.map(r => r.el), buy);
-    draw = () => { const f = facGet(), up = { ...f, line: f.line + 1 }, c = facLineCost(f); lv.textContent = `LV ${f.line + 1}`; stat.textContent = `Sends ${facNum(facThrough(f))} nectar a second · ${facNum(facIncome(f))} honey a second`; for (const r of rows) r.now.innerHTML = `${r.val(f)} &gt; <b>${r.val(up)}</b>`; buy.innerHTML = `UPGRADE ALL THREE ${HONEY_SVG}<span>${facNum(c)}</span>`; buy.disabled = f.honey < c; };
+    draw = () => { const f = facGet(), up = { ...f, line: f.line + 1 }, c = facLineCost(f); lv.textContent = `LV ${f.line + 1}`; stat.textContent = `Sends ${facNum(facThrough(f))} nectar a second · ${facNum(facIncome(f))} honey a second`; for (const r of rows) facSet(r.now, `${r.val(f)} &gt; <b>${r.val(up)}</b>`); facSet(buy, `UPGRADE ALL THREE ${HONEY_SVG}<span>${facNum(c)}</span>`); buy.disabled = f.honey < c; };
   } else {
-    const txt = h('div', { class: 'fs-big' }), bar = h('i'), go = h('button', { class: 'fg-yel', onclick: () => { const f = facGet(), m = facMission(f); if (m.have < m.want) return; const pay = Math.max(50, facIncome(f) * 120); f.honey += pay; f.mis++; save(); SFX.reveal(2); toast(`Mission done: +${facNum(pay)} honey`, 2200); facDraw(); } });
+    const txt = h('div', { class: 'fs-big' }), bar = h('i'), go = h('button', { class: 'fg-yel', onclick: () => { const f = facGet(), m = facMission(f); if (m.have < m.want) return; const pay = Math.max(50, facIncome(f) * 120); f.honey += pay; f.mis++; save(); SFX.reveal(2); toast(`Mission done: +${facNum(pay)} honey`, 2200); facFly(go, FG.num, HONEY_SVG, 6); facDraw(); } });
     body.append(h('h3', { text: 'MISSION' }), txt, h('div', { class: 'fs-bar' }, bar), go);
-    draw = () => { const f = facGet(), m = facMission(f); txt.textContent = m.txt; bar.style.width = clamp(m.have / m.want * 100, 0, 100) + '%'; go.innerHTML = m.have >= m.want ? `CLAIM ${HONEY_SVG}<span>${facNum(Math.max(50, facIncome(f) * 120))}</span>` : `${facNum(m.have)} / ${facNum(m.want)}`; go.disabled = m.have < m.want; };
+    draw = () => { const f = facGet(), m = facMission(f); txt.textContent = m.txt; bar.style.width = clamp(m.have / m.want * 100, 0, 100) + '%'; facSet(go, m.have >= m.want ? `CLAIM ${HONEY_SVG}<span>${facNum(Math.max(50, facIncome(f) * 120))}</span>` : `${facNum(m.have)} / ${facNum(m.want)}`); go.disabled = m.have < m.want; };
   }
   FG.sheet = { el, draw }; draw(); SFX.ui();
 }
@@ -12790,7 +13019,7 @@ function facGold() {
   btn.addEventListener('pointerdown', () => {
     const f = facGet(); facTick();
     const pay = Math.max(25, facIncome(f) * 30);
-    f.honey += pay; f.made += pay; SFX.reveal(2); toast(`Golden bee: +${facNum(pay)} honey`, 2000); btn.remove(); save(); facDraw();
+    f.honey += pay; f.made += pay; SFX.reveal(2); toast(`Golden bee: +${facNum(pay)} honey`, 2000); facFly(btn, FG.num, HONEY_SVG, 6); btn.remove(); save(); facDraw();
   });
 }
 function facHex(c, x, y, r) { c.beginPath(); for (let a = 0; a < 6; a++) { const t = Math.PI / 6 + a * Math.PI / 3; if (a) c.lineTo(x + Math.cos(t) * r, y + Math.sin(t) * r); else c.moveTo(x + Math.cos(t) * r, y + Math.sin(t) * r); } c.closePath(); }
@@ -12800,6 +13029,10 @@ function facFrame(dt) {
   FG.t += dt;
   FG.swipe = Math.max(0, FG.swipe - dt * 1.1);
   facTick();
+  // the honey count rolls to where it should be, so buying and earning don't jump
+  FG.showH = REDUCED ? f.honey : FG.showH + (f.honey - FG.showH) * Math.min(1, dt * 11);
+  const shown = facNum(FG.showH);
+  if (shown !== FG.numTxt) { FG.numTxt = shown; FG.num.textContent = shown; }
   if ((FG.uiT -= dt) <= 0) { FG.uiT = 0.2; facDraw(); }
   if ((FG.saveT += dt) > 15) { FG.saveT = 0; f.left = f.made; save(); }
   if ((FG.goldT -= dt) <= 0) { FG.goldT = 50 + Math.random() * 70; facGold(); }
@@ -12813,12 +13046,12 @@ const facFit = (cv, b) => { const d = Math.min(2, devicePixelRatio || 1), w = Ma
 function facDrawLine(f, dt) {
   const cv = FG.lineCv, b = cv.getBoundingClientRect();
   if (!b.width) return;
-  const c = facFit(cv, b), W = b.width, H = b.height, t = FG.t, u = 3, jps = facJarsPerSec(f) * (facBoosted(f) ? 2 : 1) * (1 + FG.swipe), income = facIncome(f);
+  const c = facFit(cv, b), W = b.width, H = b.height, t = FG.t, u = Math.max(3, Math.round(H / 46)), sz = u / 3, jps = facJarsPerSec(f) * (facBoosted(f) ? 2 : 1) * (1 + FG.swipe), income = facIncome(f);
   const P = (x, y, w, h, col) => { c.fillStyle = col; c.fillRect(x * u, y * u, w * u, h * u); };
   const OUT = '#0a0603', HI = '#e2c27e', SH = '#6a4a18', HON = '#ffb81f', BUB = '#ffe9a8', RIV = '#fff0c0', RED = '#e0482f', REDD = '#96261a';
   const ST1 = '#e2ded0', ST2 = '#a5a093', ST3 = '#646053', YL1 = '#ffe07a', YL2 = '#f5b81c', YL3 = '#b87c0e', DK = '#2a1c0c';
-  const gw = Math.ceil(W / u), gh = Math.ceil(H / u), mid = Math.round(Math.min(204, W * 0.52) / u), row = Math.floor((H - 24) / u), mx = mid * u;
-  const belt = 50 + Math.min(jps, 6) * 26, gap = Math.max(54, belt / Math.max(0.05, jps)), flow = 7 + Math.min(jps, 6) * 3;
+  const gw = Math.ceil(W / u), gh = Math.ceil(H / u), mid = Math.round((W >= 900 ? W * 0.3 : Math.min(204, W * 0.52)) / u), row = Math.floor(H / u) - 8, mx = mid * u;
+  const belt = (50 + Math.min(jps, 6) * 26) * sz, gap = Math.max(54 * sz, belt / Math.max(0.05, jps)), flow = 7 + Math.min(jps, 6) * 3;
   const busy = clamp(facNectar(f) / Math.max(0.001, facThrough(f)), 0.1, 1), backed = f.store > 1;
   FG.beltX = (FG.beltX || 0) + belt * dt;
   // the back wall: dark planks
@@ -12882,14 +13115,14 @@ function facDrawLine(f, dt) {
   const off = FG.beltX % gap, full = clamp(busy + (backed ? 1 : 0), 0.5, 1), from = FG.store.parentElement.getBoundingClientRect().right - b.left;
   let pour = 0;
   c.save(); c.beginPath(); c.rect(from, 0, W - from, H); c.clip();
-  for (let x = bx * u + off - gap; x < W + 22; x += gap) {
-    const j = Math.round(x / u), q = clamp((x - (mx - 12)) / 24, 0, 1), lvl = Math.round(7 * full * q), done = x > mx + 22;
+  for (let x = bx * u + off - gap; x < W + 22 * sz; x += gap) {
+    const j = Math.round(x / u), q = clamp((x - (mx - 12 * sz)) / (24 * sz), 0, 1), lvl = Math.round(7 * full * q), done = x > mx + 22 * sz;
     P(j - 3, row - 9, 6, 8, '#2a1e10');
     if (lvl) { P(j - 3, row - 1 - lvl, 6, lvl, HON); P(j - 3, row - 1 - lvl, 1, lvl, '#ffd96a'); P(j - 3, row - 1 - lvl, 6, 1, BUB); }
     P(j - 4, row - 9, 1, 8, '#e8e4d0'); P(j + 3, row - 9, 1, 8, '#b4b0a0'); P(j - 3, row - 1, 6, 1, '#b4b0a0');
     P(j + 1, row - 7, 1, 3, 'rgba(255,255,255,0.7)');
     if (done) { P(j - 4, row - 10, 8, 1, '#e0a02c'); P(j - 4, row - 9, 8, 1, '#7a4d00'); P(j - 2, row - 6, 4, 3, '#fff4d0'); P(j - 1, row - 5, 2, 1, '#c98a1c'); }
-    if (Math.abs(x - mx) < 12) pour = row - 1 - lvl;
+    if (Math.abs(x - mx) < 12 * sz) pour = row - 1 - lvl;
   }
   c.restore();
   // pouring while a jar's under it, a slow drip when not
@@ -12899,36 +13132,39 @@ function facDrawLine(f, dt) {
   FG.jarN = FG.jarN || 0;
   const passed = Math.floor(FG.beltX / gap), jarPay = income / Math.max(0.05, jps);
   if (passed > FG.jarN) { if (income > 0) FG.jarPops.push({ t: 0, txt: '+' + facNum(jarPay) }); FG.jarN = passed; }
-  c.textAlign = 'right'; c.textBaseline = 'middle'; c.font = `400 26px ${FONT_D}`;
+  c.textAlign = 'right'; c.textBaseline = 'middle'; c.font = `400 ${Math.round(26 * sz)}px ${FONT_D}`;
   for (const p of FG.jarPops) { p.t += dt; c.globalAlpha = clamp(1 - p.t / 0.9, 0, 1); c.fillStyle = 'rgba(0,0,0,0.85)'; c.fillText(p.txt, W - 7, H * 0.42 - p.t * 28 + 2); c.fillStyle = '#ffd24a'; c.fillText(p.txt, W - 9, H * 0.42 - p.t * 28); }
   c.globalAlpha = 1;
   FG.jarPops = FG.jarPops.filter(p => p.t < 0.9);
-  c.font = `400 17px ${FONT_D}`; c.fillStyle = facBoosted(f) ? '#ff9de0' : '#c9b890'; c.fillText(`${facNum(income)} HONEY/S`, W - 8, 15);
-  if (!FG.swiped) { c.textAlign = 'center'; c.font = `400 15px ${FONT_D}`; c.fillStyle = `rgba(255,214,90,${(0.55 + 0.35 * Math.sin(t * 3)).toFixed(2)})`; c.fillText('< SWIPE THE BELT >', (mx + W) / 2 + 20, (row + 4.5) * u); }
+  c.font = `400 ${Math.round(17 * sz)}px ${FONT_D}`; c.fillStyle = facBoosted(f) ? '#ff9de0' : '#c9b890'; c.fillText(`${facNum(income)} HONEY/S`, W - 8, 15 * sz);
+  if (!FG.swiped) { c.textAlign = 'center'; c.font = `400 ${Math.round(15 * sz)}px ${FONT_D}`; c.fillStyle = `rgba(255,214,90,${(0.55 + 0.35 * Math.sin(t * 3)).toFixed(2)})`; c.fillText('< SWIPE THE BELT >', (mx + W) / 2 + 20, (row + 4.5) * u); }
 }
 // a room: a honeycomb with its open cells lit. Bees fly straight to an open cell, fill it, and off the drop goes up the pipe
 function facDrawRoom(f, r, b, dt) {
-  const c = facFit(r.cv, b), W = b.width, H = b.height, k = r.k, t = FG.t, R = 19, dx = R * Math.sqrt(3), dy = R * 1.5, room = f.rooms[r.i];
+  const c = facFit(r.cv, b), W = b.width, H = b.height, k = r.k, t = FG.t, sc = clamp(H / 128, 1, 2.4), R = 19 * sc, dx = R * Math.sqrt(3), dy = R * 1.5, room = f.rooms[r.i], cell = Math.max(2, Math.round(2 * sc));
   const rushed = t < (FG.rush[r.i] || 0), openN = 3 + Math.floor(room.L / 3), beesN = clamp(1 + Math.floor(room.L / 6), 1, FAC.BEES), each = facRoomRate(f, r.i) / beesN * 1.2;
-  if (!r.cells || r.w !== W) {
-    r.w = W; r.cells = [];
-    for (let row = 0; row * dy + R * 0.2 < H; row++) for (let x = R + (row & 1) * dx / 2; x < W; x += dx) r.cells.push({ x, y: R * 0.9 + row * dy, fill: 0, drop: 0, order: 0 });
+  if (!r.cells || r.w !== W || r.h !== H) {
+    r.w = W; r.h = H; r.cells = [];
+    for (let row = 0; row * dy + R * 0.2 < H; row++) for (let x = R + (row & 1) * dx / 2; x < W; x += dx) r.cells.push({ x, y: R * 0.9 + row * dy, fill: 0, drop: 0, order: 0, lit: 0 });
     // the cells open from the left, a row at a time, nearest the pipe first
     r.cells.sort((p, q) => p.x - q.x || p.y - q.y).forEach((q, n) => { q.order = n; });
     r.bees = [];
   }
+  if (!r.cells.length) return;
   const open = r.cells.slice(0, Math.min(openN, r.cells.length));
   c.fillStyle = '#120d07'; c.fillRect(0, 0, W, H);
+  c.lineWidth = 2.5 * Math.min(sc, 1.6);
   for (const q of r.cells) {
     const on = q.order < open.length;
-    facHex(c, q.x, q.y, R - 1.5); c.fillStyle = on ? '#2a1c0a' : '#150f08'; c.fill();
-    c.lineWidth = 2.5; c.strokeStyle = on ? k.y : '#2c2010'; c.globalAlpha = on ? 0.85 : 1; c.stroke(); c.globalAlpha = 1;
+    q.lit = clamp(q.lit + (on ? dt : -dt) * 3.5, 0, 1);
+    facHex(c, q.x, q.y, R - 1.5); c.fillStyle = '#150f08'; c.fill(); c.strokeStyle = '#2c2010'; c.stroke();
+    if (q.lit > 0) { facHex(c, q.x, q.y, (R - 1.5) * (0.82 + 0.18 * q.lit)); c.globalAlpha = q.lit; c.fillStyle = '#2a1c0a'; c.fill(); c.globalAlpha = q.lit * 0.85; c.strokeStyle = k.y; c.stroke(); c.globalAlpha = 1; }
     if (on && q.fill > 0.01) { facHex(c, q.x, q.y, (R - 4) * Math.min(1, q.fill)); c.fillStyle = '#ffb81f'; c.fill(); }
-    if (q.drop > 0) { q.drop -= dt; c.fillStyle = '#fff4c0'; c.fillRect(q.x - 3, q.y - 8 * (1 - q.drop) - 2, 6, 6); }
+    if (q.drop > 0) { q.drop -= dt; const d = 6 * sc; c.fillStyle = '#fff4c0'; c.fillRect(q.x - d / 2, q.y - 8 * sc * (1 - q.drop) - d / 3, d, d); }
   }
-  while (r.bees.length < beesN) { const a = open[Math.floor(Math.random() * open.length)]; r.bees.push({ x: a.x, y: a.y, to: null, cell: a, sit: 0.3 + Math.random(), dir: Math.random() < 0.5 ? 1 : -1, seed: Math.random() * 9 }); }
+  while (r.bees.length < beesN) { const a = open[Math.floor(Math.random() * open.length)]; r.bees.push({ x: -20 * sc, y: a.y, to: a, cell: a, sit: 0.3 + Math.random(), dir: 1, seed: Math.random() * 9 }); }
   r.bees.length = beesN;
-  const speed = (rushed ? 340 : 120) * dt, fillRate = (rushed ? 2.2 : 0.8) + Math.min(room.L, 100) * 0.008;
+  const speed = (rushed ? 340 : 120) * sc * dt, fillRate = (rushed ? 2.2 : 0.8) + Math.min(room.L, 100) * 0.008;
   for (const be of r.bees) {
     if (be.to) {
       const ex = be.to.x - be.x, ey = be.to.y - be.y, d = Math.sqrt(ex * ex + ey * ey);
@@ -12942,10 +13178,10 @@ function facDrawRoom(f, r, b, dt) {
         be.to = open[Math.floor(Math.random() * open.length)]; be.dir = be.to.x >= be.x ? 1 : -1;
       }
     }
-    drawBee(c, Math.round(be.x), Math.round(be.y - 3 + Math.sin(t * 7 + be.seed) * 1.5), 2, (t * (rushed ? 12 : 6) + be.seed) % 1, be.dir, k);
+    drawBee(c, Math.round(be.x), Math.round(be.y - 3 * sc + Math.sin(t * 7 + be.seed) * 1.5 * sc), cell, (t * (rushed ? 12 : 6) + be.seed) % 1, be.dir, k);
   }
-  c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = `400 19px ${FONT_D}`;
-  for (const p of FG.pops) if (p.i === r.i) { c.globalAlpha = clamp(1 - p.t / 0.8, 0, 1); c.fillStyle = 'rgba(0,0,0,0.85)'; c.fillText(p.txt, p.x + 1.5, p.y - p.t * 34 + 1.5); c.fillStyle = '#fff'; c.fillText(p.txt, p.x, p.y - p.t * 34); }
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  for (const p of FG.pops) if (p.i === r.i) { c.font = `400 ${Math.round((p.big ? 38 : 19) * (1 + (sc - 1) * 0.5))}px ${FONT_D}`; c.globalAlpha = clamp(1 - p.t / 0.8, 0, 1); c.fillStyle = 'rgba(0,0,0,0.85)'; c.fillText(p.txt, p.x + 1.5, p.y - p.t * 34 + 1.5); c.fillStyle = '#fff'; c.fillText(p.txt, p.x, p.y - p.t * 34); }
   c.globalAlpha = 1;
 }
 
