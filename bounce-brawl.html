@@ -1145,6 +1145,10 @@ button * { pointer-events: none; }
   .fs-card { width: min(520px, 100%); padding: 18px; }
 }
 @media (min-width: 1600px) and (min-height: 860px) { #facgame { --u: 5; } }
+/* BeeZap's death: black, then the film */
+.bzdeath { position: fixed; inset: 0; z-index: 100; display: grid; background: #000; }
+.bzdeath video { width: 100%; height: 100%; min-height: 0; object-fit: contain; background: #000; opacity: 0; transition: opacity .25s ease; pointer-events: none; }
+.bzdeath.on video { opacity: 1; }
 </style>
 
 <canvas id="bg" aria-hidden="true"></canvas>
@@ -8446,6 +8450,7 @@ function startFight(o) {
   if (F.masks.length) SFX.sike(true);   // decoded now, ready for the reveal
   if (o.mode === 'pvp') { G.coins -= o.stake; save(); }
   MUSIC.play(fightSong()); MUSIC.boost(false);
+  if (!REDUCED && S.F.some(f => f.def.id === 'beezap')) bzDeathFilm();   // loaded now, so it's ready if BeeZap goes down
   arena.resize(); arena.draw(S, 0);
   updatePlates(F);
   fxStart(F);
@@ -8520,11 +8525,15 @@ function fightFrame(F, dt) {
       showBanner(F, F.all ? (S.winner === F.mySide ? 'YOU WIN!' : F.all[S.winner].name.toUpperCase() + ' WINS') : S.winner === -1 ? 'DRAW' : S.t >= T_LIMIT ? 'TIME!' : 'K.O.', true);
       F.tag = fightTag(F);
       if (F.tag) F.arena.callout(F.tag[0], F.tag[1]);
-    }
+    } else if (!S.over && !F.wheel && bzDeathDue(F) && (F.bzDieT = (F.bzDieT || 0) + dt) > 0.7) openDeath(F);   // a free for all goes on without it
     updatePlates(F);
   } else if (F.phase === 'ko') {
-    F.pt += dt;
-    if (F.pt > 1.6 && !F.settled) { showBanner(F, ''); settleFight(F); }
+    if (F.wheel) F.wheel.frame(F, dt);
+    else {
+      F.pt += dt;
+      if (F.pt > 0.9 && bzDeathDue(F)) openDeath(F);   // long enough to see it break apart
+      else if (F.pt > 1.6 && !F.settled) { showBanner(F, ''); settleFight(F); }
+    }
   }
   F.arena.step(dt * (F.phase === 'ko' ? 0.35 : 1));
   F.arena.draw(S, F.t);
@@ -8533,7 +8542,7 @@ function fightFrame(F, dt) {
 function skipFight() {
   const F = FIGHT;
   if (!F || F.phase === 'ko' || F.done) return;
-  closeWheels(F);
+  closeWheels(F); F.bzDied = 1;
   F.arena.opt.sound = false;
   while (!F.S.over) { step(F.S); F.S.ev.length = 0; }
   F.arena.opt.sound = true;
@@ -8628,6 +8637,7 @@ function settleFight(F) {
 function endFightScreen() {
   const F = FIGHT;
   if (!F) return;
+  if (F.wheel && F.wheel.kind === 'death') closeWheels(F);
   const root = F.root;
   root.classList.add('out'); root.inert = true;
   setTimeout(() => root.remove(), 260);
@@ -8653,7 +8663,7 @@ function onKey(e) {
   const k = e.key;
   if (k === 'm' || k === 'M') { G.sfx = G.music = !(G.sfx || G.music); SFX.sfx = G.sfx; SFX.music = G.music; if (G.music) { SFX.resume(); MUSIC.play(FIGHT ? fightSong() : 'menu'); } save(); toast(G.sfx ? 'Sound on' : 'Sound off', 1200); return; }
   if (FIGHT) {
-    if (k === 'Escape') { if (FIGHT.done) { endFightScreen(); renderView(); } else FIGHT.root.leave.click(); }
+    if (k === 'Escape') { if (FIGHT.wheel && FIGHT.wheel.kind === 'death') return; if (FIGHT.done) { endFightScreen(); renderView(); } else FIGHT.root.leave.click(); }
     else if (k === 'Enter' && FIGHT.done) { const b = FIGHT.result && FIGHT.result.querySelector('.btn2'); if (b) b.click(); }
     return;
   }
@@ -9936,6 +9946,60 @@ function bzAskTick(F, W, dt) {
   }
   bzAskDraw(W);
 }
+// ---- when BeeZap dies: fade to black, the owner's cutscene, then back to the fight or the results. All of it on this screen
+// only: the sim just waits, like for any takeover, so nothing here can make two screens disagree. The film comes from GitHub
+// through jsDelivr, with the copy beside the page if the CDN can't be reached. If neither can, the fight simply carries on
+const BZ_DEATH = { FADE: 0.7, WAIT: 3.5, STALL: 4, FILE: 'bounce-brawl-bee-death.mp4', el: null };
+const BZ_DEATH_CDN = 'https://cdn.jsdelivr.net/gh/BeeCoolBro/ns2-coop@main/' + BZ_DEATH.FILE;
+function bzDeathFilm() {
+  if (BZ_DEATH.el) return BZ_DEATH.el;
+  const v = BZ_DEATH.el = h('video', { preload: 'auto', playsinline: true, 'aria-hidden': 'true' });
+  // the published artifact and a local page have the copy beside them; the site asks the CDN first
+  const urls = BZ_DEATH.urls || (ON_SITE ? [BZ_DEATH_CDN, '/' + BZ_DEATH.FILE] : [BZ_DEATH.FILE, BZ_DEATH_CDN]);
+  // fetched whole as soon as a BeeZap steps into a fight, so it can't stop to buffer halfway through
+  const next = i => {
+    if (i >= urls.length) return;
+    fetch(urls[i]).then(r => { if (!r.ok) throw new Error(r.status); return r.blob(); }).then(b => { if (!v.childElementCount) { v.src = URL.createObjectURL(b); v.load(); } }).catch(() => next(i + 1));
+  };
+  next(0);
+  // not all here yet when BeeZap goes down: stream it instead
+  BZ_DEATH.stream = () => { if (v.src || v.childElementCount) return; for (const src of urls) v.append(h('source', { src, type: 'video/mp4' })); v.load(); };
+  return v;
+}
+const bzDeathDue = F => !F.bzDied && F.S.F.some(f => f.def.id === 'beezap' && !f.alive);
+function openDeath(F) {
+  F.bzDied = 1;
+  if (REDUCED) return;
+  const v = bzDeathFilm(), shade = h('div', { class: 'bzdeath', 'aria-hidden': 'true' }, v);
+  BZ_DEATH.stream();
+  document.body.append(shade);
+  shade.animate([{ opacity: 0 }, { opacity: 1 }], { duration: BZ_DEATH.FADE * 1000, easing: 'ease-in' });
+  MUSIC.stop();
+  F.wheel = { kind: 'death', e: { e: 'death' }, v, shade, T: 0, on: 0, seen: -1, seenT: 0, frame: deathFrame, close() { v.pause(); shade.remove(); } };
+}
+function deathFrame(F, dt) {
+  const W = F.wheel, v = W.v, D = BZ_DEATH;
+  W.T += dt;
+  if (W.T < D.FADE) return;
+  if (!W.on) {
+    W.on = 1; W.seenT = W.T;
+    v.muted = !(G.sfx || G.music); v.volume = 0.85;
+    try { v.currentTime = 0; } catch (e) {}
+    // a browser that won't play it with sound still shows it
+    const p = v.play();
+    if (p && p.catch) p.catch(() => { v.muted = true; v.play().catch(() => { W.fail = 1; }); });
+  }
+  if (v.currentTime !== W.seen) { if (W.seen >= 0) W.shade.classList.add('on'); W.seen = v.currentTime; W.seenT = W.T; }
+  // never leaves a fight stuck: it ends with the film, or if the film can't load or stalls
+  if (v.ended || v.error || v.networkState === 3 || W.fail || W.T - W.seenT > (W.seen > 0 ? D.STALL : D.WAIT)) {
+    F.wheel = null;
+    v.pause();
+    if (FIGHT === F) MUSIC.play(fightSong());
+    W.shade.classList.remove('on');
+    W.shade.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, easing: 'ease-out', fill: 'forwards' }).onfinish = () => W.shade.remove();
+  }
+}
+
 // ---- the reveal: against a BeeZap you see a plain ball until the fight starts; then it glitches back
 // to BeeZap (with the owner's "sike" clip) and the console announces it. Its owner sees all of it too.
 function bzQueue(F, wz) {
@@ -13621,7 +13685,7 @@ window.BB = {
   bot: (id, lvl) => { if (id) { G.owned[id] = G.owned[id] || { lvl: lvl || 1, copies: 0 }; G.eq = id; } botFight(true); return !!FIGHT; },
   skip: skipFight,
   run(secs) { const F = FIGHT; if (!F) return null; F.phase = 'run'; showBanner(F, ''); const end = F.S.t + secs; while (F.S.t < end && !F.S.over) { step(F.S); F.arena.events(F.S); F.arena.step(DT); } F.arena.draw(F.S, F.S.t); updatePlates(F); return { t: F.S.t, hp: F.S.F.map(f => Math.ceil(f.hp)), over: F.S.over }; },
-  finish() { const F = FIGHT; if (!F) return null; skipFight(); fightFrame(F, 0.016); F.pt = 2; fightFrame(F, 0.016); return { winner: F.S.winner, coins: G.coins, tro: G.tro }; },
+  finish() { const F = FIGHT; if (!F) return null; skipFight(); F.bzDied = 1; if (F.wheel) closeWheels(F); fightFrame(F, 0.016); F.pt = 2; fightFrame(F, 0.016); return { winner: F.S.winner, coins: G.coins, tro: G.tro }; },
   crate(id) { const cr = CRATES.find(c => c.id === id) || STARTER; if (cr === STARTER) openCrate(STARTER, true); else buyCrate(cr); },
   coins(n) { G.coins = n; save(); renderView(); },
   give(id, lvl) {
