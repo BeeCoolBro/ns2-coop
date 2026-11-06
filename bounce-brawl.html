@@ -992,7 +992,7 @@ svg.mst.on { fill: var(--gold); }
 // A fight is played out from a seed, separately in each player's browser, so
 // the simulation may only use + - * / and sqrt (the same in every engine):
 // no Math.sin/cos/atan2/hypot/pow/exp, no Math.random, no clocks.
-const VERSION = 27;
+const VERSION = 28;
 const HP_SCALE = 0.33;                     // every ball's health is scaled by this, so fights end sooner
 const TAU = 6.283185307179586, PI = 3.141592653589793, HALF_PI = 1.5707963267948966;
 const DT = 1 / 60, SUB = 3;            // 60 steps a second, 3 physics substeps each
@@ -1108,7 +1108,7 @@ function applyRule(S, rule) {
 function newFight(o) {
   const S = { t: 0, n: 0, rng: rng(o.seed >>> 0), nid: 1, bodies: [], F: [], projs: [], hz: [], ev: [],
     keep: !!o.keepEv, over: false, winner: -2, box: { x0: 0, y0: 0, x1: ARENA, y1: ARENA }, ot: 1, tstop: [0, 0],
-    half0: ARENA / 2, vmul: 1, dmul: 1, grav: GRAV, otStart: OT_START, rmul: 1, paint: null, out: [], map: null, shape: null, shapeEase: 0, borderT: 0, pull: null, spin: null, worldAng: 0, bzTakes: 0 };
+    half0: ARENA / 2, vmul: 1, dmul: 1, grav: GRAV, otStart: OT_START, rmul: 1, paint: null, out: [], map: null, shape: null, shapeEase: 0, borderT: 0, pull: null, spin: null, worldAng: 0, bzTakes: 0, bzLast: -9 };
   // the box rule comes from the seed through its own generator, so it never shifts the fight's own dice
   const rr = rng(hashStr('rule:' + (o.seed >>> 0)));
   S.seed = o.seed >>> 0; S.calm = !!o.calm;
@@ -2169,15 +2169,15 @@ function shapePlace(S, x, y, pad) {
   const s = inn ? 1 : -1, nx = (px - SH_NEAR.x) / d * s, ny = (py - SH_NEAR.y) / d * s;
   return [c + (SH_NEAR.x + nx * r) * k, c + (SH_NEAR.y + ny * r) * k];
 }
-// BeeZap bends the map to a new shape: at most every few seconds, and only with a takeover left to spend
+// BeeZap bends the map to a new shape, when a takeover comes due
 function bzBend(S, f) {
-  if (S.calm || S.bzTakes >= BZ_TAKES || S.t - (S.bendAt === undefined ? -9 : S.bendAt) < 5) return;
-  S.bzTakes++;
+  if (S.calm || S.bzTakes >= BZ_TAKES) return;
+  bzTake(S);
   const ffa = S.F.length > 2, from = S.shape ? S.shape.id : null, list = Object.keys(SHAPES).filter(k => k !== from && !(ffa && SHAPES[k].thin)), to = list[Math.floor(S.rng() * list.length)];
   const rule = S.rule, oldMap = S.map;
   // No Walls can't work inside a shape: the shape's walls take over
   if (S.rule === 'wrap') { applyRule(S, 'normal'); mapInit(S); }
-  S.shape = SHAPES[to]; S.shapeEase = 0.8; S.bendAt = S.t;
+  S.shape = SHAPES[to]; S.shapeEase = 0.8;
   if (f.bz) f.bz.plan = f.bz.plan.filter(k => k !== 'shape');   // that was this fight's bend, if it hadn't had one yet
   emit(S, { e: 'shape', id: f.id, side: f.side, from, to, rule, oldMap });
 }
@@ -3455,8 +3455,8 @@ BALL_LIST.push(
     desc: 'Grins and bounces around, and every 5 seconds its grin confuses a nearby enemy. Below 20% health it throws a tantrum that blasts the enemy back, grows four spider legs and chases the enemy down, hitting 2.5x harder.' },
   // only from the give command: spins for a Mythic's power and a strength change at the start,
   // then again every time it loses another 35% of its health
-  { id: 'beezap', name: 'BeeZap', rar: 'M', cat: 'trick', special: 1, hidden: 1, giveOnly: 1, col: '#f5bd12', hp: 240, upright: 1,
-    init(S, f) { f.bz = { next: 1 - BZ_EVERY, plan: bzPlan(S), nextT: 3.5, godT: 0, pend: null }; beezapRoll(S, f); },
+  { id: 'beezap', name: 'BeeZap', rar: 'M', cat: 'trick', special: 1, hidden: 1, giveOnly: 1, col: '#f5bd12', hp: 250, upright: 1,
+    init(S, f) { f.bz = { next: 1 - BZ_EVERY, plan: bzPlan(S), godT: 0, pend: null }; beezapRoll(S, f); },
     desc: 'Spins two wheels at the start of the fight: one copies a Mythic ball\u2019s power, the other sets its strength from -10% to +10%. Every 45% of health it loses, it spins again. It also abuses admin commands that bend the world, plays the slots, switches the map modifier, bends the box into new shapes, and drags its enemy into a quick game (tic tac toe, Connect Four, rock paper scissors, Battleship, last stick, memory match, dots and boxes or pig) where the winner hits the loser.' },
 );
 // a BeeZap hooks into a fight (HOOK, p7h): the ball on that side leaves with everything it made, and
@@ -3491,15 +3491,26 @@ function beezapRoll(S, f) {
   addWeapons(S, f, d.weapons);
   if (d.init) d.init(S, f);
   f.bz.pow = d.id; f.bz.str = str;
-  // out of takeovers: it still takes the new power, just without stopping the fight to show it
-  if (S.bzTakes < BZ_TAKES) { S.bzTakes++; emit(S, { e: 'wheel', id: f.id, side: f.side, pow: d.id, str, opts: pool.map(b => b.id) }); }
-  else emit(S, { e: 'repower', id: f.id, x: f.x, y: f.y });
+  // the power never changes without the wheel showing it
+  bzTake(S);
+  emit(S, { e: 'wheel', id: f.id, side: f.side, pow: d.id, str, opts: pool.map(b => b.id) });
 }
 // BeeZap takes the screen over BZ_TAKES times a fight, counting the wheel it opens with (the sike before that makes
-// one more when it's in disguise). After the wheel one comes every few seconds of fight until they run out: the map
-// bends first, then the slots, a minigame, a new modifier and an admin command in a shuffled order. Bigger moments
-// can use one up early. Each is announced first (the fight stops for it) and lands on the step after.
-const BZ_TAKES = 6;
+// one more when it's in disguise). They're spread over the whole fight, however long it turns out to be: the next one
+// is due once the fight is that far through (bzDue) and a few seconds have passed since the last (bzGap). The map bends
+// first, then the slots, a minigame, a new modifier and an admin command in a shuffled order. Winning big moves a map
+// bend to the front of the queue. Each is announced first (the fight stops for it) and lands on the step after.
+// A spin at a health mark goes ahead of all of them and always happens, once the gap has passed, even past BZ_TAKES.
+const BZ_TAKES = 6, BZ_PACE = 48;                  // with nobody getting hurt, the fight counts as over after BZ_PACE s
+const bzGap = S => (S.F.length > 2 ? 5 : 3.5);     // never closer together than this
+function bzTake(S) { S.bzTakes++; S.bzLast = S.t; }
+// how far through is the fight? As far as the time, BeeZap's lost health or everyone else's lost health says
+function bzDue(S, f) {
+  let hp = 0, max = 0;
+  for (const x of S.F) if (x !== f) { hp += Math.max(0, x.hp); max += x.maxHp; }
+  const at = Math.max(S.t / (S.F.length > 2 ? BZ_PACE * 1.5 : BZ_PACE), 1 - f.hp / f.maxHp, 1 - hp / max);
+  return at >= S.bzTakes / (BZ_TAKES + 1);
+}
 function bzPlan(S) {
   const a = ['slot', 'game', 'mod', 'admin'];
   for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(S.rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
@@ -3720,8 +3731,8 @@ function bzTick(S, f, dt) {
   const z = f.bz;
   if (z.godT > 0) z.godT -= dt;
   if (z.pend && (z.pend.t -= dt) <= 0) { const p = z.pend; z.pend = null; bzLand(S, f, p); }
-  if (f.alive && !z.pend && z.plan.length && S.bzTakes < BZ_TAKES && (z.nextT -= dt) <= 0) {
-    z.nextT = S.F.length > 2 ? 5 : 3;
+  if (z.spin && f.alive && !z.pend && S.t - S.bzLast >= bzGap(S)) { z.spin = false; beezapRoll(S, f); }
+  if (f.alive && !z.pend && z.plan.length && S.bzTakes < BZ_TAKES && S.t - S.bzLast >= bzGap(S) && bzDue(S, f)) {
     const k = z.plan.shift();
     if (k === 'admin') {
       const foes = S.F.filter(x => x !== f && x.alive), ffa = S.F.length > 2;
@@ -3731,22 +3742,22 @@ function bzTick(S, f, dt) {
       if (cmd === 'feud') { const i = Math.floor(S.rng() * foes.length); let j = Math.floor(S.rng() * (foes.length - 1)); if (j >= i) j++; pair = [foes[i], foes[j]]; }
       const all = ffa && (cmd === 'freeze' || cmd === 'tp' || cmd === 'nerf' || cmd === 'smite') ? 1 : 0;
       z.pend = { t: 0.01, k: 'admin', cmd, all, ts: tgt.side, pair: pair && pair.map(x => x.side) };
-      S.bzTakes++;
+      bzTake(S);
       emit(S, { e: 'admin', id: f.id, side: f.side, cmd, foe: tgt.def.id, ts: tgt.side, all, pair: pair && pair.map(x => x.def.id) });
     } else if (k === 'slot') {
       const { r, res } = bzSpin(S);
       z.pend = { t: 0.01, k: 'slot', r, res };
-      S.bzTakes++;
+      bzTake(S);
       emit(S, { e: 'slot', id: f.id, side: f.side, r, res });
     } else if (k === 'game') {
       // in a free for all it drags in whoever is winning (the most health left), not just the nearest
       const t = S.F.length > 2 ? S.F.filter(x => x !== f && x.alive).reduce((m, x) => (x.hp / x.maxHp > m.hp / m.maxHp ? x : m)) : f.foe, rec = bzGame(S);
       z.pend = { t: 0.01, k: 'game', win: rec.win, ts: t.side };
-      S.bzTakes++;
+      bzTake(S);
       emit(S, Object.assign({ e: 'game', id: f.id, side: f.side, ts: t.side, foe: t.def.id }, rec));
     } else if (k === 'mod') {
       // it changes at once; the screen shows it happening while the fight waits
-      if (!S.calm) { S.bzTakes++; emit(S, Object.assign({ e: 'mod', id: f.id, side: f.side }, mapSwitch(S))); }
+      if (!S.calm) { bzTake(S); emit(S, Object.assign({ e: 'mod', id: f.id, side: f.side }, mapSwitch(S))); }
     } else bzBend(S, f);
   }
   bzCheck(S, f);
@@ -3754,8 +3765,8 @@ function bzTick(S, f, dt) {
 function bzLand(S, f, p) {
   let t = f.foe;
   if (S.calm && p.k === 'admin' && (p.cmd === 'border' || p.cmd === 'gravity' || p.cmd === 'rotate')) return;   // not in a ball's preview
-  // winning big bends the map
-  if ((p.k === 'slot' && (p.res === 'jackpot' || p.res === 'swarm' || p.res === 'diamond')) || (p.k === 'game' && p.win === 0)) bzBend(S, f);
+  // winning big: the map bends next, when the next takeover is due
+  if (((p.k === 'slot' && (p.res === 'jackpot' || p.res === 'swarm' || p.res === 'diamond')) || (p.k === 'game' && p.win === 0)) && f.bz.plan[0] !== 'shape') f.bz.plan.unshift('shape');
   if (p.k === 'admin' && p.cmd === 'border') { if (!S.boxRate) { S.boxRate = 110; S.halfNow = (S.box.x1 - S.box.x0) / 2; } S.borderT = 7; return; }
   if (p.k === 'admin' && p.cmd === 'gravity') { const a = Math.floor(S.rng() * 8) * TAU / 8; S.pull = { t: 6, x: dcos(a), y: dsin(a), side: f.side }; return; }
   if (p.k === 'admin' && p.cmd === 'rotate') { S.spin = { t: 0, T: 7, dir: S.rng() < 0.5 ? 1 : -1 }; return; }
@@ -3816,8 +3827,7 @@ function bzCheck(S, f) {
   if (!f.alive || f.bz.next <= 0 || f.hp > f.maxHp * f.bz.next) return;
   do f.bz.next = Math.round((f.bz.next - BZ_EVERY) * 100) / 100;   // a big hit past two marks still spins once
   while (f.bz.next > 0 && f.hp <= f.maxHp * f.bz.next);
-  beezapRoll(S, f);
-  bzBend(S, f);
+  f.bz.spin = true;
 }
 
 // ===== the raid bosses: giant hidden balls, one a day ===========================
@@ -5086,7 +5096,6 @@ class Arena {
       case 'portal': this.ring(e.x0, e.y0, 40, 8, '#38b6ff', 4, 0.25); this.ring(e.x1, e.y1, 8, 52, '#ff8a2e', 4, 0.3); if (snd) snd.warp(); break;
       case 'lavaup': this.burst(e.x, e.y, 14, '#ff8a1f', 260, 0.5, 4); this.shake = Math.min(14, this.shake + 3); if (snd) snd.splash(); break;
       case 'gust': if (snd) snd.phase(); break;
-      case 'repower': this.ring(e.x, e.y, 30, 120, '#ffd633', 5, 0.4); this.burst(e.x, e.y, 12, '#ffd633', 300, 0.4, 4); if (snd) snd.warp(); break;
       case 'phit': break;
       case 'grin': this.ring(e.x, e.y, 30, 120, '#ffd60a', 4, 0.35); if (snd) snd.ping(); break;
       case 'rage': this.shake = Math.min(16, this.shake + 7); this.burst(e.x, e.y, 18, '#ffd60a', 340, 0.5, 5); this.num(e.x, e.y - 56, 'ANGRY!', '#ff4646', true); if (snd) snd.boom(true); break;
@@ -8031,7 +8040,7 @@ function startFight(o) {
   // a BeeZap hides as a plain ball until the fight starts, on both players' screens (see openReveal)
   const plain = ffa || o.mode === 'watch' || o.mode === 'hook';
   const fake = bzFake(o.seed), hide = info => info.id === 'beezap' && !plain ? Object.assign({}, info, { id: fake }) : info;
-  const youP = plate('you', hide(me)), foeP = ffa ? ffaField(o) : plate('foe', hide(foe));
+  const youP = plate('you', hide(me)), foeP = ffa ? ffaField(o) : plate('foe', foe.id === 'beezap' && !plain ? Object.assign(hide(foe), { name: bzFakeName(o.seed) }) : hide(foe));
   const clock = h('span', { class: 'clock', text: '0:00' }), ot = h('span', { class: 'lab', text: o.mode === 'bot' ? 'PRACTICE' : o.mode === 'friendly' ? 'FRIENDLY' : o.mode === 'cup' ? 'CUP ' + CUP_ROUNDS[o.cupRound] : o.mode === 'boss' ? 'BOSS RAID' : ffa ? 'FREE FOR ALL' : o.mode === 'watch' ? 'WATCHING' : o.mode === 'hook' ? 'HOOKED' : 'RANKED' });
   const rule = S.rule !== 'normal' ? h('span', { class: 'rule', title: RULES[S.rule].desc, text: RULES[S.rule].name.toUpperCase() }) : null;
   const pot = o.mode === 'pvp' ? h('span', { class: 'pot', html: 'POT ' + COIN_SVG + fmt(o.stake * 2) }) : ffa ? h('span', { class: 'pot left', text: o.all.length + ' LEFT' }) : null;
@@ -8997,6 +9006,8 @@ function fightSong() { return FIGHT && !(FIGHT.masks && FIGHT.masks.length) && F
 // what a BeeZap pretends to be on the VS screen and until the fight starts: any ball in the game, off the seed so
 // both screens agree
 function bzFake(seed) { return BALLS[(seed >>> 0) % BALLS.length].id; }
+// and the name its opponent sees over it until the reveal, so the player's own name can't give it away
+function bzFakeName(seed) { seed >>>= 0; const a = GH_A[seed % GH_A.length], b = GH_B[(seed >>> 8) % GH_B.length]; return seed & 16 ? a + b : a + '_' + b; }
 const BZ_IN = 1.05, BZ_SPIN = [2.0, 1.5], BZ_HOLD = [0.6, 0.8], BZ_OUT = 0.7, BZ_SHRINK = 0.5;
 const BZ_STR_COL = { '-10': '#c8283a', '-5': '#d9762a', '0': '#5b5b66', '5': '#4f9a2a', '10': '#1f9a58' };
 const BZ_CASINO = ['#a3122a', '#16161c'];
@@ -9386,6 +9397,8 @@ function bzPlate(F, side, id) {
   if (!p) return;
   p.replaceChild(ballImg(id, 46, ''), p.firstChild);
   if (bn) bn.textContent = `${BALL[id].name} · LV ${(mine ? F.me : F.foe).lvl}`;
+  const who = p.querySelector('.who');
+  if (!mine && who && F.foe.id === 'beezap') who.textContent = (id === 'beezap' ? F.foe.name : bzFakeName(F.seed)).toUpperCase();
 }
 function bzUnmask(F) {
   if (!F.masks || !F.masks.length) return;
@@ -12121,7 +12134,7 @@ function ghostMatch() {
 function showVs(me, foe, stake, friendly, seed, go) {
   const rule = RULES[ruleOf(seed)];
   const hide = p => p.id === 'beezap' ? Object.assign({}, p, { id: bzFake(seed) }) : p;   // it hides until the fight starts
-  me = hide(me); foe = hide(foe);
+  me = hide(me); foe = foe.id === 'beezap' ? Object.assign(hide(foe), { name: bzFakeName(seed) }) : foe;
   const el = h('div', { class: 'vs' },
     h('div', { class: 'side you' }, h('div', { class: 'lab', text: 'You' }), ballImg(me.id, 200, ''), h('div', { class: 'who', text: me.name.toUpperCase() }), h('div', { class: 'bn', text: `${BALL[me.id].name} · LV ${me.lvl}` })),
     h('div', { class: 'side foe' }, h('div', { class: 'lab', text: 'Opponent' }), ballImg(foe.id, 200, ''), h('div', { class: 'who', text: foe.name.toUpperCase() }), h('div', { class: 'bn', text: `${BALL[foe.id].name} · LV ${foe.lvl}` })),
