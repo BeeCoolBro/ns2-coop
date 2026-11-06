@@ -14143,6 +14143,27 @@ function chessGrant(s) {
   return true;
 }
 
+// The code works in the game as well as on the front page. Only its hash is here. The menu's number keys pick a row, so a
+// number straight after letters is part of something being typed, and doesn't
+const CK_CODE = '124d247023819f3a8be5cfb0a64996714c3abffa0e97bd31d52a5be2f9befba3', CK_CODE_N = 15;
+let ckTyped = '', ckWordAt = -1e9;
+addEventListener('keydown', e => {
+  if (!e.key || e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return;
+  const now = performance.now();
+  if (/[a-z]/i.test(e.key)) ckWordAt = now;
+  else if (/[0-9]/.test(e.key) && now - ckWordAt < 2000) { ckWordAt = now; if (!FIGHT) e.stopPropagation(); }
+  ckTyped = (ckTyped + e.key.toLowerCase()).slice(-CK_CODE_N);
+  if (ckTyped.length < CK_CODE_N || !window.crypto || !crypto.subtle) return;
+  sha256(ckTyped).then(hex => {
+    if (hex !== CK_CODE) return;
+    try { localStorage.setItem('bouncebrawl.chess', '1'); } catch (err) {}
+    if (!chessGrant(G)) { toast('You already have The King.', 2600); return; }
+    save(); SFX.reveal(3);
+    if (!FIGHT) renderView();
+    toast('The King is yours. He\u2019s your fighter now, and in Balls.', 4200);
+  });
+}, true);
+
 // ===== players online: presence, matchmaking, leaderboard =================
 // Everything goes through each viewer's presence (the platform's "who is here"
 // object), which every viewer may set. A match is two players who each name
