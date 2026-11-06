@@ -190,3 +190,12 @@
   setTimeout(poll, 1500);
   setInterval(poll, 7000);
 })();
+
+/* Beeliner Factory (in Bounce Brawl 2) earns at half speed when you're off the site. This adds up the time spent on the
+   site's other pages, so that time still earns at full speed. */
+(function () {
+  setInterval(function () {
+    if (document.hidden) return;
+    try { localStorage.setItem('beeside.onsite', String((+localStorage.getItem('beeside.onsite') || 0) + 5)); } catch (e) {}
+  }, 5000);
+})();

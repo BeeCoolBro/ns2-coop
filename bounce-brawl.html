@@ -336,6 +336,9 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 .fs-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid #3a2a12; }
 .fs-row b { font: 400 19px/1 var(--fd); letter-spacing: 1.5px; color: #f2e8d0; } .fs-row i { font: 400 11px var(--fm); font-style: normal; color: #ffd24a; } .fs-row p { margin: 3px 0 0; font-size: 12px; }
 .fs-stat { font-size: 12.5px; line-height: 1.4; color: #c9b890; }
+.fs-lv { font: 400 13px var(--fm); font-style: normal; letter-spacing: 0; color: #c9b890; vertical-align: middle; }
+.fs-val { font: 400 18px/1 var(--fd); letter-spacing: 1px; color: #a89878; white-space: nowrap; } .fs-val b { font-size: 21px; color: #ffd24a; }
+.fs-all { width: 100%; padding: 11px 12px; font-size: 20px; }
 /* the way in */
 .fg-intro { position: absolute; inset: 0; z-index: 9; display: grid; place-items: center; align-content: center; gap: 12px; background: #080503; overflow: hidden; cursor: pointer; }
 .fi-line { position: absolute; left: 0; right: 0; top: 24%; height: 8px; background: repeating-linear-gradient(90deg, #ffc926 0 16px, #c98510 16px 24px); transform-origin: 0 50%; }
@@ -7685,7 +7688,7 @@ let TAB = 'menu', MSEL = 0;
 // [id, title, subtitle, has something waiting, shown (always if missing)]
 const MENU = [
   ['fight', 'Fight', () => G.eq && G.coins < STAKES[0] ? 'Out of coins · beat bots to earn some' : G.streak > 1 ? `On a ${G.streak} win streak` : 'Bet coins against a player', () => !!G.eq && G.coins < STAKES[0]],
-  ['factory', 'Beeliner Factory', () => { const f = facGet(); facTick(); return `${facNum(f.honey)} honey · an idle game for coins`; }, () => { const f = facGet(), m = facMission(f); return m.have >= m.want; }],
+  ['factory', 'Beeliner Factory', () => { facTick(); return facMenuSub(); }, () => { const f = facGet(), m = facMission(f); return m.have >= m.want; }],
   ['hook', 'Hook', () => 'Watch fights \u00b7 take someone\u2019s place', () => false, () => G.eq === 'beezap'],
   ['cup', 'Events', () => { const n = cupNext(G.cup); return raidFree() ? `Boss raid: ${bossToday().name} · free today` : n ? `The Box Cup · ${CUP_ROUNDS[n[0]].toLowerCase()} next` : 'Boss raids · The Box Cup'; }, () => raidFree() || !!cupNext(G.cup)],
   ['daily', 'Daily', () => dailySub(), () => dailyReady() > 0],
@@ -11854,7 +11857,7 @@ const TOUR = [
   { tab: 'fight', at: '.stakes', t: 'Pick a stake', b: 'You bet coins against a real player, and they bet the same. Win and you take the pot: 50 against 50 pays 100.' },
   { tab: 'fight', at: '.fp .go', t: 'Find an opponent', b: 'Press this and you are matched with someone near your trophies. Out of coins? It turns into a bot fight, which pays win or lose.' },
   { tab: 'fight', at: '.ffabox', t: 'Free for all', b: 'Eight balls, one box, last one standing. Free to enter, and everyone gets paid. Empty seats get bots.' },
-  { tab: 'menu', at: '[data-go="factory"]', t: 'Beeliner Factory', b: 'A whole idle game in here. Bees make honey while you are away, and the exchange turns it into coins.' },
+  { tab: 'menu', at: '[data-go="factory"]', t: 'Beeliner Factory', b: 'A whole idle game in here. Bees keep making honey while you play, and at half speed with the site closed. The exchange turns it into coins.' },
   { tab: 'cup', at: '.raid', t: 'Events', b: 'A giant boss every day: hit it for coins, bring it down for a Legend Crate. And The Box Cup, an eight-ball tournament.' },
   { tab: 'daily', at: '.quest', t: 'Daily', b: 'Quests that pay coins, a free crate every day, and your level. Levelling up gives you crates too.' },
   { tab: 'crates', at: '.cgrid', t: 'Hardware’s crates', b: 'Spend coins on crates. A ball you already have levels up instead, and an Epic or better is promised every 10 crates.' },
@@ -12504,10 +12507,11 @@ function titleSkit(onEnd) {
 // ===== Beeliner Factory: an idle game of its own, opened from the menu, for honey the exchange turns into coins =======
 // Bees fill the cells of stacked rooms with nectar. It runs up a pipe to the jar line, which packs it into jars that ride
 // off down the belt, and each jar that leaves pays honey, which is the money here. Honey buys room upgrades (more cells,
-// more bees, more nectar) and line upgrades (a faster belt, bigger jars, a better price). A room at the top of its levels
+// more bees, more nectar) and the line upgrade (a faster belt, bigger jars and a better price, all at once). A room at the top of its levels
 // can be reset for a lasting multiplier. Levelling up the factory pays a bonus and opens the next room, each with a new
-// kind of bee. Tap a room to rush it, swipe the belt to speed it up. It keeps running while you're away, up to FAC.AWAY.
-const FAC = { AWAY: 8 * 3600, TAP: 8, BOOST: 300, BOOST_WAIT: 900, CHEST: 1200, BEES: 12 };
+// kind of bee. Tap a room to rush it, swipe the belt to speed it up. Honey never stops: at full speed anywhere on the site,
+// at half speed (FAC.SLOW) with the site closed or its tab hidden, for up to FAC.AWAY.
+const FAC = { AWAY: 8 * 3600, SLOW: 0.5, LIVE: 30, TAP: 8, BOOST: 300, BOOST_WAIT: 900, CHEST: 1200, BEES: 12 };
 const HONEY_SVG = '<svg class="i coin" viewBox="0 0 20 20"><rect x="4" y="5" width="12" height="13" rx="1.5" fill="#ffb81f" stroke="#7a4d00" stroke-width="1.3"/><rect x="3" y="2" width="14" height="4" fill="#e8e4d0" stroke="#7a4d00" stroke-width="1.3"/></svg>';
 const DROP_SVG = '<svg class="i coin" viewBox="0 0 20 20"><path d="M10 2c3 4.200 5.500 7 5.500 10a5.500 5.500 0 0 1-11 0C4.500 9 7 6.200 10 2z" fill="#ffd96a" stroke="#7a4d00" stroke-width="1.3" stroke-linejoin="round"/></svg>';
 const FAC_END = ['', 'K', 'M', 'B', 'T'];
@@ -12520,7 +12524,9 @@ function facNum(n) {
   return m + String.fromCharCode(97 + Math.floor(k / 26) % 26) + String.fromCharCode(97 + k % 26);   // aa, ab, ac...
 }
 function facGet() {
-  if (!G.fac || G.fac.v !== 3) G.fac = { v: 3, honey: 20, store: 0, made: 0, at: Date.now(), day: 0, sold: 0, lvl: 0, line: { speed: 0, size: 0, price: 0 }, rooms: [{ L: 1, m: 1, r: 0 }], boost: 0, boostAt: 0, chestAt: 0, mis: 0, seen: 0 };
+  if (!G.fac || G.fac.v !== 3) G.fac = { v: 3, honey: 20, store: 0, made: 0, at: Date.now(), day: 0, sold: 0, lvl: 0, line: 0, rooms: [{ L: 1, m: 1, r: 0 }], boost: 0, boostAt: 0, chestAt: 0, mis: 0, seen: 0 };
+  // the line had three separate upgrades at first; those saves carry on from the average
+  if (typeof G.fac.line === 'object') G.fac.line = Math.round((G.fac.line.speed + G.fac.line.size + G.fac.line.price) / 3);
   return G.fac;
 }
 // ---- the numbers ----
@@ -12532,25 +12538,49 @@ const facRoomCost = (i, L) => 5 * Math.pow(6, i) * Math.pow(1.1, L - 1);
 const facCapL = r => 50 + 25 * r.r;                                          // the top level, where a room can be reset
 const facOpenCost = i => 300 * Math.pow(20, i - 1);
 const facLevelCost = f => 250 * Math.pow(60, f.lvl);
-const FAC_LINE = [
-  { id: 'speed', name: 'Belt Speed', what: 'Jars leave 12% faster', base: 15, grow: 1.7 },
-  { id: 'size', name: 'Jar Size', what: 'Each jar holds 35% more nectar', base: 20, grow: 1.75 },
-  { id: 'price', name: 'Jar Price', what: 'Nectar sells for 12% more', base: 40, grow: 1.9 },
-];
-const facLineCost = (f, u) => u.base * Math.pow(u.grow, f.line[u.id]);
-const facJarsPerSec = f => 0.5 * Math.pow(1.12, f.line.speed);
-const facJarSize = f => 2 * Math.pow(1.35, f.line.size);
+// the line's one upgrade raises all three of these together
+const facLineCost = f => 60 * Math.pow(1.77, f.line);
+const facJarsPerSec = f => 0.5 * Math.pow(1.12, f.line);
+const facJarSize = f => 2 * Math.pow(1.35, f.line);
 const facThrough = f => facJarsPerSec(f) * facJarSize(f) * (facBoosted(f) ? 2 : 1) * (FG ? 1 + FG.swipe : 1);   // nectar a second the line can take
-const facPrice = f => Math.pow(1.12, f.line.price) * Math.pow(1.15, f.lvl);                                      // honey for each nectar
+const facPrice = f => Math.pow(1.12, f.line) * Math.pow(1.15, f.lvl);                                      // honey for each nectar
 const facIncome = f => Math.min(facNectar(f), facThrough(f)) * facPrice(f);
+// FAC_HERE: this page is open and in view. A gap longer than FAC.LIVE means it wasn't really running (a computer asleep, say),
+// so that counts as away too. Time on BeeSide's other pages counts as on the site: beeside-sound.js adds it up in localStorage.
+let FAC_HERE = !document.hidden;
+const facSiteSecs = () => { try { return +localStorage.getItem('beeside.onsite') || 0; } catch (e) { return 0; } };
 function facTick() {
-  const f = facGet(), now = Date.now(), secs = clamp((now - f.at) / 1000, 0, FAC.AWAY);
-  f.at = now;
+  const f = facGet(), now = Date.now(), gone = Math.max(0, (now - f.at) / 1000), site = facSiteSecs();
+  const here = FAC_HERE && gone < FAC.LIVE ? gone : 0, other = clamp(site - (f.siteAt === undefined ? site : f.siteAt), 0, gone - here);
+  const slow = Math.min(gone - here - other, FAC.AWAY) * FAC.SLOW, secs = here + other + slow;
+  f.at = now; f.siteAt = site;
   f.store += facNectar(f) * secs;
   const used = Math.min(f.store, facThrough(f) * secs), got = used * facPrice(f);
   f.store -= used; f.honey += got; f.made += got;
+  if (secs) f.slow = (f.slow || 0) + got * slow / secs;
   return got;
 }
+const facMenuSub = () => `${facNum(facGet().honey)} honey · an idle game for coins`;
+// what came in since you last looked at the factory, said once you're back
+function facWelcome(f, wait) {
+  const got = f.made - (f.left === undefined ? f.made : f.left), slow = f.slow || 0, long = Date.now() - f.seen > 60000;
+  f.left = f.made; f.slow = 0; f.seen = Date.now();
+  if (got > 1 && long) setTimeout(() => { if (FG) toast(`While you were away: +${facNum(got)} honey${slow > got * 0.05 ? ', half speed with the site closed' : ''}`, 3200); }, wait);
+}
+function facLeaving() { if (!G.fac) return; const f = facGet(); facTick(); if (FG) { f.left = f.made; f.seen = Date.now(); } save(); }
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { facLeaving(); FAC_HERE = false; return; }
+  if (G.fac) { const f = facGet(); facTick(); if (FG) facWelcome(f, 0); save(); }
+  FAC_HERE = true;
+});
+addEventListener('pagehide', facLeaving);
+// while you're anywhere in the game the honey keeps coming, and the menu's count runs with it
+setInterval(() => {
+  if (document.hidden || !G.fac) return;
+  facTick();
+  const s = !FG && document.querySelector('#mnav .m-item[data-go="factory"] .m-s');
+  if (s) s.textContent = facMenuSub();
+}, 1000);
 // how many levels "x1 / x10 / max" means for a room, stopping at its top level
 function facBulk(f, i, mode) {
   const r = f.rooms[i], top = facCapL(r), room = top - r.L, one = facRoomCost(i, r.L), g = 1.1, sum = n => one * (Math.pow(g, n) - 1) / (g - 1);
@@ -12578,7 +12608,7 @@ function facMission(f) {
 let FG = null;
 function facOpen() {
   if (FG) return;
-  const f = facGet(), away = facTick();
+  const f = facGet(); facTick();
   const num = h('b'), coins = h('b'), levelUp = h('button', { class: 'fg-lvl', onclick: () => facLevelUp() });
   const lineCv = h('canvas', { class: 'fg-line', 'aria-label': 'The belt. Swipe it to speed it up.' }), lineBtn = h('button', { class: 'fg-yel', onclick: () => facSheet('line') }), store = h('div', { class: 'fg-store' });
   const rooms = h('div', { class: 'fg-rooms' }), bulk = h('button', { class: 'fg-bulk', onclick: () => { FG.bulk = FG.bulk === 1 ? 10 : FG.bulk === 10 ? 'max' : 1; facDraw(); SFX.ui(); } });
@@ -12598,8 +12628,7 @@ function facOpen() {
   lineCv.addEventListener('pointermove', swipe);
   for (const name of ['pointerup', 'pointerleave', 'pointercancel']) lineCv.addEventListener(name, () => { if (FG) FG.lastX = null; });
   facRooms(); facDraw();
-  if (away > 1 && Date.now() - f.seen > 60000) setTimeout(() => { if (FG) toast(`While you were away: +${facNum(away)} honey`, 2600); }, 1900);
-  f.seen = Date.now();
+  facWelcome(f, 1900);
   SFX.ui();
   facIntro(root);
 }
@@ -12621,7 +12650,7 @@ function facIntro(root) {
 }
 function facClose() {
   if (!FG) return;
-  facTick(); FG.swipe = 0;
+  const f = facGet(); facTick(); FG.swipe = 0; f.left = f.made; f.seen = Date.now();
   const g = FG; FG = null;
   save(); SFX.ui();
   PREVIEWS.delete(g); g.root.remove();
@@ -12696,7 +12725,7 @@ function facDraw() {
   FG.levelUp.innerHTML = `LEVEL UP<small>${HONEY_SVG}${facNum(lc)}</small>`; FG.levelUp.disabled = f.honey < lc;
   const backed = inn > thru * 1.01;
   FG.store.innerHTML = `${DROP_SVG}<b>${facNum(f.store)}</b><small class="${backed ? 'bad' : ''}">${backed ? 'BACKING UP' : 'FLOWING'}</small>`;
-  FG.lineBtn.textContent = 'UPGRADE'; FG.lineBtn.classList.toggle('want', backed && FAC_LINE.some(u => f.honey >= facLineCost(f, u)));
+  FG.lineBtn.textContent = 'UPGRADE'; FG.lineBtn.classList.toggle('want', backed && f.honey >= facLineCost(f));
   for (const r of FG.row) {
     const room = f.rooms[r.i], top = facCapL(room), b = facBulk(f, r.i, FG.bulk);
     r.head.innerHTML = `${DROP_SVG}${facNum(facRoomRate(f, r.i))}/s${room.m > 1.01 ? ` <i>x${room.m.toFixed(1)}</i>` : ''}`;
@@ -12728,10 +12757,11 @@ function facSheet(kind) {
     body.append(h('h3', { text: 'THE EXCHANGE' }), h('p', { text: 'Honey in, Bounce Brawl coins out. The more you sell in a day the less it buys, and each room you open makes coins dearer.' }), big, all, half, rate);
     draw = () => { const f = facGet(), a = facQuote(f, f.honey), b = facQuote(f, f.honey / 2); big.innerHTML = `${HONEY_SVG} ${facNum(f.honey)}`; all.innerHTML = `SELL ALL ${COIN_SVG}<span>${fmt(a.coins)}</span>`; all.disabled = a.coins < 1; half.innerHTML = `SELL HALF ${COIN_SVG}<span>${fmt(b.coins)}</span>`; half.disabled = b.coins < 1; rate.textContent = `${fmt(facToday(f))} coins sold today`; };
   } else if (kind === 'line') {
-    const rows = FAC_LINE.map(u => { const lv = h('i'), buy = h('button', { class: 'fg-yel', onclick: () => { const f = facGet(); facTick(); const c = facLineCost(f, u); if (f.honey < c) return; f.honey -= c; f.line[u.id]++; SFX.coin(); save(); facDraw(); } }); return { u, lv, buy, el: h('div', { class: 'fs-row' }, h('div', {}, h('b', { text: u.name.toUpperCase() }), lv, h('p', { text: u.what })), buy) }; });
-    const stat = h('div', { class: 'fs-stat' });
-    body.append(h('h3', { text: 'THE JAR LINE' }), stat, ...rows.map(r => r.el));
-    draw = () => { const f = facGet(); stat.innerHTML = `${facJarsPerSec(f).toFixed(2)} jars a second · ${facNum(facJarSize(f))} nectar a jar<br>Sends ${facNum(facThrough(f))} nectar a second · ${facNum(facIncome(f))} honey a second`; for (const r of rows) { const c = facLineCost(f, r.u); r.lv.textContent = ` LV ${f.line[r.u.id]}`; r.buy.innerHTML = `${HONEY_SVG}<span>${facNum(c)}</span>`; r.buy.disabled = f.honey < c; } };
+    const small = n => n < 100 ? n.toFixed(2) : facNum(n);
+    const rows = [['Belt Speed', 'Jars a second', f => small(facJarsPerSec(f))], ['Jar Size', 'Nectar a jar', f => small(facJarSize(f))], ['Jar Price', 'Honey for each nectar', f => small(facPrice(f))]].map(([name, what, val]) => { const now = h('span', { class: 'fs-val' }); return { val, now, el: h('div', { class: 'fs-row' }, h('div', {}, h('b', { text: name.toUpperCase() }), h('p', { text: what })), now) }; });
+    const lv = h('i', { class: 'fs-lv' }), stat = h('div', { class: 'fs-stat' }), buy = h('button', { class: 'fg-yel fs-all', onclick: () => { const f = facGet(); facTick(); const c = facLineCost(f); if (f.honey < c) return; f.honey -= c; f.line++; SFX.coin(); save(); facDraw(); } });
+    body.append(h('h3', {}, 'THE JAR LINE ', lv), stat, ...rows.map(r => r.el), buy);
+    draw = () => { const f = facGet(), up = { ...f, line: f.line + 1 }, c = facLineCost(f); lv.textContent = `LV ${f.line + 1}`; stat.textContent = `Sends ${facNum(facThrough(f))} nectar a second · ${facNum(facIncome(f))} honey a second`; for (const r of rows) r.now.innerHTML = `${r.val(f)} &gt; <b>${r.val(up)}</b>`; buy.innerHTML = `UPGRADE ALL THREE ${HONEY_SVG}<span>${facNum(c)}</span>`; buy.disabled = f.honey < c; };
   } else {
     const txt = h('div', { class: 'fs-big' }), bar = h('i'), go = h('button', { class: 'fg-yel', onclick: () => { const f = facGet(), m = facMission(f); if (m.have < m.want) return; const pay = Math.max(50, facIncome(f) * 120); f.honey += pay; f.mis++; save(); SFX.reveal(2); toast(`Mission done: +${facNum(pay)} honey`, 2200); facDraw(); } });
     body.append(h('h3', { text: 'MISSION' }), txt, h('div', { class: 'fs-bar' }, bar), go);
@@ -12771,7 +12801,7 @@ function facFrame(dt) {
   FG.swipe = Math.max(0, FG.swipe - dt * 1.1);
   facTick();
   if ((FG.uiT -= dt) <= 0) { FG.uiT = 0.2; facDraw(); }
-  if ((FG.saveT += dt) > 15) { FG.saveT = 0; save(); }
+  if ((FG.saveT += dt) > 15) { FG.saveT = 0; f.left = f.made; save(); }
   if ((FG.goldT -= dt) <= 0) { FG.goldT = 50 + Math.random() * 70; facGold(); }
   facDrawLine(f, dt);
   for (const r of FG.row) { const b = r.cv.getBoundingClientRect(); if (b.bottom > 0 && b.top < innerHeight && b.width) facDrawRoom(f, r, b, dt); }
