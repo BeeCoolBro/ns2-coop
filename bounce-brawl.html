@@ -270,6 +270,7 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -0.12em; }
 .st-row .d { font-size: 12px; color: #55555e; font-weight: 600; }
 .st-row input { min-width: 0; flex: 1; max-width: 280px; background: #08080a; border: 1px solid var(--line2); border-radius: 8px; padding: 8px 12px; font: 400 20px var(--fd); letter-spacing: 3px; color: #fff; outline: none; }
 .st-row input:focus { border-color: var(--o); }
+.devform { display: flex; gap: 8px; flex: 1; justify-content: flex-end; min-width: 240px; max-width: 400px; }
 .namebox { display: grid; gap: 10px; justify-items: center; margin-top: 10px; width: min(340px, 100%); }
 .namein { width: 100%; box-sizing: border-box; background: #08080a; border: 1px solid var(--line2); border-radius: 8px; padding: 10px 14px; font: 400 26px var(--fd); letter-spacing: 4px; color: #fff; text-align: center; outline: none; }
 .namein:focus { border-color: var(--o); }
@@ -7189,7 +7190,7 @@ const pad2 = n => String(n).padStart(2, '0');
 
 // ---- the save ------------------------------------------------------------------
 function freshSave() {
-  return { v: 1, coins: 600, tro: 0, peak: 0, owned: {}, eq: null, w: 0, l: 0, d: 0, bw: 0, bl: 0, xp: 0, plv: 1, streak: 0, bstreak: 0, free: [], qday: 0, quests: [], dday: 0, packAt: 0, nick: '', named: false, sfx: true, music: true, speed: 1, stake: 50, t: 0, starter: false, crates: 0, cup: null, cups: 0, stats: {}, mast: {}, hist: [], medals: {}, bossDay: 0, bossBest: 0, bossKills: 0 };
+  return { v: 1, coins: 600, tro: 0, peak: 0, owned: {}, eq: null, w: 0, l: 0, d: 0, bw: 0, bl: 0, xp: 0, plv: 1, streak: 0, bstreak: 0, free: [], qday: 0, quests: [], dday: 0, packAt: 0, nick: '', named: false, sfx: true, music: true, speed: 1, stake: 50, t: 0, starter: false, crates: 0, cup: null, cups: 0, stats: {}, mast: {}, hist: [], medals: {}, bossDay: 0, bossBest: 0, bossKills: 0, dev: 0 };
 }
 function loadLocal() {
   try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.v === 1) return Object.assign(freshSave(), s); } catch (e) {}
@@ -7925,8 +7926,38 @@ function panelSettings() {
     h('div', { class: 'sec', text: 'Arena' }), skinPicker(),
     h('div', { class: 'sec', text: 'Help' }),
     h('div', { class: 'st-row' }, h('div', {}, h('div', { class: 'l', text: 'TUTORIAL' }), h('div', { class: 'd', text: 'The bee shows you around again' })), h('button', { class: 'btn2', text: 'REPLAY TUTORIAL', onclick: () => startTour() })),
+    h('div', { class: 'sec', text: 'Developer' }), devRow(),
     h('div', { class: 'sec', text: 'Danger zone' }), reset);
   return p;
+}
+// dev mode: the site's server holds the dev key and says whether this is it, the same check the vault's owner tools
+// use. The key itself is never written here and never kept: all the save remembers is that dev mode is on
+async function devKeyOk(key) {
+  const r = await fetch((ON_SITE ? '' : 'https://ns2-coop.onrender.com') + '/api/links', { headers: { 'X-Dev-Key': key }, cache: 'no-store' });
+  if (!r.ok) throw new Error('no answer from the server');
+  return (await r.json()).owner === true;
+}
+function devRow() {
+  const note = h('div', { class: 'd' }), row = ctl => h('div', { class: 'st-row' }, h('div', {}, h('div', { class: 'l', text: 'DEV MODE' }), note), ctl);
+  if (G.dev) {
+    note.textContent = G.owned.beezap ? 'On. You already have BeeZap.' : 'On. Go through the tutorial and the bee gives you BeeZap.';
+    return row(h('button', { class: 'btn2', text: 'TURN OFF', onclick: () => { G.dev = 0; save(); SFX.ui(); renderPanel(true); } }));
+  }
+  note.textContent = 'Turn it on with the dev key';
+  const inp = h('input', { type: 'password', placeholder: 'DEV KEY', autocomplete: 'off', spellcheck: 'false', 'aria-label': 'Dev key' }), go = h('button', { class: 'btn2', text: 'ENABLE' });
+  return row(h('form', { class: 'devform', onsubmit: async e => {
+    e.preventDefault();
+    const key = inp.value.trim();
+    if (go.disabled || !key) return;
+    go.disabled = true; go.textContent = 'CHECKING...'; note.textContent = 'Asking the server';
+    let ok = null;
+    try { ok = await devKeyOk(key); } catch (err) { /* no answer, so ok stays null */ }
+    if (ok) { G.dev = 1; save(); SFX.reveal(1); toast('Dev mode on', 2000); if (!FIGHT) renderView(); return; }
+    go.disabled = false; go.textContent = 'ENABLE';
+    note.textContent = ok === false ? 'That key was refused' : 'Couldn’t reach the server. Try again.';
+    if (ok === false) inp.value = '';
+    SFX.tink(); inp.focus();
+  } }, inp, go));
 }
 // the name box on the first visit; the button waits for a name
 function nameBox(label, onOk) {
@@ -11217,8 +11248,9 @@ if (Q.has('ffa')) {
 
 // ===== the tutorial: the vault's headphone bee shows you around ========================
 // A spotlight glides from one part of the game to the next with the bee beside a speech bubble.
-// Click the bee three times and it gets confused: "HUH??", and asks for a secret.
-// The right one (checked against BZ_KEY, never written here) gets you BeeZap.
+// BeeZap comes from here, but only with dev mode on (Settings, using the dev key): the bee hands it over at the end
+// of the tour, or straight away if you click it three times. Without dev mode three clicks get you "HUH??" and a box
+// for a secret, and even the right one (checked against BZ_KEY, never written here) only sends you to dev mode.
 const TOUR = [
   { tab: 'menu', t: 'Hi! I’m the Bee.', b: 'Welcome to Bounce Brawl. Balls fight on their own in a box, and you bet on yours. Let me show you around.' },
   { tab: 'menu', at: '#mnav', t: 'The menu', b: 'Everything is in here: fights, events, daily stuff, crates, your balls, ranks and settings.' },
@@ -11239,7 +11271,8 @@ function startTour(from) {
   if (TR || FIGHT) return;
   closeAllSheets();
   const ring = h('div', { class: 'tring' }), num = h('span', { class: 'tnum' }), title = h('div', { class: 'ttitle' }), body = h('div', { class: 'tbody' });
-  const back = h('button', { class: 'btn2', text: 'BACK', onclick: () => tourGo(TR.i - 1) }), next = h('button', { class: 'btn2 on', onclick: () => tourGo(TR.i + 1) });
+  const back = h('button', { class: 'btn2', text: 'BACK', onclick: () => tourGo(TR.i - 1) }), next = h('button', { class: 'btn2 on' });
+  next.onclick = () => tourGo(TR.i + 1);   // set like this because the bee swaps it for a moment: "BACK TO THE TOUR"
   const skip = h('button', { class: 'tskip', text: 'SKIP', onclick: () => endTour() });
   const bubble = h('div', { class: 'tbub', role: 'dialog', 'aria-live': 'polite' }, h('div', { class: 'thead' }, num, skip), h('div', { class: 'tcontent' }, title, body), h('div', { class: 'tbtns' }, back, next));
   const bee = h('canvas', { class: 'tbee', width: 184, height: 184, 'aria-label': 'The bee. Try clicking it.', role: 'button', tabindex: 0 });
@@ -11272,6 +11305,7 @@ function tourGo(i) {
   TR.title.textContent = s.t; TR.body.replaceChildren(s.b);
   TR.back.hidden = i === 0; TR.next.hidden = false; TR.skip.hidden = false;
   TR.next.textContent = i === TOUR.length - 1 ? 'DONE' : 'NEXT';
+  if (i === TOUR.length - 1 && G.dev && !G.owned.beezap) beeGive();
   TR.bubble.classList.remove('swap'); void TR.bubble.offsetWidth; TR.bubble.classList.add('swap');
   SFX.tick(0.4);
   // the tab has just been drawn: find the target, bring it into view, then put everything round it
@@ -11308,7 +11342,17 @@ function endTour(done) {
   setTab('menu');
   if (done) SFX.reveal(1);
 }
-// three clicks on the bee: it loses the plot and asks for a secret
+// dev mode is on: the bee hands over its ball
+function beeGive() {
+  const had = !!G.owned.beezap;
+  G.owned.beezap = G.owned.beezap || { lvl: 1, copies: 0 }; G.eq = 'beezap'; save();
+  TR.title.textContent = 'Dev mode, huh?';
+  TR.body.replaceChildren(had ? 'You already have my ball. Go zap someone.' : 'Here. Take my ball. BeeZap is yours, and it’s equipped.');
+  SFX.reveal(4); confetti(['#ffd60a', '#ffffff', '#2b2440'], 160); b2wig();
+  if (!had) toast('BeeZap unlocked and equipped', 3000);
+  tourPlace();
+}
+// three clicks on the bee: in dev mode it gives you its ball, otherwise it loses the plot and asks for a secret
 function beeClick() {
   if (!TR) return;
   const b = TR.bee; b.classList.remove('wig'); void b.offsetWidth; b.classList.add('wig');
@@ -11316,6 +11360,12 @@ function beeClick() {
   if (TR.secret || ++TR.clicks < 3) return;
   TR.clicks = 0; TR.secret = true;
   SFX.drop(); SFX.tink();
+  if (G.dev) {
+    TR.num.textContent = '?'; TR.back.hidden = true; TR.next.textContent = 'BACK TO THE TOUR';
+    TR.next.onclick = () => { TR.next.onclick = () => tourGo(TR.i + 1); tourGo(TR.i); };
+    beeGive();
+    return;
+  }
   const inp = h('input', { class: 'tsecret', type: 'text', maxlength: 32, placeholder: 'tell the bee a secret...', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', 'aria-label': 'Tell the bee a secret' });
   const ask = h('button', { class: 'btn2 on', text: 'ASK' });
   const form = h('form', { class: 'tform', onsubmit: e => { e.preventDefault(); beeSecret(inp.value); } }, inp, ask);
@@ -11341,13 +11391,11 @@ async function beeSecret(v) {
     SFX.tink(); b2wig();
     return;
   }
-  const had = !!G.owned.beezap;
-  G.owned.beezap = G.owned.beezap || { lvl: 1, copies: 0 }; G.eq = 'beezap'; save();
+  // the right secret, but dev mode is off: that's what the ball takes now
   TR.title.textContent = 'They Sure Can!';
-  TR.body.replaceChildren(had ? 'You already have my ball. Go zap someone.' : 'Here. Take my ball. BeeZap is yours, and it’s equipped.');
+  TR.body.replaceChildren('But my ball only goes to developers. Turn on dev mode in Settings with the dev key, then come back to me.');
   TR.next.textContent = 'BACK TO THE TOUR';
-  SFX.reveal(4); confetti(['#ffd60a', '#ffffff', '#2b2440'], 160); b2wig();
-  if (!had) toast('BeeZap unlocked and equipped', 3000);
+  SFX.tink(); b2wig();
   tourPlace();
 }
 function b2wig() { if (!TR) return; const b = TR.bee; b.classList.remove('wig'); void b.offsetWidth; b.classList.add('wig'); }
@@ -11750,6 +11798,7 @@ function titleSkit(onEnd) {
 
   // where each word of the title really is
   const cs = getComputedStyle(logo), box = logo.getBoundingClientRect(), u = parseFloat(cs.fontSize);
+  const lift = Math.min(1, (box.top + 0.1 * u) / (0.62 * u));   // how much of their jumping there's room for over the title
   const [nA, elB, nC] = logo.childNodes, rng = document.createRange();
   const spot = (n, i, j) => { rng.setStart(n, i); rng.setEnd(n, j); return rng.getBoundingClientRect(); };
   const rA = spot(nA, 0, nA.length), rB = elB.getBoundingClientRect(), rC = spot(nC, nC.length - 1, nC.length);
@@ -11762,7 +11811,7 @@ function titleSkit(onEnd) {
   const IN = 'cubic-bezier(.6,0,.9,.55)', OUT = 'cubic-bezier(.12,.75,.3,1)', IO = 'ease-in-out', ON = 'linear';
   const act = (el, part) => {
     const T = part[part.length - 1][0];
-    anims.push(el.animate(part.map(([t, x, y, d, e, sx, sy]) => ({ offset: t / T, transform: `translate(${(x * u).toFixed(1)}px, ${(y * u).toFixed(1)}px) rotate(${d}deg) scale(${sx || 1}, ${sy || 1})`, easing: e || ON })), { duration: T, fill: 'both' }));
+    anims.push(el.animate(part.map(([t, x, y, d, e, sx, sy]) => ({ offset: t / T, transform: `translate(${(x * u).toFixed(1)}px, ${(y * lift * u).toFixed(1)}px) rotate(${d}deg) scale(${sx || 1}, ${sy || 1})`, easing: e || ON })), { duration: T, fill: 'both' }));
   };
   const offA = -(rA.right + 30) / u, offB = -(rB.right + 30) / u, offC = (innerWidth - rC.left + 30) / u;
   act(A, [
@@ -11805,7 +11854,7 @@ function titleSkit(onEnd) {
     }
   };
   for (const [t, x, y, big] of K.HITS) {
-    const cx = rA.right + x * u, cy = box.top + box.height / 2 + (y + 0.12) * u, r = (big ? 0.62 : 0.42) * u;
+    const cx = rA.right + x * u, cy = box.top + box.height / 2 + (y * lift + 0.12) * u, r = (big ? 0.62 : 0.42) * u;
     flying(cx, cy, big ? 12 : 8, big ? 1.15 : 0.8, ['#fff', 'var(--o)'], t);
     const fl = h('b', { style: { left: cx - r + 'px', top: cy - r + 'px', width: 2 * r + 'px', height: 2 * r + 'px' } });
     wrap.append(fl);
