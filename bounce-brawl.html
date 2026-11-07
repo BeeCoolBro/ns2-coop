@@ -13378,9 +13378,11 @@ function facNum(n) {
   return m + String.fromCharCode(97 + Math.floor(k / 26) % 26) + String.fromCharCode(97 + k % 26);   // aa, ab, ac...
 }
 function facGet() {
-  if (!G.fac || G.fac.v !== 3) G.fac = { v: 3, honey: 20, store: 0, made: 0, at: Date.now(), day: 0, sold: 0, lvl: 0, line: 0, rooms: [{ L: 1, m: 1, r: 0 }], boost: 0, boostAt: 0, chestAt: 0, mis: 0, seen: 0 };
-  // the line had three separate upgrades at first; those saves carry on from the average
-  if (typeof G.fac.line === 'object') G.fac.line = Math.round((G.fac.line.speed + G.fac.line.size + G.fac.line.price) / 3);
+  if (!G.fac || G.fac.v !== 4) {
+    // version 4 (owner, 2026-11-06): everyone's factory starts again. The old one stays in the save, in case that's ever undone
+    if (G.fac) { G.facOld = G.fac; G.facNote = 1; }
+    G.fac = { v: 4, honey: 20, store: 0, made: 0, at: Date.now(), day: 0, sold: 0, lvl: 0, line: 0, rooms: [{ L: 1, m: 1, r: 0 }], boost: 0, boostAt: 0, chestAt: 0, mis: 0, seen: 0 };
+  }
   return G.fac;
 }
 // ---- the numbers ----
@@ -13547,6 +13549,7 @@ function facOpen() {
   for (const name of ['pointerup', 'pointerleave', 'pointercancel']) lineCv.addEventListener(name, () => { if (FG) FG.lastX = null; });
   facRooms(); facDraw();
   facWelcome(f, 1900);
+  if (G.facNote) { G.facNote = 0; save(); setTimeout(() => { if (FG) toast('Everyone\u2019s Beeliner Factory has been reset, so you\u2019re starting again.', 4200); }, 1900); }
   SFX.ui();
   facIntro(root);
 }
