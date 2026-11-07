@@ -1146,6 +1146,10 @@ button * { pointer-events: none; }
 }
 @media (min-width: 1600px) and (min-height: 860px) { #facgame { --u: 5; } }
 /* BeeZap's death: black, then the film */
+#bzbg { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: #030304; }
+#bzbg video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+body.bzstage #bg { visibility: hidden; }
+@media (max-width: 860px) { body.bzstage #menu { background: rgba(5,5,6,.55); } }
 .bzdeath { position: fixed; inset: 0; z-index: 100; display: grid; background: #000; }
 .bzdeath video { width: 100%; height: 100%; min-height: 0; object-fit: contain; background: #000; opacity: 0; transition: opacity .25s ease; pointer-events: none; }
 .bzdeath.on video { opacity: 1; }
@@ -8244,7 +8248,7 @@ function bgTick(dt) {
     } });
     bgNew();
   }
-  if ((TAB !== 'menu' || FIGHT) && !BZ_KICKED) return;
+  if ((TAB !== 'menu' || FIGHT || BZ_BG.mode) && !BZ_KICKED) return;
   BGF.a.resize();
   BGF.acc = Math.min(BGF.acc + dt, 0.2);
   while (BGF.acc >= DT && !BGF.S.over) { BGF.acc -= DT; step(BGF.S); BGF.a.events(BGF.S); }
@@ -10475,6 +10479,30 @@ function openDeath(F) {
   F.wheel = { kind: 'death', e: { e: 'death' }, v, shade, T: 0, on: 0, seen: -1, seenT: 0, frame: deathFrame, close() { v.pause(); shade.remove(); } };
 }
 // plays a film, and says when it's over: when it ends, if it can't load, if it sticks, or at a hard limit come what may
+// ---- the bee's own stage: the main menu's background for whoever has BeeZap equipped, in place of the little fight that normally runs
+// there. Fights don't have it. The first clip plays once a visit, then the second loops. They're silent, so the browser lets them start
+const BZ_BG = { one: { FILE: 'bounce-brawl-bee-bg1.mp4', el: null }, two: { FILE: 'bounce-brawl-bee-bg2.mp4', el: null }, root: null, cur: null, mode: 0 };
+function bzBgBuild() {
+  const B = BZ_BG, a = filmOf(B.one), b = filmOf(B.two), go = v => { if (B.mode && B.cur === v) v.play().catch(() => {}); };
+  for (const v of [a, b]) { v.muted = true; v.addEventListener('loadeddata', () => go(v)); }
+  b.loop = true;
+  a.addEventListener('ended', () => { B.cur = b; go(b); });
+  b.addEventListener('playing', () => a.remove());   // the first clip holds its last frame until the second is really going
+  B.cur = a;
+  B.root = h('div', { id: 'bzbg', 'aria-hidden': 'true' }, b, a);
+  document.body.append(B.root);
+  setTimeout(() => { B.one.stream(); B.two.stream(); }, 3000);
+}
+function bzBgTick() {
+  const B = BZ_BG, on = !REDUCED && !FIGHT && !FG && TAB === 'menu' && G.eq === 'beezap' && !document.body.classList.contains('pre');
+  if (on === !!B.mode) return;
+  B.mode = on ? 1 : 0;
+  document.body.classList.toggle('bzstage', on);
+  if (on && !B.root) bzBgBuild();
+  if (!B.root) return;
+  B.root.hidden = !on;
+  if (on) B.cur.play().catch(() => {}); else B.cur.pause();
+}
 function filmStep(W, D, dt) {
   const v = W.v;
   W.T += dt;
@@ -15328,6 +15356,7 @@ function loop(ts) {
   bgTick(dt);
   for (const p of [...PREVIEWS]) p.tick(dt);
   if (MM.sheet) spinDraw(MM.sheet.spin, ts / 1000);
+  bzBgTick();
   requestAnimationFrame(loop);
 }
 function boot() {
