@@ -1783,6 +1783,7 @@ YARD_LOBBY = {'peers': [], 'host': None, 'next': 1, 'last_b': 0.0, 'lock': threa
 YARD_MAX = 12
 YARD_FRAME_MAX = 256 * 1024
 YARD_STALL = 2.0                # seconds of silence from the host before a guest may take over
+YARD_QUIET = 25.0               # seconds of silence from anyone (they send 'P' every 5) before they are dropped
 
 
 class YardPeer(object):
@@ -1793,6 +1794,7 @@ class YardPeer(object):
         self.id = 0
         self.name = 'Player'
         self.away = False
+        self.last = time.time()
 
     def send(self, data):
         if not isinstance(data, bytes):
@@ -1818,6 +1820,23 @@ def yard_pick():
     if new is not host:
         YARD_LOBBY['host'] = new
         YARD_LOBBY['last_b'] = time.time()
+
+
+def yard_reap():
+    """Hang up on anyone who has sent nothing for a while (a dropped connection can
+    look open for minutes). Their own thread then tidies them away."""
+    now = time.time()
+    with YARD_LOBBY['lock']:
+        if now - YARD_LOBBY.get('reaped', 0) < 5:
+            return
+        YARD_LOBBY['reaped'] = now
+        gone = [p for p in YARD_LOBBY['peers'] if now - p.last > YARD_QUIET]
+    for p in gone:
+        p.alive = False
+        try:
+            p.h.connection.shutdown(socket.SHUT_RDWR)
+        except Exception:
+            pass
 
 
 def yard_roster(you=None):
@@ -2596,6 +2615,8 @@ class Handler(SimpleHTTPRequestHandler):
             if opcode != 0x1 or not payload or len(payload) > YARD_FRAME_MAX:
                 continue
             k = payload[:1]
+            peer.last = time.time()
+            yard_reap()
             if k == b'B':                       # the host's picture of the match, to everyone else
                 with L['lock']:
                     others = [p for p in L['peers'] if p is not peer] if L['host'] is peer else None
