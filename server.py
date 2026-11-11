@@ -56,7 +56,8 @@ PROJECTS = 'projects.html'        # Other Projects: the smaller ones
 ROTFALL = 'rotfall.html'          # the first of them: a survival shooter
 ROTFALL2 = 'rotfall-2.html'       # its sequel, a door of its own on the front page
 NEONSIEGE1 = 'neon-siege-1.html'  # the first NEON SIEGE, from BeeCoolBro/Neon-Siege (its Vercel site is off)
-BRAWL = 'bounce-brawl.html'       # Bounce Brawl: balls that fight on their own, a door of its own
+BRAWL = 'bounce-brawl.html'       # Bounce Brawl: balls that fight on their own, in Other Projects
+YARD = 'scrapyard-skirmish.html'  # Scrapyard Skirmish: a 3D class shooter with one online lobby, a door of its own
 # ── The off switches ──────────────────────────────────────────────
 # Each place can be closed for a while: list its name in the file CLOSED (one
 # per line) and deploy. A closed place shows closed.html, a short "closed for a
@@ -78,6 +79,7 @@ PLACES = {   # name in CLOSED: its address, then every file that is that place
     'rotfall-2': ('/rotfall-2', ROTFALL2),
     'neon-siege-1': ('/neon-siege-1', NEONSIEGE1),
     'bounce-brawl': ('/bounce-brawl', BRAWL),
+    'scrapyard-skirmish': ('/scrapyard-skirmish', YARD),
     'projects': ('/projects', PROJECTS),
 }
 ROUTE_PLACE = {}
@@ -1770,6 +1772,73 @@ def brawl_name(v):
     return name
 
 
+# ── Scrapyard Skirmish: one lobby for everyone ───────────────────
+# Everyone who presses Play Online is in the same lobby. One of them hosts: that
+# player's game runs the match and its frames ('B...') go to all the others;
+# everyone else's frames ('H...') go to the host with their id in front. The
+# server never reads a game frame. It only decides who is in and who hosts: the
+# player who has been here longest and has the game in view. A host who leaves,
+# hides the tab or stops sending is replaced, and the new one carries on.
+YARD_LOBBY = {'peers': [], 'host': None, 'next': 1, 'last_b': 0.0, 'lock': threading.Lock()}
+YARD_MAX = 12
+YARD_FRAME_MAX = 256 * 1024
+YARD_STALL = 2.0                # seconds of silence from the host before a guest may take over
+
+
+class YardPeer(object):
+    def __init__(self, handler):
+        self.h = handler
+        self.lock = threading.Lock()
+        self.alive = True
+        self.id = 0
+        self.name = 'Player'
+        self.away = False
+
+    def send(self, data):
+        if not isinstance(data, bytes):
+            data = data.encode('utf-8')
+        with self.lock:
+            if not self.alive:
+                return
+            try:
+                self.h.wfile.write(ws_frame(data))
+                self.h.wfile.flush()
+            except Exception:
+                self.alive = False
+
+
+def yard_pick():
+    """Settle who hosts. Call with the lobby's lock held."""
+    peers, host = YARD_LOBBY['peers'], YARD_LOBBY['host']
+    if host in peers and not host.away:
+        return
+    new = next((p for p in peers if not p.away), None)
+    if new is None:
+        new = host if host in peers else (peers[0] if peers else None)
+    if new is not host:
+        YARD_LOBBY['host'] = new
+        YARD_LOBBY['last_b'] = time.time()
+
+
+def yard_roster(you=None):
+    """The members list as a frame body. Call with the lobby's lock held."""
+    host = YARD_LOBBY['host']
+    body = {'host': host.id if host else 0,
+            'm': [[p.id, p.name, 1 if p.away else 0] for p in YARD_LOBBY['peers']]}
+    if you is not None:
+        body['id'] = you.id
+    return json.dumps(body, separators=(',', ':'))
+
+
+def yard_tell():
+    """Send everyone the members list."""
+    with YARD_LOBBY['lock']:
+        frame = 'M' + yard_roster()
+        peers = list(YARD_LOBBY['peers'])
+    for p in peers:
+        p.send(frame)
+
+
 BB_FFA_ID_RE = re.compile(r'[0-9a-z]{4,24}')
 BB_FFA_SEATS = 8
 
@@ -2128,6 +2197,8 @@ class Handler(SimpleHTTPRequestHandler):
             path = '/' + NEONSIEGE1
         elif route in ('/bounce-brawl', '/bounce-brawl/'):
             path = '/' + BRAWL
+        elif route in ('/scrapyard-skirmish', '/scrapyard-skirmish/'):
+            path = '/' + YARD
         return SimpleHTTPRequestHandler.translate_path(self, path)
 
     def end_headers(self):
@@ -2154,6 +2225,10 @@ class Handler(SimpleHTTPRequestHandler):
             if 'neon-siege' in closed_places():
                 return self.send_json(503, {'ok': False, 'error': 'NEON SIEGE 2 is closed for a moment.'})
             return self.websocket()
+        if route == '/ws-yard':
+            if 'scrapyard-skirmish' in closed_places():
+                return self.send_json(503, {'ok': False, 'error': 'Scrapyard Skirmish is closed for a moment.'})
+            return self.yard_socket()
         if route == '/chat':
             if 'vault' in closed_places():
                 return self.send_json(503, {'ok': False, 'error': "Bee's Vault is closed for a moment."})
@@ -2223,7 +2298,7 @@ class Handler(SimpleHTTPRequestHandler):
                 body = json.dumps({'ok': True, 'waiting': len(QUEUE),
                                    'live': STATS['live'], 'paired': STATS['paired'],
                                    'matches': len(MATCHES), 'chat': len(CHAT['peers']),
-                                   'brawl': brawl_online()}).encode()
+                                   'brawl': brawl_online(), 'yard': len(YARD_LOBBY['peers'])}).encode()
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Content-Length', str(len(body)))
@@ -2482,6 +2557,104 @@ class Handler(SimpleHTTPRequestHandler):
                     with BB_LOCK:
                         whole = dict(peer.p)
                     brawl_broadcast({'t': 'p', 'peer': peer.id, 'p': whole}, skip=peer)
+
+    def yard_socket(self):
+        if not self.ws_accept():
+            return
+        peer = YardPeer(self)
+        try:
+            self.yard_pump(peer)
+        except Exception:
+            pass
+        finally:
+            peer.alive = False
+            with YARD_LOBBY['lock']:
+                was_in = peer in YARD_LOBBY['peers']
+                if was_in:
+                    YARD_LOBBY['peers'].remove(peer)
+                    if YARD_LOBBY['host'] is peer:
+                        YARD_LOBBY['host'] = None
+                    yard_pick()
+            if was_in:
+                yard_tell()
+                log('yard: %s left (%d in the lobby)' % (peer.name, len(YARD_LOBBY['peers'])))
+
+    def yard_pump(self, peer):
+        L = YARD_LOBBY
+        while True:
+            frame = ws_read(self.rfile)
+            if frame is None:
+                return
+            opcode, payload = frame
+            if opcode == 0x8:
+                return
+            if opcode == 0x9:
+                with peer.lock:
+                    self.wfile.write(ws_frame(payload, 0xA))
+                    self.wfile.flush()
+                continue
+            if opcode != 0x1 or not payload or len(payload) > YARD_FRAME_MAX:
+                continue
+            k = payload[:1]
+            if k == b'B':                       # the host's picture of the match, to everyone else
+                with L['lock']:
+                    others = [p for p in L['peers'] if p is not peer] if L['host'] is peer else None
+                    if others is not None:
+                        L['last_b'] = time.time()
+                for p in others or ():
+                    p.send(payload)
+            elif k == b'H':                     # a guest's buttons, to the host
+                with L['lock']:
+                    host = L['host'] if peer.id else None
+                if host is not None and host is not peer:
+                    host.send(b'H' + str(peer.id).encode() + b'|' + payload[1:])
+            elif k == b'J':
+                if peer.id:
+                    continue
+                try:
+                    name = brawl_name(json.loads(payload[1:].decode('utf-8')).get('n'))
+                except Exception:
+                    name = None
+                with L['lock']:
+                    full = len(L['peers']) >= YARD_MAX
+                    if not full:
+                        peer.id = L['next']
+                        L['next'] += 1
+                        base = name or 'Player'
+                        taken = set(p.name for p in L['peers'])
+                        peer.name, n = base, 2
+                        while peer.name in taken:
+                            peer.name = '%s %d' % (base[:13], n)
+                            n += 1
+                        L['peers'].append(peer)
+                        yard_pick()
+                        hello = 'W' + yard_roster(peer)
+                if full:
+                    peer.send('F')
+                    return
+                peer.send(hello)
+                yard_tell()
+                log('yard: %s joined (%d in the lobby)' % (peer.name, len(L['peers'])))
+            elif k == b'A':                     # the game went out of view, or came back
+                if not peer.id:
+                    continue
+                with L['lock']:
+                    peer.away = payload[1:2] == b'1'
+                    yard_pick()
+                yard_tell()
+            elif k == b'S':                     # "the host has gone quiet"
+                with L['lock']:
+                    host = L['host']
+                    ok = (peer.id and host is not peer and not peer.away
+                          and time.time() - L['last_b'] > YARD_STALL)
+                    if ok:
+                        if host is not None:
+                            host.away = True
+                        L['host'] = peer
+                        L['last_b'] = time.time()
+                if ok:
+                    yard_tell()
+                    log('yard: the host went quiet, %s takes over' % peer.name)
 
     def websocket(self):
         if not self.ws_accept():
