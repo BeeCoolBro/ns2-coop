@@ -1772,18 +1772,32 @@ def brawl_name(v):
     return name
 
 
-# ── Scrapyard Skirmish: one lobby for everyone ───────────────────
-# Everyone who presses Play Online is in the same lobby. One of them hosts: that
-# player's game runs the match and its frames ('B...') go to all the others;
-# everyone else's frames ('H...') go to the host with their id in front. The
-# server never reads a game frame. It only decides who is in and who hosts: the
-# player who has been here longest and has the game in view. A host who leaves,
-# hides the tab or stops sending is replaced, and the new one carries on.
-YARD_LOBBY = {'peers': [], 'host': None, 'next': 1, 'last_b': 0.0, 'lock': threading.Lock()}
+# ── Scrapyard Skirmish: the big lobby, and 1v1 duels ───────────────
+# Players are in rooms. 'lobby' is the one big room everyone shares (up to 12);
+# a 'duel' room holds two, and a player asking for a duel goes into the oldest
+# duel room that is waiting for someone, or a new one. In each room one player's
+# game hosts: its frames ('B...') go to the others, and the others' frames ('H...')
+# go to it with their id in front. The server never reads a game frame. It only
+# decides who is in which room and who hosts: the player there longest with the
+# game in view. A host who leaves, hides the tab or stops sending is replaced, and
+# the new one carries on.
+YARD_LOCK = threading.Lock()
+YARD_ROOMS = []
+YARD_NEXT = [1]
+YARD_REAPED = [0.0]
 YARD_MAX = 12
 YARD_FRAME_MAX = 256 * 1024
 YARD_STALL = 2.0                # seconds of silence from the host before a guest may take over
 YARD_QUIET = 25.0               # seconds of silence from anyone (they send 'P' every 5) before they are dropped
+
+
+class YardRoom(object):
+    def __init__(self, kind):
+        self.kind = kind
+        self.cap = 2 if kind == 'duel' else YARD_MAX
+        self.peers = []
+        self.host = None
+        self.last_b = 0.0
 
 
 class YardPeer(object):
@@ -1795,6 +1809,7 @@ class YardPeer(object):
         self.name = 'Player'
         self.away = False
         self.last = time.time()
+        self.room = None
 
     def send(self, data):
         if not isinstance(data, bytes):
@@ -1809,28 +1824,48 @@ class YardPeer(object):
                 self.alive = False
 
 
-def yard_pick():
-    """Settle who hosts. Call with the lobby's lock held."""
-    peers, host = YARD_LOBBY['peers'], YARD_LOBBY['host']
+def yard_count(kind=None):
+    with YARD_LOCK:
+        return sum(len(r.peers) for r in YARD_ROOMS if kind is None or r.kind == kind)
+
+
+def yard_room_for(kind):
+    """The room a new player of this kind goes into, or None if the lobby is full.
+    Call with the lock held."""
+    if kind == 'duel':
+        room = next((r for r in YARD_ROOMS if r.kind == 'duel' and len(r.peers) == 1), None)
+    else:
+        room = next((r for r in YARD_ROOMS if r.kind == 'lobby'), None)
+        if room is not None and len(room.peers) >= room.cap:
+            return None
+    if room is None:
+        room = YardRoom(kind)
+        YARD_ROOMS.append(room)
+    return room
+
+
+def yard_pick(room):
+    """Settle who hosts a room. Call with the lock held."""
+    peers, host = room.peers, room.host
     if host in peers and not host.away:
         return
     new = next((p for p in peers if not p.away), None)
     if new is None:
         new = host if host in peers else (peers[0] if peers else None)
     if new is not host:
-        YARD_LOBBY['host'] = new
-        YARD_LOBBY['last_b'] = time.time()
+        room.host = new
+        room.last_b = time.time()
 
 
 def yard_reap():
     """Hang up on anyone who has sent nothing for a while (a dropped connection can
     look open for minutes). Their own thread then tidies them away."""
     now = time.time()
-    with YARD_LOBBY['lock']:
-        if now - YARD_LOBBY.get('reaped', 0) < 5:
+    with YARD_LOCK:
+        if now - YARD_REAPED[0] < 5:
             return
-        YARD_LOBBY['reaped'] = now
-        gone = [p for p in YARD_LOBBY['peers'] if now - p.last > YARD_QUIET]
+        YARD_REAPED[0] = now
+        gone = [p for r in YARD_ROOMS for p in r.peers if now - p.last > YARD_QUIET]
     for p in gone:
         p.alive = False
         try:
@@ -1839,21 +1874,21 @@ def yard_reap():
             pass
 
 
-def yard_roster(you=None):
-    """The members list as a frame body. Call with the lobby's lock held."""
-    host = YARD_LOBBY['host']
-    body = {'host': host.id if host else 0,
-            'm': [[p.id, p.name, 1 if p.away else 0] for p in YARD_LOBBY['peers']]}
+def yard_roster(room, you=None):
+    """A room's members as a frame body. Call with the lock held."""
+    host = room.host
+    body = {'host': host.id if host else 0, 'k': room.kind,
+            'm': [[p.id, p.name, 1 if p.away else 0] for p in room.peers]}
     if you is not None:
         body['id'] = you.id
     return json.dumps(body, separators=(',', ':'))
 
 
-def yard_tell():
-    """Send everyone the members list."""
-    with YARD_LOBBY['lock']:
-        frame = 'M' + yard_roster()
-        peers = list(YARD_LOBBY['peers'])
+def yard_tell(room):
+    """Send everyone in a room its members list."""
+    with YARD_LOCK:
+        frame = 'M' + yard_roster(room)
+        peers = list(room.peers)
     for p in peers:
         p.send(frame)
 
@@ -2317,7 +2352,7 @@ class Handler(SimpleHTTPRequestHandler):
                 body = json.dumps({'ok': True, 'waiting': len(QUEUE),
                                    'live': STATS['live'], 'paired': STATS['paired'],
                                    'matches': len(MATCHES), 'chat': len(CHAT['peers']),
-                                   'brawl': brawl_online(), 'yard': len(YARD_LOBBY['peers'])}).encode()
+                                   'brawl': brawl_online(), 'yard': yard_count(), 'yard_duel': yard_count('duel')}).encode()
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Content-Length', str(len(body)))
@@ -2587,19 +2622,20 @@ class Handler(SimpleHTTPRequestHandler):
             pass
         finally:
             peer.alive = False
-            with YARD_LOBBY['lock']:
-                was_in = peer in YARD_LOBBY['peers']
-                if was_in:
-                    YARD_LOBBY['peers'].remove(peer)
-                    if YARD_LOBBY['host'] is peer:
-                        YARD_LOBBY['host'] = None
-                    yard_pick()
-            if was_in:
-                yard_tell()
-                log('yard: %s left (%d in the lobby)' % (peer.name, len(YARD_LOBBY['peers'])))
+            room = peer.room
+            if room is not None:
+                with YARD_LOCK:
+                    if peer in room.peers:
+                        room.peers.remove(peer)
+                    if room.host is peer:
+                        room.host = None
+                    yard_pick(room)
+                    if not room.peers and room in YARD_ROOMS:
+                        YARD_ROOMS.remove(room)
+                yard_tell(room)
+                log('yard: %s left the %s (%d left in it)' % (peer.name, room.kind, len(room.peers)))
 
     def yard_pump(self, peer):
-        L = YARD_LOBBY
         while True:
             frame = ws_read(self.rfile)
             if frame is None:
@@ -2617,64 +2653,67 @@ class Handler(SimpleHTTPRequestHandler):
             k = payload[:1]
             peer.last = time.time()
             yard_reap()
-            if k == b'B':                       # the host's picture of the match, to everyone else
-                with L['lock']:
-                    others = [p for p in L['peers'] if p is not peer] if L['host'] is peer else None
-                    if others is not None:
-                        L['last_b'] = time.time()
-                for p in others or ():
-                    p.send(payload)
-            elif k == b'H':                     # a guest's buttons, to the host
-                with L['lock']:
-                    host = L['host'] if peer.id else None
-                if host is not None and host is not peer:
-                    host.send(b'H' + str(peer.id).encode() + b'|' + payload[1:])
-            elif k == b'J':
-                if peer.id:
+            room = peer.room
+            if k == b'J':
+                if room is not None:
                     continue
                 try:
-                    name = brawl_name(json.loads(payload[1:].decode('utf-8')).get('n'))
+                    j = json.loads(payload[1:].decode('utf-8'))
+                    name, kind = brawl_name(j.get('n')), 'duel' if j.get('d') == 1 else 'lobby'
                 except Exception:
-                    name = None
-                with L['lock']:
-                    full = len(L['peers']) >= YARD_MAX
-                    if not full:
-                        peer.id = L['next']
-                        L['next'] += 1
+                    name, kind = None, 'lobby'
+                with YARD_LOCK:
+                    room = yard_room_for(kind)
+                    if room is not None:
+                        peer.id = YARD_NEXT[0]
+                        YARD_NEXT[0] += 1
                         base = name or 'Player'
-                        taken = set(p.name for p in L['peers'])
+                        taken = set(p.name for p in room.peers)
                         peer.name, n = base, 2
                         while peer.name in taken:
                             peer.name = '%s %d' % (base[:13], n)
                             n += 1
-                        L['peers'].append(peer)
-                        yard_pick()
-                        hello = 'W' + yard_roster(peer)
-                if full:
+                        room.peers.append(peer)
+                        peer.room = room
+                        yard_pick(room)
+                        hello = 'W' + yard_roster(room, peer)
+                if room is None:
                     peer.send('F')
                     return
                 peer.send(hello)
-                yard_tell()
-                log('yard: %s joined (%d in the lobby)' % (peer.name, len(L['peers'])))
+                yard_tell(room)
+                log('yard: %s joined a %s (%d in it)' % (peer.name, room.kind, len(room.peers)))
+                continue
+            if room is None:
+                continue
+            if k == b'B':                       # the host's picture of the match, to everyone else in the room
+                with YARD_LOCK:
+                    others = [p for p in room.peers if p is not peer] if room.host is peer else None
+                    if others is not None:
+                        room.last_b = time.time()
+                for p in others or ():
+                    p.send(payload)
+            elif k == b'H':                     # a guest's buttons, to the host
+                with YARD_LOCK:
+                    host = room.host
+                if host is not None and host is not peer:
+                    host.send(b'H' + str(peer.id).encode() + b'|' + payload[1:])
             elif k == b'A':                     # the game went out of view, or came back
-                if not peer.id:
-                    continue
-                with L['lock']:
+                with YARD_LOCK:
                     peer.away = payload[1:2] == b'1'
-                    yard_pick()
-                yard_tell()
+                    yard_pick(room)
+                yard_tell(room)
             elif k == b'S':                     # "the host has gone quiet"
-                with L['lock']:
-                    host = L['host']
-                    ok = (peer.id and host is not peer and not peer.away
-                          and time.time() - L['last_b'] > YARD_STALL)
+                with YARD_LOCK:
+                    host = room.host
+                    ok = (host is not peer and not peer.away and time.time() - room.last_b > YARD_STALL)
                     if ok:
                         if host is not None:
                             host.away = True
-                        L['host'] = peer
-                        L['last_b'] = time.time()
+                        room.host = peer
+                        room.last_b = time.time()
                 if ok:
-                    yard_tell()
+                    yard_tell(room)
                     log('yard: the host went quiet, %s takes over' % peer.name)
 
     def websocket(self):

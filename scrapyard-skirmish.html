@@ -138,9 +138,10 @@ input[type=range]{width:220px;accent-color:var(--o)}
  <tr><td>Tab</td><td>Scoreboard</td></tr><tr><td>M or Esc</td><td>Pause, change class</td></tr></table>
  <p style="margin:12px 0 0">Stand on the glowing pad to capture it. While your team owns it your clock counts down; the first team to reach zero wins. Step back into your base to heal and restock.</p></div>
  <button class="btn sm" id="btnHowBack">Got it</button></div>
-<div class="screen dim" id="online"><h2>Play online</h2><h3>One lobby for everyone. Bots fill every empty spot until people join.</h3>
+<div class="screen dim" id="online"><h2>Play online</h2><h3>Join the big lobby, or take someone on in a 1v1 duel</h3>
  <div class="panel" style="text-align:center"><div class="lab" style="margin:0 0 6px">Your name</div><input id="onName" maxlength="16" autocomplete="off" spellcheck="false"><div id="onStatus"></div></div>
- <div class="row"><button class="btn sm" id="btnOnBack">Back</button><button class="btn go" id="btnJoin" style="font-size:19px;padding:10px 34px">Join the lobby</button></div></div>
+ <div class="row"><button class="btn sm" id="btnOnBack">Back</button><button class="btn go" id="btnJoin" style="font-size:19px;padding:10px 34px">Join the lobby</button><button class="btn go" id="btnDuel" style="font-size:19px;padding:10px 34px">1v1 Duel</button></div>
+ <h3 style="max-width:560px">The lobby is everyone, bots included, up to 12. A duel puts you one on one with the next player who picks it.</h3></div>
 <div class="screen dim" id="end">
  <div id="vsTop"><div class="tb t0"><b>ORANGE</b><span id="vsN0"></span><em id="vsS0">0</em></div>
   <div id="vsMid"><span id="vsLab">VOTE FOR THE NEXT ARENA</span><b id="vsClock">00:15</b></div>
@@ -209,7 +210,7 @@ function saveSettings(){try{localStorage.setItem('scrapyard-settings',JSON.strin
    One lobby for everyone. One player's game is the host: it runs the whole match, bots included, and sends everyone else
    what is happening 15 times a second. Everyone else moves their own robot themselves and tells the host where it is and
    what it is pressing; the host does the shooting for them, against where things were on their screen. */
-const NET={on:false,host:false,guest:false,id:0,hostId:0,name:'',cls:null,ws:null,members:[],
+const NET={on:false,host:false,guest:false,duel:false,waitT:0,id:0,hostId:0,name:'',cls:null,ws:null,members:[],
  rec:false,mute:0,fxo:-1,ev:[],pv:{},pid:0,rn:0,rv:0,
  votes:{},snapA:null,snapB:null,recvB:0,rt:0,sendT:0,inT:0,joinT:0,stallT:0,lastSnap:0,status:''};
 const r2=v=>Math.round(v*100)/100,r3=v=>Math.round(v*1000)/1000;
@@ -2104,8 +2105,11 @@ const MODES={
  tdm:{name:'Team Deathmatch',tag:'TDM',goal:'First team to 40 scraps wins!'},
  ctf:{name:'Capture the Flag',tag:'CTF',goal:'Steal their flag and bring it home!'},
  pl:{name:'Payload',tag:'PL',goal:'Push the cart into their base!'}};
-const MODE_IDS=Object.keys(MODES),TDM_GOAL=40,CTF_GOAL=3,MODE_TIME={tdm:300,ctf:480,pl:420};
+const MODE_IDS=Object.keys(MODES),TDM_GOAL=40,DUEL_GOAL=10,CTF_GOAL=3,MODE_TIME={tdm:300,ctf:480,pl:420};
 let curMode='koth';
+// a 1v1 duel is first to 10 scraps, not 40
+const tdmGoal=()=>NET.duel?DUEL_GOAL:TDM_GOAL;
+const modeGoalText=m=>m==='tdm'?(NET.duel?'Duel! First to '+DUEL_GOAL+' scraps wins!':'First team to '+TDM_GOAL+' scraps wins!'):MODES[m].goal;
 const GM={mode:'koth',t:0,score:[0,0],flags:[],cart:null,objs:[]};
 function modeAdd(o){scene.add(o);GM.objs.push(o);return o}
 function modeClear(){for(const o of GM.objs){scene.remove(o);o.traverse(m=>{if(m.geometry)m.geometry.dispose()})}GM.objs=[];GM.flags=[];GM.cart=null}
@@ -2211,7 +2215,7 @@ function plUpdate(dt){
 function modeUpdate(dt){
  const m=GM.mode;if(m==='koth'){cpUpdate(dt);return}
  const before=GM.t;GM.t-=dt;if(GM.t<=10&&GM.t>0&&Math.ceil(GM.t)!==Math.ceil(before))sfx('tick');
- if(m==='tdm'){for(const t of [0,1])if(GM.score[t]>=TDM_GOAL){endRound(t);return}if(GM.t<=0)modeTimeUp()}
+ if(m==='tdm'){for(const t of [0,1])if(GM.score[t]>=tdmGoal()){endRound(t);return}if(GM.t<=0)modeTimeUp()}
  else if(m==='ctf')ctfUpdate(dt);
  else plUpdate(dt);
 }
@@ -2235,7 +2239,7 @@ function hudObjective(){
   setS('cp','borderColor',cp.owner<0?'#999':TEAM[cp.owner].css);setS('cpfill','width',(cp.capProg*100).toFixed(1)+'%');setS('cpfill','background',cp.capTeam>=0?TEAM[cp.capTeam].css:'transparent');
   setT('cplabel',cp.contested?'CONTESTED':cp.owner>=0&&cp.clock[cp.owner]<=0?'OVERTIME':cp.capProg>0?'CAPTURING':cp.owner<0?'NEUTRAL':TEAM[cp.owner].name);return}
  let a=GM.score[0],b=GM.score[1],lab='',fill=0,fc='transparent',bg='';const t=fmt(Math.max(0,GM.t));
- if(m==='tdm')lab='FIRST TO '+TDM_GOAL+' · '+t;
+ if(m==='tdm')lab='FIRST TO '+tdmGoal()+' · '+t;
  else if(m==='ctf'){const mine=GM.flags[e.team],th=GM.flags[1-e.team];
   lab=!mine?'':th.carrier===e?'TAKE IT HOME!':mine.st===1?'THEY HAVE YOUR FLAG':th.st===1?'YOUR TEAM HAS THEIR FLAG':mine.st===2?'YOUR FLAG IS DOWN':'FIRST TO '+CTF_GOAL+' · '+t}
  else if(GM.cart){const C=GM.cart,p=C.s/C.L;a=Math.round(Math.max(0,p)*100)+'%';b=Math.round(Math.max(0,-p)*100)+'%';
@@ -2314,14 +2318,14 @@ function clearRound(){
 }
 function newRound(cls,asAttract){
  clearRound();if(!MAP||MAP.id!==curMap)loadMap(curMap);else{for(const s of shields.slice())removeShield(s)}
- attract=!!asAttract;if(attract&&vm){camera.remove(vm);disposeModel(vm);vm=null}const n=NET.on?NET_TEAM:SETTINGS.team,names=NAMES.slice().sort(()=>R()-.5);let ni=0;
+ attract=!!asAttract;if(attract&&vm){camera.remove(vm);disposeModel(vm);vm=null}const n=NET.on?(NET.duel?1:NET_TEAM):SETTINGS.team,names=NAMES.slice().sort(()=>R()-.5);let ni=0;
  const mine=teamComp(n,asAttract?null:cls),theirs=teamComp(n,null);
  for(let i=0;i<n;i++){const me=!asAttract&&i===0,slot=[2,0,1,3,4,5,6,7][i];ents.push(makeEnt(0,slot,mine[i],me,me?(NET.on?NET.name:'YOU'):names[ni++]))}
  for(let i=0;i<n;i++)ents.push(makeEnt(1,i,theirs[i],false,names[ni++]));
  player=ents[0];ents.forEach((e,i)=>{e.id=i});if(NET.on&&!attract)player.mid=NET.id;VOTE=null;retarget();for(const e of ents)spawn(e);
  cp.owner=-1;cp.capTeam=-1;cp.capProg=0;cp.clock=[100,100];cp.n=[0,0];winTeam=-1;overT=0;endShown=false;
  makePacks();modeSetup();state='play';hurtFlash=0;killer=null;now=0;
- if(!attract){buildSlots();$('portrait').src=PORTRAIT[player.cls];drawMinimapBase();banner(MODES[curMode].goal,'#fff',3.5)}
+ if(!attract){buildSlots();$('portrait').src=PORTRAIT[player.cls];drawMinimapBase();banner(modeGoalText(curMode),'#fff',3.5)}
 }
 function startAttract(next){
  if(next){const ids=MAP_IDS();curMap=ids[(ids.indexOf(curMap)+1)%ids.length]}
@@ -2373,8 +2377,8 @@ function initScreens(){
  const nm=$('onName');try{nm.value=localStorage.getItem('scrapyard-name')||''}catch(e){}
  $('btnOnline').onclick=()=>{audioInit();netStatus(netUrl()?'':'Online play only works on the BeeSide site.');show('online');nm.focus()};
  $('btnOnBack').onclick=()=>{netClose();netStatus('');show('title')};
- const join=()=>{const v=nm.value.replace(/\s+/g,' ').trim().slice(0,16);if(!v){netStatus('Type a name first.');nm.focus();return}try{localStorage.setItem('scrapyard-name',v)}catch(e){}audioInit();netConnect(v)};
- $('btnJoin').onclick=join;nm.addEventListener('keydown',ev=>{ev.stopPropagation();if(ev.key==='Enter')join();else if(ev.key==='Escape'){netClose();show('title')}});
+ const join=duel=>{const v=nm.value.replace(/\s+/g,' ').trim().slice(0,16);if(!v){netStatus('Type a name first.');nm.focus();return}try{localStorage.setItem('scrapyard-name',v)}catch(e){}audioInit();netConnect(v,duel)};
+ $('btnJoin').onclick=()=>join(false);$('btnDuel').onclick=()=>join(true);nm.addEventListener('keydown',ev=>{ev.stopPropagation();if(ev.key==='Enter')join(false);else if(ev.key==='Escape'){netClose();show('title')}});
  const bind=(id,key,fmt,fn)=>{const s=$(id),v=$('v'+id.slice(1));s.value=SETTINGS[key];v.textContent=fmt(SETTINGS[key]);s.oninput=()=>{SETTINGS[key]=+s.value;v.textContent=fmt(+s.value);saveSettings();if(fn)fn(+s.value)}};
  bind('sSens','sens',v=>v.toFixed(2)+'x');bind('sFov','fov',v=>v+'°');bind('sVol','vol',v=>Math.round(v*100)+'%',setVolume);
 }
@@ -2542,17 +2546,17 @@ function netUrl(){
 }
 function netStatus(s){NET.status=s;const el=$('onStatus');if(el)el.textContent=s}
 function netSendRaw(s){const ws=NET.ws;if(ws&&ws.readyState===1)ws.send(s)}
-function netConnect(name){
- if(NET.ws)return;const url=netUrl();if(!url){netStatus('Online play only works on the BeeSide site.');return}
- NET.name=name;netStatus('Joining the lobby...');
+function netConnect(name,duel){
+ if(NET.ws)return;NET.duel=!!duel;const url=netUrl();if(!url){netStatus('Online play only works on the BeeSide site.');return}
+ NET.name=name;netStatus(duel?'Looking for an opponent...':'Joining the lobby...');
  let ws;try{ws=new WebSocket(url)}catch(e){netStatus('Could not reach the lobby.');return}
  NET.ws=ws;
- ws.onopen=()=>ws.send('J'+JSON.stringify({n:name}));
+ ws.onopen=()=>ws.send('J'+JSON.stringify(duel?{n:name,d:1}:{n:name}));
  ws.onmessage=ev=>{const d=String(ev.data),k=d[0],b=d.slice(1);
   try{
    if(k==='B'){if(NET.guest)netSnap(JSON.parse(b))}
    else if(k==='H'){if(NET.host){const i=b.indexOf('|');netHostMsg(+b.slice(0,i),JSON.parse(b.slice(i+1)))}}
-   else if(k==='W'){const m=JSON.parse(b);NET.id=m.id;NET.on=true;paused=false;netMembers(m);$('clsSub').textContent='Online: you join whichever team needs a player';show('classes')}
+   else if(k==='W'){const m=JSON.parse(b);NET.id=m.id;NET.on=true;NET.duel=m.k==='duel';paused=false;netMembers(m);$('clsSub').textContent=NET.duel?(m.m.length>1?'1v1 duel against '+m.m.find(x=>x[0]!==m.id)[1]:'1v1 duel: you warm up against a bot until an opponent joins'):'Online: you join whichever team needs a player';show('classes')}
    else if(k==='M'){if(NET.on)netMembers(JSON.parse(b))}
    else if(k==='F'){netStatus('The lobby is full (12 players). Try again in a bit.');netClose()}
    else if(k==='X'){netStatus('Online play is closed for now.');netClose()}
@@ -2561,7 +2565,7 @@ function netConnect(name){
 }
 function netReset(){
  document.body.style.removeProperty('--me');
- NET.on=NET.host=NET.guest=false;NET.live=false;NET.ws=null;NET.members=[];NET.snapA=NET.snapB=null;NET.votes={};NET.ev=[];NET.pv={};NET.cls=null;NET.lastSnap=0;
+ NET.on=NET.host=NET.guest=NET.duel=false;NET.live=false;NET.ws=null;NET.members=[];NET.snapA=NET.snapB=null;NET.votes={};NET.ev=[];NET.pv={};NET.cls=null;NET.lastSnap=0;
  for(const e of ents){e.remote=0;e.mid=0}
 }
 function netClose(){const ws=NET.ws;netReset();if(ws)try{ws.close()}catch(e){}}
@@ -2586,13 +2590,13 @@ function netMembers(m){
  }
 }
 function netHostStart(){
- const ids=MAP_IDS();if(!NET.live){curMap=ids[(R()*ids.length)|0];curMode=MODE_IDS[(R()*MODE_IDS.length)|0]}
+ const ids=MAP_IDS();if(!NET.live){curMap=ids[(R()*ids.length)|0];curMode=NET.duel?'tdm':MODE_IDS[(R()*MODE_IDS.length)|0]}
  newRound(NET.cls,false);NET.live=true;NET.rn=(Date.now()%1e8)*10+1;NET.rv++;NET.votes={};NET.ev=[];NET.pv={};
  show(null);
 }
 function netToBot(e){
  const used=ents.map(o=>o.name),nm=NAMES.find(n=>used.indexOf(n)<0)||'Rusty';
- if(netMember(e.mid)===undefined&&e.mid)netSay(e.name+' left');
+ if(netMember(e.mid)===undefined&&e.mid){netSay(e.name+' left');if(NET.duel)NET.waitT=0}
  e.mid=0;e.remote=0;e.inp=null;e.nv=null;e.name=nm;NET.rv++;
 }
 // a player takes over a bot on whichever team has fewer people
@@ -2613,13 +2617,14 @@ function netBecome(e){
  e.isPlayer=true;e.remote=0;player=e;attract=false;document.body.style.setProperty('--me',TEAM[e.team].css);
  buildVM();buildSlots();$('portrait').src=PORTRAIT[e.cls];drawMinimapBase();camY=e.y+1.55;$('dead').style.display=e.alive?'none':'block';
  if(!screen||screen==='classes'||screen==='online')show(null);
+ if(NET.duel&&NET.guest){const o=ents.find(x=>x.mid&&x!==e);banner(o?'DUEL! '+e.name+' vs '+o.name+' · first to '+DUEL_GOAL:modeGoalText(GM.mode),'#ffe36b',3.5)}
  document.body.classList.toggle('nohud',!!screen||state!=='play');
 }
 function netHostMsg(mid,p){
  if(!Array.isArray(p)||!NET.live)return;const k=p[0],e=ents.find(o=>o.remote===mid);
  if(k==='i'){if(e)netInput(e,p);return}
  if(k==='j'||k==='c'){const cls=p[1];if(!CLASSES[cls]||!netMember(mid))return;
-  if(!e){netAssign(mid,cls);return}
+  if(!e){netAssign(mid,cls);if(NET.duel&&state==='play'){curMode='tdm';netHostRound();const o=ents.find(x=>x.mid===mid);modeSay('DUEL! '+NET.name+' vs '+(o?o.name:'a challenger'),'#ffe36b','cap')}return}
   if(e.cls!==cls&&state==='play'){for(const o of builds.slice())if(o.owner===e)destroyBuild(o,null);setClass(e,cls);spawn(e);NET.rv++}return}
  if(k==='v'){const i=p[1]|0;if(i>=0&&i<4)NET.votes[mid]=i}
 }
@@ -2671,6 +2676,8 @@ function netHostTick(dt){
    if(dx*dx+dy*dy+dz*dz>.04){const im=e.imp||(e.imp=[0,0,0]);im[0]+=dx;im[1]+=dy;im[2]+=dz}
    e.vx=e.nv[0];e.vy=e.nv[1];e.vz=e.nv[2]}
  }
+ // alone in a duel room: say so now and then
+ if(NET.duel&&NET.members.length<2&&state==='play'&&!attract){NET.waitT-=dt;if(NET.waitT<=0){NET.waitT=8;banner('Waiting for an opponent... warming up against a bot','#ffe36b',3)}}
  NET.sendT-=dt;if(NET.sendT>0)return;NET.sendT=NET_SNAP;
  if(NET.members.length<2){NET.ev.length=0;NET.pv={};return}
  const S={t:r3(now),rn:NET.rn,map:curMap,md:GM.mode,st:state==='over'?1:0,wt:winTeam,
